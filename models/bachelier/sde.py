@@ -2,24 +2,26 @@ import math
 import numpy as np
 from scipy.stats import norm
 
+import models.sde as sde
 
-class SDE:
-    """
-    Bachelier SDE: dS_t = rate * dt + vol * dW_t
-    """
 
-    def __init__(self, rate, vol):
-        self._rate = rate
+class SDE(sde.AbstractSDE):
+    """
+    Bachelier SDE class
+    dS_t = vol * dW_t
+    todo: Extend to dS_t = rate * S_t dt + vol * dW_t
+    todo: https://quant.stackexchange.com/questions/32863/bachelier-model-call-option-pricing-formula
+    """
+    def __init__(self, vol):
         self._vol = vol
         self._model_name = 'Bachelier'
 
-    @property
-    def rate(self):
-        return self._rate
+    def __repr__(self):
+        return f"{self.model_name} SDE object"
 
-    @rate.setter
-    def rate(self, rate_):
-        self._rate = rate_
+    @property
+    def model_name(self):
+        return self._model_name
 
     @property
     def vol(self):
@@ -27,18 +29,11 @@ class SDE:
 
     @vol.setter
     def vol(self, vol_):
-        self._rate = vol_
-
-    @property
-    def model_name(self):
-        return self._model_name
+        self._vol = vol_
 
     def path(self, spot, time, n_paths, antithetic=False):
         """
-        Generate realizations of Brownian motion with a drift
-
-        todo: What if len(spot) != 1 and n_paths != 1, and len(spot) != n_paths?
-        todo: What if n_paths is odd?
+        Generate realizations of arithmetic Brownian motion
 
         Parameters
         ----------
@@ -50,12 +45,15 @@ class SDE:
 
         Returns
         -------
-        numpy.ndarray
+        float / numpy.ndarray
         """
         if antithetic:
+            if n_paths % 2 == 1:
+                raise ValueError("Antithetic sampling: n_paths is odd")
             realizations = norm.rvs(size=n_paths // 2)
             realizations = np.append(realizations, -realizations)
         else:
             realizations = norm.rvs(size=n_paths)
-        return spot + self.rate * time \
-            + self.vol * math.sqrt(time) * realizations
+        if (len(spot) > 1 and n_paths > 1) and (len(spot) != n_paths):
+            raise ValueError("len(spot) != n_paths")
+        return spot + self.vol * math.sqrt(time) * realizations

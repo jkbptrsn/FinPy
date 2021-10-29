@@ -5,8 +5,8 @@ class Option(sde.SDE):
     """
     European option in Bachelier model
     """
-    def __init__(self, rate, vol, strike, expiry):
-        super().__init__(rate, vol)
+    def __init__(self, vol, strike, expiry):
+        super().__init__(vol)
         self._strike = strike
         self._expiry = expiry
 

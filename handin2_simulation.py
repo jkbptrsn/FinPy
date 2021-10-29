@@ -95,7 +95,7 @@ strike = 1
 expiry = 1
 
 # Call object
-call = bachelier.Call(rate, vol, strike, expiry)
+call = bachelier.Call(vol, strike, expiry)
 # call = black_scholes.Call(rate, vol, strike, expiry)
 
 #############
