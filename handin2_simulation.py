@@ -7,7 +7,7 @@ import models.bachelier.call as bachelier
 import models.black_scholes.call as black_scholes
 
 
-def data_set(option, time, n_paths):
+def data_set(option, time, n_paths, delta_mode="Path-wise"):
     """Generate data set"""
     # Random spot values, independent of model
     spot = option.strike \
@@ -16,10 +16,19 @@ def data_set(option, time, n_paths):
     payoff = option.payoff(spot_moved)
 
     # Path-wise "delta" values
-    if option.model_name == 'Bachelier':
-        delta = (spot_moved > option.strike) * 1
-    elif option.model_name == 'Black-Scholes':
-        delta = (spot_moved > option.strike) * spot_moved / spot
+    if delta_mode == "Path-wise":
+        if option.model_name == 'Bachelier':
+            delta = (spot_moved > option.strike) * 1
+        elif option.model_name == 'Black-Scholes':
+            delta = (spot_moved > option.strike) * spot_moved / spot
+    elif delta_mode == "LRM":
+        if option.model_name == 'Bachelier':
+            delta = option.payoff(spot_moved) \
+                * (spot_moved - spot) / (option.vol * math.sqrt(option.expiry - time))
+        elif option.model_name == 'Black-Scholes':
+            delta = option.payoff(spot_moved) \
+                * (np.log(spot_moved / spot) + 0.5 * option.vol ** 2 * (option.expiry - time)) \
+                / (option.vol ** 2 * (option.expiry - time) * spot)
 
     return spot, payoff, delta
 
@@ -54,7 +63,8 @@ def polynomials(poly_order, spot_range, spot, payoff, delta, w=1):
 
 
 def discrete_hedging(
-        option, n_paths, n_steps, mode='analytic', poly_order=7, w=1):
+        option, n_paths, n_steps, mode='analytic', poly_order=7, w=1,
+        delta_mode="Path-wise"):
     """Discrete hedging..."""
     # Initial spot is 1 in all cases!!!
     spot = np.ones(n_paths)
@@ -63,7 +73,7 @@ def discrete_hedging(
     if mode == 'analytic':
         a = option.delta(spot, 0)
     elif mode == 'regression':
-        spot_temp, payoff, delta = data_set(option, expiry, n_paths)
+        spot_temp, payoff, delta = data_set(option, expiry, n_paths, delta_mode=delta_mode)
         poly_price, poly_delta = \
             polynomials(poly_order, spot, spot_temp, payoff, delta, w=w)
         a = poly_delta
@@ -76,7 +86,7 @@ def discrete_hedging(
             a = option.delta(spot, n * time_step)
         elif mode == 'regression':
             spot_temp, payoff, delta = \
-                data_set(option, expiry - n * time_step, n_paths)
+                data_set(option, expiry - n * time_step, n_paths, delta_mode=delta_mode)
             poly_price, poly_delta = \
                 polynomials(poly_order, spot, spot_temp, payoff, delta, w=w)
             a = poly_delta
@@ -96,7 +106,10 @@ expiry = 1
 
 # Call object
 call = bachelier.Call(vol, strike, expiry)
-# call = black_scholes.Call(rate, vol, strike, expiry)
+#call = black_scholes.Call(rate, vol, strike, expiry)
+
+delta_mode = "Path-wise"
+#delta_mode = "LRM"
 
 #############
 # Figure 2a #
@@ -188,7 +201,8 @@ for b in range(n_batches):
                 # Relative hedge error
                 mean, std = \
                     discrete_hedging(call, n_hedge_paths, n_time_steps,
-                                     mode='regression', poly_order=p, w=w)
+                                     mode='regression', poly_order=p, w=w,
+                                     delta_mode=delta_mode)
                 hedge_error[counter, b] = std
                 counter += 1
                 print(n_sim, w, p)
