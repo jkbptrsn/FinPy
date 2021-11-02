@@ -1,4 +1,3 @@
-import functools
 import math
 import numpy as np
 import models.black_scholes.sde as sde

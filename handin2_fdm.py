@@ -63,6 +63,10 @@ plt.plot(x_grid, p_grid[0, :], 'k')
 plt.plot(x_grid, p_grid[-1, :], 'r')
 call = bs_call.Call(rate, vol, strike, expiry)
 plt.plot(x_grid, call.price(x_grid, 0), '.b')
-plt.xlim((0.5, 1.5))
-plt.ylim((-0.1, 0.6))
+#plt.xlim((0.5, 1.5))
+#plt.ylim((-0.1, 0.6))
 plt.show()
+
+
+
+
