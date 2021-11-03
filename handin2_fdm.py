@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.linalg import solve_banded
 
-import models.payoffs as payoffs
+import utils.payoffs as payoffs
 import models.black_scholes.call as bs_call
 
 rate = 0.02

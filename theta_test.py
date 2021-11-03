@@ -2,7 +2,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 
-import models.payoffs as payoffs
+import utils.payoffs as payoffs
 import models.black_scholes.call as bs_call
 import models.black_scholes.put as bs_put
 import fd_methods.theta as theta
@@ -20,14 +20,18 @@ dt = (t_max - t_min) / (t_steps - 1)
 
 x_min = 0.0
 x_max = 160.0
-x_steps = 3201
+x_steps = 161 #3201
 
 PDEsolver = theta.Solver(x_min, x_max, x_steps)
 
 # Differential operator in Black-Scholes PDE
 d_operator = - rate * PDEsolver.identity() + rate * PDEsolver.x_ddx() + 0.5 * vol ** 2 * PDEsolver.x2_d2dx2()
+
 option = 'put'
-exercise_type = 'American'
+
+exercise_type = 'European'
+#exercise_type = 'American'
+
 # Final conditions
 if option == 'call':
     v_vector = payoffs.call(PDEsolver.x_grid(), strike)
@@ -52,8 +56,8 @@ for t in range(t_steps):
                 v_vector = np.maximum(v_vector, strike - PDEsolver.x_grid())
 
 plt.plot(PDEsolver.x_grid(), v_vector, '.r')
-#plt.xlim((0.2, 1.4))
-#plt.ylim((-0.1, 0.4))
+plt.xlim((32, 48))
+plt.ylim((0, 8))
 plt.show()
 
 s_points = [36, 38, 40, 42, 44]

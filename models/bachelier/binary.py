@@ -2,7 +2,7 @@ import math
 from scipy.stats import norm
 
 import models.bachelier.option as option
-import models.payoffs as payoffs
+import utils.payoffs as payoffs
 
 
 class BinaryCashCall(option.Option):

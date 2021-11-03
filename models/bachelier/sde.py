@@ -6,12 +6,12 @@ import models.sde as sde
 
 
 class SDE(sde.AbstractSDE):
-    """
-    Bachelier SDE class
+    """Bachelier SDE:
     dS_t = vol * dW_t
     todo: Extend to dS_t = rate * S_t dt + vol * dW_t
     todo: https://quant.stackexchange.com/questions/32863/bachelier-model-call-option-pricing-formula
     """
+
     def __init__(self, vol):
         self._vol = vol
         self._model_name = 'Bachelier'
@@ -31,29 +31,22 @@ class SDE(sde.AbstractSDE):
     def vol(self, vol_):
         self._vol = vol_
 
-    def path(self, spot, time, n_paths, antithetic=False):
-        """
-        Generate realizations of arithmetic Brownian motion
+    def path(self,
+             spot: (float, np.ndarray),
+             time: float,
+             n_paths: int,
+             antithetic: bool = False) -> (float, np.ndarray):
+        """Generate realizations of arithmetic Brownian motion.
 
-        Parameters
-        ----------
-        spot : float / numpy.ndarray
-        time : float
-        n_paths : int
-        antithetic : bool
-            Antithetic sampling for Monte-Carlo variance reduction
-
-        Returns
-        -------
-        float / numpy.ndarray
+        antithetic : Antithetic sampling for Monte-Carlo variance
+        reduction. Defaults to False.
         """
         if antithetic:
             if n_paths % 2 == 1:
-                raise ValueError("Antithetic sampling: n_paths is odd")
+                raise ValueError("In antithetic sampling, "
+                                 "n_paths should be even.")
             realizations = norm.rvs(size=n_paths // 2)
             realizations = np.append(realizations, -realizations)
         else:
             realizations = norm.rvs(size=n_paths)
-        if (len(spot) > 1 and n_paths > 1) and (len(spot) != n_paths):
-            raise ValueError("len(spot) != n_paths")
         return spot + self.vol * math.sqrt(time) * realizations
