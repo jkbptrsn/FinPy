@@ -5,7 +5,7 @@ from scipy.stats import norm
 import models.sde as sde
 
 
-class SDE(sde.AbstractSDE):
+class SDE(sde.SDE):
     """Black-Scholes SDE:
     dS_t = rate * S_t * dt + vol * S_t * dW_t
     todo: What about 2-d, or n-d?
@@ -66,7 +66,6 @@ class SDE(sde.AbstractSDE):
                   time_grid: np.ndarray) -> np.ndarray:
         """Generate one path, represented on time_grid, of geometric
         Brownian motion using analytic expression."""
-        # Time increments
         dt = time_grid[1:] - time_grid[:-1]
         spot_moved = spot * np.cumprod(
             np.exp((self.rate - self.vol ** 2 / 2) * dt

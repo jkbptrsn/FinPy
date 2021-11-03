@@ -2,15 +2,22 @@ import math
 import numpy as np
 from scipy.special import erf
 from scipy.stats import norm
+
 import models.black_scholes.option as option
+import utils.global_types as global_types
 
 
-class Binary(option.Option):
+class Binary(option.VanillaOption):
     """
     European binary option in Black-Scholes model
     """
     def __init__(self, rate, vol, strike, expiry):
         super().__init__(rate, vol, strike, expiry)
+        self._option_type = global_types.OptionType.EUROPEAN_PUT
+
+    @property
+    def option_type(self):
+        return self._option_type
 
     def con_call_price(self, spot, time):
         """Price of European cash-or-nothing call option

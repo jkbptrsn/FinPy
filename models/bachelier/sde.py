@@ -5,7 +5,7 @@ from scipy.stats import norm
 import models.sde as sde
 
 
-class SDE(sde.AbstractSDE):
+class SDE(sde.SDE):
     """Bachelier SDE:
     dS_t = vol * dW_t
     todo: Extend to dS_t = rate * S_t dt + vol * dW_t
@@ -57,7 +57,6 @@ class SDE(sde.AbstractSDE):
                   time_grid: np.ndarray) -> np.ndarray:
         """Generate one path, represented on time_grid, of arithmetic
         Brownian motion using analytic expression."""
-        # Time increments
         dt = time_grid[1:] - time_grid[:-1]
         spot_moved = spot \
             + np.cumsum(self.vol * np.sqrt(dt) * norm.rvs(size=dt.shape()[0]))

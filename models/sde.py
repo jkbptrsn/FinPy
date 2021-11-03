@@ -2,7 +2,7 @@ import abc
 import numpy as np
 
 
-class AbstractSDE(metaclass=abc.ABCMeta):
+class SDE(metaclass=abc.ABCMeta):
     """Abstract Stochastic Differential Equation class."""
 
     @property

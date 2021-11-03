@@ -1,15 +1,22 @@
 import math
 import numpy as np
 from scipy.stats import norm
+
 import models.black_scholes.option as option
+import utils.global_types as global_types
 
 
-class Put(option.Option):
+class Put(option.VanillaOption):
     """
     European put option in Black-Scholes model
     """
     def __init__(self, rate, vol, strike, expiry):
         super().__init__(rate, vol, strike, expiry)
+        self._option_type = global_types.OptionType.EUROPEAN_PUT
+
+    @property
+    def option_type(self):
+        return self._option_type
 
     def payoff(self, spot):
         return np.maximum(self.strike - spot, 0)
