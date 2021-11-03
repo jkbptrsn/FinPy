@@ -16,5 +16,12 @@ class AbstractSDE(metaclass=abc.ABCMeta):
              time: float,
              n_paths: int,
              antithetic: bool = False) -> (float, np.ndarray):
-        """Generate realization(s) of stochastic process."""
+        """Generate path(s) at t = time."""
+        pass
+
+    @abc.abstractmethod
+    def path_grid(self,
+                  spot: float,
+                  time_grid: np.ndarray) -> np.ndarray:
+        """Generate one path represented on time_grid."""
         pass

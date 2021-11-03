@@ -8,6 +8,7 @@ import models.sde as sde
 class SDE(sde.AbstractSDE):
     """Black-Scholes SDE:
     dS_t = rate * S_t * dt + vol * S_t * dW_t
+    todo: What about 2-d, or n-d?
     """
 
     def __init__(self, rate, vol):
@@ -43,7 +44,8 @@ class SDE(sde.AbstractSDE):
              time: float,
              n_paths: int,
              antithetic: bool = False) -> (float, np.ndarray):
-        """Generate realization(s) of geometric Brownian motion.
+        """Generate paths(s), at t = time, of geometric Brownian motion
+        using analytic expression.
 
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.
@@ -58,3 +60,15 @@ class SDE(sde.AbstractSDE):
             realizations = norm.rvs(size=n_paths)
         return spot * np.exp((self.rate - self.vol ** 2 / 2) * time
                              + self.vol * math.sqrt(time) * realizations)
+
+    def path_grid(self,
+                  spot: float,
+                  time_grid: np.ndarray) -> np.ndarray:
+        """Generate one path, represented on time_grid, of geometric
+        Brownian motion using analytic expression."""
+        # Time increments
+        dt = time_grid[1:] - time_grid[:-1]
+        spot_moved = spot * np.cumprod(
+            np.exp((self.rate - self.vol ** 2 / 2) * dt
+                   + self.vol * np.sqrt(dt) * norm.rvs(size=dt.shape()[0])))
+        return np.append(spot, spot_moved)

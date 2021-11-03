@@ -36,7 +36,8 @@ class SDE(sde.AbstractSDE):
              time: float,
              n_paths: int,
              antithetic: bool = False) -> (float, np.ndarray):
-        """Generate realizations of arithmetic Brownian motion.
+        """Generate path(s), at t = time, of arithmetic Brownian motion
+        using analytic expression.
 
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.
@@ -50,3 +51,14 @@ class SDE(sde.AbstractSDE):
         else:
             realizations = norm.rvs(size=n_paths)
         return spot + self.vol * math.sqrt(time) * realizations
+
+    def path_grid(self,
+                  spot: float,
+                  time_grid: np.ndarray) -> np.ndarray:
+        """Generate one path, represented on time_grid, of arithmetic
+        Brownian motion using analytic expression."""
+        # Time increments
+        dt = time_grid[1:] - time_grid[:-1]
+        spot_moved = spot \
+            + np.cumsum(self.vol * np.sqrt(dt) * norm.rvs(size=dt.shape()[0]))
+        return np.append(spot, spot_moved)
