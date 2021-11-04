@@ -8,12 +8,11 @@ import utils.global_types as global_types
 
 
 class Binary(option.VanillaOption):
-    """
-    European binary option in Black-Scholes model
-    """
+    """European binary option in Black-Scholes model."""
+
     def __init__(self, rate, vol, strike, expiry):
         super().__init__(rate, vol, strike, expiry)
-        self._option_type = global_types.OptionType.EUROPEAN_PUT
+        self._option_type = global_types.OptionType.BINARY_CASH_CALL
 
     @property
     def option_type(self):

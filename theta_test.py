@@ -27,6 +27,7 @@ PDEsolver = theta.Solver(x_min, x_max, x_steps)
 # Differential operator in Black-Scholes PDE
 d_operator = - rate * PDEsolver.identity() + rate * PDEsolver.x_ddx() + 0.5 * vol ** 2 * PDEsolver.x2_d2dx2()
 
+#option = 'call'
 option = 'put'
 
 exercise_type = 'European'

@@ -1,6 +1,7 @@
 import abc
 import math
 import numpy as np
+from typing import Tuple
 
 import models.black_scholes.sde as sde
 import models.option as option
@@ -39,11 +40,13 @@ class VanillaOption(option.VanillaOption, sde.SDE):
 
     def d1d2(self,
              spot: (float, np.ndarray),
-             time: float) -> (float, np.ndarray):
+             time: float) -> (Tuple[float, float],
+                              Tuple[np.ndarray, np.ndarray]):
+
+        # todo: change math.sqrt to np.sqrt such that time could be an array
+
         """Factors in Black-Scholes formula"""
         d1 = np.log(spot / self.strike) \
             + (self.rate + self.vol ** 2 / 2) * (self.expiry - time)
         d1 /= self.vol * math.sqrt(self.expiry - time)
         return d1, d1 - self.vol * math.sqrt(self.expiry - time)
-
-
