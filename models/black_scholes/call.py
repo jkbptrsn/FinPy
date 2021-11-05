@@ -9,6 +9,7 @@ import utils.payoffs as payoffs
 
 class Call(option.VanillaOption):
     """European call option in Black-Scholes model."""
+    # todo: Include dividends
 
     def __init__(self, rate, vol, strike, expiry):
         super().__init__(rate, vol, strike, expiry)
