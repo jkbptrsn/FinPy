@@ -42,11 +42,12 @@ class Call(option.VanillaOption):
         d1, d2 = self.d1d2(spot, time)
         return norm.pdf(d1) / (spot * self.vol * math.sqrt(self.expiry - time))
 
-    def vega(self,
-             spot: (float, np.ndarray),
-             time: float) -> (float, np.ndarray):
+    def rho(self,
+            spot: (float, np.ndarray),
+            time: float) -> (float, np.ndarray):
         d1, d2 = self.d1d2(spot, time)
-        return spot * norm.pdf(d1) * math.sqrt(self.expiry - time)
+        return self.strike * (self.expiry - time) \
+            * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2)
 
     def theta(self,
               spot: (float, np.ndarray),
@@ -56,9 +57,8 @@ class Call(option.VanillaOption):
             / (2 * math.sqrt(self.expiry - time)) - self.rate * self.strike \
             * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2)
 
-    def rho(self,
-            spot: (float, np.ndarray),
-            time: float) -> (float, np.ndarray):
+    def vega(self,
+             spot: (float, np.ndarray),
+             time: float) -> (float, np.ndarray):
         d1, d2 = self.d1d2(spot, time)
-        return self.strike * (self.expiry - time) \
-            * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2)
+        return spot * norm.pdf(d1) * math.sqrt(self.expiry - time)
