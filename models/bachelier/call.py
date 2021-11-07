@@ -21,6 +21,10 @@ class Call(option.VanillaOption):
     def payoff(self, spot: (float, np.ndarray)) -> (float, np.ndarray):
         return payoffs.call(spot, self.strike)
 
+    def payoff_1st_deriv(self,
+                         spot: (float, np.ndarray)) -> (float, np.ndarray):
+        return payoffs.binary_cash_call(spot, self.strike)
+
     def price(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):

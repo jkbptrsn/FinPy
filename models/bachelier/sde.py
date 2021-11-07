@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from scipy.stats import norm
+from typing import Tuple
 
 import models.sde as sde
 
@@ -61,3 +62,24 @@ class SDE(sde.SDE):
         spot_moved = spot \
             + np.cumsum(self.vol * np.sqrt(dt) * norm.rvs(size=dt.shape[0]))
         return np.append(spot, spot_moved)
+
+    def path_wise(self,
+                  spot: np.ndarray,
+                  time: float,
+                  n_paths: int,
+                  greek: str = 'delta',
+                  antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+        """Generate paths, at t = time, of arithmetic Brownian motion
+        using analytic expression. The paths are used for "path-wise"
+        Monte-Carlo estimation of a 'greek'.
+
+        antithetic : Antithetic sampling for Monte-Carlo variance
+        reduction. Defaults to False.
+        """
+        paths = self.path(spot, time, n_paths, antithetic)
+        if greek == 'delta':
+            return paths, np.ones(paths.shape[0])
+        elif greek == 'vega':
+            return paths, (paths - spot) / self.vol
+        else:
+            raise ValueError("greek can be 'delta' or 'vega'")
