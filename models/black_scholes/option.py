@@ -40,8 +40,8 @@ class VanillaOption(option.VanillaOption, sde.SDE):
 
     def d1d2(self,
              spot: (float, np.ndarray),
-             time: float) -> (Tuple[float, float],
-                              Tuple[np.ndarray, np.ndarray]):
+             time: float) \
+            -> (Tuple[float, float], Tuple[np.ndarray, np.ndarray]):
 
         # todo: change math.sqrt to np.sqrt such that time could be an array
 

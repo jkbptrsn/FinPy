@@ -69,5 +69,5 @@ class SDE(sde.SDE):
         dt = time_grid[1:] - time_grid[:-1]
         spot_moved = spot * np.cumprod(
             np.exp((self.rate - self.vol ** 2 / 2) * dt
-                   + self.vol * np.sqrt(dt) * norm.rvs(size=dt.shape()[0])))
+                   + self.vol * np.sqrt(dt) * norm.rvs(size=dt.shape[0])))
         return np.append(spot, spot_moved)

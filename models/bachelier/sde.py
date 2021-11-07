@@ -59,5 +59,5 @@ class SDE(sde.SDE):
         Brownian motion using analytic expression."""
         dt = time_grid[1:] - time_grid[:-1]
         spot_moved = spot \
-            + np.cumsum(self.vol * np.sqrt(dt) * norm.rvs(size=dt.shape()[0]))
+            + np.cumsum(self.vol * np.sqrt(dt) * norm.rvs(size=dt.shape[0]))
         return np.append(spot, spot_moved)
