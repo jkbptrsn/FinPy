@@ -22,8 +22,7 @@ class Put(option.VanillaOption):
     def payoff(self, spot: (float, np.ndarray)) -> (float, np.ndarray):
         return payoffs.put(spot, self.strike)
 
-    def payoff_1st_deriv(self,
-                         spot: (float, np.ndarray)) -> (float, np.ndarray):
+    def payoff_dds(self, spot: (float, np.ndarray)) -> (float, np.ndarray):
         return - payoffs.binary_cash_put(spot, self.strike)
 
     def price(self,

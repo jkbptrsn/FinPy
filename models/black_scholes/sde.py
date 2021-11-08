@@ -81,7 +81,7 @@ class SDE(sde.SDE):
                   antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
         """Generate paths, at t = time, of geometric Brownian motion
         using analytic expression. The paths are used for "path-wise"
-        Monte-Carlo estimation of a 'greek'.
+        Monte-Carlo calculation of a 'greek'.
 
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.
@@ -90,9 +90,8 @@ class SDE(sde.SDE):
         if greek == 'delta':
             return paths, paths / spot
         elif greek == 'vega':
-            Z = (np.log(paths / spot)
-                 - (self.rate - 0.5 * self.vol ** 2) * time) \
-                / (self.vol * math.sqrt(time))
-            return paths, paths * (math.sqrt(time) * Z - self.vol * time)
+            wiener = (np.log(paths / spot)
+                      - (self.rate - 0.5 * self.vol ** 2) * time) / self.vol
+            return paths, paths * (wiener - self.vol * time)
         else:
             raise ValueError("greek can be 'delta' or 'vega'")

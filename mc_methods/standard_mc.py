@@ -4,7 +4,7 @@ from typing import Tuple
 
 
 class MonteCarlo:
-    """Simple Monte-Carlo class for estimating option prices."""
+    """Monte-Carlo class for calculating option prices and greeks."""
 
     def __init__(self, n_paths, option):
         self._n_paths = n_paths
@@ -31,7 +31,8 @@ class MonteCarlo:
               time: float,
               antithetic: bool = False) \
             -> (Tuple[float, float], Tuple[np.ndarray, np.ndarray]):
-        """Monte-Carlo estimate of option price for each spot value."""
+        """Calculation of option price for each spot value. Returns
+        Monte-Carlo mean and standard deviation."""
         time_to_maturity = self._option.expiry - time
         try:
             discount = math.exp(-self._option.rate * time_to_maturity)
@@ -73,26 +74,45 @@ class MonteCarlo:
               method: str = 'path-wise',
               antithetic: bool = False) \
             -> (Tuple[float, float], Tuple[np.ndarray, np.ndarray]):
-        """Monte-Carlo estimation of greek for each spot value."""
+        """Calculation of greek for each spot value. Returns Monte-Carlo
+        mean and standard deviation."""
         time_to_maturity = self._option.expiry - time
         try:
             discount = math.exp(-self._option.rate * time_to_maturity)
         except AttributeError:
             discount = 1
-        mean = np.ndarray(spot.shape[0])
-        std = np.ndarray(spot.shape[0])
-        if method == 'path-wise':
-            for idx, s in enumerate(spot):
-                paths, derivs = \
-                    self._option.path_wise(s, time_to_maturity,
+        if type(spot) is float:
+            if method == 'path-wise':
+                paths, factors = \
+                    self._option.path_wise(spot, time_to_maturity,
                                            self.n_paths, greek, antithetic)
-                temp = discount * self._option.payoff_1st_deriv(paths) * derivs
-                mean[idx] = sum(temp) / self.n_paths
+                derivative = \
+                    discount * self._option.payoff_dds(paths) * factors
+                mean = sum(derivative) / self.n_paths
                 if antithetic:
                     n_half = self.n_paths // 2
-                    var = sum(((temp[:n_half] + temp[n_half:]) / 2
-                               - mean[idx]) ** 2) / n_half
+                    var = sum(((derivative[:n_half] + derivative[n_half:]) / 2
+                               - mean) ** 2) / n_half
                 else:
-                    var = sum((temp - mean[idx]) ** 2) / self.n_paths
-                std[idx] = math.sqrt(var)
-        return mean, std
+                    var = sum((derivative - mean) ** 2) / self.n_paths
+                return mean, math.sqrt(var)
+        else:
+            mean = np.ndarray(spot.shape[0])
+            std = np.ndarray(spot.shape[0])
+            if method == 'path-wise':
+                for idx, s in enumerate(spot):
+                    paths, factors = \
+                        self._option.path_wise(s, time_to_maturity,
+                                               self.n_paths, greek, antithetic)
+                    derivative \
+                        = discount * self._option.payoff_dds(paths) * factors
+                    mean[idx] = sum(derivative) / self.n_paths
+                    if antithetic:
+                        n_half = self.n_paths // 2
+                        var = sum(((derivative[:n_half]
+                                    + derivative[n_half:]) / 2
+                                   - mean[idx]) ** 2) / n_half
+                    else:
+                        var = sum((derivative - mean[idx]) ** 2) / self.n_paths
+                    std[idx] = math.sqrt(var)
+                return mean, std

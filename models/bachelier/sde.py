@@ -71,7 +71,7 @@ class SDE(sde.SDE):
                   antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
         """Generate paths, at t = time, of arithmetic Brownian motion
         using analytic expression. The paths are used for "path-wise"
-        Monte-Carlo estimation of a 'greek'.
+        Monte-Carlo calculation of a 'greek'.
 
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.

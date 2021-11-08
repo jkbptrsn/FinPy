@@ -12,10 +12,10 @@ vol = 0.2
 strike = 1
 expiry = 1
 
-# option = ba_call.Call(vol, strike, expiry)
+option = ba_call.Call(vol, strike, expiry)
 # option = ba_put.Put(vol, strike, expiry)
 # option = bs_call.Call(rate, vol, strike, expiry)
-option = bs_put.Put(rate, vol, strike, expiry)
+# option = bs_put.Put(rate, vol, strike, expiry)
 
 spot_max = 1.9
 spot_min = 0.1
@@ -39,9 +39,9 @@ if show == 'price':
     plt.ylabel('Option price')
     plt.show()
 elif show == 'greek':
-    mean, std = mc_gen.greek(spot_grid, 0, 'vega', 'path-wise', False)
+    mean, std = mc_gen.greek(spot_grid, 0, 'delta', 'path-wise', False)
     plt.plot(spot_grid, option.payoff(spot_grid), 'k')
-    plt.plot(spot_grid, option.vega(spot_grid, 0), 'b')
+    plt.plot(spot_grid, option.delta(spot_grid, 0), 'b')
     plt.errorbar(spot_grid, mean, fmt='ro', ecolor='r', yerr=std,
                  markersize=3, capsize=2)
     plt.xlabel('Spot')
