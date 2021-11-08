@@ -95,3 +95,34 @@ class SDE(sde.SDE):
             return paths, paths * (wiener - self.vol * time)
         else:
             raise ValueError("greek can be 'delta' or 'vega'")
+
+    def likelihood_ratio(self,
+                         spot: np.ndarray,
+                         time: float,
+                         n_paths: int,
+                         greek: str = 'delta',
+                         antithetic: bool = False) \
+            -> Tuple[np.ndarray, np.ndarray]:
+        """Generate paths, at t = time, of geometric Brownian motion
+        using analytic expression. The paths are used for
+        'likelihood-ratio' Monte-Carlo calculation of a 'greek'.
+
+        The density transformation theorem is used in the derivation of
+        the expressions...
+
+        antithetic : Antithetic sampling for Monte-Carlo variance
+        reduction. Defaults to False.
+        """
+        paths = self.path(spot, time, n_paths, antithetic)
+        if greek == 'delta':
+            wiener = (np.log(paths / spot)
+                      - (self.rate - 0.5 * self.vol ** 2) * time) / self.vol
+            return paths, wiener / (spot * self.vol)
+        elif greek == 'vega':
+            normal = (np.log(paths / spot)
+                      - (self.rate - 0.5 * self.vol ** 2) * time) \
+                     / (self.vol * math.sqrt(time))
+            return paths, normal ** 2 / self.vol \
+                - normal * math.sqrt(time) - 1 / self.vol
+        else:
+            raise ValueError("greek can be 'delta' or 'vega'")

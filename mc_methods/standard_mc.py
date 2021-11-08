@@ -96,6 +96,22 @@ class MonteCarlo:
                 else:
                     var = sum((derivative - mean) ** 2) / self.n_paths
                 return mean, math.sqrt(var)
+            elif method == 'likelihood-ratio':
+                paths, factors = \
+                    self._option.likelihood_ratio(
+                        spot, time_to_maturity, self.n_paths,
+                        greek, antithetic)
+                derivative = \
+                    discount * self._option.payoff(paths) * factors
+                mean = sum(derivative) / self.n_paths
+                if antithetic:
+                    n_half = self.n_paths // 2
+                    var = sum(((derivative[:n_half] + derivative[n_half:]) / 2
+                               - mean) ** 2) / n_half
+                else:
+                    var = sum((derivative - mean) ** 2) / self.n_paths
+                return mean, math.sqrt(var)
+
         else:
             mean = np.ndarray(spot.shape[0])
             std = np.ndarray(spot.shape[0])
@@ -106,6 +122,24 @@ class MonteCarlo:
                                                self.n_paths, greek, antithetic)
                     derivative \
                         = discount * self._option.payoff_dds(paths) * factors
+                    mean[idx] = sum(derivative) / self.n_paths
+                    if antithetic:
+                        n_half = self.n_paths // 2
+                        var = sum(((derivative[:n_half]
+                                    + derivative[n_half:]) / 2
+                                   - mean[idx]) ** 2) / n_half
+                    else:
+                        var = sum((derivative - mean[idx]) ** 2) / self.n_paths
+                    std[idx] = math.sqrt(var)
+                return mean, std
+            elif method == 'likelihood-ratio':
+                for idx, s in enumerate(spot):
+                    paths, factors = \
+                        self._option.likelihood_ratio(
+                            s, time_to_maturity, self.n_paths,
+                            greek, antithetic)
+                    derivative = \
+                        discount * self._option.payoff(paths) * factors
                     mean[idx] = sum(derivative) / self.n_paths
                     if antithetic:
                         n_half = self.n_paths // 2
