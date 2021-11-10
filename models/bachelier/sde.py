@@ -72,6 +72,7 @@ class SDE(sde.SDE):
         """Generate paths, at t = time, of arithmetic Brownian motion
         using analytic expression. The paths are used for "path-wise"
         Monte-Carlo calculation of a 'greek'.
+        todo: See 'Estimating the greeks' lecture notes by Martin Haugh (2017)
 
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.
@@ -97,6 +98,7 @@ class SDE(sde.SDE):
 
         The density transformation theorem is used in the derivation of
         the expressions...
+        todo: See 'Estimating the greeks' lecture notes by Martin Haugh (2017)
 
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.

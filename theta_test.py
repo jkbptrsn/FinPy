@@ -10,17 +10,17 @@ import fd_methods.theta as theta
 
 rate = 0.06
 strike = 40.0
-vol = 0.2
-expiry = 1
+vol = 0.4
+expiry = 2
 
 t_min = 0
-t_max = 1
-t_steps = 2001
+t_max = 2
+t_steps = 6001
 dt = (t_max - t_min) / (t_steps - 1)
 
 x_min = 0.0
-x_max = 160.0
-x_steps = 161 #3201
+x_max = 120.0
+x_steps = 3001 #3201
 
 PDEsolver = theta.Solver(x_min, x_max, x_steps)
 
@@ -31,7 +31,7 @@ d_operator = - rate * PDEsolver.identity() + rate * PDEsolver.x_ddx() + 0.5 * vo
 option = 'put'
 
 exercise_type = 'European'
-#exercise_type = 'American'
+# exercise_type = 'American'
 
 # Final conditions
 if option == 'call':
@@ -49,7 +49,7 @@ elif option == 'put':
 
 for t in range(t_steps):
     v_vector = PDEsolver.propagation(dt, d_operator, v_vector)
-    if t % ((t_steps - 1) // 50) == 0:
+    if t % ((t_steps - 1) // int(50 * t_max)) == 0:
         if exercise_type == 'American':
             if option == 'call':
                 v_vector = np.maximum(v_vector, PDEsolver.x_grid() - strike)
@@ -57,12 +57,12 @@ for t in range(t_steps):
                 v_vector = np.maximum(v_vector, strike - PDEsolver.x_grid())
 
 plt.plot(PDEsolver.x_grid(), v_vector, '.r')
-plt.xlim((32, 48))
-plt.ylim((0, 8))
+plt.xlim((0, 120))
+#plt.ylim((0, 8))
 plt.show()
 
 s_points = [36, 38, 40, 42, 44]
-n_mc_paths = 100000
+n_mc_paths = 100000000
 for x, v1, v2 in zip(PDEsolver.x_grid(), v_vector, put.price(PDEsolver.x_grid(), 0)):
     for s in s_points:
         if math.fabs(x - s) < 1e-5:
@@ -72,5 +72,9 @@ for x, v1, v2 in zip(PDEsolver.x_grid(), v_vector, put.price(PDEsolver.x_grid(),
             elif option == 'put':
                 s_mc = put.path(s, expiry, n_mc_paths, antithetic=True)
                 s_mc = put.payoff(s_mc)
-            s_mc = math.exp(-rate * expiry) * sum(s_mc) / len(s_mc)
-            print(x, v1, v2, math.fabs(v1 - v2), s_mc)
+            s_mc *= math.exp(-rate * expiry)
+            mean = sum(s_mc) / n_mc_paths
+            n_half = n_mc_paths // 2
+            std = math.sqrt(sum(((s_mc[:n_half] + s_mc[n_half:]) / 2 - mean) ** 2) / n_half)
+            s_error = std / math.sqrt(n_half)
+            print(x, v1, v2, math.fabs(v1 - v2), mean, s_error)
