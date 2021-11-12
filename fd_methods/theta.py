@@ -98,10 +98,16 @@ class Solver:
         matrix[2, -2] = -2
         return matrix / (2 * self.dx)
 
+    def vector_ddx(self,
+                   vector: np.ndarray) -> np.ndarray:
+        """Product of input vector and 1st order derivative operator."""
+        return self.diag_tridiag(self.identity(vector), self.ddx())
+
     def x_ddx(self) -> np.ndarray:
         """Product of space coordinate and its 1st order derivative
         operator."""
-        return self.diag_tridiag(self.identity(self.x_grid()), self.ddx())
+#        return self.diag_tridiag(self.identity(self.x_grid()), self.ddx())
+        return self.vector_ddx(self.x_grid())
 
     def d2dx2(self) -> np.ndarray:
         """Finite difference approximation of 2nd order derivative
@@ -113,11 +119,17 @@ class Solver:
         matrix[2, :-2] = 1
         return matrix / self.dx ** 2
 
+    def vector_d2dx2(self,
+                     vector: np.ndarray) -> np.ndarray:
+        """Product of input vector and 2nd order derivative operator."""
+        return self.diag_tridiag(self.identity(vector), self.d2dx2())
+
     def x2_d2dx2(self) -> np.ndarray:
         """Product of space coordinate squared and its 2nd order
         derivative operator."""
-        return self.diag_tridiag(
-            self.identity(self.x_grid() ** 2), self.d2dx2())
+#        return self.diag_tridiag(
+#            self.identity(self.x_grid() ** 2), self.d2dx2())
+        return self.vector_d2dx2(self.x_grid() ** 2)
 
     def propagation(self,
                     dt: float,
