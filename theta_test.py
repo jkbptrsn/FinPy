@@ -49,8 +49,8 @@ d_operator7 = \
     - rate * PDEsolver7.identity() + rate * PDEsolver7.x_ddx() \
     - 0.5 * vol ** 2 * PDEsolver7.vector_d2dx2(PDEsolver7.x_grid() ** (2 * beta + 2))
 
-# option = 'call'
-option = 'put'
+option = 'call'
+# option = 'put'
 
 exercise_type = 'European'
 # exercise_type = 'American'
@@ -146,7 +146,7 @@ plt.tick_params(labelsize=16)
 plt.xlim((20, 60))
 plt.ylim((0, 25))
 plt.xlabel('Strike', fontsize=16)
-plt.ylabel('European put option price', fontsize=16)
+plt.ylabel('European call option price', fontsize=16)
 # plt.savefig('Basic.png', bbox_inches="tight", dpi=200)
 plt.show()
 

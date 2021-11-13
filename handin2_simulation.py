@@ -31,8 +31,10 @@ poly_order = 7
 poly_price, poly_delta = \
     utils.polynomials(poly_order, spot_range, spot, payoff, delta, w=1)
 plt.plot(spot_range, poly_price, 'r')
-plt.xlabel('Stock price')
-plt.ylabel('Call value')
+plt.tick_params(labelsize=16)
+plt.title("Figure 2a", fontsize=16)
+plt.xlabel('Stock price', fontsize=16)
+plt.ylabel('Call value', fontsize=16)
 plt.xlim((0.25, 1.75))
 plt.ylim((-0.05, 1.05))
 plt.show()
@@ -46,8 +48,10 @@ plt.plot(spot_range, option.delta(spot_range, 0), 'k')
 plt.plot(spot_range, poly_delta, 'r')
 plt.xlim((0.25, 1.75))
 plt.ylim((-0.05, 1.05))
-plt.xlabel('Stock price')
-plt.ylabel('Call delta')
+plt.tick_params(labelsize=16)
+plt.title("Figure 2b", fontsize=16)
+plt.xlabel('Stock price', fontsize=16)
+plt.ylabel('Call delta', fontsize=16)
 plt.show()
 
 ############
@@ -68,8 +72,8 @@ poly_price, poly_delta = utils.polynomials(poly_order, spot_range, spot, payoff,
 plt.plot(spot_range, poly_delta, 'y')
 plt.xlim((0.25, 1.75))
 plt.ylim((-0.15, 1.25))
-plt.xlabel('Stock price')
-plt.ylabel('Call delta')
+plt.tick_params(labelsize=16)
+plt.title("Figure 3", fontsize=16)
+plt.xlabel('Stock price', fontsize=16)
+plt.ylabel('Call delta', fontsize=16)
 plt.show()
-
-
