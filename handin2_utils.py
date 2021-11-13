@@ -9,7 +9,7 @@ def data_set(option, time, n_paths, delta_mode="Path-wise"):
 
     # todo: should option.expiry be used here? Or time?
     spot = option.strike \
-        + option.vol * math.sqrt(option.expiry) * norm.rvs(size=n_paths)
+        + 1.7 * option.vol * math.sqrt(option.expiry) * norm.rvs(size=n_paths)
 
     spot_moved = option.path(spot, option.expiry - time, n_paths)
     # Payoff for each path
@@ -20,11 +20,12 @@ def data_set(option, time, n_paths, delta_mode="Path-wise"):
             delta = (spot_moved > option.strike) * 1
         elif option.model_name == 'Black-Scholes':
             delta = (spot_moved > option.strike) * spot_moved / spot
+
     # todo: double check the LRMs
     elif delta_mode == "LRM":
         if option.model_name == 'Bachelier':
             delta = option.payoff(spot_moved) \
-                * (spot_moved - spot) / (option.vol * math.sqrt(option.expiry - time))
+                * (spot_moved - spot) / (option.vol ** 2 * (option.expiry - time))
         elif option.model_name == 'Black-Scholes':
             delta = option.payoff(spot_moved) \
                 * (np.log(spot_moved / spot) + 0.5 * option.vol ** 2 * (option.expiry - time)) \
@@ -61,20 +62,20 @@ def polynomials(poly_order, spot_range, spot, payoff, delta, w=1):
     return poly_price, poly_delta
 
 
-def discrete_hedging(option, n_paths, n_steps, mode='analytic', poly_order=7,
+def discrete_hedging(option, n_paths, n_data_points, n_steps, mode='analytic', poly_order=7,
                      w=1, delta_mode="Path-wise"):
     """Discrete hedging."""
     # Initial spot is 1 in all cases!!!
     spot = np.ones(n_paths)
+
     time_step = option.expiry / n_steps
+
     V = option.price(spot, 0)
     if mode == 'analytic':
         a = option.delta(spot, 0)
     elif mode == 'regression':
-
-        spot_temp, payoff, delta = data_set(option, 0, n_paths, delta_mode=delta_mode)
+        spot_temp, payoff, delta = data_set(option, 0, n_data_points, delta_mode=delta_mode)
         poly_price, poly_delta = polynomials(poly_order, spot, spot_temp, payoff, delta, w=w)
-
         a = poly_delta
     b = V - a * spot
     V_0 = V
@@ -84,7 +85,7 @@ def discrete_hedging(option, n_paths, n_steps, mode='analytic', poly_order=7,
         if mode == 'analytic':
             a = option.delta(spot, n * time_step)
         elif mode == 'regression':
-            spot_temp, payoff, delta = data_set(option, n * time_step, n_paths, delta_mode=delta_mode)
+            spot_temp, payoff, delta = data_set(option, n * time_step, n_data_points, delta_mode=delta_mode)
             poly_price, poly_delta = polynomials(poly_order, spot, spot_temp, payoff, delta, w=w)
             a = poly_delta
         b = V - a * spot
