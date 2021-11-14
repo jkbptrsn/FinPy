@@ -5,6 +5,7 @@ from scipy.stats import norm
 
 import models.bachelier.call as ba_call
 import models.black_scholes.call as bs_call
+import models.black_scholes.binary as bs_digital
 import mc_methods.standard_mc as mc
 import handin2_utils as utils
 
@@ -13,8 +14,9 @@ vol = 0.2
 strike = 1
 expiry = 1
 
-option = ba_call.Call(vol, strike, expiry)
+# option = ba_call.Call(vol, strike, expiry)
 # option = bs_call.Call(rate, vol, strike, expiry)
+option = bs_digital.BinaryCashCall(rate, vol, strike, expiry)
 
 # delta_mode = 'Path-wise'
 delta_mode = 'LRM'
@@ -27,7 +29,7 @@ n_prices = 10000
 spot, payoff, delta = utils.data_set(option, 0, n_prices, delta_mode=delta_mode)
 plt.plot(spot, payoff, 'ok', markersize=5, markerfacecolor='none', alpha=0.2)
 # Analytic result
-spot_range = 0.02 * np.array(range(1, 100))
+spot_range = 0.02 * np.array(range(1, 150))
 plt.plot(spot_range, option.price(spot_range, 0), 'k')
 # Regression
 poly_order = 7
@@ -35,11 +37,11 @@ poly_price, poly_delta = \
     utils.polynomials(poly_order, spot_range, spot, payoff, delta, w=1)
 plt.plot(spot_range, poly_price, 'r')
 plt.tick_params(labelsize=14)
-plt.title("Figure 2a", fontsize=14)
+plt.title("Sub-figure A", fontsize=14)
 plt.xlabel('Stock price', fontsize=14)
 plt.ylabel('Call value', fontsize=14)
-plt.xlim((0.25, 1.75))
-plt.ylim((-0.05, 1.05))
+plt.xlim((0., 2.5))
+plt.ylim((-0.15, 1.25))
 plt.show()
 
 #############
@@ -49,11 +51,11 @@ plt.show()
 plt.plot(spot_range, option.delta(spot_range, 0), 'k')
 plt.plot(spot_range, poly_delta, 'r')
 plt.tick_params(labelsize=14)
-plt.title("Figure 2b", fontsize=14)
+plt.title("Sub-figure B", fontsize=14)
 plt.xlabel('Stock price', fontsize=14)
 plt.ylabel('Call delta', fontsize=14)
-plt.xlim((0.25, 1.75))
-plt.ylim((-0.05, 1.25))
+plt.xlim((0., 2.5))
+plt.ylim((-0.4, 2.5))
 plt.show()
 
 ############
@@ -73,17 +75,17 @@ plt.plot(spot_range, poly_delta, 'r')
 poly_price, poly_delta = utils.polynomials(poly_order, spot_range, spot, payoff, delta, w=0.001)
 plt.plot(spot_range, poly_delta, 'y')
 plt.tick_params(labelsize=14)
-plt.title("Figure 3", fontsize=14)
+plt.title("Sub-figure C", fontsize=14)
 plt.xlabel('Stock price', fontsize=14)
 plt.ylabel('Call delta', fontsize=14)
-plt.xlim((0.15, 2.15))
-plt.ylim((-0.15, 1.25))
+plt.xlim((0., 2.5))
+plt.ylim((-0.4, 2.5))
 plt.show()
 
 ############
 # Figure 4 #
 ############
-n_batches = 1
+n_batches = 10
 n_hedge_paths = 1000
 n_time_steps = 52
 
@@ -101,7 +103,10 @@ print(batch_mean, batch_std)
 # Hedging with regression
 w_vector = [1.0, 0.5]
 poly_vector = range(3, 10, 1)
+
 n_sim_vector = [250, 500] + list(range(1000, 7000, 1000))
+# n_sim_vector = [1000, 2500] + list(range(5000, 35001, 10000))
+
 hedge_error = \
     np.zeros((len(n_sim_vector) * len(w_vector) * len(poly_vector), n_batches))
 
@@ -151,13 +156,14 @@ for w in w_vector:
 print(price_only)
 print(price_delta)
 
-hedge_std = np.zeros(len(n_sim_vector)) + batch_std
-plt.plot(n_sim_vector, hedge_std, '--r', linewidth=1)
+hedge_sim = np.array(range(0, n_sim_vector[-1] + 1, 1000))
+hedge_std = np.zeros(len(hedge_sim)) + batch_std
+plt.plot(hedge_sim, hedge_std, '--r', linewidth=1)
 
 plt.tick_params(labelsize=14)
-plt.title("Figure 4, d = 1.7", fontsize=14)
+plt.title("Sub-figure D", fontsize=14)
 plt.xlabel('#simulations', fontsize=14)
 plt.ylabel('Standard deviation of relative hedge error', fontsize=14)
 plt.xlim((-100, 6100))
-plt.ylim((0, 0.5))
+plt.ylim((0, 0.8))
 plt.show()

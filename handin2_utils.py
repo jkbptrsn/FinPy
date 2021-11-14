@@ -9,7 +9,7 @@ def data_set(option, time, n_paths, delta_mode="Path-wise"):
 
     # todo: should option.expiry be used here? Or time?
     spot = option.strike \
-        + 1.7 * option.vol * math.sqrt(option.expiry) * norm.rvs(size=n_paths)
+        + 1.8 * option.vol * math.sqrt(option.expiry) * norm.rvs(size=n_paths)
 
     spot_moved = option.path(spot, option.expiry - time, n_paths)
     # Payoff for each path
@@ -27,9 +27,19 @@ def data_set(option, time, n_paths, delta_mode="Path-wise"):
             delta = option.payoff(spot_moved) \
                 * (spot_moved - spot) / (option.vol ** 2 * (option.expiry - time))
         elif option.model_name == 'Black-Scholes':
-            delta = option.payoff(spot_moved) \
+
+#            delta = option.payoff(spot_moved) \
+#                * (np.log(spot_moved / spot) + 0.5 * option.vol ** 2 * (option.expiry - time)) \
+#                / (option.vol ** 2 * (option.expiry - time) * spot)
+
+            epsilon = 0.8
+            f_eps = np.minimum(1, np.maximum(0, (spot_moved - option.strike + epsilon) / (2 * epsilon)))
+            df_eps = (np.abs(spot_moved - option.strike) < epsilon) / (2 * epsilon)
+            delta = df_eps * spot_moved / spot + \
+                ((spot_moved > option.strike) - f_eps) \
                 * (np.log(spot_moved / spot) + 0.5 * option.vol ** 2 * (option.expiry - time)) \
                 / (option.vol ** 2 * (option.expiry - time) * spot)
+
     return spot, payoff, delta
 
 

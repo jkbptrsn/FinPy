@@ -119,6 +119,7 @@ class SDE(sde.SDE):
         if greek == 'delta':
             wiener = (np.log(paths / spot)
                       - (self.rate - 0.5 * self.vol ** 2) * time) / self.vol
+            # todo: should wiener by divided by (self.expiry - time)?
             return paths, wiener / (spot * self.vol)
         elif greek == 'vega':
             normal = (np.log(paths / spot)
