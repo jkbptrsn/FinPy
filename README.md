@@ -12,4 +12,4 @@ Models
     - dr_t = (theta(t) - alpha r_t)dt + sigma(t)dW_t
   - Extended Vasicek model
     - dr_t = (theta(t) - alpha(t) r_t)dt + sigma(t)dW_t
-  - SABR
+  - SABR, stochastic volatility
