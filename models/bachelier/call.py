@@ -2,16 +2,17 @@ import math
 import numpy as np
 from scipy.stats import norm
 
-import models.bachelier.option as option
+import models.black_scholes.option as option
 import utils.global_types as global_types
 import utils.payoffs as payoffs
 
 
 class Call(option.VanillaOption):
-    """European call option in Bachelier model."""
+    """European call option in Black-Scholes model."""
+    # todo: Include dividends
 
-    def __init__(self, vol, strike, expiry):
-        super().__init__(vol, strike, expiry)
+    def __init__(self, rate, vol, strike, expiry):
+        super().__init__(rate, vol, strike, expiry)
         self._option_type = global_types.OptionType.EUROPEAN_CALL
 
     @property
@@ -27,35 +28,40 @@ class Call(option.VanillaOption):
     def price(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        factor1 = spot - self.strike
-        factor2 = self.vol * math.sqrt(self.expiry - time)
-        return factor1 * norm.cdf(factor1 / factor2) \
-            + factor2 * norm.pdf(factor1 / factor2)
+        d1, d2 = self.d1d2(spot, time)
+        return spot * norm.cdf(d1) \
+            - self.strike * norm.cdf(d2) \
+            * math.exp(-self.rate * (self.expiry - time))
 
     def delta(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        factor1 = spot - self.strike
-        factor2 = self.vol * math.sqrt(self.expiry - time)
-        return norm.cdf(factor1 / factor2)
+        d1, d2 = self.d1d2(spot, time)
+        return norm.cdf(d1)
 
     def gamma(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        factor1 = spot - self.strike
-        factor2 = self.vol * math.sqrt(self.expiry - time)
-        return norm.pdf(factor1 / factor2) / factor2
+        d1, d2 = self.d1d2(spot, time)
+        return norm.pdf(d1) / (spot * self.vol * math.sqrt(self.expiry - time))
+
+    def rho(self,
+            spot: (float, np.ndarray),
+            time: float) -> (float, np.ndarray):
+        d1, d2 = self.d1d2(spot, time)
+        return self.strike * (self.expiry - time) \
+            * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2)
 
     def theta(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        factor1 = spot - self.strike
-        factor2 = self.vol * math.sqrt(self.expiry - time)
-        return - norm.pdf(factor1 / factor2) / (2 * factor2)
+        d1, d2 = self.d1d2(spot, time)
+        return - spot * norm.pdf(d1) * self.vol \
+            / (2 * math.sqrt(self.expiry - time)) - self.rate * self.strike \
+            * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2)
 
     def vega(self,
              spot: (float, np.ndarray),
              time: float) -> (float, np.ndarray):
-        factor1 = spot - self.strike
-        factor2 = self.vol * math.sqrt(self.expiry - time)
-        return math.sqrt(self.expiry - time) * norm.pdf(factor1 / factor2)
+        d1, d2 = self.d1d2(spot, time)
+        return spot * norm.pdf(d1) * math.sqrt(self.expiry - time)

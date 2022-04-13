@@ -16,3 +16,4 @@ class OptionType(Enum):
     BINARY_ASSET_CALL = 6
     BINARY_CASH_PUT = 7
     BINARY_ASSET_PUT = 8
+    ZERO_COUPON_BOND = 9

@@ -10,7 +10,8 @@ import utils.payoffs as payoffs
 class BinaryCashCall(option.VanillaOption):
     """European cash-or-nothing call option in Black-Scholes model.
     Pays out one unit of cash if the spot is above the strike at
-    expiry."""
+    expiry.
+    """
 
     def __init__(self, rate, vol, strike, expiry):
         super().__init__(rate, vol, strike, expiry)
@@ -36,7 +37,8 @@ class BinaryCashCall(option.VanillaOption):
 class BinaryAssetCall(option.VanillaOption):
     """European asset-or-nothing call option in Black-Scholes model.
     Pays out one unit of the asset if the spot is above the strike at
-    expiry."""
+    expiry.
+    """
 
     def __init__(self, rate, vol, strike, expiry):
         super().__init__(rate, vol, strike, expiry)
@@ -61,7 +63,8 @@ class BinaryAssetCall(option.VanillaOption):
 
 class BinaryCashPut(option.VanillaOption):
     """European cash-or-nothing put option in Black-Scholes model. Pays
-    out one unit of cash if the spot is below the strike at expiry."""
+    out one unit of cash if the spot is below the strike at expiry.
+    """
 
     def __init__(self, rate, vol, strike, expiry):
         super().__init__(rate, vol, strike, expiry)
@@ -87,7 +90,8 @@ class BinaryCashPut(option.VanillaOption):
 class BinaryAssetPut(option.VanillaOption):
     """European asset-or-nothing put option in Black-Scholes model. Pays
     out one unit of the asset if the spot is below the strike at
-    expiry."""
+    expiry.
+    """
 
     def __init__(self, rate, vol, strike, expiry):
         super().__init__(rate, vol, strike, expiry)

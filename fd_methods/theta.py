@@ -287,3 +287,33 @@ class Solver:
         rhs += self._theta * self._boundary_vec
         lhs = self._identity_mat - self.theta * dt * self._propagator_mat
         return solve_banded((1, 1), lhs, rhs)
+
+    @staticmethod
+    def fd_delta(grid: np.ndarray,
+                 function: np.ndarray):
+        """Delta determined by central finite difference
+        approximation. Assuming equidistant and ascending grid...
+        """
+        grid_spacing = (grid[1] - grid[0])
+        return (function[2:] - function[:-2]) / (2 * grid_spacing)
+
+    @staticmethod
+    def fd_gamma(grid: np.ndarray,
+                 function: np.ndarray):
+        """Gamma determined by finite difference approximation. Assuming
+        equidistant and ascending grid...
+        """
+        grid_spacing = (grid[1] - grid[0])
+        return (function[2:] + function[:-2] - 2 * function[1:-1]) \
+            / grid_spacing ** 2
+
+    def fd_theta(self,
+                 dt: float,
+                 function: np.ndarray):
+        """Theta determined by central finite difference
+        approximation.
+        """
+        self.set_up_propagator()
+        forward = self.propagation(-dt, function)
+        backward = self.propagation(dt, function)
+        return (forward - backward) / (2 * dt)

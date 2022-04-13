@@ -7,11 +7,23 @@ import utils.payoffs as payoffs
 import models.black_scholes.call as bs_call
 import models.black_scholes.put as bs_put
 import models.bachelier.call as ba_call
+import models.bachelier.put as ba_put
+import models.vasicek.zcbond as va_bond
+
 import fd_methods.theta as theta
 
 n_doubles = 3
 
+# Test convergence wrt to time and space separately
+
+smoothing = False
+
+show_plots = False
+
+rannacher_stepping = False
+
 # model = 'Black-Scholes'
+# model = 'Bachelier'
 model = 'Vasicek'
 
 # option_type = 'Call'
@@ -22,27 +34,30 @@ option_type = 'ZCBond'
 start_time = datetime.now()
 
 rate = 0.0
-strike = 50.0
-vol = 0.05 # 0.2
+strike = 0 # 50.0
+vol = 0.05 # 20 # 0.2 # 0.05
 expiry = 2
-kappa = 1.0 # 0.1
+kappa = 0.1 # 1.0 # 0.1
+theta_factor = 0.05
 
 t_min = 0
-t_max = 1
-t_steps = 2001
+t_max = 2
+t_steps = 101
 dt = (t_max - t_min) / (t_steps - 1)
 
-print("STD: ", np.sqrt(vol ** 2 * (t_max - t_min)))
+sigma_grid = np.sqrt(vol ** 2 * (t_max - t_min))
+print("STD: ", sigma_grid)
 
-x_min = -5 # 5.0
-x_max = 5 # 95.0
-x_steps = 2001
+x_min = - 5 * sigma_grid # -50.0
+x_max = 5 * sigma_grid # 150.0
+x_steps = 101
 
 t_array = np.zeros(n_doubles - 1)
 x_array = np.zeros(n_doubles - 1)
 norm_array = np.zeros((3, n_doubles - 1))
 
 for n in range(n_doubles):
+
     # Update grid spacing in spatial dimension
     x_steps_old = x_steps
     x_steps = 2 * x_steps - 1
@@ -60,21 +75,24 @@ for n in range(n_doubles):
         solver.set_up_drift_vec(rate * solver.grid())
         solver.set_up_diffusion_vec(vol * solver.grid())
         solver.set_up_rate_vec(rate + 0 * solver.grid())
+    if model == 'Bachelier':
+        solver.set_up_drift_vec(0 * solver.grid())
+        solver.set_up_diffusion_vec(vol + 0 * solver.grid())
+        solver.set_up_rate_vec(0 * solver.grid())
     elif model == 'Vasicek':
         # Add time-dependent volatility and non-zero forward rate
         # Integrate up to time t_current
         y = vol ** 2 * (1 - np.exp(- 2 * kappa * t_current)) / (2 * kappa)
-        print(y, np.amax(np.abs(y - kappa * solver.grid()) * solver.dx), vol ** 2)
-
-
-#        y = 0.01
+#        print(y, np.amax(np.abs(y - kappa * solver.grid()) * solver.dx), vol ** 2)
 
         solver.set_up_drift_vec(y - kappa * solver.grid())
-#        solver.set_up_drift_vec(kappa * (0 - solver.grid()))
+        solver.set_up_rate_vec(solver.grid())
+
+#        solver.set_up_drift_vec(kappa * (theta_factor - solver.grid()))
+#        solver.set_up_rate_vec(rate + 0 * solver.grid())
 
         solver.set_up_diffusion_vec(vol + 0 * solver.grid())
-        solver.set_up_rate_vec(rate + 0 * solver.grid())
-#        solver.set_up_rate_vec(rate + 0 * solver.grid())
+
     solver.set_up_propagator()
 
     # Terminal solution to PDE
@@ -82,56 +100,131 @@ for n in range(n_doubles):
         value = payoffs.call(solver.grid(), strike)
     elif option_type == 'Put':
         value = payoffs.put(solver.grid(), strike)
-
     elif option_type == 'ZCBond':
-        value = payoffs.call(solver.grid(), 0)
-#        value = 1 + 0 * solver.grid()
+#        value = payoffs.call(solver.grid(), 0)
+        value = 1 + 0 * solver.grid()
 
-    plt.plot(solver.grid(), value, 'k')
+    if smoothing:
+        if option_type == "Call":
+            grid = solver.grid()
+            dx = grid[1] - grid[0]
+            index = np.where(grid < strike)[0][-1]
+            if (strike - grid[index]) < dx / 2:
+                dist = dx / 2 - (strike - grid[index])
+                integral = dist ** 2 / 2
+                value[index] = integral / dx
+            else:
+                dist = dx / 2 + (grid[index + 1] - strike)
+                integral = dist ** 2 / 2
+                value[index + 1] = integral / dx
+                if grid[index + 1] == strike:
+                    value[index + 1] = 0
+
+    # Figure 1
+    f1, ax1 = plt.subplots(3, 1)
+    ax1[0].plot(solver.grid(), value, 'k')
+    ax1[0].set_ylabel("Price of option")
+
+    # Figure 2
+    f2, ax2 = plt.subplots(3, 1)
+    ax2[0].plot(solver.grid(), value, 'k')
+    ax2[0].set_ylabel("Price of option")
 
     # Propagate value vector backwards in time
     for t in range(t_steps - 1):
 
+        if model == 'Vasicek':
+
+            if n == 0:
+                t_temp = t_current
+            elif n == 1 and t % 2 == 0:
+                t_temp = t_current
+            elif n == 2 and t % 4 == 0:
+                t_temp = t_current
+
+            y = vol ** 2 * (1 - np.exp(- 2 * kappa * t_temp)) / (2 * kappa)
+#            print(t_current, y)
+
+            solver.set_up_drift_vec(y - kappa * solver.grid())
+            solver.set_up_rate_vec(solver.grid())
+
+#            solver.set_up_drift_vec(kappa * (theta_factor - solver.grid()))
+#            solver.set_up_rate_vec(rate + 0 * solver.grid())
+
+            solver.set_up_diffusion_vec(vol + 0 * solver.grid())
+
+            solver.set_up_propagator()
+
+        if rannacher_stepping and t < 2:
+            solver.theta = 1.0
+            value = solver.propagation(dt, value)
+            solver.theta = 0.5
+        else:
+            value = solver.propagation(dt, value)
+
         # Update current time
         t_current -= dt
 
-        if model == 'Vasicek':
-            # Add time-dependent volatility and non-zero forward rate
-            # Integrate up to time t_current
-            y = vol ** 2 * (1 - np.exp(- 2 * kappa * t_current)) / (2 * kappa)
+    # Price function
+    ax1[0].plot(solver.grid(), value, 'r')
+    ax2[0].plot(solver.grid(), value, 'r')
 
-#            y = 0.1
+    # Delta
+    ax1[1].plot(solver.grid()[1:-1], solver.fd_delta(solver.grid(), value), 'r')
+    ax1[1].set_ylabel("Delta")
 
-            solver.set_up_drift_vec(y - kappa * solver.grid())
-#            solver.set_up_drift_vec(kappa * ( 0 - solver.grid()))
+    # Gamma
+    ax1[2].plot(solver.grid()[1:-1], solver.fd_gamma(solver.grid(), value), 'r')
+    ax1[2].set_ylabel("Gamma")
+    ax1[2].set_xlabel("Price of underlying")
 
-            solver.set_up_diffusion_vec(vol + 0 * solver.grid())
-#            solver.set_up_rate_vec(rate + 0 * solver.grid())
-            solver.set_up_rate_vec(rate + 0 * solver.grid())
-            solver.set_up_propagator()
+    # Theta
+    ax2[1].plot(solver.grid(), solver.fd_theta(dt, value), 'r')
+    ax2[1].set_ylabel("Theta")
 
-        value = solver.propagation(dt, value)
-    plt.plot(solver.grid(), value, 'r')
+    ax2[2].set_xlabel("Price of underlying")
 
     # Analytical result
     if option_type == 'Call':
-        call = bs_call.Call(rate, vol, strike, expiry)
-        plt.plot(solver.grid(), call.price(solver.grid(), 0), 'ob', markersize=3)
+        if model == 'Black-Scholes':
+            call = bs_call.Call(rate, vol, strike, expiry)
+        else:
+            call = ba_call.Call(vol, strike, expiry)
+        ax1[0].plot(solver.grid(), call.price(solver.grid(), 0), 'ob', markersize=3)
+        ax1[1].plot(solver.grid(), call.delta(solver.grid(), 0), 'ob', markersize=3)
+        ax1[2].plot(solver.grid(), call.gamma(solver.grid(), 0), 'ob', markersize=3)
+
+        ax2[0].plot(solver.grid(), call.price(solver.grid(), 0), 'ob', markersize=3)
+        ax2[1].plot(solver.grid(), call.theta(solver.grid(), 0), 'ob', markersize=3)
+
     elif option_type == 'Put':
-        put = bs_put.Put(rate, vol, strike, expiry)
-        plt.plot(solver.grid(), put.price(solver.grid(), 0), 'ob', markersize=3)
+        if model == 'Black-Scholes':
+            put = bs_put.Put(rate, vol, strike, expiry)
+        else:
+            put = ba_put.Put(vol, strike, expiry)
+        ax1[0].plot(solver.grid(), put.price(solver.grid(), 0), 'ob', markersize=3)
+        ax1[1].plot(solver.grid(), put.delta(solver.grid(), 0), 'ob', markersize=3)
+        ax1[2].plot(solver.grid(), put.gamma(solver.grid(), 0), 'ob', markersize=3)
+
+        ax2[0].plot(solver.grid(), put.price(solver.grid(), 0), 'ob', markersize=3)
+        ax2[1].plot(solver.grid(), put.theta(solver.grid(), 0), 'ob', markersize=3)
+
     elif option_type == 'ZCBond':
-        call = ba_call.Call(vol, 0, expiry)
-        plt.plot(solver.grid(), call.price(solver.grid(), 0), 'ob', markersize=3)
-        # zcbond = np.exp(- solver.grid() * (t_max - 0))
-        # plt.plot(solver.grid(), zcbond, 'ob', markersize=3)
+        zcbond = va_bond.ZCBond(kappa, theta_factor, vol, strike, expiry)
+        ax1[0].plot(solver.grid(), zcbond.price(solver.grid(), 0), 'ob', markersize=3)
+        ax1[1].plot(solver.grid(), zcbond.delta(solver.grid(), 0), 'ob', markersize=3)
+        ax1[2].plot(solver.grid(), zcbond.gamma(solver.grid(), 0), 'ob', markersize=3)
 
     if n > 0:
+
         abs_diff = np.abs(value_old - value[::2])
+#        abs_diff = np.abs(value_old - value)
+
         norm_center = abs_diff[(x_steps_old - 1) // 2]
         norm_max = np.amax(abs_diff)
         norm_l2 = np.sqrt(np.sum(2 * solver.dx * np.square(abs_diff)))
-        # print(t_steps, x_steps_old, norm_center, norm_max, norm_l2)
+
+        print(t_steps, x_steps_old, norm_center, norm_max, norm_l2)
 
         # Data used for linear regression
         t_array[n - 1] = np.log(dt)
@@ -146,7 +239,8 @@ for n in range(n_doubles):
 end_time = datetime.now()
 print("Computation time in seconds: ", end_time - start_time)
 
-plt.show()
+if show_plots:
+    plt.show()
 
 # Linear regression
 res_1t = scipy.stats.linregress(t_array, norm_array[0, :])

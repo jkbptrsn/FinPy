@@ -8,7 +8,7 @@ import models.sde as sde
 
 class SDE(sde.SDE):
     """Black-Scholes SDE:
-    dS_t = rate * S_t * dt + vol * S_t * dW_t
+    dS_t / S_t = rate * dt + vol * dW_t
     todo: What about 2-d, or n-d?
     """
 
@@ -18,7 +18,7 @@ class SDE(sde.SDE):
         self._model_name = 'Black-Scholes'
 
     def __repr__(self):
-        return f"{self.model_name} SDE object"
+        return f"{self._model_name} SDE object"
 
     @property
     def model_name(self):
@@ -66,7 +66,8 @@ class SDE(sde.SDE):
                   spot: float,
                   time_grid: np.ndarray) -> np.ndarray:
         """Generate one path, represented on time_grid, of geometric
-        Brownian motion using analytic expression."""
+        Brownian motion using analytic expression.
+        """
         dt = time_grid[1:] - time_grid[:-1]
         spot_moved = spot * np.cumprod(
             np.exp((self.rate - self.vol ** 2 / 2) * dt
@@ -119,7 +120,7 @@ class SDE(sde.SDE):
         if greek == 'delta':
             wiener = (np.log(paths / spot)
                       - (self.rate - 0.5 * self.vol ** 2) * time) / self.vol
-            # todo: should wiener by divided by (self.expiry - time)?
+            # todo: should wiener be divided by (self.expiry - time)?
             return paths, wiener / (spot * self.vol)
         elif greek == 'vega':
             normal = (np.log(paths / spot)

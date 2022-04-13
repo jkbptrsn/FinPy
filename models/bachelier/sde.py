@@ -7,22 +7,30 @@ import models.sde as sde
 
 
 class SDE(sde.SDE):
-    """Bachelier SDE:
-    dS_t = vol * dW_t
-    todo: Extend to dS_t = rate * S_t dt + vol * dW_t
-    todo: https://quant.stackexchange.com/questions/32863/bachelier-model-call-option-pricing-formula
+    """Black-Scholes SDE:
+    dS_t / S_t = rate * dt + vol * dW_t
+    todo: What about 2-d, or n-d?
     """
 
-    def __init__(self, vol):
+    def __init__(self, rate, vol):
+        self._rate = rate
         self._vol = vol
-        self._model_name = 'Bachelier'
+        self._model_name = 'Black-Scholes'
 
     def __repr__(self):
-        return f"{self.model_name} SDE object"
+        return f"{self._model_name} SDE object"
 
     @property
     def model_name(self):
         return self._model_name
+
+    @property
+    def rate(self):
+        return self._rate
+
+    @rate.setter
+    def rate(self, rate_):
+        self._rate = rate_
 
     @property
     def vol(self):
@@ -37,7 +45,7 @@ class SDE(sde.SDE):
              time: float,
              n_paths: int,
              antithetic: bool = False) -> (float, np.ndarray):
-        """Generate path(s), at t = time, of arithmetic Brownian motion
+        """Generate paths(s), at t = time, of geometric Brownian motion
         using analytic expression.
 
         antithetic : Antithetic sampling for Monte-Carlo variance
@@ -51,16 +59,19 @@ class SDE(sde.SDE):
             realizations = np.append(realizations, -realizations)
         else:
             realizations = norm.rvs(size=n_paths)
-        return spot + self.vol * math.sqrt(time) * realizations
+        return spot * np.exp((self.rate - self.vol ** 2 / 2) * time
+                             + self.vol * math.sqrt(time) * realizations)
 
     def path_grid(self,
                   spot: float,
                   time_grid: np.ndarray) -> np.ndarray:
-        """Generate one path, represented on time_grid, of arithmetic
-        Brownian motion using analytic expression."""
+        """Generate one path, represented on time_grid, of geometric
+        Brownian motion using analytic expression.
+        """
         dt = time_grid[1:] - time_grid[:-1]
-        spot_moved = spot \
-            + np.cumsum(self.vol * np.sqrt(dt) * norm.rvs(size=dt.shape[0]))
+        spot_moved = spot * np.cumprod(
+            np.exp((self.rate - self.vol ** 2 / 2) * dt
+                   + self.vol * np.sqrt(dt) * norm.rvs(size=dt.shape[0])))
         return np.append(spot, spot_moved)
 
     def path_wise(self,
@@ -69,7 +80,7 @@ class SDE(sde.SDE):
                   n_paths: int,
                   greek: str = 'delta',
                   antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
-        """Generate paths, at t = time, of arithmetic Brownian motion
+        """Generate paths, at t = time, of geometric Brownian motion
         using analytic expression. The paths are used for "path-wise"
         Monte-Carlo calculation of a 'greek'.
         todo: See 'Estimating the greeks' lecture notes by Martin Haugh (2017)
@@ -79,9 +90,11 @@ class SDE(sde.SDE):
         """
         paths = self.path(spot, time, n_paths, antithetic)
         if greek == 'delta':
-            return paths, np.ones(paths.shape[0])
+            return paths, paths / spot
         elif greek == 'vega':
-            return paths, (paths - spot) / self.vol
+            wiener = (np.log(paths / spot)
+                      - (self.rate - 0.5 * self.vol ** 2) * time) / self.vol
+            return paths, paths * (wiener - self.vol * time)
         else:
             raise ValueError("greek can be 'delta' or 'vega'")
 
@@ -92,7 +105,7 @@ class SDE(sde.SDE):
                          greek: str = 'delta',
                          antithetic: bool = False) \
             -> Tuple[np.ndarray, np.ndarray]:
-        """Generate paths, at t = time, of arithmetic Brownian motion
+        """Generate paths, at t = time, of geometric Brownian motion
         using analytic expression. The paths are used for
         'likelihood-ratio' Monte-Carlo calculation of a 'greek'.
 
@@ -105,10 +118,15 @@ class SDE(sde.SDE):
         """
         paths = self.path(spot, time, n_paths, antithetic)
         if greek == 'delta':
-            wiener = (paths - spot) / self.vol
-            return paths, wiener / self.vol
+            wiener = (np.log(paths / spot)
+                      - (self.rate - 0.5 * self.vol ** 2) * time) / self.vol
+            # todo: should wiener be divided by (self.expiry - time)?
+            return paths, wiener / (spot * self.vol)
         elif greek == 'vega':
-            normal = (paths - spot) / (self.vol * math.sqrt(time))
-            return paths, (normal ** 2 - 1) / self.vol
+            normal = (np.log(paths / spot)
+                      - (self.rate - 0.5 * self.vol ** 2) * time) \
+                     / (self.vol * math.sqrt(time))
+            return paths, normal ** 2 / self.vol \
+                - normal * math.sqrt(time) - 1 / self.vol
         else:
             raise ValueError("greek can be 'delta' or 'vega'")

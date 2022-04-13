@@ -4,6 +4,8 @@ import abc
 class VanillaOption(metaclass=abc.ABCMeta):
     """Abstract vanilla option class."""
 
+    # MOVE option_type TO THIS ABC
+
     @property
     @abc.abstractmethod
     def strike(self):

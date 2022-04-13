@@ -27,16 +27,16 @@ class VanillaOption(option.VanillaOption, sde.SDE):
         return self._strike
 
     @strike.setter
-    def strike(self, val):
-        self._strike = val
+    def strike(self, strike_):
+        self._strike = strike_
 
     @property
     def expiry(self):
         return self._expiry
 
     @expiry.setter
-    def expiry(self, val):
-        self._expiry = val
+    def expiry(self, expiry_):
+        self._expiry = expiry_
 
     def d1d2(self,
              spot: (float, np.ndarray),
