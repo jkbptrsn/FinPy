@@ -291,21 +291,41 @@ class Solver:
     @staticmethod
     def fd_delta(grid: np.ndarray,
                  function: np.ndarray):
-        """Delta determined by central finite difference
-        approximation. Assuming equidistant and ascending grid...
+        """Delta determined by second order finite differences. Assuming
+        equidistant and ascending grid.
         """
-        grid_spacing = (grid[1] - grid[0])
-        return (function[2:] - function[:-2]) / (2 * grid_spacing)
+        dx = grid[1] - grid[0]
+        delta = 0 * function.copy()
+        # Central finite difference
+        delta[1:-1] = (function[2:] - function[:-2]) / (2 * dx)
+        # Forward finite difference
+        delta[0] = \
+            (-function[2] / 2 + 2 * function[1] - 3 * function[0] / 2) / dx
+        # Backward finite difference
+        delta[-1] = \
+            (function[-3] / 2 - 2 * function[-2] + 3 * function[-1] / 2) / dx
+        return delta
 
     @staticmethod
     def fd_gamma(grid: np.ndarray,
                  function: np.ndarray):
-        """Gamma determined by finite difference approximation. Assuming
-        equidistant and ascending grid...
+        """Gamma determined by second order finite differences. Assuming
+        equidistant and ascending grid.
         """
-        grid_spacing = (grid[1] - grid[0])
-        return (function[2:] + function[:-2] - 2 * function[1:-1]) \
-            / grid_spacing ** 2
+        dx_sq = (grid[1] - grid[0]) ** 2
+        gamma = 0 * function.copy()
+        # Central finite difference
+        gamma[1:-1] = \
+            (function[2:] + function[:-2] - 2 * function[1:-1]) / dx_sq
+        # Forward finite difference
+        gamma[0] = \
+            (-function[3] + 4 * function[2]
+             - 5 * function[1] + 2 * function[0]) / dx_sq
+        # Backward finite difference
+        gamma[-1] = \
+            (-function[-4] + 4 * function[-3]
+             - 5 * function[-2] + 2 * function[-1]) / dx_sq
+        return gamma
 
     def fd_theta(self,
                  dt: float,

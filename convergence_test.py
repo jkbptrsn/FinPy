@@ -171,11 +171,11 @@ for n in range(n_doubles):
     ax2[0].plot(solver.grid(), value, 'r')
 
     # Delta
-    ax1[1].plot(solver.grid()[1:-1], solver.fd_delta(solver.grid(), value), 'r')
+    ax1[1].plot(solver.grid(), solver.fd_delta(solver.grid(), value), 'r')
     ax1[1].set_ylabel("Delta")
 
     # Gamma
-    ax1[2].plot(solver.grid()[1:-1], solver.fd_gamma(solver.grid(), value), 'r')
+    ax1[2].plot(solver.grid(), solver.fd_gamma(solver.grid(), value), 'r')
     ax1[2].set_ylabel("Gamma")
     ax1[2].set_xlabel("Price of underlying")
 
