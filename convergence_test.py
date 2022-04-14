@@ -10,15 +10,16 @@ import models.bachelier.call as ba_call
 import models.bachelier.put as ba_put
 import models.vasicek.zcbond as va_bond
 
-import fd_methods.theta as theta
+#import fd_methods.theta as theta
+import numerical_methods.finite_difference.theta as theta
 
-n_doubles = 3
+n_doubles = 1
 
 # Test convergence wrt to time and space separately
 
 smoothing = False
 
-show_plots = False
+show_plots = True
 
 rannacher_stepping = False
 
@@ -26,9 +27,9 @@ rannacher_stepping = False
 # model = 'Bachelier'
 model = 'Vasicek'
 
-# option_type = 'Call'
-# option_type = 'Put'
-option_type = 'ZCBond'
+# instrument = 'Call'
+# instrument = 'Put'
+instrument = 'ZCBond'
 
 # Time execution
 start_time = datetime.now()
@@ -96,16 +97,16 @@ for n in range(n_doubles):
     solver.set_up_propagator()
 
     # Terminal solution to PDE
-    if option_type == 'Call':
+    if instrument == 'Call':
         value = payoffs.call(solver.grid(), strike)
-    elif option_type == 'Put':
+    elif instrument == 'Put':
         value = payoffs.put(solver.grid(), strike)
-    elif option_type == 'ZCBond':
+    elif instrument == 'ZCBond':
 #        value = payoffs.call(solver.grid(), 0)
         value = 1 + 0 * solver.grid()
 
     if smoothing:
-        if option_type == "Call":
+        if instrument == "Call":
             grid = solver.grid()
             dx = grid[1] - grid[0]
             index = np.where(grid < strike)[0][-1]
@@ -185,7 +186,7 @@ for n in range(n_doubles):
     ax2[2].set_xlabel("Price of underlying")
 
     # Analytical result
-    if option_type == 'Call':
+    if instrument == 'Call':
         if model == 'Black-Scholes':
             call = bs_call.Call(rate, vol, strike, expiry)
         else:
@@ -197,7 +198,7 @@ for n in range(n_doubles):
         ax2[0].plot(solver.grid(), call.price(solver.grid(), 0), 'ob', markersize=3)
         ax2[1].plot(solver.grid(), call.theta(solver.grid(), 0), 'ob', markersize=3)
 
-    elif option_type == 'Put':
+    elif instrument == 'Put':
         if model == 'Black-Scholes':
             put = bs_put.Put(rate, vol, strike, expiry)
         else:
@@ -209,7 +210,7 @@ for n in range(n_doubles):
         ax2[0].plot(solver.grid(), put.price(solver.grid(), 0), 'ob', markersize=3)
         ax2[1].plot(solver.grid(), put.theta(solver.grid(), 0), 'ob', markersize=3)
 
-    elif option_type == 'ZCBond':
+    elif instrument == 'ZCBond':
         zcbond = va_bond.ZCBond(kappa, theta_factor, vol, strike, expiry)
         ax1[0].plot(solver.grid(), zcbond.price(solver.grid(), 0), 'ob', markersize=3)
         ax1[1].plot(solver.grid(), zcbond.delta(solver.grid(), 0), 'ob', markersize=3)
