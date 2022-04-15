@@ -9,6 +9,8 @@ import models.black_scholes.put as bs_put
 import models.bachelier.call as ba_call
 import models.bachelier.put as ba_put
 import models.vasicek.zcbond as va_bond
+import models.vasicek.call as va_call
+import models.vasicek.put as va_put
 
 #import fd_methods.theta as theta
 import numerical_methods.finite_difference.theta as theta
@@ -28,22 +30,22 @@ rannacher_stepping = False
 model = 'Vasicek'
 
 # instrument = 'Call'
-# instrument = 'Put'
-instrument = 'ZCBond'
+instrument = 'Put'
+# instrument = 'ZCBond'
 
 # Time execution
 start_time = datetime.now()
 
 rate = 0.0
-strike = 0 # 50.0
+strike = 1 # 50.0
 vol = 0.05 # 20 # 0.2 # 0.05
 expiry = 2
 kappa = 0.1 # 1.0 # 0.1
-theta_factor = 0.05
+theta_factor = 0.0
 
 t_min = 0
 t_max = 2
-t_steps = 101
+t_steps = 201
 dt = (t_max - t_min) / (t_steps - 1)
 
 sigma_grid = np.sqrt(vol ** 2 * (t_max - t_min))
@@ -86,10 +88,11 @@ for n in range(n_doubles):
         y = vol ** 2 * (1 - np.exp(- 2 * kappa * t_current)) / (2 * kappa)
 #        print(y, np.amax(np.abs(y - kappa * solver.grid()) * solver.dx), vol ** 2)
 
-        solver.set_up_drift_vec(y - kappa * solver.grid())
-        solver.set_up_rate_vec(solver.grid())
+#        solver.set_up_drift_vec(y - kappa * solver.grid())
+#        solver.set_up_rate_vec(solver.grid())
 
-#        solver.set_up_drift_vec(kappa * (theta_factor - solver.grid()))
+        solver.set_up_drift_vec(kappa * (theta_factor - solver.grid()))
+        solver.set_up_rate_vec(solver.grid())
 #        solver.set_up_rate_vec(rate + 0 * solver.grid())
 
         solver.set_up_diffusion_vec(vol + 0 * solver.grid())
@@ -99,8 +102,12 @@ for n in range(n_doubles):
     # Terminal solution to PDE
     if instrument == 'Call':
         value = payoffs.call(solver.grid(), strike)
+        if model == "Vasicek":
+            value = 1 + 0 * solver.grid()
     elif instrument == 'Put':
         value = payoffs.put(solver.grid(), strike)
+        if model == "Vasicek":
+            value = 1 + 0 * solver.grid()
     elif instrument == 'ZCBond':
 #        value = payoffs.call(solver.grid(), 0)
         value = 1 + 0 * solver.grid()
@@ -142,14 +149,19 @@ for n in range(n_doubles):
                 t_temp = t_current
             elif n == 2 and t % 4 == 0:
                 t_temp = t_current
+            elif n == 3 and t % 8 == 0:
+                t_temp = t_current
+            elif n == 4 and t % 16 == 0:
+                t_temp = t_current
 
             y = vol ** 2 * (1 - np.exp(- 2 * kappa * t_temp)) / (2 * kappa)
 #            print(t_current, y)
 
-            solver.set_up_drift_vec(y - kappa * solver.grid())
-            solver.set_up_rate_vec(solver.grid())
+#            solver.set_up_drift_vec(y - kappa * solver.grid())
+#            solver.set_up_rate_vec(solver.grid())
 
-#            solver.set_up_drift_vec(kappa * (theta_factor - solver.grid()))
+            solver.set_up_drift_vec(kappa * (theta_factor - solver.grid()))
+            solver.set_up_rate_vec(solver.grid())
 #            solver.set_up_rate_vec(rate + 0 * solver.grid())
 
             solver.set_up_diffusion_vec(vol + 0 * solver.grid())
@@ -165,6 +177,13 @@ for n in range(n_doubles):
 
         # Update current time
         t_current -= dt
+
+        # European call option on ZC bond
+        if t == (t_steps - 1) // 2 and model == "Vasicek":
+            if instrument == "Call":
+                value = np.maximum(value - strike, 0)
+            if instrument == "Put":
+                value = np.maximum(strike - value, 0)
 
     # Price function
     ax1[0].plot(solver.grid(), value, 'r')
@@ -189,26 +208,31 @@ for n in range(n_doubles):
     if instrument == 'Call':
         if model == 'Black-Scholes':
             call = bs_call.Call(rate, vol, strike, expiry)
-        else:
+        elif model == "Bachelier":
             call = ba_call.Call(vol, strike, expiry)
+        elif model == "Vasicek":
+            call = va_call.Call(kappa, theta_factor, vol, strike, expiry / 2, expiry)
         ax1[0].plot(solver.grid(), call.price(solver.grid(), 0), 'ob', markersize=3)
         ax1[1].plot(solver.grid(), call.delta(solver.grid(), 0), 'ob', markersize=3)
-        ax1[2].plot(solver.grid(), call.gamma(solver.grid(), 0), 'ob', markersize=3)
+#        ax1[2].plot(solver.grid(), call.gamma(solver.grid(), 0), 'ob', markersize=3)
 
         ax2[0].plot(solver.grid(), call.price(solver.grid(), 0), 'ob', markersize=3)
-        ax2[1].plot(solver.grid(), call.theta(solver.grid(), 0), 'ob', markersize=3)
+#        ax2[1].plot(solver.grid(), call.theta(solver.grid(), 0), 'ob', markersize=3)
 
     elif instrument == 'Put':
         if model == 'Black-Scholes':
             put = bs_put.Put(rate, vol, strike, expiry)
-        else:
+        elif model == "Bachelier":
             put = ba_put.Put(vol, strike, expiry)
+        elif model == "Vasicek":
+            put = va_put.Put(kappa, theta_factor, vol, strike, expiry / 2, expiry)
+
         ax1[0].plot(solver.grid(), put.price(solver.grid(), 0), 'ob', markersize=3)
         ax1[1].plot(solver.grid(), put.delta(solver.grid(), 0), 'ob', markersize=3)
-        ax1[2].plot(solver.grid(), put.gamma(solver.grid(), 0), 'ob', markersize=3)
+#        ax1[2].plot(solver.grid(), put.gamma(solver.grid(), 0), 'ob', markersize=3)
 
         ax2[0].plot(solver.grid(), put.price(solver.grid(), 0), 'ob', markersize=3)
-        ax2[1].plot(solver.grid(), put.theta(solver.grid(), 0), 'ob', markersize=3)
+#        ax2[1].plot(solver.grid(), put.theta(solver.grid(), 0), 'ob', markersize=3)
 
     elif instrument == 'ZCBond':
         zcbond = va_bond.ZCBond(kappa, theta_factor, vol, strike, expiry)
