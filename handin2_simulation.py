@@ -1,12 +1,8 @@
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import norm
 
-import models.bachelier.call as ba_call
-import models.black_scholes.call as bs_call
 import models.black_scholes.binary as bs_digital
-import mc_methods.standard_mc as mc
 import handin2_utils as utils
 
 rate = 0

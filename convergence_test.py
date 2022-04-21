@@ -14,19 +14,19 @@ import models.vasicek.put as va_put
 
 import numerical_methods.finite_difference.theta as theta
 
-n_doubles = 1
+n_doubles = 3
 
 # Test convergence wrt to time and space separately
 
 smoothing = False
 
-show_plots = True
+show_plots = False
 
 rannacher_stepping = False
 
-# model = "Black-Scholes"
+model = "Black-Scholes"
 # model = "Bachelier"
-model = "Vasicek"
+# model = "Vasicek"
 # model = "Extended Vasicek"
 
 instrument = 'Call'
@@ -37,8 +37,8 @@ instrument = 'Call'
 start_time = datetime.now()
 
 rate = 0.0
-strike = 1 # 50.0
-vol = 0.05 # 20 # 0.2 # 0.05
+strike = 50 # 1
+vol = 0.2 # 0.05 # 20
 expiry = 2
 kappa = 0.1 # 1.0 # 0.1
 theta_factor = 0.0
@@ -54,9 +54,9 @@ print("STD: ", sigma_grid)
 sigma_grid_new = np.sqrt(vol ** 2 * (1 - np.exp(-2 * kappa * (t_max - t_min))) / (2 * kappa))
 print("STD new: ", sigma_grid_new)
 
-x_min = - 5 * sigma_grid # -50.0
-x_max = 5 * sigma_grid # 150.0
-x_steps = 101
+x_min = 25 # - 5 * sigma_grid
+x_max = 75 # 5 * sigma_grid
+x_steps = 101 # 101 + 2
 
 t_array = np.zeros(n_doubles - 1)
 x_array = np.zeros(n_doubles - 1)
@@ -67,6 +67,9 @@ for n in range(n_doubles):
     # Update grid spacing in spatial dimension
     x_steps_old = x_steps
     x_steps = 2 * x_steps - 1
+
+#    x_steps = 2 * (x_steps - 2) - 1 + 2
+
     # Update grid spacing in time dimension
     t_steps = 2 * t_steps - 1
     dt = (t_max - t_min) / (t_steps - 1)
@@ -92,15 +95,15 @@ for n in range(n_doubles):
     elif model == "Extended Vasicek":
         # Add time-dependent volatility and non-zero forward rate
         y = vol ** 2 * (1 - np.exp(- 2 * kappa * t_current)) / (2 * kappa)
-#        solver.set_up_drift_vec(y - kappa * solver.grid())
+        solver.set_up_drift_vec(y - kappa * solver.grid())
 
-        nu = rate + y / kappa
-        solver.set_up_drift_vec(kappa * (nu - solver.grid()))
+#        nu = rate + y / kappa
+#        solver.set_up_drift_vec(kappa * (nu - solver.grid()))
 
         solver.set_up_rate_vec(solver.grid())
         solver.set_up_diffusion_vec(vol + 0 * solver.grid())
 
-    solver.set_up_propagator()
+    solver.set_up_propagator(dt)
 
     # Terminal solution to PDE
     if instrument == 'Call':
@@ -115,7 +118,7 @@ for n in range(n_doubles):
         value = 1 + 0 * solver.grid()
 
     if smoothing:
-        if instrument == "Call":
+        if instrument == "Call" and not (model == "Vasicek" or model == "Extended Vasicek"):
             grid = solver.grid()
             dx = grid[1] - grid[0]
             index = np.where(grid < strike)[0][-1]
@@ -161,14 +164,14 @@ for n in range(n_doubles):
             elif model == "Extended Vasicek":
                 y = vol ** 2 * (1 - np.exp(- 2 * kappa * t_temp)) / (2 * kappa)
 #                print(t_current, y)
-#                solver.set_up_drift_vec(y - kappa * solver.grid())
+                solver.set_up_drift_vec(y - kappa * solver.grid())
 
-                nu = rate + y / kappa
-                solver.set_up_drift_vec(kappa * (nu - solver.grid()))
+#                nu = rate + y / kappa
+#                solver.set_up_drift_vec(kappa * (nu - solver.grid()))
 
             solver.set_up_rate_vec(solver.grid())
             solver.set_up_diffusion_vec(vol + 0 * solver.grid())
-            solver.set_up_propagator()
+            solver.set_up_propagator(dt)
 
         if rannacher_stepping and t < 2:
             solver.theta = 1.0
@@ -245,10 +248,25 @@ for n in range(n_doubles):
         ax1[1].plot(solver.grid(), zcbond.delta(solver.grid(), 0), 'ob', markersize=3)
         ax1[2].plot(solver.grid(), zcbond.gamma(solver.grid(), 0), 'ob', markersize=3)
 
+
+#    print(solver.grid())
+
+
     if n > 0:
 
         abs_diff = np.abs(value_old - value[::2])
+
+#        abs_diff = np.abs(value_old[1:-1] - value[1:-1][::2])
+#        abs_diff = np.abs(value_old[1:-1] - value[2:-2][::2])
+
 #        abs_diff = np.abs(value_old - value)
+#        if model == "Vasicek" or model == "Extended Vasicek":
+#            if instrument == "Call":
+#                call = va_call.Call(kappa, theta_factor, vol, strike, expiry / 2, expiry)
+#                abs_diff = np.abs(call.price(solver.grid(), 0) - value)
+#            if instrument == "ZCBond":
+#                zcbond = va_bond.ZCBond(kappa, theta_factor, vol, strike, expiry)
+#                abs_diff = np.abs(zcbond.price(solver.grid(), 0) - value)
 
         norm_center = abs_diff[(x_steps_old - 1) // 2]
         norm_max = np.amax(abs_diff)

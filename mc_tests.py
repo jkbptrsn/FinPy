@@ -1,11 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-import models.bachelier.call as ba_call
-import models.bachelier.put as ba_put
-import models.black_scholes.call as bs_call
 import models.black_scholes.put as bs_put
-import mc_methods.standard_mc as mc
+import numerical_methods.monte_carlo.standard_mc as mc
 
 rate = 0.06
 vol = 0.2
