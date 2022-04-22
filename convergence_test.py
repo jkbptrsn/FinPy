@@ -11,16 +11,17 @@ import models.bachelier.put as ba_put
 import models.vasicek.zcbond as va_bond
 import models.vasicek.call as va_call
 import models.vasicek.put as va_put
+import utils.plots as plots
 
 import numerical_methods.finite_difference.theta as theta
 
-n_doubles = 3
+n_doubles = 1
 
 # Test convergence wrt to time and space separately
 
 smoothing = False
 
-show_plots = False
+show_plots = True
 
 rannacher_stepping = False
 
@@ -133,6 +134,8 @@ for n in range(n_doubles):
                 if grid[index + 1] == strike:
                     value[index + 1] = 0
 
+    payoff = value
+
     # Figure 1
     f1, ax1 = plt.subplots(3, 1)
     ax1[0].plot(solver.grid(), value, 'k')
@@ -206,6 +209,8 @@ for n in range(n_doubles):
     # Theta
     ax2[1].plot(solver.grid(), solver.fd_theta(dt, value), 'r')
     ax2[1].set_ylabel("Theta")
+
+    plots.plot1(solver, payoff, value, dt)
 
     ax2[2].set_xlabel("Price of underlying")
 
