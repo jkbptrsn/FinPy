@@ -158,8 +158,8 @@ class Solver:
         self._nstates = nstates
         self._theta = theta
 
-        self._dx = (xmax - xmin) / (nstates - 1)
-#        self._dx = (xmax - xmin) / (nstates - 1 - 2)
+#        self._dx = (xmax - xmin) / (nstates - 1)
+        self._dx = (xmax - xmin) / (nstates - 1 - 2)
 
         self._drift_vec = None
         self._diffusion_vec = None
@@ -196,8 +196,8 @@ class Solver:
         """Equidistant grid between _xmin and _xmax, including both end
         points.
         """
-        return self._dx * np.arange(self._nstates) + self._xmin
-#        return self._dx * np.arange(-1, self._nstates - 1) + self._xmin
+#        return self._dx * np.arange(self._nstates) + self._xmin
+        return self._dx * np.arange(-1, self._nstates - 1) + self._xmin
 #        n_half = (self._nstates - 1) // 2
 #        return self._dx * np.arange(-n_half, n_half + 1, 1)
 
@@ -222,8 +222,8 @@ class Solver:
             - 3rd row: Sub-diagonal (not including last element)
         """
 
-        self._identity_mat = np.zeros((3, self._nstates))
-#        self._identity_mat = np.zeros((3, self._nstates - 2))
+#        self._identity_mat = np.zeros((3, self._nstates))
+        self._identity_mat = np.zeros((3, self._nstates - 2))
 
         self._identity_mat[1, :] = 1
 
@@ -260,17 +260,17 @@ class Solver:
         lower = (-self._drift_vec / self._dx + diffusion_vec_sq / dx_sq) / 2
 
 
-#        upper = upper[1:-1]
-#        center = center[1:-1]
-#        lower = lower[1:-1]
+        upper = upper[1:-1]
+        center = center[1:-1]
+        lower = lower[1:-1]
 
 
         # Set up propagator matrix consistent with the solve_banded
         # function (scipy.linalg)
         # Eq. (2.11), L.B.G. Andersen & V.V. Piterbarg 2010
 
-        self._propagator_mat = np.zeros((3, self._nstates))
-#        self._propagator_mat = np.zeros((3, self._nstates - 2))
+#        self._propagator_mat = np.zeros((3, self._nstates))
+        self._propagator_mat = np.zeros((3, self._nstates - 2))
 
         self._propagator_mat[0, 1:] = upper[:-1]
         self._propagator_mat[1, :] = center
@@ -317,8 +317,8 @@ class Solver:
         idx_m = self._nstates - 2
 
         # Set up boundary vector
-        self._boundary_vec = np.zeros(self._nstates)
-#        self._boundary_vec = np.zeros(self._nstates - 2)
+#        self._boundary_vec = np.zeros(self._nstates)
+        self._boundary_vec = np.zeros(self._nstates - 2)
 
     def propagation(self,
                     dt: float,
@@ -328,10 +328,10 @@ class Solver:
         # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010
         rhs = self._identity_mat + (1 - self.theta) * dt * self._propagator_mat
 
-        rhs = self.mat_vec_product(rhs, vector) \
-            + (1 - self._theta) * self._boundary_vec
-#        rhs = self.mat_vec_product(rhs, vector[1:-1]) \
+#        rhs = self.mat_vec_product(rhs, vector) \
 #            + (1 - self._theta) * self._boundary_vec
+        rhs = self.mat_vec_product(rhs, vector[1:-1]) \
+            + (1 - self._theta) * self._boundary_vec
 
         # Update self._propagator_mat and self._boundary_vec
         # UPDATE DIFFUSION_VEC, DRIFT_VEC, and RATE_VEC before method call...
@@ -343,15 +343,15 @@ class Solver:
         lhs = self._identity_mat - self.theta * dt * self._propagator_mat
 
         vector_out = np.zeros(self._nstates)
-#        vector_out[1:-1] = solve_banded((1, 1), lhs, rhs)
+        vector_out[1:-1] = solve_banded((1, 1), lhs, rhs)
 
         k1, k2, km_1, km = self.boundary_conditions(bc_type)
 
         vector_out[0] = k1 * vector_out[1] + k2 * vector_out[2]
         vector_out[-1] = km * vector_out[-2] + km_1 * vector_out[-3]
 
-        return solve_banded((1, 1), lhs, rhs)
-#        return vector_out
+#        return solve_banded((1, 1), lhs, rhs)
+        return vector_out
 
     @staticmethod
     def fd_delta(grid: np.ndarray,

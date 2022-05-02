@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 
-def plot1(solver, payoff, price, dt):
+def plot1(solver, payoff, price, dt, show=True):
 
     plt.rcParams.update({'font.size': 10})
 
@@ -31,4 +31,5 @@ def plot1(solver, payoff, price, dt):
     ax1[3].set_xlabel("\"Value\" of underlying")
     ax1[3].grid(True)
 
-    plt.show()
+    if show:
+        plt.show()
