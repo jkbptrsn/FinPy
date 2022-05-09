@@ -27,24 +27,24 @@ show_plots = True
 
 rannacher_stepping = False
 
-model = "Black-Scholes"
+# model = "Black-Scholes"
 # model = "Bachelier"
-# model = "Vasicek"
+model = "Vasicek"
 # model = "Extended Vasicek"
 
 instrument = 'Call'
 # instrument = 'Put'
 # instrument = 'ZCBond'
 
-# bc_type = "Linearity"
-bc_type = "PDE"
+bc_type = "Linearity"
+# bc_type = "PDE"
 
 # Time execution
 start_time = datetime.now()
 
 rate = 0.0
-strike = 50 # 1
-vol = 0.2 # 0.05
+strike = 0.2 # 50
+vol = 0.05 # 0.2
 expiry = 2
 kappa = 0.1 # 1.0 # 0.1
 theta_factor = 0
@@ -60,8 +60,8 @@ print("STD: ", sigma_grid)
 sigma_grid_new = np.sqrt(vol ** 2 * (1 - np.exp(-2 * kappa * (t_max - t_min))) / (2 * kappa))
 print("STD new: ", sigma_grid_new)
 
-x_min = 25 # - 5 * sigma_grid
-x_max = 75 # 5 * sigma_grid
+x_min = - 5 * sigma_grid # 25
+x_max = 5 * sigma_grid # 75
 x_steps = 101
 
 t_array = np.zeros(n_doubles - 1)
@@ -74,7 +74,7 @@ for n in range(n_doubles):
     t_current = t_max
 
     # Set up PDE solver
-    solver = theta.SolverNew(x_min, x_max, x_steps, dt, boundary=bc_type)
+    solver = theta.AndersenPiterbarg(x_min, x_max, x_steps, dt, boundary=bc_type)
     solver.initialization()
 
     print(solver.boundary)

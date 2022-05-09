@@ -38,7 +38,7 @@ class BlackScholes(unittest.TestCase):
 
         for n in range(n_doubles):
             # Set up PDE solver
-            solver = theta.SolverNew(x_min, x_max, x_steps, dt, boundary=bc_type)
+            solver = theta.AndersenPiterbarg(x_min, x_max, x_steps, dt, boundary=bc_type)
             solver.initialization()
             solver.set_drift(rate * solver.grid())
             solver.set_diffusion(vol * solver.grid())
@@ -133,7 +133,7 @@ class Vasicek(unittest.TestCase):
 
         for n in range(n_doubles):
             # Set up PDE solver
-            solver = theta.SolverNew(x_min, x_max, x_steps, dt, boundary=bc_type)
+            solver = theta.AndersenPiterbarg(x_min, x_max, x_steps, dt, boundary=bc_type)
             solver.initialization()
             solver.set_drift(kappa * (theta_factor - solver.grid()))
             solver.set_diffusion(vol + 0 * solver.grid())
