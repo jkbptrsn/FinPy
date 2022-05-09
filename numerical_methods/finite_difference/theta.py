@@ -434,24 +434,24 @@ class SolverNew:
                  xmax: float,
                  nstates: int,
                  dt: float,
-                 theta: float = 0.5):
+                 theta: float = 0.5,
+                 boundary: str = "Linearity"):
         self._xmin = xmin
         self._xmax = xmax
-        # Add two boundary points
         self._nstates = nstates + 2
         self._dt = dt
         self._theta = theta
-        # Grid spacing assuming self._nstates equidistantly distributed
-        # states between xmax and xmin
-        self._dx = (self._xmax - self._xmin) / (self._nstates - 1)
-
+        self._boundary = boundary
+        self._dx = (xmax - xmin) / (nstates - 1)
         self._vec_drift = None
         self._vec_diff_sq = None
         self._vec_rate = None
-
+        self._vec_solution = None
         self._mat_identity = None
         self._mat_propagator = None
         self._vec_boundary = None
+
+        self._bc = np.zeros(2)
 
     @property
     def xmin(self) -> float:
@@ -463,7 +463,7 @@ class SolverNew:
 
     @property
     def nstates(self) -> int:
-        # Returning number of interior states
+        # Remove boundary states
         return self._nstates - 2
 
     @property
@@ -483,21 +483,26 @@ class SolverNew:
         self._theta = val
 
     @property
+    def boundary(self):
+        return self._boundary
+
+    @property
     def dx(self) -> float:
         return self._dx
 
     def grid(self) -> np.ndarray:
         """Equidistant grid between _xmin and _xmax including both
-        points.
+        points. Two boundary points are added at _xmin - _dx and
+        _xmax + _dx.
         """
-        return self._dx * np.arange(self._nstates) + self._xmin
+        return self._dx * np.arange(-1, self._nstates - 1) + self._xmin
 
     def set_drift(self, drift: np.ndarray):
         """Drift vector defined by the underlying stochastic process."""
         self._vec_drift = drift
 
     def set_diffusion(self, diffusion: np.ndarray):
-        """Square diffusion vector defined by the underlying stochastic
+        """Squared diffusion vector defined by the underlying stochastic
         process.
         """
         self._vec_diff_sq = np.square(diffusion)
@@ -505,6 +510,14 @@ class SolverNew:
     def set_rate(self, rate: np.ndarray):
         """Rate vector defined by the underlying stochastic process."""
         self._vec_rate = rate
+
+    @property
+    def solution(self) -> np.ndarray:
+        return self._vec_solution
+
+    @solution.setter
+    def solution(self, val: np.ndarray):
+        self._vec_solution = val
 
     def identity_matrix(self):
         """Identity matrix on tri-diagonal form.
@@ -533,147 +546,203 @@ class SolverNew:
         # Set up identity matrix
         self.identity_matrix()
 
-    def set_propagator(self,
-                       bc_type: str = "Linearity"):
+    def set_bc_dt(self):
+        """..."""
+        d, e, f, d_p, e_p, f_p = self.calc_bc_dt()
+        self._bc[0] = \
+            d * self._vec_solution[0] \
+            + e * self._vec_solution[1] \
+            + f * self._vec_solution[2]
+        self._bc[-1] = \
+            d_p * self._vec_solution[-1] \
+            + e_p * self._vec_solution[-2] \
+            + f_p * self._vec_solution[-3]
+
+    def set_propagator(self):
         """Propagator on tri-diagonal form.
             - 1st row: Super-diagonal (not including first element)
             - 2nd row: Diagonal
             - 3rd row: Sub-diagonal (not including last element)
+        boundary: str
+            Choose how to handle boundary conditions
         """
         dx_sq = self._dx ** 2
-
         # Eq. (2.7) - (2.9), L.B.G. Andersen & V.V. Piterbarg 2010
         upper = (self._vec_drift / self._dx + self._vec_diff_sq / dx_sq) / 2
         center = - self._vec_diff_sq / dx_sq - self._vec_rate
         lower = (-self._vec_drift / self._dx + self._vec_diff_sq / dx_sq) / 2
-
         # Keep elements for interior states
         upper = upper[1:-1]
         center = center[1:-1]
         lower = lower[1:-1]
-
         # Set up propagator matrix consistent with the solve_banded
         # function (scipy.linalg)
         # Eq. (2.11), L.B.G. Andersen & V.V. Piterbarg 2010
         self._mat_propagator = np.zeros((3, self._nstates - 2))
-
         self._mat_propagator[0, 1:] = upper[:-1]
         self._mat_propagator[1, :] = center
         self._mat_propagator[2, :-1] = lower[1:]
 
+        # Boundary conditions
+        k1, k2, km_1, km, f1, fm = self.boundary_conditions()
 
-        # Choose Boundary conditions
-        k1, k2, km_1, km = self.boundary_conditions(bc_type)
-
-
-        # 1) Instrument value is assumed linear in the underlying price
-        # process, i.e., dV^2/dx^2 = 0
+        # Adjust propagator matrix for boundary conditions
         # Eq. (2.12) - (2.13), L.B.G. Andersen & V.V. Piterbarg 2010
-#        self._mat_propagator[1, -1] += 2 * upper[-1]
-#        self._mat_propagator[2, -2] += - upper[-1]
-#        self._mat_propagator[1, 0] += 2 * lower[0]
-#        self._mat_propagator[0, 1] += - lower[0]
-
         self._mat_propagator[1, -1] += km * upper[-1]
         self._mat_propagator[2, -2] += km_1 * upper[-1]
         self._mat_propagator[1, 0] += k1 * lower[0]
         self._mat_propagator[0, 1] += k2 * lower[0]
 
-        # Set up boundary vector
+        # Set boundary vector
         self._vec_boundary = np.zeros(self._nstates - 2)
+        self._vec_boundary[0] = lower[0] * f1
+        self._vec_boundary[-1] = upper[-1] * fm
 
-    def propagation(self,
-                    vector: np.ndarray,
-                    bc_type: str = "Linearity") -> np.ndarray:
+    def propagation(self):
+        """Propagation of vector for one time step _dt."""
 
-        """Propagation of vector for one time step dt."""
+        self.set_bc_dt()
+
         # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010
         rhs = self._mat_identity \
             + (1 - self.theta) * self._dt * self._mat_propagator
-
-        rhs = self.mat_vec_product(rhs, vector[1:-1]) \
-            + (1 - self._theta) * self._vec_boundary
+        rhs = self.mat_vec_product(rhs, self._vec_solution[1:-1]) \
+            + (1 - self._theta) * self._dt * self._vec_boundary
 
         # Update self._mat_propagator and self._vec_boundary
         # UPDATE VEC_DIFF_SQ, VEC_DRIFT, and VEC_RATE before method call...
         # should correspond to end of time step...
+        # Propagator and boundary conditions at time t
         self.set_propagator()
 
         # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010
-        rhs += self._theta * self._vec_boundary
+        rhs += self._theta * self._dt * self._vec_boundary
         lhs = self._mat_identity - self.theta * self._dt * self._mat_propagator
+        # Solve Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010
+        self._vec_solution[1:-1] = solve_banded((1, 1), lhs, rhs)
 
-        vector_out = np.zeros(self._nstates)
-        vector_out[1:-1] = solve_banded((1, 1), lhs, rhs)
+        # Boundary conditions
+        k1, k2, km_1, km, f1, fm = self.boundary_conditions()
 
-        k1, k2, km_1, km = self.boundary_conditions(bc_type)
+        # Eq. (2.12) - (2.13), L.B.G. Andersen & V.V. Piterbarg 2010
+        self._vec_solution[0] = \
+            k1 * self._vec_solution[1] + k2 * self._vec_solution[2] + f1
+        self._vec_solution[-1] = \
+            km * self._vec_solution[-2] + km_1 * self._vec_solution[-3] + fm
 
-        vector_out[0] = k1 * vector_out[1] + k2 * vector_out[2]
-        vector_out[-1] = km * vector_out[-2] + km_1 * vector_out[-3]
+    def boundary_conditions(self):
+        """..."""
+        if self._boundary == "Linearity":
+            return 2, -1, -1, 2, 0, 0
+        elif self._boundary == "PDE":
+            a, b, c, a_p, b_p, c_p = self.calc_bc()
+            k1 = - b / a
+            k2 = - c / a
+            f1 = self._bc[0] / a
+            km = - b_p / a_p
+            km_1 = - c_p / a_p
+            fm = self._bc[-1] / a_p
+            return k1, k2, km_1, km, f1, fm
+        else:
+            raise ValueError(f"_boundary can be either \"Linearity\" or \"PDE\": {self._boundary}")
 
-#        return solve_banded((1, 1), lhs, rhs)
-        return vector_out
+    def calc_bc(self):
+        """..."""
+        dx_sq = self._dx ** 2
+        theta_dt = self._theta * self._dt
 
-    @staticmethod
-    def fd_delta(grid: np.ndarray,
-                 function: np.ndarray) -> np.ndarray:
+        a = 1 + theta_dt * self._vec_drift[0] / self._dx \
+            - theta_dt * self._vec_diff_sq[0] / (2 * dx_sq) \
+            + theta_dt * self._vec_rate[0]
+        b = theta_dt * self._vec_diff_sq[0] / dx_sq \
+            - theta_dt * self._vec_drift[0] / self._dx
+        c = - theta_dt * self._vec_diff_sq[0] / (2 * dx_sq)
+
+        a_p = 1 - theta_dt * self._vec_drift[-1] / self._dx \
+            - theta_dt * self._vec_diff_sq[-1] / (2 * dx_sq) \
+            + theta_dt * self._vec_rate[-1]
+        b_p = theta_dt * self._vec_diff_sq[-1] / dx_sq \
+            + theta_dt * self._vec_drift[-1] / self._dx
+        c_p = - theta_dt * self._vec_diff_sq[-1] / (2 * dx_sq)
+
+        return a, b, c, a_p, b_p, c_p
+
+    def calc_bc_dt(self):
+        """..."""
+        dx_sq = self._dx ** 2
+        theta_dt = (1 - self._theta) * self._dt
+
+        d = 1 - theta_dt * self._vec_drift[0] / self._dx \
+            + theta_dt * self._vec_diff_sq[0] / (2 * dx_sq) \
+            - theta_dt * self._vec_rate[0]
+        e = - theta_dt * self._vec_diff_sq[0] / dx_sq \
+            + theta_dt * self._vec_drift[0] / self._dx
+        f = theta_dt * self._vec_diff_sq[0] / (2 * dx_sq)
+
+        d_p = 1 + theta_dt * self._vec_drift[-1] / self._dx \
+            + theta_dt * self._vec_diff_sq[-1] / (2 * dx_sq) \
+            - theta_dt * self._vec_rate[-1]
+        e_p = - theta_dt * self._vec_diff_sq[-1] / dx_sq \
+            - theta_dt * self._vec_drift[-1] / self._dx
+        f_p = theta_dt * self._vec_diff_sq[-1] / (2 * dx_sq)
+
+        return d, e, f, d_p, e_p, f_p
+
+    def delta_fd(self) -> np.ndarray:
         """Delta calculated by second order finite differences. Assuming
         equidistant and ascending grid.
         """
-        dx = grid[1] - grid[0]
-        delta = 0 * function.copy()
+        delta = np.zeros(self._nstates)
         # Central finite difference
-        delta[1:-1] = (function[2:] - function[:-2]) / (2 * dx)
+        delta[1:-1] = (self._vec_solution[2:]
+                       - self._vec_solution[:-2]) / (2 * self._dx)
         # Forward finite difference
-        delta[0] = \
-            (-function[2] / 2 + 2 * function[1] - 3 * function[0] / 2) / dx
+        delta[0] = (- self._vec_solution[2] / 2
+                    + 2 * self._vec_solution[1]
+                    - 3 * self._vec_solution[0] / 2) / self._dx
         # Backward finite difference
-        delta[-1] = \
-            (function[-3] / 2 - 2 * function[-2] + 3 * function[-1] / 2) / dx
+        delta[-1] = (self._vec_solution[-3] / 2
+                     - 2 * self._vec_solution[-2]
+                     + 3 * self._vec_solution[-1] / 2) / self._dx
         return delta
 
-    @staticmethod
-    def fd_gamma(grid: np.ndarray,
-                 function: np.ndarray) -> np.ndarray:
+    def gamma_fd(self) -> np.ndarray:
         """Gamma calculated by second order finite differences. Assuming
         equidistant and ascending grid.
         """
-        dx_sq = (grid[1] - grid[0]) ** 2
-        gamma = 0 * function.copy()
+        dx_sq = self._dx ** 2
+        gamma = np.zeros(self._nstates)
         # Central finite difference
-        gamma[1:-1] = \
-            (function[2:] + function[:-2] - 2 * function[1:-1]) / dx_sq
+        gamma[1:-1] = (self._vec_solution[2:]
+                       + self._vec_solution[:-2]
+                       - 2 * self._vec_solution[1:-1]) / dx_sq
         # Forward finite difference
-        gamma[0] = \
-            (-function[3] + 4 * function[2]
-             - 5 * function[1] + 2 * function[0]) / dx_sq
+        gamma[0] = (- self._vec_solution[3]
+                    + 4 * self._vec_solution[2]
+                    - 5 * self._vec_solution[1]
+                    + 2 * self._vec_solution[0]) / dx_sq
         # Backward finite difference
-        gamma[-1] = \
-            (-function[-4] + 4 * function[-3]
-             - 5 * function[-2] + 2 * function[-1]) / dx_sq
+        gamma[-1] = (- self._vec_solution[-4]
+                     + 4 * self._vec_solution[-3]
+                     - 5 * self._vec_solution[-2]
+                     + 2 * self._vec_solution[-1]) / dx_sq
         return gamma
 
-    def fd_theta(self,
-                 function: np.ndarray) -> np.ndarray:
+    def theta_fd(self) -> np.ndarray:
         """Theta calculated by central finite difference."""
         self.set_propagator()
-        forward = self.propagation(function)
-
-        # CHANGE DIRECTION OF self._dt
-        backward = self.propagation(function)
+        # Save current solution
+        solution_copy = self.solution.copy()
+        # Forward propagation
+        self._dt = - self._dt
+        self.propagation()
+        forward = self.solution.copy()
+        # Backward propagation (two time steps)
+        self._dt = - self._dt
+        self.propagation()
+        self.propagation()
+        backward = self.solution.copy()
+        # Restore current solution
+        self.solution = solution_copy
 
         return (forward - backward) / (2 * self._dt)
-
-    def boundary_conditions(self,
-                            bc_type: str):
-        """..."""
-        if bc_type == "Linearity":
-            return 2, -1, -1, 2
-        else:
-            # PDE determined BCs
-            return 2, -1, -1, 2
-
-#    def smoothing(self,
-#                  strike,
-#                  value,
-#                  option_type = "Call"):

@@ -27,8 +27,8 @@ rannacher_stepping = False
 
 # model = "Black-Scholes"
 # model = "Bachelier"
-# model = "Vasicek"
-model = "Extended Vasicek"
+model = "Vasicek"
+# model = "Extended Vasicek"
 
 # instrument = 'Call'
 # instrument = 'Put'
@@ -39,7 +39,7 @@ start_time = datetime.now()
 
 rate = 0.0
 strike = 1 # 50
-vol = 0.05 # 0.2 # 20
+vol = 0.05 # 0.2
 expiry = 2
 kappa = 0.1 # 1.0 # 0.1
 theta_factor = 0.0
