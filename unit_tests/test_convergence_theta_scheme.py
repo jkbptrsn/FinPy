@@ -1,24 +1,19 @@
 import numpy as np
-import scipy
-import unittest
+import scipy.stats
 
 import utils.payoffs as payoffs
-import models.black_scholes.call as bs_call
 import numerical_methods.finite_difference.theta as theta
+
+import unittest
 
 
 class BlackScholes(unittest.TestCase):
-    """..."""
 
     def test_call_option(self):
-        """..."""
 
         n_doubles = 3
 
         # Test convergence wrt to time and space separately
-
-        model = "Black-Scholes"
-        instrument = 'Call'
 
         bc_type = "Linearity"
         # bc_type = "PDE"
@@ -42,14 +37,9 @@ class BlackScholes(unittest.TestCase):
         norm_array = np.zeros((3, n_doubles - 1))
 
         for n in range(n_doubles):
-
-            # Reset current time
-            t_current = t_max
-
             # Set up PDE solver
             solver = theta.SolverNew(x_min, x_max, x_steps, dt, boundary=bc_type)
             solver.initialization()
-
             solver.set_drift(rate * solver.grid())
             solver.set_diffusion(vol * solver.grid())
             solver.set_rate(rate + 0 * solver.grid())
@@ -60,14 +50,11 @@ class BlackScholes(unittest.TestCase):
             solver.set_bc_dt()
             solver.set_propagator()
 
-            payoff = solver.solution.copy()
-
             # Propagate value vector backwards in time
             for t in range(t_steps - 1):
                 solver.propagation()
 
             # Analytical result
-            instru = bs_call.Call(rate, vol, strike, expiry)
             value = solver.solution
 
             if n > 0:
