@@ -4,12 +4,12 @@ import numpy as np
 from typing import Tuple
 
 import models.black_scholes.sde as sde
-import models.option as option
+import instruments.options as options
 
 # todo: Exotic option call, e.g. compound options with two strikes?
 
 
-class VanillaOption(option.VanillaOption, sde.SDE):
+class VanillaOption(options.VanillaOption, sde.SDE):
     """Vanilla option in Black-Scholes model."""
 
     def __init__(self, rate, vol, strike, expiry):
