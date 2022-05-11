@@ -32,9 +32,9 @@ rannacher_stepping = False
 model = "Vasicek"
 # model = "Extended Vasicek"
 
-instrument = 'Call'
+# instrument = 'Call'
 # instrument = 'Put'
-# instrument = 'ZCBond'
+instrument = 'ZCBond'
 
 bc_type = "Linearity"
 # bc_type = "PDE"
@@ -74,7 +74,7 @@ for n in range(n_doubles):
     t_current = t_max
 
     # Set up PDE solver
-    solver = theta.AndersenPiterbarg(x_min, x_max, x_steps, dt, boundary=bc_type)
+    solver = theta.AndersenPiterbarg1DTest(x_min, x_max, x_steps, dt, boundary=bc_type)
     solver.initialization()
 
     print(solver.boundary)
