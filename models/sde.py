@@ -7,7 +7,7 @@ class SDE(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def model_name(self):
+    def model_name(self) -> str:
         pass
 
     @abc.abstractmethod
@@ -20,8 +20,8 @@ class SDE(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def path_grid(self,
-                  spot: float,
-                  time_grid: np.ndarray) -> np.ndarray:
+    def path_time_grid(self,
+                       spot: (float, np.ndarray),
+                       time_grid: np.ndarray) -> np.ndarray:
         """Generate one path represented on time_grid."""
         pass

@@ -9,23 +9,26 @@ import models.sde as sde
 class SDE(sde.SDE):
     """Black-Scholes SDE:
     dS_t / S_t = rate * dt + vol * dW_t
-    todo: What about 2-d, or n-d?
+
+    Todo: Extend to n-D...
     """
 
-    def __init__(self, rate, vol):
+    def __init__(self,
+                 rate: float,
+                 vol: float):
         self._rate = rate
         self._vol = vol
         self._model_name = 'Black-Scholes'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self._model_name} SDE object"
 
     @property
-    def model_name(self):
+    def model_name(self) -> str:
         return self._model_name
 
     @property
-    def rate(self):
+    def rate(self) -> float:
         return self._rate
 
     @rate.setter
@@ -33,7 +36,7 @@ class SDE(sde.SDE):
         self._rate = rate_
 
     @property
-    def vol(self):
+    def vol(self) -> float:
         return self._vol
 
     @vol.setter
@@ -45,7 +48,7 @@ class SDE(sde.SDE):
              time: float,
              n_paths: int,
              antithetic: bool = False) -> (float, np.ndarray):
-        """Generate paths(s), at t = time, of geometric Brownian motion
+        """Generate path(s), at t = time, of geometric Brownian motion
         using analytic expression.
 
         antithetic : Antithetic sampling for Monte-Carlo variance
@@ -62,9 +65,9 @@ class SDE(sde.SDE):
         return spot * np.exp((self.rate - self.vol ** 2 / 2) * time
                              + self.vol * math.sqrt(time) * realizations)
 
-    def path_grid(self,
-                  spot: float,
-                  time_grid: np.ndarray) -> np.ndarray:
+    def path_time_grid(self,
+                       spot: float,
+                       time_grid: np.ndarray) -> np.ndarray:
         """Generate one path, represented on time_grid, of geometric
         Brownian motion using analytic expression.
         """
@@ -83,7 +86,7 @@ class SDE(sde.SDE):
         """Generate paths, at t = time, of geometric Brownian motion
         using analytic expression. The paths are used for "path-wise"
         Monte-Carlo calculation of a 'greek'.
-        todo: See 'Estimating the greeks' lecture notes by Martin Haugh (2017)
+        Todo: See 'Estimating the greeks' lecture notes by Martin Haugh (2017)
 
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.
@@ -111,7 +114,7 @@ class SDE(sde.SDE):
 
         The density transformation theorem is used in the derivation of
         the expressions...
-        todo: See 'Estimating the greeks' lecture notes by Martin Haugh (2017)
+        Todo: See 'Estimating the greeks' lecture notes by Martin Haugh (2017)
 
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.
@@ -120,7 +123,7 @@ class SDE(sde.SDE):
         if greek == 'delta':
             wiener = (np.log(paths / spot)
                       - (self.rate - 0.5 * self.vol ** 2) * time) / self.vol
-            # todo: should wiener be divided by (self.expiry - time)?
+            # Todo: Should wiener be divided by (self.expiry - time)?
             return paths, wiener / (spot * self.vol)
         elif greek == 'vega':
             normal = (np.log(paths / spot)
