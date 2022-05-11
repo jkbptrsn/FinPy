@@ -19,6 +19,7 @@ class Theta:
     TODO: Add non-equidistant grid
     TODO: Smoothing of payoff functions -- not necessary according to Andreasen
     TODO: Rannacher time stepping with fully implicit method -- not necessary according to Andreasen
+    TODO: Upwinding
     """
 
     def __init__(self,
@@ -196,140 +197,87 @@ class Theta:
         return product
 
 
-class Andreasen1D:
-    """The theta method implemented as shown in Jesper Andreasen's PDE
-    notes from 2011.
+class Andreasen1D(Theta):
+    """The theta method implemented as shown in
+    Jesper Andreasen's PDE notes from 2011.
+
+    TODO: Check convergence -- should match AndersenPiterbarg1D using bc_type = "Linearity"
+    TODO: Doesn't work correctly for Vasicek short rate model
     """
 
-    def __init__(self, xmin, xmax, n, theta=0.5):
-        self._xmin = xmin
-        self._xmax = xmax
-        self._n = n
-        self._theta = theta
-        self._dx = (xmax - xmin) / (n - 1)
+    def __init__(self,
+                 xmin: float,
+                 xmax: float,
+                 nstates: int,
+                 dt: float,
+                 theta: float = 0.5):
+        super().__init__(xmin, xmax, nstates, dt, theta=theta)
 
-    @property
-    def xmin(self):
-        return self._xmin
-
-    @property
-    def xmax(self):
-        return self._xmax
-
-    @property
-    def n(self):
-        return self._n
-
-    @property
-    def theta(self):
-        return self._theta
-
-    @theta.setter
-    def theta(self, val):
-        self._theta = val
-
-    @property
-    def dx(self):
-        return self._dx
-
-    def x_grid(self):
-        return self.dx * np.array(range(self.n)) + self.xmin
-
-    def identity(self,
-                 vector: np.ndarray = None) -> np.ndarray:
-        """Identity matrix on tri-diagonal form:
-        - 1st row: Super-diagonal
-        - 2nd row: Diagonal
-        - 3rd row: Sub-diagonal
-        Construct diagonal element-wise from vector."""
-        matrix = np.zeros((3, self.n))
-        matrix[1, :] = 1
-        if vector is None:
-            return matrix
-        else:
-            matrix[1, :] = vector
-            return matrix
-
-    def diag_tridiag(self,
-                     diagonal: np.ndarray,
-                     tridiagonal: np.ndarray) -> np.ndarray:
-        """Product of diagonal and tri-diagonal matrices, both in
-        tri-diagonal form."""
-        product = np.zeros((3, self.n))
-        product[0, 1:] = diagonal[1, :-1] * tridiagonal[0, 1:]
-        product[1, :] = diagonal[1, :] * tridiagonal[1, :]
-        product[2, :-1] = diagonal[1, 1:] * tridiagonal[2, :-1]
-        return product
-
-    def tridiag_vec(self,
-                    tridiagonal: np.ndarray,
-                    vector: np.ndarray) -> np.ndarray:
-        """Product of tri-diagonal matrix and column vector."""
-        # Contribution from diagonal
-        product = tridiagonal[1, :] * vector
-        # Contribution from super-diagonal
-        product[:-1] += tridiagonal[0, 1:] * vector[1:]
-        # Contribution from sub-diagonal
-        product[1:] += tridiagonal[2, :-1] * vector[:-1]
-        return product
+    def mat_product(self,
+                    diagonal: np.ndarray,
+                    tridiagonal: np.ndarray) -> np.ndarray:
+        """Product of diagonal and tri-diagonal matrices."""
+        matrix = np.zeros((3, self._nstates))
+        matrix[0, 1:] = diagonal[:-1] * tridiagonal[0, 1:]
+        matrix[1, :] = diagonal * tridiagonal[1, :]
+        matrix[2, :-1] = diagonal[1:] * tridiagonal[2, :-1]
+        return matrix
 
     def ddx(self) -> np.ndarray:
-        """Central difference approximation of 1st order derivative
-        operator. At the boundaries, forward/backward difference is
-        used."""
-        matrix = np.zeros((3, self.n))
+        """Central finite difference approximation of first order
+        derivative operator. At the boundaries, first order
+        forward/backward difference is used.
+        """
+        matrix = np.zeros((3, self._nstates))
         # Central difference
         matrix[0, 2:] = 1
         matrix[2, :-2] = -1
-        # Forward difference at xmin
+        # Forward difference at lower boundary
         matrix[0, 1] = 2
         matrix[1, 0] = -2
-        # Backward difference at xmax
+        # Backward difference at upper boundary
         matrix[1, -1] = 2
         matrix[2, -2] = -2
-        return matrix / (2 * self.dx)
-
-    def vector_ddx(self,
-                   vector: np.ndarray) -> np.ndarray:
-        """Product of input vector and 1st order derivative operator."""
-        return self.diag_tridiag(self.identity(vector), self.ddx())
-
-    def x_ddx(self) -> np.ndarray:
-        """Product of space coordinate and its 1st order derivative
-        operator."""
-#        return self.diag_tridiag(self.identity(self.x_grid()), self.ddx())
-        return self.vector_ddx(self.x_grid())
+        return matrix / (2 * self._dx)
 
     def d2dx2(self) -> np.ndarray:
-        """Finite difference approximation of 2nd order derivative
-        operator. At the boundaries, the operator is set equal to
-        zero."""
-        matrix = np.zeros((3, self.n))
+        """Central finite difference approximation of second order
+        derivative operator. At the boundaries, the operator is set
+        equal to zero.
+        """
+        matrix = np.zeros((3, self._nstates))
         matrix[0, 2:] = 1
         matrix[1, 1:-1] = -2
         matrix[2, :-2] = 1
-        return matrix / self.dx ** 2
+        return matrix / self._dx ** 2
 
-    def vector_d2dx2(self,
-                     vector: np.ndarray) -> np.ndarray:
-        """Product of input vector and 2nd order derivative operator."""
-        return self.diag_tridiag(self.identity(vector), self.d2dx2())
+    def initialization(self):
+        """Initialization of identity matrix, boundary conditions and
+        propagator matrix.
+        """
+        self._mat_identity = self.identity_matrix(self._nstates)
+        self.set_propagator()
 
-    def x2_d2dx2(self) -> np.ndarray:
-        """Product of space coordinate squared and its 2nd order
-        derivative operator."""
-#        return self.diag_tridiag(
-#            self.identity(self.x_grid() ** 2), self.d2dx2())
-        return self.vector_d2dx2(self.x_grid() ** 2)
+    def set_propagator(self):
+        """Propagator on tri-diagonal form.
+            - 1st row: Super-diagonal (not including first element)
+            - 2nd row: Diagonal
+            - 3rd row: Sub-diagonal (not including last element)
+        """
+        self._mat_propagator = \
+            self.mat_product(self._vec_drift, self.ddx()) \
+            + self.mat_product(self._vec_diff_sq, self.d2dx2()) / 2 \
+            - self._vec_rate
 
-    def propagation(self,
-                    dt: float,
-                    diff_operator: np.ndarray,
-                    v_vector: np.ndarray) -> np.ndarray:
-        """Propagation of v_vector for one time step dt."""
-        lhs = self.identity() - self.theta * dt * diff_operator
-        rhs = self.identity() + (1 - self.theta) * dt * diff_operator
-        return solve_banded((1, 1), lhs, self.tridiag_vec(rhs, v_vector))
+    def propagation(self):
+        """Propagation of solution vector for one time step _dt."""
+        rhs = self._mat_identity \
+            + (1 - self._theta) * self._dt * self._mat_propagator
+        rhs = self.mat_vec_product(rhs, self._vec_solution)
+        self.set_propagator()
+        lhs = self._mat_identity \
+            - self._theta * self._dt * self._mat_propagator
+        self._vec_solution = solve_banded((1, 1), lhs, rhs)
 
 
 class AndersenPiterbarg1D(Theta):

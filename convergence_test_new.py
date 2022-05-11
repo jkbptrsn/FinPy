@@ -17,34 +17,37 @@ import numerical_methods.finite_difference.theta as theta
 
 # Fix BACHELIER CLASS
 
-n_doubles = 3
+n_doubles = 1
 
 # Test convergence wrt to time and space separately
 
 smoothing = False
 
-show_plots = False
+show_plots = True
 
 rannacher_stepping = False
 
-model = "Black-Scholes"
+# model = "Black-Scholes"
 # model = "Bachelier"
-# model = "Vasicek"
+model = "Vasicek"
 # model = "Extended Vasicek"
 
-instrument = 'Call'
+# instrument = 'Call'
 # instrument = 'Put'
-# instrument = 'ZCBond'
+instrument = 'ZCBond'
 
 bc_type = "Linearity"
 # bc_type = "PDE"
+
+# solver_type = "AndersenPiterbarg"
+solver_type = "Andreasen"
 
 # Time execution
 start_time = datetime.now()
 
 rate = 0.0
-strike = 50 # 0.2
-vol = 0.2 # 0.05
+strike = 0.2 # 50
+vol = 0.05 # 0.2
 expiry = 2
 kappa = 0.1 # 1.0 # 0.1
 theta_factor = 0
@@ -60,8 +63,8 @@ print("STD: ", sigma_grid)
 sigma_grid_new = np.sqrt(vol ** 2 * (1 - np.exp(-2 * kappa * (t_max - t_min))) / (2 * kappa))
 print("STD new: ", sigma_grid_new)
 
-x_min = 25 # - 5 * sigma_grid
-x_max = 75 # 5 * sigma_grid
+x_min = - 5 * sigma_grid # 25
+x_max = 5 * sigma_grid # 75
 x_steps = 101
 
 t_array = np.zeros(n_doubles - 1)
@@ -74,9 +77,10 @@ for n in range(n_doubles):
     t_current = t_max
 
     # Set up PDE solver
-    solver = theta.AndersenPiterbarg1D(x_min, x_max, x_steps, dt, bc_type=bc_type)
-
-    print(solver.bc_type)
+    if solver_type == "AndersenPiterbarg":
+        solver = theta.AndersenPiterbarg1D(x_min, x_max, x_steps, dt, bc_type=bc_type)
+    elif solver_type == "Andreasen":
+        solver = theta.Andreasen1D(x_min, x_max, x_steps, dt)
 
     if model == 'Black-Scholes':
         solver.set_drift(rate * solver.grid())
@@ -155,7 +159,6 @@ for n in range(n_doubles):
 
             solver.set_diffusion(vol + 0 * solver.grid())
             solver.set_rate(solver.grid())
-#            solver.set_propagator()
 
         solver.propagation()
 
