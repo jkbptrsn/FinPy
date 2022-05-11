@@ -17,13 +17,13 @@ import numerical_methods.finite_difference.theta as theta
 
 # Fix BACHELIER CLASS
 
-n_doubles = 1
+n_doubles = 3
 
 # Test convergence wrt to time and space separately
 
 smoothing = False
 
-show_plots = True
+show_plots = False
 
 rannacher_stepping = False
 
@@ -39,8 +39,8 @@ instrument = 'ZCBond'
 bc_type = "Linearity"
 # bc_type = "PDE"
 
-# solver_type = "AndersenPiterbarg"
-solver_type = "Andreasen"
+solver_type = "AndersenPiterbarg"
+# solver_type = "Andreasen"
 
 # Time execution
 start_time = datetime.now()
