@@ -38,8 +38,7 @@ class BlackScholes(unittest.TestCase):
 
         for n in range(n_doubles):
             # Set up PDE solver
-            solver = theta.AndersenPiterbarg1D(x_min, x_max, x_steps, dt, boundary=bc_type)
-            solver.initialization()
+            solver = theta.AndersenPiterbarg1D(x_min, x_max, x_steps, dt, theta=0.5, bc_type=bc_type)
             solver.set_drift(rate * solver.grid())
             solver.set_diffusion(vol * solver.grid())
             solver.set_rate(rate + 0 * solver.grid())
@@ -47,8 +46,7 @@ class BlackScholes(unittest.TestCase):
             # Terminal solution to PDE
             solver.solution = payoffs.call(solver.grid(), strike)
 
-            solver.set_bc_dt()
-            solver.set_propagator()
+            solver.initialization()
 
             # Propagate value vector backwards in time
             for t in range(t_steps - 1):
@@ -133,8 +131,7 @@ class Vasicek(unittest.TestCase):
 
         for n in range(n_doubles):
             # Set up PDE solver
-            solver = theta.AndersenPiterbarg1D(x_min, x_max, x_steps, dt, boundary=bc_type)
-            solver.initialization()
+            solver = theta.AndersenPiterbarg1D(x_min, x_max, x_steps, dt, bc_type=bc_type)
             solver.set_drift(kappa * (theta_factor - solver.grid()))
             solver.set_diffusion(vol + 0 * solver.grid())
             solver.set_rate(solver.grid())
@@ -142,8 +139,7 @@ class Vasicek(unittest.TestCase):
             # Terminal solution to PDE
             solver.solution = 1 + 0 * solver.grid()
 
-            solver.set_bc_dt()
-            solver.set_propagator()
+            solver.initialization()
 
             # Propagate value vector backwards in time
             for t in range(t_steps - 1):

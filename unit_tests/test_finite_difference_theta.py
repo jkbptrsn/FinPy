@@ -5,7 +5,7 @@ import numerical_methods.finite_difference.theta as theta
 
 class Theta(unittest.TestCase):
 
-    def test_grid(self):
+    def test_misc(self):
         solver = theta.Theta(0, 100, 11, 1.3, theta=0.8)
         self.assertTrue(solver.xmin == 0)
         self.assertTrue(solver.xmax == 100)
