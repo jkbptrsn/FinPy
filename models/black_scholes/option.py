@@ -6,24 +6,26 @@ from typing import Tuple
 import models.black_scholes.sde as sde
 import instruments.options as options
 
-# todo: Exotic option call, e.g. compound options with two strikes?
-
 
 class VanillaOption(options.VanillaOption, sde.SDE):
     """Vanilla option in Black-Scholes model."""
 
-    def __init__(self, rate, vol, strike, expiry):
+    def __init__(self,
+                 rate: float,
+                 vol: float,
+                 strike: float,
+                 expiry: float):
         super().__init__(rate, vol)
         self._strike = strike
         self._expiry = expiry
 
     @property
     @abc.abstractmethod
-    def option_type(self):
+    def option_type(self) -> str:
         pass
 
     @property
-    def strike(self):
+    def strike(self) -> float:
         return self._strike
 
     @strike.setter
@@ -31,7 +33,7 @@ class VanillaOption(options.VanillaOption, sde.SDE):
         self._strike = strike_
 
     @property
-    def expiry(self):
+    def expiry(self) -> float:
         return self._expiry
 
     @expiry.setter
