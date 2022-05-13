@@ -9,23 +9,19 @@ import models.sde as sde
 class SDE(sde.SDE):
     """Black-Scholes SDE:
     dS_t / S_t = rate * dt + vol * dW_t
-
-    Todo: Extend to n-D...
     """
 
     def __init__(self,
                  rate: float,
-                 vol: float):
+                 vol: float,
+                 dividend: float = 0):
         self._rate = rate
         self._vol = vol
+        self._dividend = dividend
         self._model_name = 'Black-Scholes'
 
     def __repr__(self) -> str:
         return f"{self._model_name} SDE object"
-
-    @property
-    def model_name(self) -> str:
-        return self._model_name
 
     @property
     def rate(self) -> float:
@@ -42,6 +38,18 @@ class SDE(sde.SDE):
     @vol.setter
     def vol(self, vol_):
         self._vol = vol_
+
+    @property
+    def dividend(self) -> float:
+        return self._dividend
+
+    @dividend.setter
+    def dividend(self, dividend_):
+        self._dividend = dividend_
+
+    @property
+    def model_name(self) -> str:
+        return self._model_name
 
     def path(self,
              spot: (float, np.ndarray),

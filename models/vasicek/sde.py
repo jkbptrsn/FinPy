@@ -8,10 +8,14 @@ class SDE(sde.SDE):
     dr_t = kappa * ( theta - r_t) * dt + vol * dW_t
     """
 
-    def __init__(self, kappa, mean_rate, vol):
+    def __init__(self,
+                 kappa: float,
+                 mean_rate: float,
+                 vol: float):
         self._kappa = kappa
         self._mean_rate = mean_rate
         self._vol = vol
+        # TODO: Use Enum here?
         self._model_name = "Vasicek"
 
     def __repr__(self):
