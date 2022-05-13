@@ -10,6 +10,7 @@ import models.black_scholes.put as put
 class Parity(unittest.TestCase):
 
     def test_1(self):
+        # Parameters
         rate = 0.05
         vol = 0.2
         strike = 50
@@ -31,6 +32,18 @@ if __name__ == '__main__':
     c1 = call.Call(0.05, 0.2, 50, 6)
     plt.plot(spot, c1.payoff(spot), '-k')
     plt.plot(spot, c1.price(spot, 0), '-ob')
+    plt.xlabel("Spot")
+    plt.ylabel("Call option price")
+    plt.show()
+
+    # Plot three Monte-Carlo scenarios
+    np.random.seed(0)
+    time_grid = np.arange(101) / 100
+    plt.plot(time_grid, c1.path_time_grid(50, time_grid), '-k')
+    plt.plot(time_grid, c1.path_time_grid(50, time_grid), '-b')
+    plt.plot(time_grid, c1.path_time_grid(50, time_grid), '-r')
+    plt.xlabel("Time")
+    plt.ylabel("Stock price")
     plt.show()
 
     unittest.main()

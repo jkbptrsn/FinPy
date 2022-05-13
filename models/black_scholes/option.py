@@ -46,12 +46,12 @@ class VanillaOption(options.VanillaOption, sde.SDE):
         """Payoff function."""
         pass
 
-    @abc.abstractmethod
-    def payoff_dds(self,
-                   state: (float, np.ndarray)) -> (float, np.ndarray):
-        """1st order partial derivative of payoff function wrt the
-        underlying state."""
-        pass
+#    @abc.abstractmethod
+#    def payoff_dds(self,
+#                   state: (float, np.ndarray)) -> (float, np.ndarray):
+#        """1st order partial derivative of payoff function wrt the
+#        underlying state."""
+#        pass
 
     @abc.abstractmethod
     def price(self,
