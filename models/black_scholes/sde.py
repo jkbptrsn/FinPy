@@ -8,7 +8,7 @@ import models.sde as sde
 
 class SDE(sde.SDE):
     """Black-Scholes SDE:
-    dS_t / S_t = rate * dt + vol * dW_t
+    dS_t / S_t = (rate - dividend) * dt + vol * dW_t
     """
 
     def __init__(self,

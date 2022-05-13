@@ -28,7 +28,9 @@ class Call(option.VanillaOption):
     def price(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
+
         d1, d2 = self.d1d2(spot, time)
+
         return spot * norm.cdf(d1) \
             - self.strike * norm.cdf(d2) \
             * math.exp(-self.rate * (self.expiry - time))

@@ -70,8 +70,8 @@ class VanillaOption(options.VanillaOption, sde.SDE):
         - Returns Tuple[np.ndarray, np.ndarray] if only time is a float
         - Doesn't work if both spot and time are np.ndarrays
         """
+        spot *= np.exp(-self.dividend * (self._expiry - time))
         d1 = np.log(spot / self._strike) \
-            + (self.rate - self.dividend + self.vol ** 2 / 2) \
-            * (self._expiry - time)
+            + (self.rate + self.vol ** 2 / 2) * (self._expiry - time)
         d1 /= self.vol * np.sqrt(self._expiry - time)
         return d1, d1 - self.vol * np.sqrt(self._expiry - time)

@@ -26,21 +26,22 @@ class Call(option.VanillaOption):
     def payoff(self,
                state: (float, np.ndarray)) -> (float, np.ndarray):
         """Payoff function."""
-        return payoffs.call(spot, self.strike)
+        return payoffs.call(state, self.strike)
 
     def payoff_dds(self,
                    state: (float, np.ndarray)) -> (float, np.ndarray):
         """1st order partial derivative of payoff function wrt the
-                underlying state."""
-        return payoffs.binary_cash_call(spot, self.strike)
+        underlying state."""
+        return payoffs.binary_cash_call(state, self.strike)
 
     def price(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
         """Price function."""
         d1, d2 = self.d1d2(spot, time)
-        return spot * math.exp(-self.dividend * (self.expiry - time)) \
-            * norm.cdf(d1) - self.strike * norm.cdf(d2) \
+        spot *= np.exp(-self.dividend * (self._expiry - time))
+        return spot * norm.cdf(d1) \
+            - self.strike * norm.cdf(d2) \
             * math.exp(-self.rate * (self.expiry - time))
 
     def delta(self,
@@ -48,7 +49,7 @@ class Call(option.VanillaOption):
               time: float) -> (float, np.ndarray):
         """1st order price sensitivity wrt the underlying state."""
         d1, d2 = self.d1d2(spot, time)
-        return math.exp(-self.dividend * (self.expiry - time)) * norm.cdf(d1)
+        return np.exp(-self.dividend * (self._expiry - time)) * norm.cdf(d1)
 
     def gamma(self,
               spot: (float, np.ndarray),
@@ -71,17 +72,17 @@ class Call(option.VanillaOption):
               time: float) -> (float, np.ndarray):
         """1st order price sensitivity wrt time."""
         d1, d2 = self.d1d2(spot, time)
-        exp_d = math.exp(-self.dividend * (self.expiry - time))
-        return - spot * norm.pdf(d1) * self.vol * exp_d \
+        spot *= math.exp(-self.dividend * (self.expiry - time))
+        return - spot * norm.pdf(d1) * self.vol \
             / (2 * math.sqrt(self.expiry - time)) \
             - self.rate * self.strike \
             * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2) \
-            + self.dividend * spot * exp_d * norm.cdf(d1)
+            + self.dividend * spot * norm.cdf(d1)
 
     def vega(self,
              spot: (float, np.ndarray),
              time: float) -> (float, np.ndarray):
         """1st order price sensitivity wrt volatility."""
         d1, d2 = self.d1d2(spot, time)
-        return spot * math.exp(-self.dividend * (self.expiry - time)) \
-            * norm.pdf(d1) * math.sqrt(self.expiry - time)
+        spot *= math.exp(-self.dividend * (self.expiry - time))
+        return spot * norm.pdf(d1) * math.sqrt(self.expiry - time)
