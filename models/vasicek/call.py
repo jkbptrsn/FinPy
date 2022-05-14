@@ -1,12 +1,15 @@
+import math
 import numpy as np
 from scipy.stats import norm
 
-import models.vasicek.options as option
+import models.vasicek.bonds as bonds
+import models.vasicek.zcbond as zcbond
+import models.vasicek.options as options
 import utils.global_types as global_types
 import utils.payoffs as payoffs
 
 
-class Call(option.VanillaOption):
+class Call(options.VanillaOption):
     """European call option on zero-coupon bond in Vasicek model."""
 
     def __init__(self,
@@ -32,69 +35,92 @@ class Call(option.VanillaOption):
     def maturity(self, maturity_):
         self._maturity = maturity_
 
-    def payoff(self, spot: (float, np.ndarray)) -> (float, np.ndarray):
+    def sigma_p(self,
+                time: float) -> float:
+        """Eq. (3.10), Brigo & Mercurio 2007."""
+        two_kappa = 2 * self.kappa
+        exp_kappa_time = math.exp(- two_kappa * (self.expiry - time))
+        b_factor = bonds.b_factor(self.expiry, self._maturity, self.kappa)
+        return \
+            self.vol * b_factor * math.sqrt((1 - exp_kappa_time) / two_kappa)
+
+    def h_factor(self,
+                 zc1_price: (float, np.ndarray),
+                 zc2_price: (float, np.ndarray),
+                 time: float) -> (float, np.ndarray):
+        """Eq. (3.10), Brigo & Mercurio 2007."""
+        s_p = self.sigma_p(time)
+        return np.log(zc2_price / (zc1_price * self.strike)) / s_p + s_p / 2
+
+    def payoff(self,
+               spot: (float, np.ndarray)) -> (float, np.ndarray):
+        """Payoff function."""
         return payoffs.call(spot, self.strike)
 
-    def payoff_dds(self, spot: (float, np.ndarray)) -> (float, np.ndarray):
+    def payoff_dds(self,
+                   spot: (float, np.ndarray)) -> (float, np.ndarray):
+        """..."""
         return payoffs.binary_cash_call(spot, self.strike)
-
-    def b_term(self, time: float, maturity: float) -> float:
-        # Change parameters to time1 and time2...
-        return (1 - np.exp(- self.kappa * (maturity - time))) / self.kappa
-
-    def a_term(self, time: float, maturity: float) -> float:
-        # Change parameters to time1 and time2...
-        vol_sq = self.vol ** 2
-        b_term = self.b_term(time, maturity)
-        return (self.mean_rate - vol_sq / (2 * self.kappa ** 2)) \
-            * (b_term - (maturity - time)) \
-            - vol_sq * b_term ** 2 / (4 * self.kappa)
-
-    def zcbond(self,
-               spot: float,
-               time: float,
-               maturity: float):
-        return np.exp(self.a_term(time, maturity)
-                      - self.b_term(time, maturity) * spot)
-
-    def zcbond_ddr(self,
-                   spot: float,
-                   time: float,
-                   maturity: float):
-        return - self.b_term(time, maturity) \
-            * self.zcbond(spot, time, maturity)
-
-    def sigma_p(self,
-                time: float):
-        return self.vol \
-            * np.sqrt((1 - np.exp(-2 * self.kappa * (self.expiry - time)))
-                      / (2 * self.kappa)) \
-            * self.b_term(self.expiry, self._maturity)
 
     def price(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        zcbond_T = self.zcbond(spot, time, self.expiry)
-        zcbond_S = self.zcbond(spot, time, self._maturity)
-        sigma_p = self.sigma_p(time)
-        h = np.log(zcbond_S / (zcbond_T * self.strike)) / sigma_p + sigma_p / 2
-        return zcbond_S * norm.cdf(h) - self.strike * zcbond_T * norm.cdf(h - sigma_p)
+        """Price function: Eq. (3.10), Brigo & Mercurio 2007."""
+        zc1 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol, self.expiry)
+        zc1_price = zc1.price(spot, time)
+        zc2 = \
+            zcbond.ZCBond(self.kappa, self.mean_rate, self.vol, self._maturity)
+        zc2_price = zc2.price(spot, time)
+        s_p = options.sigma_p(time, self.expiry, self._maturity,
+                              self.kappa, self.vol)
+        h = options.h_factor(zc1_price, zc2_price, s_p, self.strike)
+        return zc2_price * norm.cdf(h) \
+            - self.strike * zc1_price * norm.cdf(h - s_p)
 
     def delta(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        zcbond_T = self.zcbond(spot, time, self.expiry)
-        zcbond_T_ddr = self.zcbond_ddr(spot, time, self.expiry)
-        zcbond_S = self.zcbond(spot, time, self._maturity)
-        zcbond_S_ddr = self.zcbond_ddr(spot, time, self._maturity)
-        sigma_p = self.sigma_p(time)
-        h = np.log(zcbond_S / (zcbond_T * self.strike)) / sigma_p + sigma_p / 2
-        dhdr = (zcbond_S_ddr / zcbond_S - zcbond_T_ddr / zcbond_T) / sigma_p
-        return zcbond_S_ddr * norm.cdf(h) - self.strike * zcbond_T_ddr * norm.cdf(h - sigma_p) + \
-            dhdr * (zcbond_S * norm.pdf(h) - self.strike * zcbond_T * norm.pdf(h - sigma_p))
+        """1st order price sensitivity wrt the underlying state."""
+        zc1 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol, self.expiry)
+        zc1_price = zc1.price(spot, time)
+        zc1_delta = zc1.delta(spot, time)
+        zc2 = \
+            zcbond.ZCBond(self.kappa, self.mean_rate, self.vol, self._maturity)
+        zc2_price = zc2.price(spot, time)
+        zc2_delta = zc2.delta(spot, time)
+        s_p = options.sigma_p(time, self.expiry, self._maturity,
+                              self.kappa, self.vol)
+        h = options.h_factor(zc1_price, zc2_price, s_p, self.strike)
+        dhdr = (zc2_delta / zc2_price - zc1_delta / zc1_price) / s_p
+        return zc2_delta * norm.cdf(h) \
+            - self.strike * zc1_delta * norm.cdf(h - s_p) + \
+            dhdr * (zc2_price * norm.pdf(h)
+                    - self.strike * zc1_price * norm.pdf(h - s_p))
 
     def gamma(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
+        """2st order price sensitivity wrt the underlying state."""
+        zc1 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol, self.expiry)
+        zc1_price = zc1.price(spot, time)
+        zc1_delta = zc1.delta(spot, time)
+        zc1_gamma = zc1.gamma(spot, time)
+        zc2 = \
+            zcbond.ZCBond(self.kappa, self.mean_rate, self.vol, self._maturity)
+        zc2_price = zc2.price(spot, time)
+        zc2_delta = zc2.delta(spot, time)
+        zc2_gamma = zc2.gamma(spot, time)
+        s_p = options.sigma_p(time, self.expiry, self._maturity,
+                              self.kappa, self.vol)
+        h = options.h_factor(zc1_price, zc2_price, s_p, self.strike)
+        dhdr = (zc2_delta / zc2_price - zc1_delta / zc1_price) / s_p
+        return zc2_gamma * norm.cdf(h) \
+            - self.strike * zc1_gamma * norm.cdf(h - s_p) + \
+            dhdr * (zc2_delta * norm.pdf(h)
+                    - self.strike * zc1_delta * norm.pdf(h - s_p))
 
+    def theta(self,
+              spot: (float, np.ndarray),
+              time: float) -> (float, np.ndarray):
+        """1st order price sensitivity wrt time."""
         pass
