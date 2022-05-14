@@ -11,6 +11,7 @@ import models.bachelier.put as ba_put
 import models.vasicek.zcbond as va_bond
 import models.vasicek.call as va_call
 import models.vasicek.put as va_put
+import models.cox_ingersoll_ross.zcbond as cir_bond
 import utils.plots as plots
 
 import numerical_methods.finite_difference.theta as theta
@@ -30,11 +31,12 @@ rannacher_stepping = False
 # model = "Black-Scholes"
 # model = "Bachelier"
 model = "Vasicek"
+# model = "CIR"
 # model = "Extended Vasicek"
 
-instrument = 'Call'
+# instrument = 'Call'
 # instrument = 'Put'
-# instrument = 'ZCBond'
+instrument = 'ZCBond'
 
 bc_type = "Linearity"
 # bc_type = "PDE"
@@ -50,7 +52,7 @@ strike = 0.2 # 50
 vol = 0.05 # 0.2
 expiry = 2
 kappa = 0.1 # 1.0 # 0.1
-theta_factor = 0
+theta_factor = 0.2
 
 t_min = 0
 t_max = 2
@@ -63,8 +65,12 @@ print("STD: ", sigma_grid)
 sigma_grid_new = np.sqrt(vol ** 2 * (1 - np.exp(-2 * kappa * (t_max - t_min))) / (2 * kappa))
 print("STD new: ", sigma_grid_new)
 
-x_min = - 5 * sigma_grid # 25
-x_max = 5 * sigma_grid # 75
+# x_min = - 5 * sigma_grid # 25
+# x_max = 5 * sigma_grid # 75
+
+x_min = 1 * sigma_grid # 25
+x_max = 11 * sigma_grid # 75
+
 x_steps = 101
 
 t_array = np.zeros(n_doubles - 1)
@@ -94,6 +100,12 @@ for n in range(n_doubles):
         solver.set_drift(kappa * (theta_factor - solver.grid()))
         solver.set_diffusion(vol + 0 * solver.grid())
         solver.set_rate(solver.grid())
+
+    elif model == 'CIR':
+        solver.set_drift(kappa * (theta_factor - solver.grid()))
+        solver.set_diffusion(vol * np.sqrt(solver.grid()))
+        solver.set_rate(solver.grid())
+
     elif model == "Extended Vasicek":
         # Add time-dependent volatility and non-zero forward rate
         y = vol ** 2 * (1 - np.exp(- 2 * kappa * t_current)) / (2 * kappa)
@@ -226,7 +238,10 @@ for n in range(n_doubles):
 #            ax1[2].plot(solver.grid(), instru.gamma(solver.grid(), 0), 'ob', markersize=3)
 #            ax2[1].plot(solver.grid(), instru.theta(solver.grid(), 0), 'ob', markersize=3)
     elif instrument == 'ZCBond':
-        instru = va_bond.ZCBond(kappa, theta_factor, vol, expiry)
+        if model == "Vasicek" or model == "Extended Vasicek":
+            instru = va_bond.ZCBond(kappa, theta_factor, vol, expiry)
+        elif model == "CIR":
+            instru = cir_bond.ZCBond(kappa, theta_factor, vol, expiry)
 #        ax1[0].plot(solver.grid(), instru.price(solver.grid(), 0), 'ob', markersize=3)
 #        ax1[1].plot(solver.grid(), instru.delta(solver.grid(), 0), 'ob', markersize=3)
 #        ax1[2].plot(solver.grid(), instru.gamma(solver.grid(), 0), 'ob', markersize=3)
