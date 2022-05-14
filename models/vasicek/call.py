@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import norm
 
-import models.vasicek.option as option
+import models.vasicek.options as option
 import utils.global_types as global_types
 import utils.payoffs as payoffs
 
@@ -9,18 +9,28 @@ import utils.payoffs as payoffs
 class Call(option.VanillaOption):
     """European call option on zero-coupon bond in Vasicek model."""
 
-    def __init__(self, kappa, mean_rate, vol, strike, expiry, maturity):
+    def __init__(self,
+                 kappa: float,
+                 mean_rate: float,
+                 vol: float,
+                 strike: float,
+                 expiry: float,
+                 maturity: float):
         super().__init__(kappa, mean_rate, vol, strike, expiry)
         self._maturity = maturity
-        self._option_type = global_types.OptionType.EUROPEAN_CALL
+        self._option_type = global_types.InstrumentType.EUROPEAN_CALL
 
     @property
-    def option_type(self):
+    def option_type(self) -> global_types.InstrumentType:
         return self._option_type
 
     @property
-    def maturity(self):
+    def maturity(self) -> float:
         return self._maturity
+
+    @maturity.setter
+    def maturity(self, maturity_):
+        self._maturity = maturity_
 
     def payoff(self, spot: (float, np.ndarray)) -> (float, np.ndarray):
         return payoffs.call(spot, self.strike)

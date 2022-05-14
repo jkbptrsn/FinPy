@@ -1,13 +1,18 @@
 import abc
 
+import instruments.options as options
 import models.vasicek.sde as sde
-import models.option as option
 
 
-class VanillaOption(option.VanillaOption, sde.SDE):
+class VanillaOption(options.VanillaOption, sde.SDE):
     """Vanilla option in Vasicek model."""
 
-    def __init__(self, kappa, mean_rate, vol, strike, expiry):
+    def __init__(self,
+                 kappa: float,
+                 mean_rate: float,
+                 vol: float,
+                 strike: float,
+                 expiry: float):
         super().__init__(kappa, mean_rate, vol)
         self._strike = strike
         self._expiry = expiry
@@ -18,7 +23,7 @@ class VanillaOption(option.VanillaOption, sde.SDE):
         pass
 
     @property
-    def strike(self):
+    def strike(self) -> float:
         return self._strike
 
     @strike.setter
@@ -26,7 +31,7 @@ class VanillaOption(option.VanillaOption, sde.SDE):
         self._strike = strike_
 
     @property
-    def expiry(self):
+    def expiry(self) -> float:
         return self._expiry
 
     @expiry.setter

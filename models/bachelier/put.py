@@ -13,7 +13,7 @@ class Put(option.VanillaOption):
 
     def __init__(self, rate, vol, strike, expiry):
         super().__init__(rate, vol, strike, expiry)
-        self._option_type = global_types.OptionType.EUROPEAN_PUT
+        self._option_type = global_types.InstrumentType.EUROPEAN_PUT
 
     @property
     def option_type(self):

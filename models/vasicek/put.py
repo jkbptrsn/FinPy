@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import norm
 
-import models.vasicek.option as option
+import models.vasicek.options as option
 import utils.global_types as global_types
 import utils.payoffs as payoffs
 
@@ -12,7 +12,7 @@ class Put(option.VanillaOption):
     def __init__(self, kappa, mean_rate, vol, strike, expiry, maturity):
         super().__init__(kappa, mean_rate, vol, strike, expiry)
         self._maturity = maturity
-        self._option_type = global_types.OptionType.EUROPEAN_PUT
+        self._option_type = global_types.InstrumentType.EUROPEAN_PUT
 
     @property
     def option_type(self):

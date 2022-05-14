@@ -39,7 +39,4 @@ def put(spot: (float, np.ndarray),
 
 def zero_coupon_bond(spot: (float, np.ndarray)) -> (float, np.ndarray):
     """Long zero coupon bond position."""
-
-    # TODO: Use 100 instead
-
     return 0 * spot + 1

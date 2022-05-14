@@ -17,13 +17,13 @@ import numerical_methods.finite_difference.theta as theta
 
 # Fix BACHELIER CLASS
 
-n_doubles = 3
+n_doubles = 1
 
 # Test convergence wrt to time and space separately
 
 smoothing = False
 
-show_plots = False
+show_plots = True
 
 rannacher_stepping = False
 
@@ -115,7 +115,7 @@ for n in range(n_doubles):
         if model == "Vasicek" or model == "Extended Vasicek":
             solver.solution = 1 + 0 * solver.grid()
     elif instrument == 'ZCBond':
-        solver.solution = 1 + 0 * solver.grid()
+        solver.solution = payoffs.zero_coupon_bond(solver.grid())
 
     solver.initialization()
 
@@ -226,7 +226,7 @@ for n in range(n_doubles):
 #            ax1[2].plot(solver.grid(), instru.gamma(solver.grid(), 0), 'ob', markersize=3)
 #            ax2[1].plot(solver.grid(), instru.theta(solver.grid(), 0), 'ob', markersize=3)
     elif instrument == 'ZCBond':
-        instru = va_bond.ZCBond(kappa, theta_factor, vol, strike, expiry)
+        instru = va_bond.ZCBond(kappa, theta_factor, vol, expiry)
 #        ax1[0].plot(solver.grid(), instru.price(solver.grid(), 0), 'ob', markersize=3)
 #        ax1[1].plot(solver.grid(), instru.delta(solver.grid(), 0), 'ob', markersize=3)
 #        ax1[2].plot(solver.grid(), instru.gamma(solver.grid(), 0), 'ob', markersize=3)

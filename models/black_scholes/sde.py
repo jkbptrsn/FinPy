@@ -4,6 +4,7 @@ from scipy.stats import norm
 from typing import Tuple
 
 import models.sde as sde
+import utils.global_types as global_types
 
 
 class SDE(sde.SDE):
@@ -18,7 +19,7 @@ class SDE(sde.SDE):
         self._rate = rate
         self._vol = vol
         self._dividend = dividend
-        self._model_name = 'Black-Scholes'
+        self._model_name = global_types.ModelName.BLACk_SCHOLES
 
     def __repr__(self) -> str:
         return f"{self._model_name} SDE object"

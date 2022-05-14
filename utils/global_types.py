@@ -7,7 +7,7 @@ class ExerciseType(Enum):
     BERMUDAN = 3
 
 
-class OptionType(Enum):
+class InstrumentType(Enum):
     EUROPEAN_CALL = 1
     EUROPEAN_PUT = 2
     AMERICAN_CALL = 3
@@ -17,3 +17,11 @@ class OptionType(Enum):
     BINARY_CASH_PUT = 7
     BINARY_ASSET_PUT = 8
     ZERO_COUPON_BOND = 9
+
+
+class ModelName(Enum):
+    BLACk_SCHOLES = 1
+    BACHELIER = 2
+    VASICEK = 3
+    CIR = 4
+    HULL_WHITE = 5

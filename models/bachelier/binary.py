@@ -15,7 +15,7 @@ class BinaryCashCall(option.VanillaOption):
 
     def __init__(self, rate, vol, strike, expiry):
         super().__init__(rate, vol, strike, expiry)
-        self._option_type = global_types.OptionType.BINARY_CASH_CALL
+        self._option_type = global_types.InstrumentType.BINARY_CASH_CALL
 
     @property
     def option_type(self):
@@ -42,7 +42,7 @@ class BinaryAssetCall(option.VanillaOption):
 
     def __init__(self, rate, vol, strike, expiry):
         super().__init__(rate, vol, strike, expiry)
-        self._option_type = global_types.OptionType.BINARY_ASSET_CALL
+        self._option_type = global_types.InstrumentType.BINARY_ASSET_CALL
 
     @property
     def option_type(self):
@@ -68,7 +68,7 @@ class BinaryCashPut(option.VanillaOption):
 
     def __init__(self, rate, vol, strike, expiry):
         super().__init__(rate, vol, strike, expiry)
-        self._option_type = global_types.OptionType.BINARY_CASH_PUT
+        self._option_type = global_types.InstrumentType.BINARY_CASH_PUT
 
     @property
     def option_type(self):
@@ -95,7 +95,7 @@ class BinaryAssetPut(option.VanillaOption):
 
     def __init__(self, rate, vol, strike, expiry):
         super().__init__(rate, vol, strike, expiry)
-        self._option_type = global_types.OptionType.BINARY_ASSET_PUT
+        self._option_type = global_types.InstrumentType.BINARY_ASSET_PUT
 
     @property
     def option_type(self):

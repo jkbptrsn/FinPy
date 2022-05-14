@@ -17,10 +17,10 @@ class Call(option.VanillaOption):
                  expiry: float,
                  dividend: float = 0):
         super().__init__(rate, vol, strike, expiry, dividend)
-        self._option_type = global_types.OptionType.EUROPEAN_CALL
+        self._option_type = global_types.InstrumentType.EUROPEAN_CALL
 
     @property
-    def option_type(self) -> global_types.OptionType:
+    def option_type(self) -> global_types.InstrumentType:
         return self._option_type
 
     def payoff(self,

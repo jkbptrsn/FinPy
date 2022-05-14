@@ -1,44 +1,83 @@
+import math
 import numpy as np
 
-import models.vasicek.option as option
+import models.vasicek.bonds as bond
 import utils.global_types as global_types
+import utils.payoffs as payoffs
 
 
-class ZCBond(option.VanillaOption):
+class ZCBond(bond.Bond):
     """Zero-coupon bond in Vasicek model."""
 
-    def __init__(self, kappa, mean_rate, vol, strike, expiry):
-        super().__init__(kappa, mean_rate, vol, strike, expiry)
-        self._option_type = global_types.OptionType.ZERO_COUPON_BOND
+    def __init__(self,
+                 kappa: float,
+                 mean_rate: float,
+                 vol: float,
+                 maturity: float):
+        super().__init__(kappa, mean_rate, vol, maturity)
+        self._option_type = global_types.InstrumentType.ZERO_COUPON_BOND
 
     @property
-    def option_type(self):
+    def option_type(self) -> global_types.InstrumentType:
         return self._option_type
 
-    def payoff(self, spot: (float, np.ndarray)) -> (float, np.ndarray):
-        return 1 + 0 * spot
+    def payoff(self,
+               spot: (float, np.ndarray)) -> (float, np.ndarray):
+        """Payoff function."""
+        return payoffs.zero_coupon_bond(spot)
 
-    def b_term(self, time: float) -> float:
-        return (1 - np.exp(- self.kappa * (self.expiry - time))) / self.kappa
+    def b_factor(self,
+                 time: float) -> float:
+        """Eq. (3.8), Brigo & Mercurio 2007."""
+        return (1 - math.exp(- self.kappa * (self.maturity - time))) \
+            / self.kappa
 
-    def a_term(self, time: float) -> float:
+    def a_factor(self,
+                 time: float) -> float:
+        """Eq. (3.8), Brigo & Mercurio 2007."""
         vol_sq = self.vol ** 2
-        b_term = self.b_term(time)
-        return (self.mean_rate - vol_sq / (2 * self.kappa ** 2)) \
-            * (b_term - (self.expiry - time)) \
-            - vol_sq * b_term ** 2 / (4 * self.kappa)
+        four_kappa = 4 * self._kappa
+        two_kappa_sq = 2 * self._kappa ** 2
+        b = self.b_factor(time)
+        return (self.mean_rate - vol_sq / two_kappa_sq) \
+            * (b - self.maturity + time) - vol_sq * b ** 2 / four_kappa
 
     def price(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        return np.exp(self.a_term(time) - self.b_term(time) * spot)
+        """Price function: Eq. (3.8), Brigo & Mercurio 2007."""
+        return np.exp(self.a_factor(time) - self.b_factor(time) * spot)
 
     def delta(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        return - self.b_term(time) * self.price(spot, time)
+        """1st order price sensitivity wrt the underlying state."""
+        return - self.b_factor(time) * self.price(spot, time)
 
     def gamma(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        return self.b_term(time) ** 2 * self.price(spot, time)
+        """2st order price sensitivity wrt the underlying state."""
+        return self.b_factor(time) ** 2 * self.price(spot, time)
+
+    def dbdt(self,
+             time: float) -> float:
+        """Time derivative of B: Eq. (3.8), Brigo & Mercurio 2007."""
+        return - math.exp(- self.kappa * (self.maturity - time))
+
+    def dadt(self,
+             time: float) -> float:
+        """Time derivative of A: Eq. (3.8), Brigo & Mercurio 2007."""
+        vol_sq = self.vol ** 2
+        two_kappa = 2 * self._kappa
+        two_kappa_sq = 2 * self._kappa ** 2
+        db = self.dbdt(time)
+        return (self.mean_rate - vol_sq / two_kappa_sq) * (db + 1) \
+            - vol_sq * self.b_factor(time) * db / two_kappa
+
+    def theta(self,
+              spot: (float, np.ndarray),
+              time: float) -> (float, np.ndarray):
+        """1st order price sensitivity wrt time."""
+        return self.price(spot, time) \
+            * (self.dadt(time) - self.dbdt(time) * spot)

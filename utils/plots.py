@@ -49,7 +49,7 @@ def plot1(solver, payoff, price, instrument=None, show=True):
         except (AttributeError, ValueError):
             print("Error in plots.py")
     ax1[3].set_ylabel("Theta")
-    ax1[3].set_xlabel("\"Price\" of underlying")
+    ax1[3].set_xlabel("\"Value\" of underlying")
     ax1[3].grid(True)
 
     if show:
