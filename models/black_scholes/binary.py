@@ -6,6 +6,8 @@ import models.black_scholes.option as option
 import utils.global_types as global_types
 import utils.payoffs as payoffs
 
+# TODO: Add continuously compounded dividend yield
+
 
 class BinaryCashCall(option.VanillaOption):
     """European cash-or-nothing call option in Black-Scholes model.
@@ -13,22 +15,34 @@ class BinaryCashCall(option.VanillaOption):
     expiry.
     """
 
-    def __init__(self, rate, vol, strike, expiry):
+    def __init__(self,
+                 rate: float,
+                 vol: float,
+                 strike: float,
+                 expiry: float):
         super().__init__(rate, vol, strike, expiry)
         self._option_type = global_types.OptionType.BINARY_CASH_CALL
 
     @property
-    def option_type(self):
+    def option_type(self) -> global_types.OptionType:
         return self._option_type
 
-    def payoff(self, spot: (float, np.ndarray)) -> (float, np.ndarray):
+    def payoff(self,
+               spot: (float, np.ndarray)) -> (float, np.ndarray):
+        """Payoff function."""
         return payoffs.binary_cash_call(spot, self.strike)
 
-    def price(self, spot, time):
+    def price(self,
+              spot: (float, np.ndarray),
+              time: float):
+        """Price function."""
         d1, d2 = self.d1d2(spot, time)
         return math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2)
 
-    def delta(self, spot, time):
+    def delta(self,
+              spot: (float, np.ndarray),
+              time: float):
+        """1st order price sensitivity wrt the underlying state."""
         d1, d2 = self.d1d2(spot, time)
         return math.exp(-self.rate * (self.expiry - time)) * norm.pdf(d2) \
             / (spot * self.vol * math.sqrt(self.expiry - time))
@@ -40,22 +54,34 @@ class BinaryAssetCall(option.VanillaOption):
     expiry.
     """
 
-    def __init__(self, rate, vol, strike, expiry):
+    def __init__(self,
+                 rate: float,
+                 vol: float,
+                 strike: float,
+                 expiry: float):
         super().__init__(rate, vol, strike, expiry)
         self._option_type = global_types.OptionType.BINARY_ASSET_CALL
 
     @property
-    def option_type(self):
+    def option_type(self) -> global_types.OptionType:
         return self._option_type
 
-    def payoff(self, spot: (float, np.ndarray)) -> (float, np.ndarray):
+    def payoff(self,
+               spot: (float, np.ndarray)) -> (float, np.ndarray):
+        """Payoff function."""
         return payoffs.binary_asset_call(spot, self.strike)
 
-    def price(self, spot, time):
+    def price(self,
+              spot: (float, np.ndarray),
+              time: float):
+        """Price function."""
         d1, d2 = self.d1d2(spot, time)
         return spot * norm.cdf(d1)
 
-    def delta(self, spot, time):
+    def delta(self,
+              spot: (float, np.ndarray),
+              time: float):
+        """1st order price sensitivity wrt the underlying state."""
         d1, d2 = self.d1d2(spot, time)
         return spot * norm.pdf(d1) \
             / (spot * self.vol * math.sqrt(self.expiry - time)) + norm.cdf(d1)
@@ -66,7 +92,11 @@ class BinaryCashPut(option.VanillaOption):
     out one unit of cash if the spot is below the strike at expiry.
     """
 
-    def __init__(self, rate, vol, strike, expiry):
+    def __init__(self,
+                 rate: float,
+                 vol: float,
+                 strike: float,
+                 expiry: float):
         super().__init__(rate, vol, strike, expiry)
         self._option_type = global_types.OptionType.BINARY_CASH_PUT
 
@@ -74,14 +104,22 @@ class BinaryCashPut(option.VanillaOption):
     def option_type(self):
         return self._option_type
 
-    def payoff(self, spot: (float, np.ndarray)) -> (float, np.ndarray):
+    def payoff(self,
+               spot: (float, np.ndarray)) -> (float, np.ndarray):
+        """Payoff function."""
         return payoffs.binary_cash_put(spot, self.strike)
 
-    def price(self, spot, time):
+    def price(self,
+              spot: (float, np.ndarray),
+              time: float):
+        """Price function."""
         d1, d2 = self.d1d2(spot, time)
         return math.exp(-self.rate * (self.expiry - time)) * norm.cdf(-d2)
 
-    def delta(self, spot, time):
+    def delta(self,
+              spot: (float, np.ndarray),
+              time: float):
+        """1st order price sensitivity wrt the underlying state."""
         d1, d2 = self.d1d2(spot, time)
         return - math.exp(-self.rate * (self.expiry - time)) * norm.pdf(-d2) \
             / (spot * self.vol * math.sqrt(self.expiry - time))
@@ -93,22 +131,34 @@ class BinaryAssetPut(option.VanillaOption):
     expiry.
     """
 
-    def __init__(self, rate, vol, strike, expiry):
+    def __init__(self,
+                 rate: float,
+                 vol: float,
+                 strike: float,
+                 expiry: float):
         super().__init__(rate, vol, strike, expiry)
         self._option_type = global_types.OptionType.BINARY_ASSET_PUT
 
     @property
-    def option_type(self):
+    def option_type(self) -> global_types.OptionType:
         return self._option_type
 
-    def payoff(self, spot: (float, np.ndarray)) -> (float, np.ndarray):
+    def payoff(self,
+               spot: (float, np.ndarray)) -> (float, np.ndarray):
+        """Payoff function."""
         return payoffs.binary_asset_put(spot, self.strike)
 
-    def price(self, spot, time):
+    def price(self,
+              spot: (float, np.ndarray),
+              time: float):
+        """Price function."""
         d1, d2 = self.d1d2(spot, time)
         return spot * norm.cdf(-d1)
 
-    def delta(self, spot, time):
+    def delta(self,
+              spot: (float, np.ndarray),
+              time: float):
+        """1st order price sensitivity wrt the underlying state."""
         d1, d2 = self.d1d2(spot, time)
         return - spot * norm.pdf(-d1) \
             / (spot * self.vol * math.sqrt(self.expiry - time)) + norm.cdf(-d1)
