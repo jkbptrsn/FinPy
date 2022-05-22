@@ -30,8 +30,8 @@ rannacher_stepping = False
 
 # model = "Black-Scholes"
 # model = "Bachelier"
-model = "Vasicek"
-# model = "CIR"
+# model = "Vasicek"
+model = "CIR"
 # model = "Extended Vasicek"
 
 # instrument = 'Call'

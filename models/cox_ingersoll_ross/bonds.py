@@ -40,8 +40,8 @@ def a_factor(time1: float,
     exp_kappa_h = math.exp((kappa + h) * (time2 - time1) / 2)
     exp_h = math.exp(h * (time2 - time1))
     exponent = 2 * kappa * mean_rate / vol ** 2
-    return (2 * h * exp_kappa_h /
-            (2 * h + (kappa + h) * (exp_h - 1))) ** exponent
+    return math.log((2 * h * exp_kappa_h
+                     / (2 * h + (kappa + h) * (exp_h - 1))) ** exponent)
 
 
 def b_factor(time1: float,

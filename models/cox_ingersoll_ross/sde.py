@@ -8,9 +8,10 @@ import utils.global_types as global_types
 
 class SDE(sde.SDE):
     """Cox-Ingersoll-Ross (CIR) SDE:
-    dr_t = kappa * ( mean_rate - r_t) * dt + vol * sqrt(r_t) * dW_t
+        dr_t = kappa * ( mean_rate - r_t) * dt + vol * sqrt(r_t) * dW_t
     subject to the condition
-    2 * kappa * theta > vol ** 2.
+        2 * kappa * theta > vol ** 2
+    such that r_t = 0 is precluded.
     """
 
     def __init__(self,
