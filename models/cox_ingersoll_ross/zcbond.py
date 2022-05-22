@@ -34,12 +34,13 @@ class ZCBond(bonds.Bond):
     def dadt(self,
              time: float) -> float:
         """Time derivative of A: Eq. (3.8), Brigo & Mercurio 2007."""
-        pass
+        return bonds.dadt(time, self.maturity, self.kappa,
+                          self.mean_rate, self.vol)
 
     def dbdt(self,
              time: float) -> float:
         """Time derivative of B: Eq. (3.8), Brigo & Mercurio 2007."""
-        pass
+        return bonds.dbdt(time, self.maturity, self.kappa, self.vol)
 
     def payoff(self,
                spot: (float, np.ndarray)) -> (float, np.ndarray):
@@ -68,6 +69,5 @@ class ZCBond(bonds.Bond):
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
         """1st order price sensitivity wrt time."""
-#        return self.price(spot, time) \
-#            * (self.dadt(time) - self.dbdt(time) * spot)
-        pass
+        return self.price(spot, time) \
+            * (self.dadt(time) - self.dbdt(time) * spot)
