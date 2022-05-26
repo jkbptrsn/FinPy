@@ -7,8 +7,8 @@ import utils.global_types as global_types
 
 
 class SDE(sde.SDE):
-    """Vasicek SDE:
-    dr_t = kappa * ( mean_rate - r_t) * dt + vol * dW_t
+    """Vasicek SDE for the short rate:
+    dr_t = kappa * (mean_rate - r_t) * dt + vol * dW_t
     """
 
     def __init__(self,
@@ -51,27 +51,93 @@ class SDE(sde.SDE):
     def model_name(self) -> global_types.ModelName:
         return self._model_name
 
-    def mean(self,
-             spot: (float, np.ndarray),
-             delta_t: float) -> (float, np.ndarray):
-        """Conditional mean of stochastic process."""
-        exp_kappa = math.exp(- self._kappa * delta_t)
+    def rate_increment(self,
+                       spot,
+                       time,
+                       normal_rand):
+        """Increment short rate...
+        The spot rate is subtracted to get the increment..."""
+        return self.rate_mean(spot, time) \
+            + np.sqrt(self.rate_variance(time)) * normal_rand - spot
+
+    def rate_mean(self,
+                  spot: (float, np.ndarray),
+                  dt: float) -> (float, np.ndarray):
+        """Conditional mean of short rate process."""
+        exp_kappa = math.exp(- self._kappa * dt)
         return spot * exp_kappa + self._mean_rate * (1 - exp_kappa)
 
-    def variance(self,
-                 delta_t: (float, np.ndarray)) -> (float, np.ndarray):
-        """Conditional variance of stochastic process."""
+    def rate_variance(self,
+                      dt: (float, np.ndarray)) -> (float, np.ndarray):
+        """Conditional variance of short rate process."""
         two_kappa = 2 * self._kappa
-        return \
-            self._vol ** 2 * (1 - np.exp(- two_kappa * delta_t)) / two_kappa
+        exp_two_kappa = np.exp(- two_kappa * dt)
+        return self._vol ** 2 * (1 - exp_two_kappa) / two_kappa
+
+    def discount_increment(self,
+                           spot,
+                           time,
+                           normal_rand):
+        """Increment discount factor..."""
+        return self.discount_mean(spot, time) \
+            + np.sqrt(self.discount_variance(time)) * normal_rand
+
+    def discount_mean(self,
+                      spot: (float, np.ndarray),
+                      dt: float) -> (float, np.ndarray):
+        """Conditional mean of discount factor process."""
+        exp_kappa = math.exp(- self._kappa * dt)
+        return - self._mean_rate * dt \
+            - (spot - self._mean_rate) * (1 - exp_kappa) / self._kappa
+
+    def discount_variance(self,
+                          dt: (float, np.ndarray)) -> (float, np.ndarray):
+        """Conditional variance of discount factor process."""
+        vol_sq = self._vol ** 2
+        exp_kappa = np.exp(- self._kappa * dt)
+        two_kappa = 2 * self._kappa
+        exp_two_kappa = np.exp(- two_kappa * dt)
+        kappa_cubed = self._kappa ** 3
+        return vol_sq * (4 * exp_kappa - 3 + two_kappa * dt
+                         - exp_two_kappa) / (2 * kappa_cubed)
+
+    def covariance(self,
+                   dt: (float, np.ndarray)) -> (float, np.ndarray):
+        """Covariance between between short rate and discount factor"""
+        vol_sq = self._vol ** 2
+        kappa_sq = self._kappa ** 2
+        exp_kappa = np.exp(- self._kappa * dt)
+        exp_two_kappa = np.exp(- 2 * self._kappa * dt)
+        return vol_sq * (2 * exp_kappa - exp_two_kappa - 1) / (2 * kappa_sq)
+
+    def correlation(self,
+                    dt: (float, np.ndarray)) -> (float, np.ndarray):
+        """Correlation..."""
+        cov = self.covariance(dt)
+        var1 = self.rate_variance(dt)
+        var2 = self.discount_variance(dt)
+        return cov / np.sqrt(var1 * var2)
+
+    def cholesky(self,
+                 dt: float,
+                 n_paths: int) -> (float, np.ndarray):
+        """Correlated standard normal random variables using Cholesky
+        decomposition. Returns a tuple of floats or np.ndarrays..."""
+
+        # TODO: Use numpy.linalg.cholesky...
+
+        corr = self.correlation(dt)
+        x1 = norm.rvs(size=n_paths)
+        x2 = norm.rvs(size=n_paths)
+        return x1, corr * x1 + math.sqrt(1 - corr ** 2) * x2
 
     def path(self,
              spot: (float, np.ndarray),
              time: float,
              n_paths: int,
              antithetic: bool = False) -> (float, np.ndarray):
-        """Generate paths(s), at t = time, of Ornstein-Uhlenbeck motion
-        using analytic expression.
+        """Generate paths(s), at t = time, of correlated short rate and
+        discount factor using Exact discretization.
 
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.
@@ -80,24 +146,30 @@ class SDE(sde.SDE):
             if n_paths % 2 == 1:
                 raise ValueError("In antithetic sampling, "
                                  "n_paths should be even.")
-            realizations = norm.rvs(size=n_paths // 2)
-            realizations = np.append(realizations, -realizations)
+            rate, discount = self.cholesky(time, n_paths // 2)
+            rate = np.append(rate, -rate)
+            discount = np.append(discount, -discount)
         else:
-            realizations = norm.rvs(size=n_paths)
-        return self.mean(spot, time) \
-            + math.sqrt(self.variance(time)) * realizations
+            rate, discount = self.cholesky(time, n_paths)
+        return self.rate_increment(spot, time, rate), \
+            self.discount_increment(spot, time, discount)
 
     def path_time_grid(self,
                        spot: float,
                        time_grid: np.ndarray) -> np.ndarray:
         """Generate one path, represented on time_grid, of
         Ornstein-Uhlenbeck motion using analytic expression.
+
+        returns tuple of np.ndarrays...
         """
         delta_t = time_grid[1:] - time_grid[:-1]
-        realizations = norm.rvs(size=delta_t.shape[0])
-        realizations = np.sqrt(self.variance(delta_t)) * realizations
-        spot_moved = np.zeros(delta_t.shape[0] + 1)
-        spot_moved[0] = spot
-        for count, e in enumerate(np.column_stack(delta_t, realizations)):
-            spot_moved[count + 1] = self.mean(spot_moved[count], e[0]) + e[1]
-        return spot_moved
+        rate = np.zeros(delta_t.shape[0] + 1)
+        rate[0] = spot
+        discount = np.zeros(delta_t.shape[0] + 1)
+        for count, dt in enumerate(delta_t):
+            x_rate, x_discount = self.cholesky(dt, 1)
+            rate[count + 1] = rate[count] \
+                + self.rate_increment(rate[count], dt, x_rate)
+            discount[count + 1] = discount[count] \
+                + self.discount_increment(rate[count], dt, x_discount)
+        return rate, np.exp(discount)

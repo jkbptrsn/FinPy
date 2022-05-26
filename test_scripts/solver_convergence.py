@@ -30,8 +30,8 @@ rannacher_stepping = False
 
 # model = "Black-Scholes"
 # model = "Bachelier"
-# model = "Vasicek"
-model = "CIR"
+model = "Vasicek"
+# model = "CIR"
 # model = "Extended Vasicek"
 
 # instrument = 'Call'
@@ -47,12 +47,12 @@ solver_type = "AndersenPiterbarg"
 # Time execution
 start_time = datetime.now()
 
-rate = 0.0
+rate = 0.03
 strike = 0.2 # 50
 vol = 0.05 # 0.2
 expiry = 2
 kappa = 0.1 # 1.0 # 0.1
-theta_factor = 0.2
+theta_factor = 0.02
 
 t_min = 0
 t_max = 2
@@ -65,11 +65,11 @@ print("STD: ", sigma_grid)
 sigma_grid_new = np.sqrt(vol ** 2 * (1 - np.exp(-2 * kappa * (t_max - t_min))) / (2 * kappa))
 print("STD new: ", sigma_grid_new)
 
-# x_min = - 5 * sigma_grid # 25
-# x_max = 5 * sigma_grid # 75
+x_min = - 5 * sigma_grid # 25
+x_max = 5 * sigma_grid # 75
 
-x_min = 1 * sigma_grid # 25
-x_max = 11 * sigma_grid # 75
+# x_min = 1 * sigma_grid # 25
+# x_max = 11 * sigma_grid # 75
 
 x_steps = 101
 

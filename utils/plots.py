@@ -54,3 +54,25 @@ def plot1(solver, payoff, price, instrument=None, show=True):
 
     if show:
         plt.show()
+
+
+def plot_path(time_grid, path, show=True):
+    """..."""
+
+    f1, ax1 = plt.subplots(2, 1, sharex=True)
+    f1.suptitle("Monte-Carlo scenario")
+
+    ax1[0].plot(time_grid, path[0], 'b')
+    ax1[0].grid(True)
+    ax1[0].set_ylabel("Stochastic process")
+
+    if len(path) == 2:
+        ax1[1].plot(time_grid, path[1], 'b')
+        ax1[1].grid(True)
+        ax1[1].set_ylabel("Discount curve")
+        ax1[1].set_xlabel("Time")
+    else:
+        ax1[0].set_xlabel("Time")
+
+    if show:
+        plt.show()
