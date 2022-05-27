@@ -85,7 +85,7 @@ class SDE(sde.SDE):
             + math.sqrt(self.rate_variance(dt)) * normal_rand - spot
 
     def discount_mean(self,
-                      spot: (float, np.ndarray),
+                      rate_spot: (float, np.ndarray),
                       dt: float) -> (float, np.ndarray):
         """Conditional mean of discount process, i.e.,
         - int_t^{t+dt} r_u du.
@@ -93,7 +93,7 @@ class SDE(sde.SDE):
         """
         exp_kappa = math.exp(- self._kappa * dt)
         return - self._mean_rate * dt \
-            - (spot - self._mean_rate) * (1 - exp_kappa) / self._kappa
+            - (rate_spot - self._mean_rate) * (1 - exp_kappa) / self._kappa
 
     def discount_variance(self,
                           dt: float) -> float:
@@ -110,12 +110,12 @@ class SDE(sde.SDE):
                          - exp_two_kappa) / (2 * kappa_cubed)
 
     def discount_increment(self,
-                           spot: (float, np.ndarray),
+                           rate_spot: (float, np.ndarray),
                            time: float,
                            normal_rand: (float, np.ndarray)) \
             -> (float, np.ndarray):
         """Increment discount process."""
-        return self.discount_mean(spot, time) \
+        return self.discount_mean(rate_spot, time) \
             + np.sqrt(self.discount_variance(time)) * normal_rand
 
     def covariance(self,
@@ -158,11 +158,11 @@ class SDE(sde.SDE):
 
     def path(self,
              spot: (float, np.ndarray),
-             time: float,
+             dt: float,
              n_paths: int,
              antithetic: bool = False) -> (float, np.ndarray):
-        """Generate paths(s), at t = time, of correlated short rate and
-        discount factor using Exact discretization.
+        """Generate paths(s), during time step dt, of correlated short
+        rate and discount processes using exact discretization.
 
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.
@@ -171,21 +171,19 @@ class SDE(sde.SDE):
             if n_paths % 2 == 1:
                 raise ValueError("In antithetic sampling, "
                                  "n_paths should be even.")
-            rate, discount = self.cholesky(time, n_paths // 2)
-            rate = np.append(rate, -rate)
-            discount = np.append(discount, -discount)
+            x_rate, x_discount = self.cholesky(dt, n_paths // 2)
+            x_rate = np.append(x_rate, -x_rate)
+            x_discount = np.append(x_discount, -x_discount)
         else:
-            rate, discount = self.cholesky(time, n_paths)
-        return self.rate_increment(spot, time, rate), \
-            self.discount_increment(spot, time, discount)
+            x_rate, x_discount = self.cholesky(dt, n_paths)
+        return self.rate_increment(spot, dt, x_rate), \
+            self.discount_increment(spot, dt, x_discount)
 
     def path_time_grid(self,
                        spot: float,
-                       time_grid: np.ndarray) -> np.ndarray:
-        """Generate one path, represented on time_grid, of
-        Ornstein-Uhlenbeck motion using analytic expression.
-
-        returns tuple of np.ndarrays...
+                       time_grid: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """Generate one path, represented on time_grid, correlated short
+        rate and discount processes using exact discretization.
         """
         delta_t = time_grid[1:] - time_grid[:-1]
         rate = np.zeros(delta_t.shape[0] + 1)
