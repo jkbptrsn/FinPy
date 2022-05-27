@@ -14,32 +14,36 @@ class ZCBond(bonds.Bond):
                  vol: float,
                  maturity: float):
         super().__init__(kappa, mean_rate, vol, maturity)
-        self._option_type = global_types.InstrumentType.ZERO_COUPON_BOND
+        self._bond_type = global_types.InstrumentType.ZERO_COUPON_BOND
 
     @property
-    def option_type(self) -> global_types.InstrumentType:
-        return self._option_type
+    def bond_type(self) -> global_types.InstrumentType:
+        return self._bond_type
 
     def a_factor(self,
                  time: float) -> float:
-        """Eq. (3.8), Brigo & Mercurio 2007."""
+        """Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010."""
         return bonds.a_factor(time, self.maturity, self.kappa,
                               self.mean_rate, self.vol)
 
     def b_factor(self,
                  time: float) -> float:
-        """Eq. (3.8), Brigo & Mercurio 2007."""
+        """Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010."""
         return bonds.b_factor(time, self.maturity, self.kappa)
 
     def dadt(self,
              time: float) -> float:
-        """Time derivative of A: Eq. (3.8), Brigo & Mercurio 2007."""
+        """Time derivative of A
+        Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
         return bonds.dadt(time, self.maturity, self.kappa,
                           self.mean_rate, self.vol)
 
     def dbdt(self,
              time: float) -> float:
-        """Time derivative of B: Eq. (3.8), Brigo & Mercurio 2007."""
+        """Time derivative of B
+        Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
         return bonds.dbdt(time, self.maturity, self.kappa)
 
     def payoff(self,
@@ -50,7 +54,9 @@ class ZCBond(bonds.Bond):
     def price(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        """Price function: Eq. (3.8), Brigo & Mercurio 2007."""
+        """Price function
+        Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
         return np.exp(self.a_factor(time) - self.b_factor(time) * spot)
 
     def delta(self,

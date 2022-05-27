@@ -11,5 +11,6 @@ class Bond(metaclass=abc.ABCMeta):
 
     @maturity.setter
     @abc.abstractmethod
-    def maturity(self, maturity_):
+    def maturity(self,
+                 maturity_: float):
         pass

@@ -18,7 +18,7 @@ class Bond(bonds.Bond, sde.SDE):
 
     @property
     @abc.abstractmethod
-    def option_type(self):
+    def bond_type(self):
         pass
 
     @property
@@ -26,7 +26,8 @@ class Bond(bonds.Bond, sde.SDE):
         return self._maturity
 
     @maturity.setter
-    def maturity(self, maturity_):
+    def maturity(self,
+                 maturity_: float):
         self._maturity = maturity_
 
 
@@ -35,19 +36,19 @@ def a_factor(time1: float,
              kappa: float,
              mean_rate: float,
              vol: float) -> float:
-    """Eq. (3.8), Brigo & Mercurio 2007."""
+    """Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010."""
     vol_sq = vol ** 2
     four_kappa = 4 * kappa
     two_kappa_sq = 2 * kappa ** 2
     b = b_factor(time1, time2, kappa)
     return (mean_rate - vol_sq / two_kappa_sq) \
-        * (b - time2 + time1) - vol_sq * b ** 2 / four_kappa
+        * (b - (time2 - time1)) - vol_sq * b ** 2 / four_kappa
 
 
 def b_factor(time1: float,
              time2: float,
              kappa: float) -> float:
-    """Eq. (3.8), Brigo & Mercurio 2007."""
+    """Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010."""
     return (1 - math.exp(- kappa * (time2 - time1))) / kappa
 
 
@@ -56,7 +57,9 @@ def dadt(time1: float,
          kappa: float,
          mean_rate: float,
          vol: float) -> float:
-    """Time derivative of A: Eq. (3.8), Brigo & Mercurio 2007."""
+    """Time derivative of A
+    Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+    """
     vol_sq = vol ** 2
     two_kappa = 2 * kappa
     two_kappa_sq = 2 * kappa ** 2
@@ -68,5 +71,7 @@ def dadt(time1: float,
 def dbdt(time1: float,
          time2: float,
          kappa: float) -> float:
-    """Time derivative of B: Eq. (3.8), Brigo & Mercurio 2007."""
+    """Time derivative of B
+    Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+    """
     return - math.exp(- kappa * (time2 - time1))
