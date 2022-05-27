@@ -1,14 +1,15 @@
 import math
 import numpy as np
 from scipy.stats import norm
+from typing import Tuple
 
 import models.sde as sde
 import utils.global_types as global_types
 
 
 class SDE(sde.SDE):
-    """Vasicek SDE for the short rate:
-    dr_t = kappa * (mean_rate - r_t) * dt + vol * dW_t
+    """Vasicek SDE for the short rate
+        dr_t = kappa * (mean_rate - r_t) * dt + vol * dW_t.
     """
 
     def __init__(self,
@@ -28,7 +29,8 @@ class SDE(sde.SDE):
         return self._kappa
 
     @kappa.setter
-    def kappa(self, kappa_):
+    def kappa(self,
+              kappa_: float):
         self._kappa = kappa_
 
     @property
@@ -36,7 +38,8 @@ class SDE(sde.SDE):
         return self._mean_rate
 
     @mean_rate.setter
-    def mean_rate(self, mean_rate_):
+    def mean_rate(self,
+                  mean_rate_: float):
         self._mean_rate = mean_rate_
 
     @property
@@ -44,92 +47,114 @@ class SDE(sde.SDE):
         return self._vol
 
     @vol.setter
-    def vol(self, vol_):
+    def vol(self,
+            vol_: float):
         self._vol = vol_
 
     @property
     def model_name(self) -> global_types.ModelName:
         return self._model_name
 
-    def rate_increment(self,
-                       spot,
-                       time,
-                       normal_rand):
-        """Increment short rate...
-        The spot rate is subtracted to get the increment..."""
-        return self.rate_mean(spot, time) \
-            + np.sqrt(self.rate_variance(time)) * normal_rand - spot
-
     def rate_mean(self,
                   spot: (float, np.ndarray),
                   dt: float) -> (float, np.ndarray):
-        """Conditional mean of short rate process."""
+        """Conditional mean of short rate process.
+        Eq. (10.12), L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
         exp_kappa = math.exp(- self._kappa * dt)
         return spot * exp_kappa + self._mean_rate * (1 - exp_kappa)
 
     def rate_variance(self,
-                      dt: (float, np.ndarray)) -> (float, np.ndarray):
-        """Conditional variance of short rate process."""
+                      dt: float) -> float:
+        """Conditional variance of short rate process.
+        Eq. (10.13), L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
         two_kappa = 2 * self._kappa
-        exp_two_kappa = np.exp(- two_kappa * dt)
+        exp_two_kappa = math.exp(- two_kappa * dt)
         return self._vol ** 2 * (1 - exp_two_kappa) / two_kappa
 
-    def discount_increment(self,
-                           spot,
-                           time,
-                           normal_rand):
-        """Increment discount factor..."""
-        return self.discount_mean(spot, time) \
-            + np.sqrt(self.discount_variance(time)) * normal_rand
+    def rate_increment(self,
+                       spot: (float, np.ndarray),
+                       dt: float,
+                       normal_rand: (float, np.ndarray)) \
+            -> (float, np.ndarray):
+        """Increment short rate process (the spot rate is subtracted to
+        get the increment).
+        """
+        return self.rate_mean(spot, dt) \
+            + math.sqrt(self.rate_variance(dt)) * normal_rand - spot
 
     def discount_mean(self,
                       spot: (float, np.ndarray),
                       dt: float) -> (float, np.ndarray):
-        """Conditional mean of discount factor process."""
+        """Conditional mean of discount process, i.e.,
+        - int_t^{t+dt} r_u du.
+        Eq. (10.12+), L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
         exp_kappa = math.exp(- self._kappa * dt)
         return - self._mean_rate * dt \
             - (spot - self._mean_rate) * (1 - exp_kappa) / self._kappa
 
     def discount_variance(self,
-                          dt: (float, np.ndarray)) -> (float, np.ndarray):
-        """Conditional variance of discount factor process."""
+                          dt: float) -> float:
+        """Conditional variance of discount process, i.e.,
+        - int_t^{t+dt} r_u du.
+        Eq. (10.13+), L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
         vol_sq = self._vol ** 2
-        exp_kappa = np.exp(- self._kappa * dt)
+        exp_kappa = math.exp(- self._kappa * dt)
         two_kappa = 2 * self._kappa
-        exp_two_kappa = np.exp(- two_kappa * dt)
+        exp_two_kappa = math.exp(- two_kappa * dt)
         kappa_cubed = self._kappa ** 3
         return vol_sq * (4 * exp_kappa - 3 + two_kappa * dt
                          - exp_two_kappa) / (2 * kappa_cubed)
 
+    def discount_increment(self,
+                           spot: (float, np.ndarray),
+                           time: float,
+                           normal_rand: (float, np.ndarray)) \
+            -> (float, np.ndarray):
+        """Increment discount process."""
+        return self.discount_mean(spot, time) \
+            + np.sqrt(self.discount_variance(time)) * normal_rand
+
     def covariance(self,
-                   dt: (float, np.ndarray)) -> (float, np.ndarray):
-        """Covariance between between short rate and discount factor"""
+                   dt: float) -> float:
+        """Covariance between between short rate and discount processes.
+        Lemma 10.1.11, L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
         vol_sq = self._vol ** 2
         kappa_sq = self._kappa ** 2
-        exp_kappa = np.exp(- self._kappa * dt)
-        exp_two_kappa = np.exp(- 2 * self._kappa * dt)
+        exp_kappa = math.exp(- self._kappa * dt)
+        exp_two_kappa = math.exp(- 2 * self._kappa * dt)
         return vol_sq * (2 * exp_kappa - exp_two_kappa - 1) / (2 * kappa_sq)
 
     def correlation(self,
-                    dt: (float, np.ndarray)) -> (float, np.ndarray):
-        """Correlation..."""
-        cov = self.covariance(dt)
-        var1 = self.rate_variance(dt)
-        var2 = self.discount_variance(dt)
-        return cov / np.sqrt(var1 * var2)
+                    dt: float) -> float:
+        """Correlation between between short rate and discount
+        processes.
+        Lemma 10.1.11, L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
+        covariance = self.covariance(dt)
+        rate_var = self.rate_variance(dt)
+        discount_var = self.discount_variance(dt)
+        return covariance / math.sqrt(rate_var * discount_var)
 
     def cholesky(self,
                  dt: float,
-                 n_paths: int) -> (float, np.ndarray):
+                 n_paths: int) \
+            -> (Tuple[float, float], Tuple[np.ndarray, np.ndarray]):
         """Correlated standard normal random variables using Cholesky
-        decomposition. Returns a tuple of floats or np.ndarrays..."""
-
-        # TODO: Use numpy.linalg.cholesky...
-
-        corr = self.correlation(dt)
+        decomposition. In the 2-D case, the transformation is simply:
+        x1, correlation * x1 + sqrt(1 - correlation ** 2) * x2
+        """
+        correlation = self.correlation(dt)
+        corr_matrix = np.array([[1, correlation], [correlation, 1]])
+        corr_matrix = np.linalg.cholesky(corr_matrix)
         x1 = norm.rvs(size=n_paths)
         x2 = norm.rvs(size=n_paths)
-        return x1, corr * x1 + math.sqrt(1 - corr ** 2) * x2
+        return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
+            corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
 
     def path(self,
              spot: (float, np.ndarray),
