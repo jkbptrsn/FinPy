@@ -35,8 +35,8 @@ model = "Vasicek"
 # model = "Extended Vasicek"
 
 # instrument = 'Call'
-# instrument = 'Put'
-instrument = 'ZCBond'
+instrument = 'Put'
+# instrument = 'ZCBond'
 
 bc_type = "Linearity"
 # bc_type = "PDE"
@@ -48,7 +48,7 @@ solver_type = "AndersenPiterbarg"
 start_time = datetime.now()
 
 rate = 0.03
-strike = 0.2 # 50
+strike = 1.2 # 50
 vol = 0.05 # 0.2
 expiry = 2
 kappa = 0.1 # 1.0 # 0.1
@@ -56,7 +56,7 @@ theta_factor = 0.02
 
 t_min = 0
 t_max = 2
-t_steps = 101
+t_steps = 201
 dt = (t_max - t_min) / (t_steps - 1)
 
 sigma_grid = np.sqrt(vol ** 2 * (t_max - t_min))
@@ -71,7 +71,7 @@ x_max = 5 * sigma_grid # 75
 # x_min = 1 * sigma_grid # 25
 # x_max = 11 * sigma_grid # 75
 
-x_steps = 101
+x_steps = 201
 
 t_array = np.zeros(n_doubles - 1)
 x_array = np.zeros(n_doubles - 1)

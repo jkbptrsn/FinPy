@@ -1,8 +1,6 @@
-import math
 import numpy as np
 from scipy.stats import norm
 
-import models.vasicek.bonds as bonds
 import models.vasicek.zcbond as zcbond
 import models.vasicek.options as options
 import utils.global_types as global_types
@@ -10,7 +8,9 @@ import utils.payoffs as payoffs
 
 
 class Call(options.VanillaOption):
-    """European call option on zero-coupon bond in Vasicek model."""
+    """European call option written on zero-coupon bond in Vasicek
+    model.
+    """
 
     def __init__(self,
                  kappa: float,
@@ -32,25 +32,9 @@ class Call(options.VanillaOption):
         return self._maturity
 
     @maturity.setter
-    def maturity(self, maturity_):
+    def maturity(self,
+                 maturity_: float):
         self._maturity = maturity_
-
-    def sigma_p(self,
-                time: float) -> float:
-        """Eq. (3.10), Brigo & Mercurio 2007."""
-        two_kappa = 2 * self.kappa
-        exp_kappa_time = math.exp(- two_kappa * (self.expiry - time))
-        b_factor = bonds.b_factor(self.expiry, self._maturity, self.kappa)
-        return \
-            self.vol * b_factor * math.sqrt((1 - exp_kappa_time) / two_kappa)
-
-    def h_factor(self,
-                 zc1_price: (float, np.ndarray),
-                 zc2_price: (float, np.ndarray),
-                 time: float) -> (float, np.ndarray):
-        """Eq. (3.10), Brigo & Mercurio 2007."""
-        s_p = self.sigma_p(time)
-        return np.log(zc2_price / (zc1_price * self.strike)) / s_p + s_p / 2
 
     def payoff(self,
                spot: (float, np.ndarray)) -> (float, np.ndarray):
@@ -59,13 +43,14 @@ class Call(options.VanillaOption):
 
     def payoff_dds(self,
                    spot: (float, np.ndarray)) -> (float, np.ndarray):
-        """..."""
+        """1st order partial derivative of payoff function wrt the
+        underlying state."""
         return payoffs.binary_cash_call(spot, self.strike)
 
     def price(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        """Price function: Eq. (3.10), Brigo & Mercurio 2007."""
+        """Price function: Eq. (3.10), D. Brigo & F. Mercurio 2007."""
         zc1 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol, self.expiry)
         zc1_price = zc1.price(spot, time)
         zc2 = \
@@ -93,9 +78,9 @@ class Call(options.VanillaOption):
         h = options.h_factor(zc1_price, zc2_price, s_p, self.strike)
         dhdr = (zc2_delta / zc2_price - zc1_delta / zc1_price) / s_p
         return zc2_delta * norm.cdf(h) \
-            - self.strike * zc1_delta * norm.cdf(h - s_p) + \
-            dhdr * (zc2_price * norm.pdf(h)
-                    - self.strike * zc1_price * norm.pdf(h - s_p))
+            - self.strike * zc1_delta * norm.cdf(h - s_p) \
+            + dhdr * (zc2_price * norm.pdf(h)
+                      - self.strike * zc1_price * norm.pdf(h - s_p))
 
     def gamma(self,
               spot: (float, np.ndarray),
@@ -114,10 +99,18 @@ class Call(options.VanillaOption):
                               self.kappa, self.vol)
         h = options.h_factor(zc1_price, zc2_price, s_p, self.strike)
         dhdr = (zc2_delta / zc2_price - zc1_delta / zc1_price) / s_p
-        return zc2_gamma * norm.cdf(h) \
-            - self.strike * zc1_gamma * norm.cdf(h - s_p) + \
-            dhdr * (zc2_delta * norm.pdf(h)
-                    - self.strike * zc1_delta * norm.pdf(h - s_p))
+        d2hdr2 = (- zc2_delta ** 2 / zc2_price ** 2
+                  + zc2_gamma / zc2_price
+                  + zc1_delta ** 2 / zc1_price ** 2
+                  - zc1_gamma / zc1_price) / s_p
+        return (zc2_gamma * norm.cdf(h)
+                - self.strike * zc1_gamma * norm.cdf(h - s_p)) \
+            + 2 * dhdr * (zc2_delta * norm.pdf(h)
+                          - self.strike * zc1_delta * norm.pdf(h - s_p)) \
+            + dhdr ** 2 * (- zc2_price * h * norm.pdf(h)
+                           + self.strike * zc1_price * h * norm.pdf(h - s_p)) \
+            + d2hdr2 * (zc2_price * norm.pdf(h)
+                        - self.strike * zc1_price * norm.pdf(h - s_p))
 
     def theta(self,
               spot: (float, np.ndarray),
