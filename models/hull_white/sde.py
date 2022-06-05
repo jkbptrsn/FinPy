@@ -8,10 +8,15 @@ import models.sde as sde
 import utils.global_types as global_types
 
 
+def trapezoidal(grid: np.ndarray,
+                function: np.ndarray) -> np.ndarray:
+    """Trapezoidal integration for each step."""
+    dx = grid[1:] - grid[:-1]
+    return dx * (function[1:] + function[:-1]) / 2
+
+
 class Function:
-    """Time-dependent function defined on time_grid with interpolation
-    and extrapolation schemes.
-    """
+    """Interpolation and extrapolation of discrete function."""
 
     def __init__(self,
                  name: str,
@@ -43,11 +48,12 @@ class Function:
         return self._values
 
     @property
-    def interp_scheme(self) -> str:
+    def interpolation_scheme(self) -> str:
         return self._interpolation
 
-    @interp_scheme.setter
-    def interp_scheme(self, interpolation_: str):
+    @interpolation_scheme.setter
+    def interpolation_scheme(self,
+                             interpolation_: str):
         self._interpolation = interpolation_
 
     def interpolation(self,
@@ -57,49 +63,53 @@ class Function:
         if self._extrapolation:
             fill_value = "extrapolate"
         else:
-            fill_value = ""
+            fill_value = None
         f = interp1d(self._time_grid, self._values,
                      kind=self._interpolation, fill_value=fill_value)
         return f(time_grid_new)
 
-    def integration(self,
-                    time_grid_new: (float, np.ndarray)) -> float:
-        """Flat integration on time_grid_new. For each sub-interval, the
-        function value at the left side is used.
-        """
-        dt = time_grid_new[1:] - time_grid_new[:-1]
-        return np.sum(dt * self.interpolation(time_grid_new[:-1]))
-
 
 class SDE(sde.SDE):
     """Hull-White (Extended Vasicek) SDE for the short rate
-        dx_t = y_t - kappa_t * x_t) * dt + vol_t * dW_t,
+        dx_t = (y_t - kappa_t * x_t) * dt + vol_t * dW_t,
     where
-        r_t = x_t + f(0,t) (instantaneous forward rate).
+        r_t = x_t + f(0,t) (f is the instantaneous forward rate).
+    Proposition 10.1.7, L.B.G. Andersen & V.V. Piterbarg 2010.
 
-    - event_grid: event dates (payments, deadlines, etc.)
-    - int_step: integration step size between event dates
+    - event_grid: event dates, i.e., trade date, payment dates,
+                  extraordinary prepayment deadlines, etc.
+    - int_step_size: integration step size (default is daily step size)
+
+    IF KAPPA IS > ~1, THE INTEGRATION STEP SIZE SHOULD BE DECREASED!
     """
 
     def __init__(self,
                  kappa: Function,
                  vol: Function,
                  event_grid: np.ndarray,
-                 int_step_size: float = 1 / 11): # 1 / 365
+                 int_step_size: float = 1 / 365):
         self._kappa = kappa
         self._vol = vol
         self._event_grid = event_grid
         self._int_step_size = int_step_size
+        self._model_name = global_types.ModelName.HULL_WHITE
 
-        self._rate_mean = np.zeros(event_grid.size)
+        self._rate_mean = np.zeros((event_grid.size, 2))
         self._rate_variance = np.zeros(event_grid.size)
-        self._discount_mean = np.zeros(event_grid.size)
+        self._discount_mean = np.zeros((event_grid.size, 2))
         self._discount_variance = np.zeros(event_grid.size)
         self._covariance = np.zeros(event_grid.size)
 
-        self._int_grid = np.empty(0)
-        self._int_event_idx = np.empty(0)
-        self._model_name = global_types.ModelName.HULL_WHITE
+        # Integration grid
+        self._int_grid = None
+        # Indices of event dates on integration grid
+        self._int_event_idx = None
+
+        # Arrays used in setting up the Monte-Carlo simulation
+        self._kappa_int_grid = None
+        self._vol_int_grid = None
+        self._y_int_grid = None
+        self._int_kappa_step = None
 
     def __repr__(self):
         return f"{self._model_name} SDE object"
@@ -123,6 +133,12 @@ class SDE(sde.SDE):
         self._vol = vol_
 
     @property
+    def model_name(self) -> global_types.ModelName:
+        return self._model_name
+
+###############################################################################
+
+    @property
     def int_grid(self) -> np.ndarray:
         return self._int_grid
 
@@ -131,183 +147,259 @@ class SDE(sde.SDE):
         return self._int_event_idx
 
     @property
-    def model_name(self) -> global_types.ModelName:
-        return self._model_name
+    def y_int_grid(self) -> np.ndarray:
+        return self._y_int_grid
+
+###############################################################################
 
     def initialization(self):
-        """Initialize Monte-Carlo simulation..."""
+        """Initialize the Monte-Carlo simulation by calculating mean and
+        variance of the short rate and discount processes, respectively.
+        """
         self.integration_grid()
+        self.kappa_vol_y()
         self.rate_mean()
         self.rate_variance()
+        self.discount_mean()
+        self.discount_variance()
+        self.covariance()
+        self._kappa_int_grid = None
+        self._vol_int_grid = None
+        self._y_int_grid = None
+        self._int_kappa_step = None
 
     def integration_grid(self):
-        """..."""
-        for idx, event_date in enumerate(self._event_grid):
-            if idx == 0:
-                step_size = event_date
-                initial_date = 0
-                subtract_index = 1
-            else:
-                step_size = self._event_grid[idx] - self._event_grid[idx - 1]
-                initial_date = self._event_grid[idx - 1]
-                subtract_index = 0
+        """Time grid for integration of coefficients."""
+        # Assume that the first event date is the initial time point on
+        # the integration grid
+        self._int_grid = np.array(self._event_grid[0])
+        # The first event has index zero on the integration grid
+        self._int_event_idx = np.array([0])
+        # Step size between two adjacent event dates
+        step_size_grid = np.diff(self._event_grid)
+        for idx, step_size in enumerate(step_size_grid):
+            # Number of integration steps
             steps = math.floor(step_size / self._int_step_size)
+            initial_date = self._event_grid[idx]
             if steps == 0:
-                grid = step_size * np.arange(1, 2) + initial_date
+                grid = np.array([initial_date + step_size])
             else:
                 grid = self._int_step_size * np.arange(1, steps + 1) \
                     + initial_date
                 diff_step = step_size - steps * self._int_step_size
-                if diff_step > 1.0e-6:
+                if diff_step > 1.0e-8:
                     grid = np.append(grid, grid[-1] + diff_step)
             self._int_grid = np.append(self._int_grid, grid)
-            self._int_event_idx = \
-                np.append(self._int_event_idx, grid.size - subtract_index)
-        self._int_event_idx = np.int_(np.cumsum(self._int_event_idx))
+            self._int_event_idx = np.append(self._int_event_idx, grid.size)
+        self._int_event_idx = np.cumsum(self._int_event_idx)
 
-    @staticmethod
-    def trapezoidal(grid: np.ndarray,
-                    function: np.ndarray) -> np.ndarray:
-        """Trapezoidal integration for each step..."""
-        dx = grid[1:] - grid[:-1]
-        return dx * (function[1:] + function[:-1]) / 2
+    def kappa_vol_y(self):
+        """Speed of mean reversion, volatility and y-function
+        represented on integration grid.
+        Proposition 10.1.7, L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
+        # Speed of mean reversion interpolated on integration grid
+        self._kappa_int_grid = self._kappa.interpolation(self._int_grid)
+        # Volatility interpolated on integration grid
+        self._vol_int_grid = self._vol.interpolation(self._int_grid)
+        # Integration of speed of mean reversion using trapezoidal rule
+        self._int_kappa_step = \
+            np.append(np.array([0]),
+                      trapezoidal(self._int_grid, self._kappa_int_grid))
+        # Calculation of y-function on integration grid
+        self._y_int_grid = np.zeros(self._int_grid.size)
+        for idx in range(1, self._int_grid.size):
+            # int_u^t kappa_t dt
+            int_kappa = self._int_kappa_step[:idx + 1]
+            int_kappa = np.cumsum(int_kappa[::-1])[::-1]
+            # Integrand in expression for y
+            integrand = \
+                np.exp(-2 * int_kappa) * self._vol_int_grid[:idx + 1] ** 2
+            # Integration
+            self._y_int_grid[idx] = \
+                np.sum(trapezoidal(self._int_grid[:idx + 1], integrand))
 
     def rate_mean(self):
-        """Conditional mean factors...
+        """Factors for calculating conditional mean of short rate.
         Eq. (10.40), L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        kappa = self._kappa.interpolation(self._int_grid)
-        vol = self._vol.interpolation(self._int_grid)
-
-        int_kappa_step = self.trapezoidal(self._int_grid, kappa)
-
-        # Calculation of y-function on integration grid
-        y = np.zeros(self._int_grid.size)
-        for idx in range(self._int_grid.size):
-            grid_temp = self._int_grid[:idx + 1]
-            int_kappa_temp = int_kappa_step[:idx + 1]
-            vol_temp = vol[:idx + 1]
-#            vol_temp = (vol_temp[1:] + vol_temp[:-1]) / 2
-            int_kappa = np.cumsum(int_kappa_temp[::-1])[::-1]
-            integrand = np.exp(- 2 * int_kappa) * vol_temp ** 2
-            y[idx] = np.sum(self.trapezoidal(grid_temp, integrand))
-
         for event_idx in range(1, self._int_event_idx.size):
-
+            # Integration indices of two adjacent event dates
             int_idx1 = self._int_event_idx[event_idx - 1]
             int_idx2 = self._int_event_idx[event_idx]
-            grid_temp = self._int_grid[int_idx1:int_idx2 + 1]
-
-            int_kappa_temp = int_kappa_step[int_idx1:int_idx2 + 1]
-            mean_factor1 = math.exp(-np.sum(int_kappa_temp))
-
-            int_kappa = np.cumsum(int_kappa_temp[::-1])[::-1]
-            y_temp = y[int_idx1:int_idx2 + 1]
-            integrand = np.exp(- int_kappa) * y_temp
-            mean_factor2 = np.sum(self.trapezoidal(grid_temp, integrand))
-
-            mean_factors = np.array(mean_factor1, mean_factor2)
-            self._rate_mean = np.append(self._rate_mean, mean_factors)
+            # Slice of integration grid
+            int_grid = self._int_grid[int_idx1:int_idx2 + 1]
+            # Slice of time-integrated kappa for each integration step
+            int_kappa = self._int_kappa_step[int_idx1:int_idx2 + 1]
+            int_kappa = np.cumsum(int_kappa[::-1])[::-1]
+            integrand = \
+                np.exp(-int_kappa) * self._y_int_grid[int_idx1:int_idx2 + 1]
+            factor1 = math.exp(-np.sum(int_kappa))
+            factor2 = np.sum(trapezoidal(int_grid, integrand))
+            self._rate_mean[event_idx] = [factor1, factor2]
 
     def rate_variance(self):
-        """Conditional variance factor...
+        """Factors for calculating conditional variance of short rate.
         Eq. (10.41), L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        kappa = self._kappa.interpolation(self._int_grid)
-        vol = self._vol.interpolation(self._int_grid)
-
-        int_kappa_step = self.trapezoidal(self._int_grid, kappa)
-
         for event_idx in range(1, self._int_event_idx.size):
-
+            # Integration indices of two adjacent event dates
             int_idx1 = self._int_event_idx[event_idx - 1]
             int_idx2 = self._int_event_idx[event_idx]
-            grid_temp = self._int_grid[int_idx1:int_idx2 + 1]
-
-            int_kappa_temp = int_kappa_step[int_idx1:int_idx2 + 1]
-            int_kappa = np.cumsum(int_kappa_temp[::-1])[::-1]
-
-            integrand = np.exp(- 2 * int_kappa) * vol ** 2
-            variance = np.sum(self.trapezoidal(grid_temp, integrand))
-
-            self._rate_variance = np.append(self._rate_variance, variance)
+            # Slice of integration grid
+            int_grid = self._int_grid[int_idx1:int_idx2 + 1]
+            # Slice of time-integrated kappa for each integration step
+            int_kappa = self._int_kappa_step[int_idx1:int_idx2 + 1]
+            int_kappa = np.cumsum(int_kappa[::-1])[::-1]
+            integrand = \
+                np.exp(-int_kappa) * self._vol_int_grid[int_idx1:int_idx2 + 1]
+            variance = np.sum(trapezoidal(int_grid, integrand))
+            self._rate_variance[event_idx] = variance
 
     def rate_increment(self,
                        spot: (float, np.ndarray),
-                       dt: float,
+                       time_idx: int,
                        normal_rand: (float, np.ndarray)) \
             -> (float, np.ndarray):
         """Increment short rate process (the spot rate is subtracted to
         get the increment).
         """
-        return self.rate_mean(spot, dt) \
-            + math.sqrt(self.rate_variance(dt)) * normal_rand - spot
+        mean = \
+            self._rate_mean[time_idx][0] * spot + self._rate_mean[time_idx][1]
+        variance = self._rate_variance[time_idx]
+        return mean + math.sqrt(variance) * normal_rand - spot
 
-    def discount_mean(self,
-                      rate_spot: (float, np.ndarray),
-                      dt: float) -> (float, np.ndarray):
-        """Conditional mean of discount process, i.e.,
-        - int_t^{t+dt} r_u du.
-        Eq. (10.12+), L.B.G. Andersen & V.V. Piterbarg 2010.
+    def discount_mean(self):
+        """Factors for calculating conditional mean of discount process,
+        i.e., - int_t^{t+dt} r_u du.
+        Eq. (10.42), L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        exp_kappa = math.exp(- self._kappa * dt)
-        return - self._mean_rate * dt \
-            - (rate_spot - self._mean_rate) * (1 - exp_kappa) / self._kappa
+        for event_idx in range(1, self._int_event_idx.size):
+            # Integration indices of two adjacent event dates
+            int_idx1 = self._int_event_idx[event_idx - 1]
+            int_idx2 = self._int_event_idx[event_idx]
+            # Slice of integration grid
+            int_grid = self._int_grid[int_idx1:int_idx2 + 1]
+            # Slice of time-integrated kappa for each integration step
+            int_kappa = self._int_kappa_step[int_idx1:int_idx2 + 1]
+            # G-function
+            # Eq. (10.18), L.B.G. Andersen & V.V. Piterbarg 2010
+            int_kappa = np.cumsum(int_kappa)
+            integrand = np.exp(-int_kappa)
+            factor1 = np.sum(trapezoidal(int_grid, integrand))
+            # Double time integral in Eq. (10.42)
+            factor2 = np.array([0])
+            for idx in range(int_idx1 + 1, int_idx2 + 1):
+                int_grid_tmp = self._int_grid[int_idx1:idx + 1]
+                int_kappa_tmp = self._int_kappa_step[int_idx1:idx + 1]
+                int_kappa_tmp = np.cumsum(int_kappa_tmp[::-1])[::-1]
+                integrand = \
+                    np.exp(-int_kappa_tmp) * self._y_int_grid[int_idx1:idx + 1]
+                factor2 = \
+                    np.append(factor2,
+                              np.sum(trapezoidal(int_grid_tmp, integrand)))
+            factor2 = np.sum(trapezoidal(int_grid, factor2))
+            self._discount_mean[event_idx] = [factor1, factor2]
 
-    def discount_variance(self,
-                          dt: float) -> float:
-        """Conditional variance of discount process, i.e.,
-        - int_t^{t+dt} r_u du.
-        Eq. (10.13+), L.B.G. Andersen & V.V. Piterbarg 2010.
+    def discount_variance(self):
+        """Factors for calculating conditional variance of discount
+        process, i.e., - int_t^{t+dt} r_u du.
+        Eq. (10.43), L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        vol_sq = self._vol ** 2
-        exp_kappa = math.exp(- self._kappa * dt)
-        two_kappa = 2 * self._kappa
-        exp_two_kappa = math.exp(- two_kappa * dt)
-        kappa_cubed = self._kappa ** 3
-        return vol_sq * (4 * exp_kappa - 3 + two_kappa * dt
-                         - exp_two_kappa) / (2 * kappa_cubed)
+        for event_idx in range(1, self._int_event_idx.size):
+            # Integration indices of two adjacent event dates
+            int_idx1 = self._int_event_idx[event_idx - 1]
+            int_idx2 = self._int_event_idx[event_idx]
+            # Slice of integration grid
+            int_grid = self._int_grid[int_idx1:int_idx2 + 1]
+            # Slice of time-integrated kappa for each integration step
+            int_kappa = self._int_kappa_step[int_idx1:int_idx2 + 1]
+            # G-function
+            # Eq. (10.18), L.B.G. Andersen & V.V. Piterbarg 2010
+            int_kappa = np.cumsum(int_kappa)
+            integrand = np.exp(-int_kappa)
+            term1 = \
+                self._y_int_grid[int_idx1] \
+                * np.sum(trapezoidal(int_grid, integrand)) ** 2
+            # Double time integral in Eq. (10.43)
+            factor2 = np.array([0])
+            for idx in range(int_idx1 + 1, int_idx2 + 1):
+                int_grid_tmp = self._int_grid[int_idx1:idx + 1]
+                int_kappa_tmp = self._int_kappa_step[int_idx1:idx + 1]
+                int_kappa_tmp = np.cumsum(int_kappa_tmp[::-1])[::-1]
+                integrand = \
+                    np.exp(-int_kappa_tmp) * self._y_int_grid[int_idx1:idx + 1]
+                factor2 = \
+                    np.append(factor2,
+                              np.sum(trapezoidal(int_grid_tmp, integrand)))
+            term2 = 2 * np.sum(trapezoidal(int_grid, factor2))
+            self._discount_variance[event_idx] = term2 - term1
 
     def discount_increment(self,
                            rate_spot: (float, np.ndarray),
-                           time: float,
+                           time_idx: int,
                            normal_rand: (float, np.ndarray)) \
             -> (float, np.ndarray):
         """Increment discount process."""
-        return self.discount_mean(rate_spot, time) \
-            + np.sqrt(self.discount_variance(time)) * normal_rand
+        mean = \
+            - rate_spot * self._discount_mean[time_idx][0] \
+            - self._discount_mean[time_idx][1]
+        variance = self._discount_variance[time_idx]
+        return mean + math.sqrt(variance) * normal_rand
 
-    def covariance(self,
-                   dt: float) -> float:
+    def covariance(self):
         """Covariance between between short rate and discount processes.
         Lemma 10.1.11, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        vol_sq = self._vol ** 2
-        kappa_sq = self._kappa ** 2
-        exp_kappa = math.exp(- self._kappa * dt)
-        exp_two_kappa = math.exp(- 2 * self._kappa * dt)
-        return vol_sq * (2 * exp_kappa - exp_two_kappa - 1) / (2 * kappa_sq)
+        for event_idx in range(1, self._int_event_idx.size):
+            # Integration indices of two adjacent event dates
+            int_idx1 = self._int_event_idx[event_idx - 1]
+            int_idx2 = self._int_event_idx[event_idx]
+            # Slice of integration grid
+            int_grid = self._int_grid[int_idx1:int_idx2 + 1]
+            # Slice of time-integrated kappa for each integration step
+            int_kappa = self._int_kappa_step[int_idx1:int_idx2 + 1]
+            int_kappa = np.cumsum(int_kappa[::-1])[::-1]
+            exp_kappa = np.exp(-int_kappa)
+            cov = np.array([0])
+            for idx in range(int_idx1 + 1, int_idx2 + 1):
+                int_grid_temp = self._int_grid[int_idx1:idx + 1]
+                int_kappa_temp = self._int_kappa_step[int_idx1:idx + 1]
+                int_kappa_temp = np.cumsum(int_kappa_temp[::-1])[::-1]
+                integrand = \
+                    np.exp(-int_kappa_temp) \
+                    * self._vol_int_grid[int_idx1:idx + 1] ** 2 \
+                    * exp_kappa[:idx + 1 - int_idx1]
+                cov = \
+                    np.append(cov,
+                              np.sum(trapezoidal(int_grid_temp, integrand)))
+            self._covariance[event_idx] = - np.sum(trapezoidal(int_grid, cov))
 
     def correlation(self,
-                    dt: float) -> float:
+                    time_idx: int) -> float:
         """Correlation between between short rate and discount
         processes.
         Lemma 10.1.11, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        covariance = self.covariance(dt)
-        rate_var = self.rate_variance(dt)
-        discount_var = self.discount_variance(dt)
+        covariance = self._covariance[time_idx]
+        rate_var = self._rate_variance[time_idx]
+        discount_var = self._discount_variance[time_idx]
+
+#        print(covariance, rate_var, discount_var)
+
         return covariance / math.sqrt(rate_var * discount_var)
 
     def cholesky(self,
-                 dt: float,
+                 time_idx: int,
                  n_paths: int) \
             -> (Tuple[float, float], Tuple[np.ndarray, np.ndarray]):
         """Correlated standard normal random variables using Cholesky
         decomposition. In the 2-D case, the transformation is simply:
         x1, correlation * x1 + sqrt(1 - correlation ** 2) * x2
+
+        TODO: Antithetic sampling and other variance reduction techniques...
         """
-        correlation = self.correlation(dt)
+        correlation = self.correlation(time_idx)
         corr_matrix = np.array([[1, correlation], [correlation, 1]])
         corr_matrix = np.linalg.cholesky(corr_matrix)
         x1 = norm.rvs(size=n_paths)
@@ -317,41 +409,35 @@ class SDE(sde.SDE):
 
     def path(self,
              spot: (float, np.ndarray),
-             dt: float,
+             time: float,
              n_paths: int,
              antithetic: bool = False) -> (float, np.ndarray):
-        """Generate paths(s), during time step dt, of correlated short
-        rate and discount processes using exact discretization.
-
-        antithetic : Antithetic sampling for Monte-Carlo variance
-        reduction. Defaults to False.
-        """
-        if antithetic:
-            if n_paths % 2 == 1:
-                raise ValueError("In antithetic sampling, "
-                                 "n_paths should be even.")
-            x_rate, x_discount = self.cholesky(dt, n_paths // 2)
-            x_rate = np.append(x_rate, -x_rate)
-            x_discount = np.append(x_discount, -x_discount)
-        else:
-            x_rate, x_discount = self.cholesky(dt, n_paths)
-        return self.rate_increment(spot, dt, x_rate), \
-            self.discount_increment(spot, dt, x_discount)
+        pass
 
     def path_time_grid(self,
                        spot: float,
                        time_grid: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """Generate one path, represented on time_grid, correlated short
-        rate and discount processes using exact discretization.
+        pass
+
+    def paths(self,
+              spot: float,
+              n_paths: int,
+              antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+        """Generate paths(s), represented on _event_grid, of correlated
+        short rate and discount processes using exact discretization.
+
+        antithetic : Antithetic sampling for Monte-Carlo variance
+        reduction. Defaults to False.
         """
-        delta_t = time_grid[1:] - time_grid[:-1]
-        rate = np.zeros(delta_t.shape[0] + 1)
+        rate = np.zeros((self._event_grid.size, n_paths))
         rate[0] = spot
-        discount = np.zeros(delta_t.shape[0] + 1)
-        for count, dt in enumerate(delta_t):
-            x_rate, x_discount = self.cholesky(dt, 1)
-            rate[count + 1] = rate[count] \
-                + self.rate_increment(rate[count], dt, x_rate)
-            discount[count + 1] = discount[count] \
-                + self.discount_increment(rate[count], dt, x_discount)
-        return rate, np.exp(discount)
+        discount = np.ones((self._event_grid.size, n_paths))
+        for time_idx in range(1, self._event_grid.size):
+            x_rate, x_discount = self.cholesky(time_idx, n_paths)
+            rate[time_idx] = \
+                rate[time_idx - 1] \
+                + self.rate_increment(rate[time_idx - 1], time_idx, x_rate)
+            discount[time_idx] = \
+                discount[time_idx - 1] \
+                + self.discount_increment(rate[time_idx], time_idx, x_discount)
+        return rate, discount

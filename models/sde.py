@@ -25,3 +25,11 @@ class SDE(metaclass=abc.ABCMeta):
                        time_grid: np.ndarray) -> np.ndarray:
         """Generate one path represented on time_grid."""
         pass
+
+#    @abc.abstractmethod
+#    def paths(self,
+#              spot: float,
+#              n_paths: int,
+#              antithetic: bool = False) -> np.ndarray:
+#        """..."""
+#        pass
