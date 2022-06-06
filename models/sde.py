@@ -1,5 +1,6 @@
 import abc
 import numpy as np
+from typing import Tuple
 
 
 class SDE(metaclass=abc.ABCMeta):
@@ -27,9 +28,9 @@ class SDE(metaclass=abc.ABCMeta):
         pass
 
 #    @abc.abstractmethod
-#    def paths(self,
-#              spot: float,
-#              n_paths: int,
-#              antithetic: bool = False) -> np.ndarray:
-#        """..."""
-#        pass
+    def paths(self,
+              spot: float,
+              n_paths: int,
+              antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+        """Generate paths."""
+        pass

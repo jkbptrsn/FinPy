@@ -378,4 +378,5 @@ class SDE(sde.SDE):
             discount[time_idx] = \
                 discount[time_idx - 1] \
                 + self.discount_increment(rate[time_idx], time_idx, x_discount)
+            # WHY not rate[time_idx - 1]?
         return rate, discount
