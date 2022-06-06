@@ -1,72 +1,11 @@
 import math
 import numpy as np
-from scipy.interpolate import interp1d
 from scipy.stats import norm
 from typing import Tuple
 
 import models.sde as sde
 import utils.global_types as global_types
-
-
-def trapezoidal(grid: np.ndarray,
-                function: np.ndarray) -> np.ndarray:
-    """Trapezoidal integration for each step."""
-    dx = grid[1:] - grid[:-1]
-    return dx * (function[1:] + function[:-1]) / 2
-
-
-class Function:
-    """Interpolation and extrapolation of discrete function."""
-
-    def __init__(self,
-                 name: str,
-                 time_grid: np.ndarray,
-                 values: np.ndarray,
-                 interpolation: str = "zero",
-                 extrapolation: bool = True):
-        self._name = name
-        self._time_grid = time_grid
-        self._values = values
-        self._interpolation = interpolation
-        self._extrapolation = extrapolation
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self,
-             name_: str):
-        self._name = name_
-
-    @property
-    def time_grid(self) -> np.ndarray:
-        return self._time_grid
-
-    @property
-    def values(self) -> np.ndarray:
-        return self._values
-
-    @property
-    def interpolation_scheme(self) -> str:
-        return self._interpolation
-
-    @interpolation_scheme.setter
-    def interpolation_scheme(self,
-                             interpolation_: str):
-        self._interpolation = interpolation_
-
-    def interpolation(self,
-                      time_grid_new: (float, np.ndarray)) \
-            -> (float, np.ndarray):
-        """Interpolate (and extrapolate) on time_grid_new."""
-        if self._extrapolation:
-            fill_value = "extrapolate"
-        else:
-            fill_value = None
-        f = interp1d(self._time_grid, self._values,
-                     kind=self._interpolation, fill_value=fill_value)
-        return f(time_grid_new)
+import utils.misc as misc
 
 
 class SDE(sde.SDE):
@@ -84,8 +23,8 @@ class SDE(sde.SDE):
     """
 
     def __init__(self,
-                 kappa: Function,
-                 vol: Function,
+                 kappa: misc.DiscreteFunc,
+                 vol: misc.DiscreteFunc,
                  event_grid: np.ndarray,
                  int_step_size: float = 1 / 365):
         self._kappa = kappa
@@ -115,21 +54,21 @@ class SDE(sde.SDE):
         return f"{self._model_name} SDE object"
 
     @property
-    def kappa(self) -> Function:
+    def kappa(self) -> misc.DiscreteFunc:
         return self._kappa
 
     @kappa.setter
     def kappa(self,
-              kappa_: Function):
+              kappa_: misc.DiscreteFunc):
         self._kappa = kappa_
 
     @property
-    def vol(self) -> Function:
+    def vol(self) -> misc.DiscreteFunc:
         return self._vol
 
     @vol.setter
     def vol(self,
-            vol_: Function):
+            vol_: misc.DiscreteFunc):
         self._vol = vol_
 
     @property
@@ -205,7 +144,7 @@ class SDE(sde.SDE):
         # Integration of speed of mean reversion using trapezoidal rule
         self._int_kappa_step = \
             np.append(np.array([0]),
-                      trapezoidal(self._int_grid, self._kappa_int_grid))
+                      misc.trapz(self._int_grid, self._kappa_int_grid))
         # Calculation of y-function on integration grid
         self._y_int_grid = np.zeros(self._int_grid.size)
         for idx in range(1, self._int_grid.size):
@@ -217,7 +156,7 @@ class SDE(sde.SDE):
                 np.exp(-2 * int_kappa) * self._vol_int_grid[:idx + 1] ** 2
             # Integration
             self._y_int_grid[idx] = \
-                np.sum(trapezoidal(self._int_grid[:idx + 1], integrand))
+                np.sum(misc.trapz(self._int_grid[:idx + 1], integrand))
 
     def rate_mean(self):
         """Factors for calculating conditional mean of short rate.
@@ -235,7 +174,7 @@ class SDE(sde.SDE):
             integrand = \
                 np.exp(-int_kappa) * self._y_int_grid[int_idx1:int_idx2 + 1]
             factor1 = math.exp(-np.sum(int_kappa))
-            factor2 = np.sum(trapezoidal(int_grid, integrand))
+            factor2 = np.sum(misc.trapz(int_grid, integrand))
             self._rate_mean[event_idx] = [factor1, factor2]
 
     def rate_variance(self):
@@ -253,7 +192,7 @@ class SDE(sde.SDE):
             int_kappa = np.cumsum(int_kappa[::-1])[::-1]
             integrand = \
                 np.exp(-int_kappa) * self._vol_int_grid[int_idx1:int_idx2 + 1]
-            variance = np.sum(trapezoidal(int_grid, integrand))
+            variance = np.sum(misc.trapz(int_grid, integrand))
             self._rate_variance[event_idx] = variance
 
     def rate_increment(self,
@@ -286,7 +225,7 @@ class SDE(sde.SDE):
             # Eq. (10.18), L.B.G. Andersen & V.V. Piterbarg 2010
             int_kappa = np.cumsum(int_kappa)
             integrand = np.exp(-int_kappa)
-            factor1 = np.sum(trapezoidal(int_grid, integrand))
+            factor1 = np.sum(misc.trapz(int_grid, integrand))
             # Double time integral in Eq. (10.42)
             factor2 = np.array([0])
             for idx in range(int_idx1 + 1, int_idx2 + 1):
@@ -297,8 +236,8 @@ class SDE(sde.SDE):
                     np.exp(-int_kappa_tmp) * self._y_int_grid[int_idx1:idx + 1]
                 factor2 = \
                     np.append(factor2,
-                              np.sum(trapezoidal(int_grid_tmp, integrand)))
-            factor2 = np.sum(trapezoidal(int_grid, factor2))
+                              np.sum(misc.trapz(int_grid_tmp, integrand)))
+            factor2 = np.sum(misc.trapz(int_grid, factor2))
             self._discount_mean[event_idx] = [factor1, factor2]
 
     def discount_variance(self):
@@ -320,7 +259,7 @@ class SDE(sde.SDE):
             integrand = np.exp(-int_kappa)
             term1 = \
                 self._y_int_grid[int_idx1] \
-                * np.sum(trapezoidal(int_grid, integrand)) ** 2
+                * np.sum(misc.trapz(int_grid, integrand)) ** 2
             # Double time integral in Eq. (10.43)
             factor2 = np.array([0])
             for idx in range(int_idx1 + 1, int_idx2 + 1):
@@ -331,8 +270,8 @@ class SDE(sde.SDE):
                     np.exp(-int_kappa_tmp) * self._y_int_grid[int_idx1:idx + 1]
                 factor2 = \
                     np.append(factor2,
-                              np.sum(trapezoidal(int_grid_tmp, integrand)))
-            term2 = 2 * np.sum(trapezoidal(int_grid, factor2))
+                              np.sum(misc.trapz(int_grid_tmp, integrand)))
+            term2 = 2 * np.sum(misc.trapz(int_grid, factor2))
             self._discount_variance[event_idx] = term2 - term1
 
     def discount_increment(self,
@@ -370,10 +309,9 @@ class SDE(sde.SDE):
                     np.exp(-int_kappa_temp) \
                     * self._vol_int_grid[int_idx1:idx + 1] ** 2 \
                     * exp_kappa[:idx + 1 - int_idx1]
-                cov = \
-                    np.append(cov,
-                              np.sum(trapezoidal(int_grid_temp, integrand)))
-            self._covariance[event_idx] = - np.sum(trapezoidal(int_grid, cov))
+                cov = np.append(cov,
+                                np.sum(misc.trapz(int_grid_temp, integrand)))
+            self._covariance[event_idx] = - np.sum(misc.trapz(int_grid, cov))
 
     def correlation(self,
                     time_idx: int) -> float:

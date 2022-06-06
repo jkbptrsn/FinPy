@@ -2,8 +2,8 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 
-def trapezoidal(grid: np.ndarray,
-                function: np.ndarray) -> np.ndarray:
+def trapz(grid: np.ndarray,
+          function: np.ndarray) -> np.ndarray:
     """Trapezoidal integration for each step along the grid."""
     dx = np.diff(grid)
     return dx * (function[1:] + function[:-1]) / 2

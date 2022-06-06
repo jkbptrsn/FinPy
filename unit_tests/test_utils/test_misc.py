@@ -27,10 +27,10 @@ class Integration(unittest.TestCase):
             n_steps = round(dt / int_step_size)
             time = int_step_size * np.arange(n_steps + 1) + time_grid[idx]
             vol = vol_constant.interpolation(time)
-            integral = np.sum(misc.trapezoidal(time, vol))
+            integral = np.sum(misc.trapz(time, vol))
             self.assertTrue(abs(integral - int_const[idx]) < 1.0e-3)
             vol = vol_linear.interpolation(time)
-            integral = np.sum(misc.trapezoidal(time, vol))
+            integral = np.sum(misc.trapz(time, vol))
             self.assertTrue(abs(integral - int_linear[idx]) < 1.0e-4)
 
     def test_2(self):
@@ -39,7 +39,7 @@ class Integration(unittest.TestCase):
         """
         time_grid = np.arange(0, 100, 0.01)
         exp_grid = np.exp(-time_grid)
-        integral = np.sum(misc.trapezoidal(time_grid, exp_grid))
+        integral = np.sum(misc.trapz(time_grid, exp_grid))
         self.assertTrue(abs(integral - 1) < 1.0e-5)
 
     def test_3(self):
@@ -48,7 +48,7 @@ class Integration(unittest.TestCase):
         """
         time_grid = np.arange(0, 2 * np.pi, 0.001)
         cos_grid = np.cos(time_grid)
-        integral = np.sum(misc.trapezoidal(time_grid, cos_grid))
+        integral = np.sum(misc.trapz(time_grid, cos_grid))
         self.assertTrue(abs(integral) < 2.0e-4)
 
 
