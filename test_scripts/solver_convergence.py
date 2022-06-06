@@ -34,8 +34,8 @@ model = "Vasicek"
 # model = "CIR"
 # model = "Extended Vasicek"
 
-# instrument = 'Call'
-instrument = 'Put'
+instrument = 'Call'
+# instrument = 'Put'
 # instrument = 'ZCBond'
 
 bc_type = "Linearity"
@@ -47,15 +47,15 @@ solver_type = "AndersenPiterbarg"
 # Time execution
 start_time = datetime.now()
 
-rate = 0.03
-strike = 1.2 # 50
+rate = 0.02
+strike = 0.6 # 50
 vol = 0.05 # 0.2
-expiry = 2
+expiry = 4
 kappa = 0.1 # 1.0 # 0.1
 theta_factor = 0.02
 
 t_min = 0
-t_max = 2
+t_max = 4
 t_steps = 201
 dt = (t_max - t_min) / (t_steps - 1)
 

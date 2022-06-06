@@ -44,13 +44,13 @@ class SDE(unittest.TestCase):
 if __name__ == '__main__':
 
     spot = 0.02
-    kappa = 1
+    kappa = 0.1
     mean_rate = 0.02
     vol = 0.05
     vasicek = sde.SDE(kappa, mean_rate, vol)
     t_min = 0
-    t_max = 10
-    t_steps = 301
+    t_max = 4
+    t_steps = 201
     dt = (t_max - t_min) / (t_steps - 1)
     time_grid = dt * np.arange(0, t_steps)
     path = vasicek.path_time_grid(spot, time_grid)
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     bond_price_a = spot_vector * 0
 
     # Call option
-    strike = 1.3
+    strike = 0.6
     expiry = t_max / 2
     call_option = call.Call(kappa, mean_rate, vol, strike, expiry, t_max)
     call_price_n = spot_vector * 0
@@ -98,12 +98,12 @@ if __name__ == '__main__':
         put_price_a[idx] = put_option.price(s, 0)
 
         paths = vasicek.path(s, expiry, n_paths)
-        bond_new = zcbond.ZCBond(kappa, mean_rate, vol, t_max - expiry)
+        bond_new = zcbond.ZCBond(kappa, mean_rate, vol, t_max)
 
-        call_option_values = np.maximum(bond_new.price(paths[0], 0) - strike, 0)
+        call_option_values = np.maximum(bond_new.price(paths[0], expiry) - strike, 0)
         call_price_n[idx] = np.sum(np.exp(paths[1]) * call_option_values) / n_paths
 
-        put_option_values = np.maximum(strike - bond_new.price(paths[0], 0), 0)
+        put_option_values = np.maximum(strike - bond_new.price(paths[0], expiry), 0)
         put_price_n[idx] = np.sum(np.exp(paths[1]) * put_option_values) / n_paths
 
     plt.plot(spot_vector, bond_price_a, '-b')
