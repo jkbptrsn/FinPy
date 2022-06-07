@@ -1,3 +1,4 @@
+import math
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.stats import norm
@@ -72,15 +73,15 @@ def trapz(grid: np.ndarray,
 def cholesky_2d(correlation: float,
                 n_sets: int,
                 seed: int = None,
-                antithetic: bool = None) -> Tuple[np.ndarray, np.ndarray]:
+                antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
     """Sets of two correlated standard normal random variables using
     Cholesky decomposition. In the 2-D case, the transformation is
     simply: (x1, correlation * x1 + sqrt{1 - correlation ** 2} * x2)
     """
     corr_matrix = np.array([[1, correlation], [correlation, 1]])
     corr_matrix = np.linalg.cholesky(corr_matrix)
-    if seed:
-        np.ramdon.seed(seed=seed)
+    if type(seed) == int:
+        np.random.seed(seed)
     anti = 1
     if antithetic:
         anti = 2
@@ -88,3 +89,10 @@ def cholesky_2d(correlation: float,
     x2 = norm.rvs(size=n_sets // anti)
     return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
         corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
+
+
+def monte_carlo_error(values: np.ndarray) -> float:
+    """TODO: check this formula -- divide by sqrt(n)?"""
+    sample_mean = np.sum(values) / values.size
+    sample_variance = np.sum((values - sample_mean) ** 2) / (values.size - 1)
+    return math.sqrt(sample_variance) / math.sqrt(values.size)
