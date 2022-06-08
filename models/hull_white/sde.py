@@ -1,6 +1,5 @@
 import math
 import numpy as np
-from scipy.stats import norm
 from typing import Tuple
 
 import models.sde as sde
@@ -19,16 +18,18 @@ class SDE(sde.SDE):
                   extraordinary prepayment deadlines, etc.
     - int_step_size: integration step size (default is daily step size)
 
-    IF KAPPA IS > ~1, THE INTEGRATION STEP SIZE SHOULD BE DECREASED!
+    IF KAPPA IS >1, THE INTEGRATION STEP SIZE SHOULD BE DECREASED!
     """
 
     def __init__(self,
                  kappa: misc.DiscreteFunc,
                  vol: misc.DiscreteFunc,
+                 forward_rate: misc.DiscreteFunc,
                  event_grid: np.ndarray,
                  int_step_size: float = 1 / 365):
         self._kappa = kappa
         self._vol = vol
+        self._forward_rate = forward_rate
         self._event_grid = event_grid
         self._int_step_size = int_step_size
         self._model_name = global_types.ModelName.HULL_WHITE
@@ -38,6 +39,7 @@ class SDE(sde.SDE):
         self._discount_mean = np.zeros((event_grid.size, 2))
         self._discount_variance = np.zeros(event_grid.size)
         self._covariance = np.zeros(event_grid.size)
+        self._forward_rate_contrib = np.zeros((event_grid.size, 2))
 
         # Integration grid
         self._int_grid = None
@@ -72,6 +74,15 @@ class SDE(sde.SDE):
         self._vol = vol_
 
     @property
+    def forward_rate(self) -> misc.DiscreteFunc:
+        return self._forward_rate
+
+    @forward_rate.setter
+    def forward_rate(self,
+                     forward_rate_: misc.DiscreteFunc):
+        self._forward_rate = forward_rate_
+
+    @property
     def model_name(self) -> global_types.ModelName:
         return self._model_name
 
@@ -102,6 +113,7 @@ class SDE(sde.SDE):
         self.discount_mean()
         self.discount_variance()
         self.covariance()
+        self.forward_rate_contrib()
         self._kappa_int_grid = None
         self._vol_int_grid = None
         self._y_int_grid = None
@@ -131,6 +143,22 @@ class SDE(sde.SDE):
             self._int_grid = np.append(self._int_grid, grid)
             self._int_event_idx = np.append(self._int_event_idx, grid.size)
         self._int_event_idx = np.cumsum(self._int_event_idx)
+
+    def forward_rate_contrib(self):
+        """Calculate contribution to short rate process and discount
+        process from instantaneous forward rate.
+        """
+        self._forward_rate_contrib[:, 0] = \
+            self._forward_rate.interpolation(self._event_grid)
+        forward_rate = self._forward_rate.interpolation(self._int_grid)
+        forward_rate_int = misc.trapz(self._int_grid, forward_rate)
+        for event_idx in range(1, self._int_event_idx.size):
+            # Integration indices of two adjacent event dates
+            int_idx1 = self._int_event_idx[event_idx - 1]
+            int_idx2 = self._int_event_idx[event_idx]
+            # Slice of integration grid
+            self._forward_rate_contrib[event_idx, 1] = \
+                -np.sum(forward_rate_int[int_idx1:int_idx2 + 1])
 
     def kappa_vol_y(self):
         """Speed of mean reversion, volatility and y-function
@@ -322,28 +350,7 @@ class SDE(sde.SDE):
         covariance = self._covariance[time_idx]
         rate_var = self._rate_variance[time_idx]
         discount_var = self._discount_variance[time_idx]
-
-#        print(covariance, rate_var, discount_var)
-
         return covariance / math.sqrt(rate_var * discount_var)
-
-    def cholesky(self,
-                 time_idx: int,
-                 n_paths: int) \
-            -> (Tuple[float, float], Tuple[np.ndarray, np.ndarray]):
-        """Correlated standard normal random variables using Cholesky
-        decomposition. In the 2-D case, the transformation is simply:
-        x1, correlation * x1 + sqrt(1 - correlation ** 2) * x2
-
-        TODO: Antithetic sampling and other variance reduction techniques...
-        """
-        correlation = self.correlation(time_idx)
-        corr_matrix = np.array([[1, correlation], [correlation, 1]])
-        corr_matrix = np.linalg.cholesky(corr_matrix)
-        x1 = norm.rvs(size=n_paths)
-        x2 = norm.rvs(size=n_paths)
-        return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
-            corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
 
     def path(self,
              spot: (float, np.ndarray),
@@ -360,6 +367,7 @@ class SDE(sde.SDE):
     def paths(self,
               spot: float,
               n_paths: int,
+              seed: int = None,
               antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
         """Generate paths(s), represented on _event_grid, of correlated
         short rate and discount processes using exact discretization.
@@ -367,16 +375,22 @@ class SDE(sde.SDE):
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.
         """
+        if antithetic and n_paths % 2 == 1:
+            raise ValueError("In antithetic sampling, n_paths should be even.")
         rate = np.zeros((self._event_grid.size, n_paths))
-        rate[0] = spot
+        rate[0, :] = spot
         discount = np.ones((self._event_grid.size, n_paths))
         for time_idx in range(1, self._event_grid.size):
-            x_rate, x_discount = self.cholesky(time_idx, n_paths)
-            rate[time_idx] = \
-                rate[time_idx - 1] \
+            correlation = self.correlation(time_idx)
+            x_rate, x_discount = \
+                misc.cholesky_2d(correlation, n_paths, seed, antithetic)
+            rate[time_idx] = rate[time_idx - 1] \
                 + self.rate_increment(rate[time_idx - 1], time_idx, x_rate)
-            discount[time_idx] = \
-                discount[time_idx - 1] \
-                + self.discount_increment(rate[time_idx], time_idx, x_discount)
-            # WHY not rate[time_idx - 1]?
+            discount[time_idx] = discount[time_idx - 1] \
+                + self.discount_increment(rate[time_idx - 1], time_idx,
+                                          x_discount)
+        # Add forward rate contribution
+        for time_idx in range(1, self._event_grid.size):
+            rate[time_idx] += self._forward_rate_contrib[time_idx, 0]
+            discount[time_idx] += self._forward_rate_contrib[time_idx, 1]
         return rate, discount
