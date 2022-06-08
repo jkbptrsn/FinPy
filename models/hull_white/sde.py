@@ -151,14 +151,13 @@ class SDE(sde.SDE):
         self._forward_rate_contrib[:, 0] = \
             self._forward_rate.interpolation(self._event_grid)
         forward_rate = self._forward_rate.interpolation(self._int_grid)
-        forward_rate_int = misc.trapz(self._int_grid, forward_rate)
+        forward_rate_int = - misc.trapz(self._int_grid, forward_rate)
         for event_idx in range(1, self._int_event_idx.size):
-            # Integration indices of two adjacent event dates
-            int_idx1 = self._int_event_idx[event_idx - 1]
-            int_idx2 = self._int_event_idx[event_idx]
+            # Integration index
+            int_idx = self._int_event_idx[event_idx]
             # Slice of integration grid
             self._forward_rate_contrib[event_idx, 1] = \
-                -np.sum(forward_rate_int[int_idx1:int_idx2 + 1])
+                np.sum(forward_rate_int[0:int_idx + 1])
 
     def kappa_vol_y(self):
         """Speed of mean reversion, volatility and y-function
@@ -379,7 +378,7 @@ class SDE(sde.SDE):
             raise ValueError("In antithetic sampling, n_paths should be even.")
         rate = np.zeros((self._event_grid.size, n_paths))
         rate[0, :] = spot
-        discount = np.ones((self._event_grid.size, n_paths))
+        discount = np.zeros((self._event_grid.size, n_paths))
         for time_idx in range(1, self._event_grid.size):
             correlation = self.correlation(time_idx)
             x_rate, x_discount = \
@@ -390,7 +389,7 @@ class SDE(sde.SDE):
                 + self.discount_increment(rate[time_idx - 1], time_idx,
                                           x_discount)
         # Add forward rate contribution
-        for time_idx in range(1, self._event_grid.size):
+        for time_idx in range(self._event_grid.size):
             rate[time_idx] += self._forward_rate_contrib[time_idx, 0]
             discount[time_idx] += self._forward_rate_contrib[time_idx, 1]
         return rate, discount
