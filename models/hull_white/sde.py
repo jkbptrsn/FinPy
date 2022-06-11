@@ -41,6 +41,11 @@ class SDE(sde.SDE):
         self._covariance = np.zeros(event_grid.size)
         self._forward_rate_contrib = np.zeros((event_grid.size, 2))
 
+        # y- and h-functions on event grid -- used in calculating the
+        # time-evolution of the forward rate
+        self._y_event_grid = np.zeros(event_grid.size)
+        self._h_event_grid = np.zeros(event_grid.size)
+
         # Integration grid
         self._int_grid = None
         # Indices of event dates on integration grid
@@ -83,10 +88,20 @@ class SDE(sde.SDE):
         self._forward_rate = forward_rate_
 
     @property
+    def event_grid(self) -> np.ndarray:
+        return self._event_grid
+
+    @property
     def model_name(self) -> global_types.ModelName:
         return self._model_name
 
-###############################################################################
+    @property
+    def forward_rate_contrib(self) -> np.ndarray:
+        return self._forward_rate_contrib
+
+    @property
+    def y_event_grid(self) -> np.ndarray:
+        return self._y_event_grid
 
     @property
     def int_grid(self) -> np.ndarray:
@@ -100,8 +115,6 @@ class SDE(sde.SDE):
     def y_int_grid(self) -> np.ndarray:
         return self._y_int_grid
 
-###############################################################################
-
     def initialization(self):
         """Initialize the Monte-Carlo simulation by calculating mean and
         variance of the short rate and discount processes, respectively.
@@ -113,7 +126,7 @@ class SDE(sde.SDE):
         self.discount_mean()
         self.discount_variance()
         self.covariance()
-        self.forward_rate_contrib()
+        self.forward_rate_contrib_calc()
         self._kappa_int_grid = None
         self._vol_int_grid = None
         self._y_int_grid = None
@@ -144,7 +157,7 @@ class SDE(sde.SDE):
             self._int_event_idx = np.append(self._int_event_idx, grid.size)
         self._int_event_idx = np.cumsum(self._int_event_idx)
 
-    def forward_rate_contrib(self):
+    def forward_rate_contrib_calc(self):
         """Calculate contribution to short rate process and discount
         process from instantaneous forward rate.
         """
@@ -184,6 +197,13 @@ class SDE(sde.SDE):
             # Integration
             self._y_int_grid[idx] = \
                 np.sum(misc.trapz(self._int_grid[:idx + 1], integrand))
+        # Calculation of y-function on event grid
+        for idx, event_idx in enumerate(self._int_event_idx):
+            self._y_event_grid[idx] = self._y_int_grid[event_idx]
+        # Calculation of h-function on event grid
+        for idx, event_idx in enumerate(self._int_event_idx):
+            int_kappa = self._int_kappa_step[:event_idx + 1]
+            self._h_event_grid[idx] = math.exp(-np.sum(int_kappa))
 
     def rate_mean(self):
         """Factors for calculating conditional mean of short rate.
@@ -393,3 +413,32 @@ class SDE(sde.SDE):
             rate[time_idx] += self._forward_rate_contrib[time_idx, 0]
             discount[time_idx] += self._forward_rate_contrib[time_idx, 1]
         return rate, discount
+
+    def forward_rates(self,
+                      event_idx: int,
+                      maturity: float,
+                      rates: np.ndarray) -> np.ndarray:
+        """Calculate forward rate
+        f(event_grid[event_idx], event_grid[event_idx] + maturity).
+
+        TODO: Assuming constant speed of mean reversion, but allows
+            time-dependence in volatility. Generalize to time-dependent
+            speed of mean reversion.
+        """
+        time_t = self._event_grid[event_idx]
+        time_maturity = time_t + maturity
+        # Forward rate f(0,t)
+        f_t = self._forward_rate.interpolation(time_t)
+        # Forward rate f(0,T)
+        f_maturity = self._forward_rate.interpolation(time_maturity)
+        # x(t) = r(t) - f(0,t)
+        x_t = rates - f_t
+        y_t = self._y_event_grid[event_idx]
+        h_t = self._h_event_grid[event_idx]
+        # TODO: Calculation of h(T) should be generalized
+        h_maturity = math.exp(-self._kappa.values[0] * time_maturity)
+        # TODO: Calculation of int_t^T h(s) ds should be generalized
+        int_h = (math.exp(-self._kappa.values[0] * time_t)
+                 - math.exp(-self._kappa.values[0] * time_maturity)) \
+            / self._kappa.values[0]
+        return f_maturity + h_maturity * (x_t + y_t * int_h / h_t) / h_t
