@@ -14,9 +14,9 @@ class Bond(bonds.Bond, sde.SDE):
                  vol: misc.DiscreteFunc,
                  forward_rate: misc.DiscreteFunc,
                  event_grid: np.ndarray,
-                 maturity: float):
+                 maturity_idx: int):
         super().__init__(kappa, vol, forward_rate, event_grid)
-        self._maturity = maturity
+        self._maturity_idx = maturity_idx
 
         # Initialize SDE object
         self.initialization()
@@ -27,10 +27,10 @@ class Bond(bonds.Bond, sde.SDE):
         pass
 
     @property
-    def maturity(self) -> float:
-        return self._maturity
+    def maturity(self) -> int:
+        return self._maturity_idx
 
     @maturity.setter
     def maturity(self,
-                 maturity_: float):
-        self._maturity = maturity_
+                 maturity_idx_: int):
+        self._maturity_idx = maturity_idx_

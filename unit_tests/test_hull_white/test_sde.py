@@ -4,6 +4,8 @@ import numpy as np
 import unittest
 
 import models.hull_white.sde as sde
+import models.hull_white.zero_coupon_bond as zcbond
+import models.hull_white.call as call
 import utils.misc as misc
 
 
@@ -72,12 +74,15 @@ if __name__ == '__main__':
                              0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])])
     forward_rate = misc.DiscreteFunc("forward rate", forward_rate[0],
                                      forward_rate[1], interp_scheme="linear")
-    kappa = np.array([np.array([2, 3, 7]), 0.1 * np.array([2, 1, 2])])
+    # CONSTANT KAPPA!!!
+    kappa = np.array([np.array([2, 3, 7]), 0.1 * np.array([1, 1, 1])])
     kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
     vol = np.array([np.arange(10),
                     0.0004 * np.array([1, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
     vol = misc.DiscreteFunc("vol", vol[0], vol[1])
     event_grid = 0.01 * np.arange(0, 1001)
+
+    # SDE object
     hullwhite = sde.SDE(kappa, vol, forward_rate, event_grid)
     hullwhite.initialization()
     n_paths = 10
@@ -87,5 +92,24 @@ if __name__ == '__main__':
         plt.plot(event_grid, rates[:, n])
         plt.plot(event_grid, np.exp(discounts[:, n]))
     plt.show()
+
+    # Zero-coupon bond object
+    print("Zero-coupon bond:")
+    event_grid = np.arange(11)
+    maturity_idx = event_grid.size - 1
+    bond = zcbond.ZCBond(kappa, vol, forward_rate, event_grid, maturity_idx)
+    for s in range(2, 12, 2):
+        spot = 0.01 * s
+        print(spot, bond.price(spot, 0), bond.price(spot, 4))
+
+    # European call option object
+    print("European call option:")
+    strike = 0.4
+    expiry_idx = 4
+    call = call.Call(kappa, vol, forward_rate, event_grid,
+                     strike, expiry_idx, maturity_idx)
+    for s in range(2, 12, 2):
+        spot = 0.01 * s
+        print(spot, call.price(spot, 0), call.price(spot, 2))
 
     unittest.main()
