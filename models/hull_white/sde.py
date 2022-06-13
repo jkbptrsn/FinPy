@@ -19,6 +19,8 @@ class SDE(sde.SDE):
     - int_step_size: integration step size (default is daily step size)
 
     IF KAPPA IS >1, THE INTEGRATION STEP SIZE SHOULD BE DECREASED!
+    TODO: In the paths method, spot is the level shifted short rate --
+        change to regular short rate spot value...
     """
 
     def __init__(self,

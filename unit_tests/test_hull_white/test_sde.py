@@ -66,23 +66,89 @@ class SDE(unittest.TestCase):
                 abs((price_numerical - price_analytical) / price_analytical)
             self.assertTrue(abs(relative_diff) < 1.0e-4)
 
+    def test_coupon_bond_pricing(self):
+        """Compare analytical and numerical calculation of 10Y
+        coupon bond, paying coupons once a year...
+        """
+        coupon = 0.03
+        spot = 0.02
+        forward_rate_structure = \
+            np.array([1, 1, 1, 1.5, 1.5, 2, 2, 2.5, 2.5, 3, 3])
+        forward_rate = np.array([np.arange(11), spot * forward_rate_structure])
+        forward_rate = \
+            misc.DiscreteFunc("forward rate", forward_rate[0],
+                              forward_rate[1], interp_scheme="linear")
+
+        kappa = np.array([np.array([2, 3, 7]), 0.1 * np.array([1, 1, 1])])
+        kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
+
+        vol = np.array([np.arange(10),
+                        0.0004 * np.array([1, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
+        vol = misc.DiscreteFunc("vol", vol[0], vol[1])
+
+        event_grid = np.arange(11)
+        bond = zcbond.ZCBond(kappa, vol, forward_rate, event_grid, 1)
+        bond.initialization()
+
+        n_paths = 1000
+        np.random.seed(0)
+        hullwhite = sde.SDE(kappa, vol, forward_rate, event_grid)
+        hullwhite.initialization()
+
+        # CHANGE PATHS, such that spot is equal to the regular short rate spot value
+        rates, discounts = hullwhite.paths(0, n_paths)
+
+        price_a_coupon = 0
+        price_a_principal = 0
+        price_n_coupon = 0
+        price_n_principal = 0
+
+        for event_idx in range(1, event_grid.size):
+#            bond.maturity = event_idx
+#            bond.initialization()
+            discount_factor_a = \
+                math.exp(hullwhite.forward_rate_contrib[event_idx, 1])
+            discount_factor_n = np.sum(np.exp(discounts[event_idx, :])) / n_paths
+            print("Event: ", discount_factor_a, discount_factor_n, bond.price(0, 0))
+            # Coupon
+#            price_a_coupon += coupon * bond.price(0, 0)
+            price_a_coupon += coupon * discount_factor_a
+            price_n_coupon += coupon * discount_factor_n
+            # Principal
+            if event_idx == event_grid.size - 1:
+#                price_a_principal = bond.price(0, 0)
+                price_a_principal = discount_factor_a
+                price_n_principal = discount_factor_n
+
+        print(spot, abs(price_a_coupon - price_n_coupon) / price_a_coupon)
+        print(spot, abs(price_a_principal - price_n_principal) / price_a_principal)
+
+        self.assertTrue(abs(price_n_coupon - price_a_coupon) / price_a_coupon < 5e-3)
+        self.assertTrue(abs(price_n_principal - price_a_principal) / price_a_principal < 5e-3)
+
 
 if __name__ == '__main__':
 
+    unittest.main()
+
     # Plot Monte-Carlo scenarios
-    forward_rate = np.array([np.arange(11),
-                             0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])])
-    forward_rate = misc.DiscreteFunc("forward rate", forward_rate[0],
-                                     forward_rate[1], interp_scheme="linear")
+    spot_initial = 0.02
+    forward_rate_structure = \
+        np.array([1, 1, 1, 1.5, 1.5, 2, 2, 2.5, 2.5, 3, 3])
+    forward_rate = \
+        np.array([np.arange(11), spot_initial * forward_rate_structure])
+    forward_rate = \
+        misc.DiscreteFunc("forward rate", forward_rate[0],
+                          forward_rate[1], interp_scheme="linear")
     # CONSTANT KAPPA!!!
     kappa = np.array([np.array([2, 3, 7]), 0.1 * np.array([1, 1, 1])])
     kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
     vol = np.array([np.arange(10),
                     0.0004 * np.array([1, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
     vol = misc.DiscreteFunc("vol", vol[0], vol[1])
-    event_grid = 0.01 * np.arange(0, 1001)
 
     # SDE object
+    event_grid = 0.01 * np.arange(0, 1001)
     hullwhite = sde.SDE(kappa, vol, forward_rate, event_grid)
     hullwhite.initialization()
     n_paths = 10
@@ -100,16 +166,87 @@ if __name__ == '__main__':
     bond = zcbond.ZCBond(kappa, vol, forward_rate, event_grid, maturity_idx)
     for s in range(2, 12, 2):
         spot = 0.01 * s
+        forward_rate = np.array([np.arange(11), spot * forward_rate_structure])
+        forward_rate = \
+            misc.DiscreteFunc("forward rate", forward_rate[0],
+                              forward_rate[1], interp_scheme="linear")
+        bond.forward_rate = forward_rate
+        bond.initialization()
         print(spot, bond.price(spot, 0), bond.price(spot, 4))
 
     # European call option object
     print("European call option:")
-    strike = 0.4
-    expiry_idx = 4
+    strike = 0.2
+    expiry_idx = 5
     call = call.Call(kappa, vol, forward_rate, event_grid,
                      strike, expiry_idx, maturity_idx)
+
+    n_paths = 1000
+    np.random.seed(0)
+    event_grid = np.arange(0, expiry_idx, expiry_idx - 1)
+    hullwhite = sde.SDE(kappa, vol, forward_rate, event_grid)
+
     for s in range(2, 12, 2):
         spot = 0.01 * s
-        print(spot, call.price(spot, 0), call.price(spot, 2))
+        forward_rate = np.array([np.arange(11), spot * forward_rate_structure])
+        forward_rate = \
+            misc.DiscreteFunc("forward rate", forward_rate[0],
+                              forward_rate[1], interp_scheme="linear")
+        call.forward_rate = forward_rate
+        call.initialization()
+
+        hullwhite.forward_rate = forward_rate
+        hullwhite.initialization()
+        bond.forward_rate = forward_rate
+        bond.initialization()
+
+        rates, discounts = hullwhite.paths(0, n_paths)
+        x = rates[-1, :] - hullwhite.forward_rate_contrib[-1, 0]
+        payoff = np.maximum(bond.price(x, expiry_idx) - strike, 0)
+        call_price = np.sum(np.exp(discounts[-1, :]) * payoff) / n_paths
+
+        print(spot, call.price(spot, 0), call_price)
+
+    # Coupon bearing bond
+    print("Coupon bearing bond:")
+    coupon = 0.03
+    spot = 0.02
+    forward_rate = np.array([np.arange(11), spot * forward_rate_structure])
+    forward_rate = \
+        misc.DiscreteFunc("forward rate", forward_rate[0],
+                          forward_rate[1], interp_scheme="linear")
+    event_grid = np.arange(11)
+    bond = zcbond.ZCBond(kappa, vol, forward_rate, event_grid, 1)
+    bond.initialization()
+
+    n_paths = 1000
+    np.random.seed(0)
+    hullwhite = sde.SDE(kappa, vol, forward_rate, event_grid)
+    hullwhite.initialization()
+    # CHANGE PATHS, such that spot is equal to the regular short rate spot value
+    rates, discounts = hullwhite.paths(0, n_paths)
+
+    price_a_coupon = 0
+    price_a_principal = 0
+    price_n_coupon = 0
+    price_n_principal = 0
+
+    for event_idx in range(1, event_grid.size):
+        bond.maturity = event_idx
+        bond.initialization()
+        discount_factor_a = \
+            math.exp(hullwhite.forward_rate_contrib[event_idx, 1])
+        discount_factor_n = np.sum(np.exp(discounts[event_idx, :])) / n_paths
+        print("Event: ", discount_factor_a, discount_factor_n, bond.price(0, 0))
+        # Coupon
+        price_a_coupon += coupon * bond.price(0, 0)
+        price_n_coupon += coupon * discount_factor_n
+#        print("Event: ", event_idx, event_grid[event_idx], price_a_coupon, price_n_coupon)
+        # Principal
+        if event_idx == event_grid.size - 1:
+            price_a_principal = bond.price(0, 0)
+            price_n_principal = discount_factor_n
+    print(spot, price_a_coupon, price_a_principal)
+    print(spot, price_n_coupon, price_n_principal)
 
     unittest.main()
