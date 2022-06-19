@@ -3,9 +3,18 @@ Financial engineering library in Python
 
 Models
 - Equity
-  - Bachelier: dS_t = vol * dW_t
-  - Black-Scholes:  dS_t / S_t = rate * dt + vol * dW_t
+  - Bachelier
+    - Scaled Brownian motion
+    - dS(t) = vol * dW(t)
+  - Black-Scholes 
+    - Geometric Brownian motion
+    - dS(t) / S(t) = rate * dt + vol * dW(t)
 - Short rate
-  - Vasicek: dr_t = kappa * (theta - r_t) * dt + vol * dW_t
-  - Cox-Ingersoll-Ross: dr_t = kappa * (theta - r_t) * dt + vol * sqrt{r_t} * dW_t
-  - Hull-White (Extended Vasicek): dr_t = kappa_t * (theta_t - r_t) * dt + vol_t * dW_t
+  - Vasicek
+    - Gaussian mean reverting process 
+    - dr(t) = kappa * [ theta - r(t) ] * dt + vol * dW(t)
+  - Hull-White (Extended Vasicek)
+    - Gaussian mean reverting process
+    - dr(t) = kappa(t) * [ theta(t) - r(t) ] * dt + vol(t) * dW(t)
+  - Cox-Ingersoll-Ross
+    - dr(t) = kappa * [ theta - r(t) ] * dt + vol * r(t)^(1/2) * dW(t)
