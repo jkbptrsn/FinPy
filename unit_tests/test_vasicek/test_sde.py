@@ -17,8 +17,8 @@ class SDE(unittest.TestCase):
         kappa = 0.1
         mean_rate = 0.03
         vol = 0.05
-        vasicek_sde = sde.SDE(kappa, mean_rate, vol)
         event_grid = np.arange(10)
+        vasicek_sde = sde.SDE(kappa, mean_rate, vol, event_grid)
         vasicek_sde.event_grid = event_grid
         self.assertEqual(vasicek_sde.kappa, kappa)
         self.assertEqual(vasicek_sde.mean_rate, mean_rate)
@@ -49,17 +49,16 @@ class SDE(unittest.TestCase):
         spot = 0.02
         spot_vector = np.arange(-5, 6, 1) * spot
         t_max = 10
-        vasicek_sde = sde.SDE(kappa, mean_rate, vol)
         event_grid = np.array([0, t_max])
-        vasicek_sde.event_grid = event_grid
+        vasicek_sde = sde.SDE(kappa, mean_rate, vol, event_grid)
         vasicek_sde.initialization()
         np.random.seed(0)
         n_paths = 20000
-        bond = zcbond.ZCBond(kappa, mean_rate, vol, t_max)
+        bond = zcbond.ZCBond(kappa, mean_rate, vol, event_grid, t_max)
         for s in spot_vector:
             analytical = bond.price(s, 0)
             rates, discounts = vasicek_sde.paths(s, n_paths)
-            numerical = np.sum(np.exp(discounts[-1, :])) / n_paths
+            numerical = np.sum(discounts[-1, :]) / n_paths
             relative_diff = abs((numerical - analytical) / analytical)
             self.assertTrue(relative_diff < 0.01)
 
@@ -75,12 +74,11 @@ class SDE(unittest.TestCase):
         t_max = 10
         strike = 0.7
         expiry = t_max / 2
-        vasicek_sde = sde.SDE(kappa, mean_rate, vol)
         event_grid = np.array([0, expiry])
-        vasicek_sde.event_grid = event_grid
+        vasicek_sde = sde.SDE(kappa, mean_rate, vol, event_grid)
         vasicek_sde.initialization()
-        bond = zcbond.ZCBond(kappa, mean_rate, vol, t_max)
-        call_option = call.Call(kappa, mean_rate, vol, strike, expiry, t_max)
+        bond = zcbond.ZCBond(kappa, mean_rate, vol, event_grid, t_max)
+        call_option = call.Call(kappa, mean_rate, vol, event_grid, strike, expiry, t_max)
         np.random.seed(0)
         n_paths = 20000
         for s in spot_vector:
@@ -88,7 +86,7 @@ class SDE(unittest.TestCase):
             rates, discounts = vasicek_sde.paths(s, n_paths)
             numerical = \
                 np.maximum(bond.price(rates[-1, :], expiry) - strike, 0)
-            numerical = np.sum(np.exp(discounts[-1, :]) * numerical) / n_paths
+            numerical = np.sum(discounts[-1, :] * numerical) / n_paths
             relative_diff = abs((numerical - analytical) / analytical)
             self.assertTrue(relative_diff < 0.03)
 
@@ -104,12 +102,11 @@ class SDE(unittest.TestCase):
         t_max = 10
         strike = 0.7
         expiry = t_max / 2
-        vasicek_sde = sde.SDE(kappa, mean_rate, vol)
         event_grid = np.array([0, expiry])
-        vasicek_sde.event_grid = event_grid
+        vasicek_sde = sde.SDE(kappa, mean_rate, vol, event_grid)
         vasicek_sde.initialization()
-        bond = zcbond.ZCBond(kappa, mean_rate, vol, t_max)
-        put_option = put.Put(kappa, mean_rate, vol, strike, expiry, t_max)
+        bond = zcbond.ZCBond(kappa, mean_rate, vol, event_grid, t_max)
+        put_option = put.Put(kappa, mean_rate, vol, event_grid, strike, expiry, t_max)
         np.random.seed(0)
         n_paths = 20000
         for s in spot_vector:
@@ -117,7 +114,7 @@ class SDE(unittest.TestCase):
             rates, discounts = vasicek_sde.paths(s, n_paths)
             numerical = \
                 np.maximum(strike - bond.price(rates[-1, :], expiry), 0)
-            numerical = np.sum(np.exp(discounts[-1, :]) * numerical) / n_paths
+            numerical = np.sum(discounts[-1, :] * numerical) / n_paths
             relative_diff = abs((numerical - analytical) / analytical)
             self.assertTrue(relative_diff < 0.06)
 
@@ -132,55 +129,57 @@ if __name__ == '__main__':
     t_max_ = 10
     strike_ = 1.1
     expiry_ = t_max_ / 2
+    # Event grid
+    event_grid = np.array([0, t_max_])
     # SDE object
-    vasicek_sde = sde.SDE(kappa_, mean_rate_, vol_)
+    vasicek_sde = sde.SDE(kappa_, mean_rate_, vol_, event_grid)
     # Zero-coupon bond
-    bond = zcbond.ZCBond(kappa_, mean_rate_, vol_, t_max_)
+    bond = zcbond.ZCBond(kappa_, mean_rate_, vol_, event_grid, t_max_)
     bond_price_n = spot_vector_ * 0
     bond_price_n_std = spot_vector_ * 0
     bond_price_a = spot_vector_ * 0
-    bond_new = zcbond.ZCBond(kappa_, mean_rate_, vol_, t_max_)
+    bond_new = zcbond.ZCBond(kappa_, mean_rate_, vol_, event_grid, t_max_)
     # Call option
-    call_option = call.Call(kappa_, mean_rate_, vol_, strike_, expiry_, t_max_)
+    call_option = call.Call(kappa_, mean_rate_, vol_, event_grid, strike_, expiry_, t_max_)
     call_price_n = spot_vector_ * 0
     call_price_n_std = spot_vector_ * 0
     call_price_a = spot_vector_ * 0
     # Put option
-    put_option = put.Put(kappa_, mean_rate_, vol_, strike_, expiry_, t_max_)
+    put_option = put.Put(kappa_, mean_rate_, vol_, event_grid, strike_, expiry_, t_max_)
     put_price_n = spot_vector_ * 0
     put_price_n_std = spot_vector_ * 0
     put_price_a = spot_vector_ * 0
+    np.random.seed(0)
     n_paths_ = 1000
     for idx, s in enumerate(spot_vector_):
         # Integration until t_max_
         vasicek_sde.event_grid = np.array([0, t_max_])
         vasicek_sde.initialization()
-        rates, discounts = vasicek_sde.paths(s, n_paths_)
+        rates, discounts = vasicek_sde.paths(s, n_paths_, antithetic=True)
         # Price of bond with maturity = t_max_
         bond_price_a[idx] = bond.price(s, 0)
-        bond_price_n[idx] = np.sum(np.exp(discounts[-1, :])) / n_paths_
-        bond_price_n_std[idx] = \
-            misc.monte_carlo_error(np.exp(discounts[-1, :]))
+        bond_price_n[idx] = np.sum(discounts[-1, :]) / n_paths_
+        bond_price_n_std[idx] = misc.monte_carlo_error(discounts[-1, :])
         # Integration until expiry_
         vasicek_sde.event_grid = np.array([0, expiry_])
         vasicek_sde.initialization()
-        rates, discounts = vasicek_sde.paths(s, n_paths_)
+        rates, discounts = vasicek_sde.paths(s, n_paths_, antithetic=True)
         # Call option price
         call_price_a[idx] = call_option.price(s, 0)
         call_option_values = \
             np.maximum(bond_new.price(rates[-1, :], expiry_) - strike_, 0)
         call_price_n[idx] = \
-            np.sum(np.exp(discounts[-1, :]) * call_option_values) / n_paths_
-        call_price_n_std[idx] = misc.monte_carlo_error(np.exp(discounts[-1, :])
-                                                       * call_option_values)
+            np.sum(discounts[-1, :] * call_option_values) / n_paths_
+        call_price_n_std[idx] = \
+            misc.monte_carlo_error(discounts[-1, :] * call_option_values)
         # Put option price
         put_price_a[idx] = put_option.price(s, 0)
         put_option_values = \
             np.maximum(strike_ - bond_new.price(rates[-1, :], expiry_), 0)
         put_price_n[idx] = \
-            np.sum(np.exp(discounts[-1, :]) * put_option_values) / n_paths_
-        put_price_n_std[idx] = misc.monte_carlo_error(np.exp(discounts[-1, :])
-                                                      * put_option_values)
+            np.sum(discounts[-1, :] * put_option_values) / n_paths_
+        put_price_n_std[idx] = \
+            misc.monte_carlo_error(discounts[-1, :] * put_option_values)
     plt.plot(spot_vector_, bond_price_a, '-b', label="Zero coupon bond")
     plt.errorbar(spot_vector_, bond_price_n, np.transpose(bond_price_n_std),
                  linestyle="none", marker="o", color="b", capsize=5)

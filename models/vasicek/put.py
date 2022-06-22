@@ -16,10 +16,11 @@ class Put(options.VanillaOption):
                  kappa: float,
                  mean_rate: float,
                  vol: float,
+                 event_grid: np.ndarray,
                  strike: float,
                  expiry: float,
                  maturity: float):
-        super().__init__(kappa, mean_rate, vol, strike, expiry)
+        super().__init__(kappa, mean_rate, vol, event_grid, strike, expiry)
         self._maturity = maturity
         self._option_type = global_types.InstrumentType.EUROPEAN_PUT
 
@@ -51,10 +52,11 @@ class Put(options.VanillaOption):
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
         """Price function: Eq. (3.10), D. Brigo & F. Mercurio 2007."""
-        zc1 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol, self.expiry)
+        zc1 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
+                            self.event_grid, self.expiry)
         zc1_price = zc1.price(spot, time)
-        zc2 = \
-            zcbond.ZCBond(self.kappa, self.mean_rate, self.vol, self._maturity)
+        zc2 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
+                            self.event_grid, self._maturity)
         zc2_price = zc2.price(spot, time)
         s_p = options.sigma_p(time, self.expiry, self._maturity,
                               self.kappa, self.vol)
@@ -66,11 +68,12 @@ class Put(options.VanillaOption):
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
         """1st order price sensitivity wrt the underlying state."""
-        zc1 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol, self.expiry)
+        zc1 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
+                            self.event_grid, self.expiry)
         zc1_price = zc1.price(spot, time)
         zc1_delta = zc1.delta(spot, time)
-        zc2 = \
-            zcbond.ZCBond(self.kappa, self.mean_rate, self.vol, self._maturity)
+        zc2 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
+                            self.event_grid, self._maturity)
         zc2_price = zc2.price(spot, time)
         zc2_delta = zc2.delta(spot, time)
         s_p = options.sigma_p(time, self.expiry, self._maturity,
@@ -86,12 +89,13 @@ class Put(options.VanillaOption):
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
         """2st order price sensitivity wrt the underlying state."""
-        zc1 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol, self.expiry)
+        zc1 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
+                            self.event_grid, self.expiry)
         zc1_price = zc1.price(spot, time)
         zc1_delta = zc1.delta(spot, time)
         zc1_gamma = zc1.gamma(spot, time)
-        zc2 = \
-            zcbond.ZCBond(self.kappa, self.mean_rate, self.vol, self._maturity)
+        zc2 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
+                            self.event_grid, self._maturity)
         zc2_price = zc2.price(spot, time)
         zc2_delta = zc2.delta(spot, time)
         zc2_gamma = zc2.gamma(spot, time)

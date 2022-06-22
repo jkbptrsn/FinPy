@@ -12,8 +12,9 @@ class ZCBond(bonds.Bond):
                  kappa: float,
                  mean_rate: float,
                  vol: float,
+                 event_grid: np.ndarray,
                  maturity: float):
-        super().__init__(kappa, mean_rate, vol, maturity)
+        super().__init__(kappa, mean_rate, vol, event_grid, maturity)
         self._bond_type = global_types.InstrumentType.ZERO_COUPON_BOND
 
     @property

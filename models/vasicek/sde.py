@@ -8,8 +8,8 @@ import utils.misc as misc
 
 
 class SDE(sde.SDE):
-    """Vasicek SDE for the short rate:
-        dr_t = kappa * (mean_rate - r_t) * dt + vol * dW_t.
+    """The SDE for the short rate in the Vasicek model:
+        dr_t = kappa * (mean_rate - r_t) * dt + vol * dW_t
 
     - event_grid: event dates, i.e., trade date, payment dates, etc.
     """
@@ -17,18 +17,20 @@ class SDE(sde.SDE):
     def __init__(self,
                  kappa: float,
                  mean_rate: float,
-                 vol: float):
+                 vol: float,
+                 event_grid: np.ndarray):
         self._kappa = kappa
         self._mean_rate = mean_rate
         self._vol = vol
-        self._event_grid = None
+        self._event_grid = event_grid
+
         self._model_name = global_types.ModelName.VASICEK
 
-        self._rate_mean = None
-        self._rate_variance = None
-        self._discount_mean = None
-        self._discount_variance = None
-        self._covariance = None
+        self._rate_mean = np.zeros((self._event_grid.size, 2))
+        self._rate_variance = np.zeros(self._event_grid.size)
+        self._discount_mean = np.zeros((self._event_grid.size, 2))
+        self._discount_variance = np.zeros(self._event_grid.size)
+        self._covariance = np.zeros(self._event_grid.size)
 
     def __repr__(self):
         return f"{self._model_name} SDE object"
@@ -64,6 +66,7 @@ class SDE(sde.SDE):
     def event_grid(self) -> np.ndarray:
         return self._event_grid
 
+    # TODO: Should this setter be removed?
     @event_grid.setter
     def event_grid(self,
                    event_grid_: np.ndarray):
@@ -74,14 +77,9 @@ class SDE(sde.SDE):
         return self._model_name
 
     def initialization(self):
-        """Initialize the Monte-Carlo simulation by calculating mean and
+        """Initialize the Monte-Carlo engine by calculating mean and
         variance of the short rate and discount processes, respectively.
         """
-        self._rate_mean = np.zeros((self._event_grid.size, 2))
-        self._rate_variance = np.zeros(self._event_grid.size)
-        self._discount_mean = np.zeros((self._event_grid.size, 2))
-        self._discount_variance = np.zeros(self._event_grid.size)
-        self._covariance = np.zeros(self._event_grid.size)
         self.rate_mean()
         self.rate_variance()
         self.discount_mean()
@@ -93,6 +91,7 @@ class SDE(sde.SDE):
         Eq. (10.12), L.B.G. Andersen & V.V. Piterbarg 2010.
         """
         exp_kappa = np.exp(-self._kappa * np.diff(self._event_grid))
+        self._rate_mean[0, 0] = 1
         self._rate_mean[1:, 0] = exp_kappa
         self._rate_mean[1:, 1] = self._mean_rate * (1 - exp_kappa)
 
@@ -216,4 +215,6 @@ class SDE(sde.SDE):
             discount[time_idx] = discount[time_idx - 1] \
                 + self.discount_increment(rate[time_idx - 1], time_idx,
                                           x_discount)
+        # Get discount factors at event dates
+        discount = np.exp(discount)
         return rate, discount

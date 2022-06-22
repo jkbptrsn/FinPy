@@ -11,6 +11,7 @@ class SDE(metaclass=abc.ABCMeta):
     def model_name(self) -> str:
         pass
 
+    # TODO: Remove method
     @abc.abstractmethod
     def path(self,
              spot: (float, np.ndarray),
@@ -20,6 +21,7 @@ class SDE(metaclass=abc.ABCMeta):
         """Generate path(s) at t = time."""
         pass
 
+    # TODO: Remove method
     @abc.abstractmethod
     def path_time_grid(self,
                        spot: (float, np.ndarray),

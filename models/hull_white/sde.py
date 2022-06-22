@@ -8,7 +8,7 @@ import utils.misc as misc
 
 
 class SDE(sde.SDE):
-    """Hull-White (Extended Vasicek) SDE for the short rate
+    """SDE for the short rate in the Hull-White (Extended Vasicek) model
         dx_t = (y_t - kappa_t * x_t) * dt + vol_t * dW_t,
     where
         r_t = x_t + f(0,t) (f is the instantaneous forward rate).
@@ -34,6 +34,7 @@ class SDE(sde.SDE):
         self._forward_rate = forward_rate
         self._event_grid = event_grid
         self._int_step_size = int_step_size
+
         self._model_name = global_types.ModelName.HULL_WHITE
 
         self._rate_mean = np.zeros((event_grid.size, 2))
@@ -84,6 +85,7 @@ class SDE(sde.SDE):
     def forward_rate(self) -> misc.DiscreteFunc:
         return self._forward_rate
 
+    # TODO: Should one use a shallow copy here?
     @forward_rate.setter
     def forward_rate(self,
                      forward_rate_: misc.DiscreteFunc):
@@ -414,6 +416,10 @@ class SDE(sde.SDE):
         for time_idx in range(self._event_grid.size):
             rate[time_idx] += self._forward_rate_contrib[time_idx, 0]
             discount[time_idx] += self._forward_rate_contrib[time_idx, 1]
+
+        # Get discount factors at event dates
+        # discount = np.exp(discount)
+
         return rate, discount
 
     def forward_rates(self,

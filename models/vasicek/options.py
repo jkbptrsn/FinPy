@@ -14,9 +14,10 @@ class VanillaOption(options.VanillaOption, sde.SDE):
                  kappa: float,
                  mean_rate: float,
                  vol: float,
+                 event_grid: np.ndarray,
                  strike: float,
                  expiry: float):
-        super().__init__(kappa, mean_rate, vol)
+        super().__init__(kappa, mean_rate, vol, event_grid)
         self._strike = strike
         self._expiry = expiry
 

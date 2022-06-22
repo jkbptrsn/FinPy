@@ -87,6 +87,9 @@ def cholesky_2d(correlation: float,
         anti = 2
     x1 = norm.rvs(size=n_sets // anti)
     x2 = norm.rvs(size=n_sets // anti)
+    if antithetic:
+        x1 = np.append(x1, -x1)
+        x2 = np.append(x2, -x2)
     return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
         corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
 

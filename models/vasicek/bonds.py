@@ -1,5 +1,6 @@
 import abc
 import math
+import numpy as np
 
 import instruments.bonds as bonds
 import models.vasicek.sde as sde
@@ -12,8 +13,9 @@ class Bond(bonds.Bond, sde.SDE):
                  kappa: float,
                  mean_rate: float,
                  vol: float,
+                 event_grid: np.ndarray,
                  maturity: float):
-        super().__init__(kappa, mean_rate, vol)
+        super().__init__(kappa, mean_rate, vol, event_grid)
         self._maturity = maturity
 
     @property
