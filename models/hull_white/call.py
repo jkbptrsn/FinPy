@@ -34,12 +34,16 @@ class Call(options.VanillaOption):
         return self._option_type
 
     @property
-    def maturity(self) -> int:
+    def maturity(self) -> float:
+        return self.event_grid[self._maturity_idx]
+
+    @property
+    def maturity_idx(self) -> int:
         return self._maturity_idx
 
-    @maturity.setter
-    def maturity(self,
-                 maturity_idx_: int):
+    @maturity_idx.setter
+    def maturity_idx(self,
+                     maturity_idx_: int):
         self._maturity_idx = maturity_idx_
 
     def payoff(self,
@@ -60,13 +64,13 @@ class Call(options.VanillaOption):
         Proposition 4.5.1, L.B.G. Andersen & V.V. Piterbarg 2010.
         Assuming speed of mean reversion is constant...
         """
-        self._zcbond.maturity = self.expiry
+        self._zcbond.maturity_idx = self.expiry_idx
         price1 = self._zcbond.price(spot, event_idx)
-        self._zcbond.maturity = self.maturity
+        self._zcbond.maturity_idx = self.maturity_idx
         price2 = self._zcbond.price(spot, event_idx)
 
         # Time to maturity
-        delta_t = self.event_grid[self.maturity] - self.event_grid[event_idx]
+        delta_t = self.maturity - self.event_grid[event_idx]
         # Short rate volatility
         vol = self._vol.interpolation(self.event_grid[event_idx])
 
@@ -76,14 +80,14 @@ class Call(options.VanillaOption):
         self.integration_grid()
 
         int_event_idx1 = self.int_event_idx[event_idx]
-        int_event_idx2 = self.int_event_idx[self.expiry]
+        int_event_idx2 = self.int_event_idx[self.expiry_idx]
         int_grid = self.int_grid[int_event_idx1:int_event_idx2 + 1]
         vol = self.vol.interpolation(int_grid)
 
         integrand = vol ** 2 * np.exp(2 * kappa * int_grid)
 
-        exp_kappa1 = math.exp(-kappa * self.event_grid[self.expiry])
-        exp_kappa2 = math.exp(-kappa * self.event_grid[self.maturity])
+        exp_kappa1 = math.exp(-kappa * self.event_grid[self.expiry_idx])
+        exp_kappa2 = math.exp(-kappa * self.event_grid[self.maturity_idx])
 
         v = (exp_kappa1 - exp_kappa2) ** 2 \
             * np.sum(misc.trapz(int_grid, integrand)) / kappa ** 2

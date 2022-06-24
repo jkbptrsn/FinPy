@@ -66,11 +66,10 @@ class SDE(sde.SDE):
     def event_grid(self) -> np.ndarray:
         return self._event_grid
 
-    # TODO: Should this setter be removed?
     @event_grid.setter
     def event_grid(self,
                    event_grid_: np.ndarray):
-        self._event_grid = event_grid_.copy()
+        self._event_grid = event_grid_
 
     @property
     def model_name(self) -> global_types.ModelName:

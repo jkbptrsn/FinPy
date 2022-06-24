@@ -9,8 +9,13 @@ class Bond(metaclass=abc.ABCMeta):
     def maturity(self) -> float:
         pass
 
-    @maturity.setter
+    @property
     @abc.abstractmethod
-    def maturity(self,
-                 maturity_: float):
+    def maturity_idx(self) -> int:
+        pass
+
+    @maturity_idx.setter
+    @abc.abstractmethod
+    def maturity_idx(self,
+                     maturity_idx_: int):
         pass

@@ -19,7 +19,13 @@ class VanillaOption(metaclass=abc.ABCMeta):
     def expiry(self) -> float:
         pass
 
-    @expiry.setter
+    @property
     @abc.abstractmethod
-    def expiry(self, expiry_):
+    def expiry_idx(self) -> int:
+        pass
+
+    @expiry_idx.setter
+    @abc.abstractmethod
+    def expiry_idx(self,
+                   expiry_idx_: int):
         pass

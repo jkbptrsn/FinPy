@@ -36,8 +36,8 @@ class ZCBond(bonds.Bond):
         - Assuming event_grid[event_idx] < event_grid[maturity].
         """
         price_time1 = math.exp(self.forward_rate_contrib[event_idx, 1])
-        price_time2 = math.exp(self.forward_rate_contrib[self.maturity, 1])
-        delta_t = self.event_grid[self.maturity] - self.event_grid[event_idx]
+        price_time2 = math.exp(self.forward_rate_contrib[self.maturity_idx, 1])
+        delta_t = self.event_grid[self.maturity_idx] - self.event_grid[event_idx]
         kappa = self.kappa.values[0]
         g = (1 - math.exp(-kappa * delta_t)) / kappa
         y = self.y_event_grid[event_idx]

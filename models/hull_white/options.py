@@ -35,10 +35,14 @@ class VanillaOption(options.VanillaOption, sde.SDE):
         self._strike = strike_
 
     @property
-    def expiry(self) -> int:
+    def expiry(self) -> float:
+        return self.event_grid[self._expiry_idx]
+
+    @property
+    def expiry_idx(self) -> int:
         return self._expiry_idx
 
-    @expiry.setter
-    def expiry(self,
-               expiry_idx_: int):
+    @expiry_idx.setter
+    def expiry_idx(self,
+                   expiry_idx_: int):
         self._expiry_idx = expiry_idx_

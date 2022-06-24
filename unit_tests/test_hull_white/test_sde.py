@@ -129,7 +129,7 @@ class SDE(unittest.TestCase):
 
 if __name__ == '__main__':
 
-    unittest.main()
+#    unittest.main()
 
     # Plot Monte-Carlo scenarios
     spot_initial = 0.02
@@ -232,7 +232,7 @@ if __name__ == '__main__':
     price_n_principal = 0
 
     for event_idx in range(1, event_grid.size):
-        bond.maturity = event_idx
+        bond.maturity_idx = event_idx
         bond.initialization()
         discount_factor_a = \
             math.exp(hullwhite.forward_rate_contrib[event_idx, 1])

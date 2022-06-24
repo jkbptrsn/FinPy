@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import norm
 
-import models.vasicek.zcbond as zcbond
+import models.vasicek.zero_coupon_bond as zcbond
 import models.vasicek.options as options
 import utils.global_types as global_types
 import utils.payoffs as payoffs
@@ -18,10 +18,10 @@ class Put(options.VanillaOption):
                  vol: float,
                  event_grid: np.ndarray,
                  strike: float,
-                 expiry: float,
-                 maturity: float):
-        super().__init__(kappa, mean_rate, vol, event_grid, strike, expiry)
-        self._maturity = maturity
+                 expiry_idx: int,
+                 maturity_idx: int):
+        super().__init__(kappa, mean_rate, vol, event_grid, strike, expiry_idx)
+        self._maturity_idx = maturity_idx
         self._option_type = global_types.InstrumentType.EUROPEAN_PUT
 
     @property
@@ -30,12 +30,16 @@ class Put(options.VanillaOption):
 
     @property
     def maturity(self) -> float:
-        return self._maturity
+        return self.event_grid[self._maturity_idx]
 
-    @maturity.setter
-    def maturity(self,
-                 maturity_: float):
-        self._maturity = maturity_
+    @property
+    def maturity_idx(self) -> int:
+        return self._maturity_idx
+
+    @maturity_idx.setter
+    def maturity_idx(self,
+                     maturity_idx_: int):
+        self._maturity_idx = maturity_idx_
 
     def payoff(self,
                spot: (float, np.ndarray)) -> (float, np.ndarray):
@@ -53,12 +57,12 @@ class Put(options.VanillaOption):
               time: float) -> (float, np.ndarray):
         """Price function: Eq. (3.10), D. Brigo & F. Mercurio 2007."""
         zc1 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                            self.event_grid, self.expiry)
+                            self.event_grid, self.expiry_idx)
         zc1_price = zc1.price(spot, time)
         zc2 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                            self.event_grid, self._maturity)
+                            self.event_grid, self._maturity_idx)
         zc2_price = zc2.price(spot, time)
-        s_p = options.sigma_p(time, self.expiry, self._maturity,
+        s_p = options.sigma_p(time, self.expiry, self.maturity,
                               self.kappa, self.vol)
         h = options.h_factor(zc1_price, zc2_price, s_p, self.strike)
         return - zc2_price * norm.cdf(-h) \
@@ -69,14 +73,14 @@ class Put(options.VanillaOption):
               time: float) -> (float, np.ndarray):
         """1st order price sensitivity wrt the underlying state."""
         zc1 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                            self.event_grid, self.expiry)
+                            self.event_grid, self.expiry_idx)
         zc1_price = zc1.price(spot, time)
         zc1_delta = zc1.delta(spot, time)
         zc2 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                            self.event_grid, self._maturity)
+                            self.event_grid, self._maturity_idx)
         zc2_price = zc2.price(spot, time)
         zc2_delta = zc2.delta(spot, time)
-        s_p = options.sigma_p(time, self.expiry, self._maturity,
+        s_p = options.sigma_p(time, self.expiry, self.maturity,
                               self.kappa, self.vol)
         h = options.h_factor(zc1_price, zc2_price, s_p, self.strike)
         dhdr = (zc2_delta / zc2_price - zc1_delta / zc1_price) / s_p
@@ -90,16 +94,16 @@ class Put(options.VanillaOption):
               time: float) -> (float, np.ndarray):
         """2st order price sensitivity wrt the underlying state."""
         zc1 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                            self.event_grid, self.expiry)
+                            self.event_grid, self.expiry_idx)
         zc1_price = zc1.price(spot, time)
         zc1_delta = zc1.delta(spot, time)
         zc1_gamma = zc1.gamma(spot, time)
         zc2 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                            self.event_grid, self._maturity)
+                            self.event_grid, self._maturity_idx)
         zc2_price = zc2.price(spot, time)
         zc2_delta = zc2.delta(spot, time)
         zc2_gamma = zc2.gamma(spot, time)
-        s_p = options.sigma_p(time, self.expiry, self._maturity,
+        s_p = options.sigma_p(time, self.expiry, self.maturity,
                               self.kappa, self.vol)
         h = options.h_factor(zc1_price, zc2_price, s_p, self.strike)
         dhdr = (zc2_delta / zc2_price - zc1_delta / zc1_price) / s_p

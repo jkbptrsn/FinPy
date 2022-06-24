@@ -27,10 +27,14 @@ class Bond(bonds.Bond, sde.SDE):
         pass
 
     @property
-    def maturity(self) -> int:
+    def maturity(self) -> float:
+        return self.event_grid[self._maturity_idx]
+
+    @property
+    def maturity_idx(self) -> int:
         return self._maturity_idx
 
-    @maturity.setter
-    def maturity(self,
-                 maturity_idx_: int):
+    @maturity_idx.setter
+    def maturity_idx(self,
+                     maturity_idx_: int):
         self._maturity_idx = maturity_idx_

@@ -16,10 +16,10 @@ class VanillaOption(options.VanillaOption, sde.SDE):
                  vol: float,
                  event_grid: np.ndarray,
                  strike: float,
-                 expiry: float):
+                 expiry_idx: int):
         super().__init__(kappa, mean_rate, vol, event_grid)
         self._strike = strike
-        self._expiry = expiry
+        self._expiry_idx = expiry_idx
 
     @property
     @abc.abstractmethod
@@ -37,12 +37,16 @@ class VanillaOption(options.VanillaOption, sde.SDE):
 
     @property
     def expiry(self) -> float:
-        return self._expiry
+        return self.event_grid[self._expiry_idx]
 
-    @expiry.setter
-    def expiry(self,
-               expiry_: float):
-        self._expiry = expiry_
+    @property
+    def expiry_idx(self) -> int:
+        return self._expiry_idx
+
+    @expiry_idx.setter
+    def expiry_idx(self,
+                   expiry_idx_: int):
+        self._expiry_idx = expiry_idx_
 
 
 def sigma_p(time1: float,
