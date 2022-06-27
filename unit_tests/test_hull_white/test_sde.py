@@ -61,7 +61,7 @@ class SDE(unittest.TestCase):
             hullwhite.initialization()
             rates, discounts = hullwhite.paths(0, n_paths)
             price_analytical = math.exp(hullwhite.forward_rate_contrib[-1, 1])
-            price_numerical = np.sum(np.exp(discounts[-1, :])) / n_paths
+            price_numerical = np.sum(discounts[-1, :]) / n_paths
             relative_diff = \
                 abs((price_numerical - price_analytical) / price_analytical)
             self.assertTrue(abs(relative_diff) < 1.0e-4)
@@ -108,7 +108,7 @@ class SDE(unittest.TestCase):
 #            bond.initialization()
             discount_factor_a = \
                 math.exp(hullwhite.forward_rate_contrib[event_idx, 1])
-            discount_factor_n = np.sum(np.exp(discounts[event_idx, :])) / n_paths
+            discount_factor_n = np.sum(discounts[event_idx, :]) / n_paths
             print("Event: ", discount_factor_a, discount_factor_n, bond.price(0, 0))
             # Coupon
 #            price_a_coupon += coupon * bond.price(0, 0)
@@ -156,7 +156,7 @@ if __name__ == '__main__':
     rates, discounts = hullwhite.paths(0, n_paths)
     for n in range(n_paths):
         plt.plot(event_grid, rates[:, n])
-        plt.plot(event_grid, np.exp(discounts[:, n]))
+        plt.plot(event_grid, discounts[:, n])
     plt.show()
 
     # Zero-coupon bond object
@@ -203,7 +203,7 @@ if __name__ == '__main__':
         rates, discounts = hullwhite.paths(0, n_paths)
         x = rates[-1, :] - hullwhite.forward_rate_contrib[-1, 0]
         payoff = np.maximum(bond.price(x, expiry_idx) - strike, 0)
-        call_price = np.sum(np.exp(discounts[-1, :]) * payoff) / n_paths
+        call_price = np.sum(discounts[-1, :] * payoff) / n_paths
 
         print(spot, call.price(spot, 0), call_price)
 
@@ -236,7 +236,7 @@ if __name__ == '__main__':
         bond.initialization()
         discount_factor_a = \
             math.exp(hullwhite.forward_rate_contrib[event_idx, 1])
-        discount_factor_n = np.sum(np.exp(discounts[event_idx, :])) / n_paths
+        discount_factor_n = np.sum(discounts[event_idx, :]) / n_paths
         print("Event: ", discount_factor_a, discount_factor_n, bond.price(0, 0))
         # Coupon
         price_a_coupon += coupon * bond.price(0, 0)
