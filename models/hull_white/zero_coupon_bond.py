@@ -13,10 +13,10 @@ class ZCBond(bonds.Bond):
     def __init__(self,
                  kappa: misc.DiscreteFunc,
                  vol: misc.DiscreteFunc,
-                 forward_rate: misc.DiscreteFunc,
+                 discount_curve: misc.DiscreteFunc,
                  event_grid: np.ndarray,
                  maturity_idx: int):
-        super().__init__(kappa, vol, forward_rate, event_grid, maturity_idx)
+        super().__init__(kappa, vol, discount_curve, event_grid, maturity_idx)
         self._bond_type = global_types.InstrumentType.ZERO_COUPON_BOND
 
     @property
@@ -32,13 +32,34 @@ class ZCBond(bonds.Bond):
               spot: (float, np.ndarray),
               event_idx: int) -> (float, np.ndarray):
         """Price of zero coupon bond.
-        - Assuming that speed of mean reversion is time-independent.
-        - Assuming event_grid[event_idx] < event_grid[maturity].
+        - spot is the pseudo rate, i.e., x(t)
+        - Assuming event_grid[event_idx] < event_grid[maturity]
+        Proposition 10.1.7, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        price_time1 = math.exp(self.forward_rate_contrib[event_idx, 1])
-        price_time2 = math.exp(self.forward_rate_contrib[self.maturity_idx, 1])
-        delta_t = self.event_grid[self.maturity_idx] - self.event_grid[event_idx]
-        kappa = self.kappa.values[0]
-        g = (1 - math.exp(-kappa * delta_t)) / kappa
+        # P(0,t)
+        price1 = self.discount_curve.values[event_idx]
+        # P(0,T)
+        price2 = self.discount_curve.values[self.maturity_idx]
+        # Integration indices of two adjacent event dates
+        int_idx1 = self._int_event_idx[event_idx]
+        int_idx2 = self._int_event_idx[self.maturity_idx] + 1
+        # Slice of integration grid
+        int_grid = self._int_grid[int_idx1:int_idx2]
+        # Slice of time-integrated kappa for each integration step
+        self.kappa_vol_y()
+        int_kappa = self._int_kappa_step[int_idx1:int_idx2]
+
+        self._kappa_int_grid = None
+        self._vol_int_grid = None
+        self._y_int_grid = None
+        self._int_kappa_step = None
+
+        # G-function
+        # Eq. (10.18), L.B.G. Andersen & V.V. Piterbarg 2010
+        int_kappa = np.cumsum(int_kappa)
+        integrand = np.exp(-int_kappa)
+        g = np.sum(misc.trapz(int_grid, integrand))
+        # y-function
         y = self.y_event_grid[event_idx]
-        return price_time2 * np.exp(-spot * g - y * g ** 2 / 2) / price_time1
+
+        return price2 * np.exp(-spot * g - y * g ** 2 / 2) / price1

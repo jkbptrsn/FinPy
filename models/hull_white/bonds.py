@@ -12,10 +12,10 @@ class Bond(bonds.Bond, sde.SDE):
     def __init__(self,
                  kappa: misc.DiscreteFunc,
                  vol: misc.DiscreteFunc,
-                 forward_rate: misc.DiscreteFunc,
+                 discount_curve: misc.DiscreteFunc,
                  event_grid: np.ndarray,
                  maturity_idx: int):
-        super().__init__(kappa, vol, forward_rate, event_grid)
+        super().__init__(kappa, vol, discount_curve, event_grid)
         self._maturity_idx = maturity_idx
 
         # Initialize SDE object

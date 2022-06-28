@@ -25,17 +25,12 @@ class SDE(sde.SDE):
     def __init__(self,
                  kappa: misc.DiscreteFunc,
                  vol: misc.DiscreteFunc,
-
-                 # TODO: Remove forward_rate as input
-                 forward_rate: misc.DiscreteFunc,
-
+                 discount_curve: misc.DiscreteFunc,
                  event_grid: np.ndarray,
                  int_step_size: float = 1 / 365):
         self._kappa = kappa
         self._vol = vol
-
-        self._forward_rate = forward_rate
-
+        self._discount_curve = discount_curve
         self._event_grid = event_grid
         self._int_step_size = int_step_size
 
@@ -46,8 +41,6 @@ class SDE(sde.SDE):
         self._discount_mean = np.zeros((event_grid.size, 2))
         self._discount_variance = np.zeros(event_grid.size)
         self._covariance = np.zeros(event_grid.size)
-
-        self._forward_rate_contrib = np.zeros((event_grid.size, 2))
 
         # y- and h-functions on event grid -- used in calculating the
         # time-evolution of the forward rate
@@ -87,17 +80,14 @@ class SDE(sde.SDE):
             vol_: misc.DiscreteFunc):
         self._vol = vol_
 
-########################################################################
     @property
-    def forward_rate(self) -> misc.DiscreteFunc:
-        return self._forward_rate
+    def discount_curve(self) -> misc.DiscreteFunc:
+        return self._discount_curve
 
-    # TODO: Should one use a shallow copy here?
-    @forward_rate.setter
-    def forward_rate(self,
-                     forward_rate_: misc.DiscreteFunc):
-        self._forward_rate = forward_rate_
-########################################################################
+    @discount_curve.setter
+    def discount_curve(self,
+                       discount_curve_: misc.DiscreteFunc):
+        self._discount_curve = discount_curve_
 
     @property
     def event_grid(self) -> np.ndarray:
@@ -106,12 +96,6 @@ class SDE(sde.SDE):
     @property
     def model_name(self) -> global_types.ModelName:
         return self._model_name
-
-########################################################################
-    @property
-    def forward_rate_contrib(self) -> np.ndarray:
-        return self._forward_rate_contrib
-########################################################################
 
     @property
     def y_event_grid(self) -> np.ndarray:
@@ -144,8 +128,6 @@ class SDE(sde.SDE):
         self.discount_variance()
         self.covariance()
 
-        self.forward_rate_contrib_calc()
-
         self._kappa_int_grid = None
         self._vol_int_grid = None
         self._y_int_grid = None
@@ -176,25 +158,6 @@ class SDE(sde.SDE):
             self._int_grid = np.append(self._int_grid, grid)
             self._int_event_idx = np.append(self._int_event_idx, grid.size)
         self._int_event_idx = np.cumsum(self._int_event_idx)
-
-########################################################################
-
-    def forward_rate_contrib_calc(self):
-        """Calculate contribution to short rate process and discount
-        process from instantaneous forward rate.
-        """
-        self._forward_rate_contrib[:, 0] = \
-            self._forward_rate.interpolation(self._event_grid)
-        forward_rate = self._forward_rate.interpolation(self._int_grid)
-        forward_rate_int = - misc.trapz(self._int_grid, forward_rate)
-        for event_idx in range(1, self._int_event_idx.size):
-            # Integration index
-            int_idx = self._int_event_idx[event_idx]
-            # Slice of integration grid
-            self._forward_rate_contrib[event_idx, 1] = \
-                np.sum(forward_rate_int[0:int_idx + 1])
-
-########################################################################
 
     def kappa_vol_y(self):
         """Speed of mean reversion, volatility and y-function
@@ -468,40 +431,11 @@ class SDE(sde.SDE):
                                           x_discount)
 
         # Add forward rate contribution
-        for time_idx in range(self._event_grid.size):
-            rate[time_idx] += self._forward_rate_contrib[time_idx, 0]
-            discount[time_idx] += self._forward_rate_contrib[time_idx, 1]
+#        for time_idx in range(self._event_grid.size):
+#            rate[time_idx] += self._forward_rate_contrib[time_idx, 0]
+#            discount[time_idx] += self._forward_rate_contrib[time_idx, 1]
 
-        # Get discount factors at event dates
+        # Get pseudo discount factors at event dates
         discount = np.exp(discount)
 
         return rate, discount
-
-    def forward_rates(self,
-                      event_idx: int,
-                      maturity: float,
-                      rates: np.ndarray) -> np.ndarray:
-        """Calculate forward rate
-        f(event_grid[event_idx], event_grid[event_idx] + maturity).
-
-        TODO: Assuming constant speed of mean reversion, but allows
-            time-dependence in volatility. Generalize to time-dependent
-            speed of mean reversion.
-        """
-        time_t = self._event_grid[event_idx]
-        time_maturity = time_t + maturity
-        # Forward rate f(0,t)
-        f_t = self._forward_rate.interpolation(time_t)
-        # Forward rate f(0,T)
-        f_maturity = self._forward_rate.interpolation(time_maturity)
-        # x(t) = r(t) - f(0,t)
-        x_t = rates - f_t
-        y_t = self._y_event_grid[event_idx]
-        h_t = self._h_event_grid[event_idx]
-        # TODO: Calculation of h(T) should be generalized
-        h_maturity = math.exp(-self._kappa.values[0] * time_maturity)
-        # TODO: Calculation of int_t^T h(s) ds should be generalized
-        int_h = (math.exp(-self._kappa.values[0] * time_t)
-                 - math.exp(-self._kappa.values[0] * time_maturity)) \
-            / self._kappa.values[0]
-        return f_maturity + h_maturity * (x_t + y_t * int_h / h_t) / h_t

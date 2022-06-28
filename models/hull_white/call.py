@@ -17,16 +17,17 @@ class Call(options.VanillaOption):
     def __init__(self,
                  kappa: misc.DiscreteFunc,
                  vol: misc.DiscreteFunc,
-                 forward_rate: misc.DiscreteFunc,
+                 discount_curve: misc.DiscreteFunc,
                  event_grid: np.ndarray,
                  strike: float,
                  expiry_idx: int,
                  maturity_idx: int):
-        super().__init__(kappa, vol, forward_rate,
+        super().__init__(kappa, vol, discount_curve,
                          event_grid, strike, expiry_idx)
         self._maturity_idx = maturity_idx
+
         self._zcbond = \
-            zcbond.ZCBond(kappa, vol, forward_rate, event_grid, maturity_idx)
+            zcbond.ZCBond(kappa, vol, discount_curve, event_grid, maturity_idx)
         self._option_type = global_types.InstrumentType.EUROPEAN_CALL
 
     @property
@@ -68,11 +69,6 @@ class Call(options.VanillaOption):
         price1 = self._zcbond.price(spot, event_idx)
         self._zcbond.maturity_idx = self.maturity_idx
         price2 = self._zcbond.price(spot, event_idx)
-
-        # Time to maturity
-        delta_t = self.maturity - self.event_grid[event_idx]
-        # Short rate volatility
-        vol = self._vol.interpolation(self.event_grid[event_idx])
 
         # Discount bond volatility
         kappa = self.kappa.values[0]
