@@ -15,11 +15,14 @@ class SDE(sde.SDE):
         r_t = x_t + f(0,t) (f is the instantaneous forward rate).
     Proposition 10.1.7, L.B.G. Andersen & V.V. Piterbarg 2010.
 
-    - event_grid: event dates, i.e., trade date, payment dates,
+    - kappa: Speed of mean reversion strip
+    - vol: Volatility strip
+    - discount_curve: Discount factor for each event date
+    - event_grid: Event dates, i.e., trade date, payment dates,
                   extraordinary prepayment deadlines, etc.
-    - int_step_size: integration step size (default is daily step size)
+    - int_step_size: Integration step size (default is 1/365)
 
-    IF KAPPA IS >1, THE INTEGRATION STEP SIZE SHOULD BE DECREASED!
+    Note: If kappa is >1, the integration step size should be decreased.
     """
 
     def __init__(self,
@@ -42,18 +45,15 @@ class SDE(sde.SDE):
         self._discount_variance = np.zeros(event_grid.size)
         self._covariance = np.zeros(event_grid.size)
 
-        # y- and h-functions on event grid -- used in calculating the
-        # time-evolution of the forward rate
-        self._y_event_grid = np.zeros(event_grid.size)
-
-        self._h_event_grid = np.zeros(event_grid.size)
-
         # Integration grid
         self._int_grid = None
         # Indices of event dates on integration grid
         self._int_event_idx = None
+        # y-function on event grid
+        # Eq. (10.17), L.B.G. Andersen & V.V. Piterbarg 2010.
+        self._y_event_grid = np.zeros(event_grid.size)
 
-        # Arrays used in setting up the Monte-Carlo simulation
+        # Arrays used in setting up the SDE object
         self._kappa_int_grid = None
         self._vol_int_grid = None
         self._y_int_grid = None
@@ -98,12 +98,6 @@ class SDE(sde.SDE):
         return self._model_name
 
     @property
-    def y_event_grid(self) -> np.ndarray:
-        return self._y_event_grid
-
-########################################################################
-    # WHY DO YOU NEED THE FOLLOWING THREE GETTERS???
-    @property
     def int_grid(self) -> np.ndarray:
         return self._int_grid
 
@@ -112,9 +106,8 @@ class SDE(sde.SDE):
         return self._int_event_idx
 
     @property
-    def y_int_grid(self) -> np.ndarray:
-        return self._y_int_grid
-########################################################################
+    def y_event_grid(self) -> np.ndarray:
+        return self._y_event_grid
 
     def initialization(self):
         """Initialize the Monte-Carlo simulation by calculating mean and
@@ -127,7 +120,7 @@ class SDE(sde.SDE):
         self.discount_mean()
         self.discount_variance()
         self.covariance()
-
+        # The following arrays are not used after initialization
         self._kappa_int_grid = None
         self._vol_int_grid = None
         self._y_int_grid = None
@@ -188,15 +181,6 @@ class SDE(sde.SDE):
         for idx, event_idx in enumerate(self._int_event_idx):
             self._y_event_grid[idx] = self._y_int_grid[event_idx]
 
-########################################################################
-
-        # Calculation of h-function on event grid
-        for idx, event_idx in enumerate(self._int_event_idx):
-            int_kappa = self._int_kappa_step[:event_idx + 1]
-            self._h_event_grid[idx] = math.exp(-np.sum(int_kappa))
-
-########################################################################
-
     def rate_mean(self):
         """Factors for calculating conditional mean of pseudo short
         rate.
@@ -209,12 +193,9 @@ class SDE(sde.SDE):
             int_idx2 = self._int_event_idx[event_idx] + 1
             # Slice of integration grid
             int_grid = self._int_grid[int_idx1:int_idx2]
-
             # Slice of time-integrated kappa for each integration step
-#            int_kappa = self._int_kappa_step[int_idx1:int_idx2]
             int_kappa = np.append(self._int_kappa_step[int_idx1 + 1:int_idx2],
                                   np.array(0))
-
             factor1 = math.exp(-np.sum(int_kappa))
             int_kappa = np.cumsum(int_kappa[::-1])[::-1]
             integrand = \
@@ -233,12 +214,9 @@ class SDE(sde.SDE):
             int_idx2 = self._int_event_idx[event_idx] + 1
             # Slice of integration grid
             int_grid = self._int_grid[int_idx1:int_idx2]
-
             # Slice of time-integrated kappa for each integration step
-#            int_kappa = self._int_kappa_step[int_idx1:int_idx2]
             int_kappa = np.append(self._int_kappa_step[int_idx1 + 1:int_idx2],
                                   np.array(0))
-
             int_kappa = np.cumsum(int_kappa[::-1])[::-1]
             integrand = \
                 np.exp(-int_kappa) * self._vol_int_grid[int_idx1:int_idx2]
@@ -272,8 +250,7 @@ class SDE(sde.SDE):
             int_grid = self._int_grid[int_idx1:int_idx2]
             # Slice of time-integrated kappa for each integration step
             int_kappa = self._int_kappa_step[int_idx1:int_idx2]
-            # G-function
-            # Eq. (10.18), L.B.G. Andersen & V.V. Piterbarg 2010
+            # G-function in Eq. (10.18)
             int_kappa = np.cumsum(int_kappa)
             integrand = np.exp(-int_kappa)
             term1 = np.sum(misc.trapz(int_grid, integrand))
@@ -281,12 +258,9 @@ class SDE(sde.SDE):
             term2 = np.array(0)
             for idx in range(int_idx1 + 1, int_idx2):
                 int_grid_tmp = self._int_grid[int_idx1:idx + 1]
-
-#                int_kappa_tmp = self._int_kappa_step[int_idx1:idx + 1]
                 int_kappa_tmp = \
                     np.append(self._int_kappa_step[int_idx1 + 1:idx + 1],
                               np.array(0))
-
                 int_kappa_tmp = np.cumsum(int_kappa_tmp[::-1])[::-1]
                 integrand = \
                     np.exp(-int_kappa_tmp) * self._y_int_grid[int_idx1:idx + 1]
@@ -309,8 +283,7 @@ class SDE(sde.SDE):
             int_grid = self._int_grid[int_idx1:int_idx2]
             # Slice of time-integrated kappa for each integration step
             int_kappa = self._int_kappa_step[int_idx1:int_idx2]
-            # G-function
-            # Eq. (10.18), L.B.G. Andersen & V.V. Piterbarg 2010
+            # G-function in Eq. (10.18)
             int_kappa = np.cumsum(int_kappa)
             integrand = np.exp(-int_kappa)
             term1 = \
@@ -320,12 +293,9 @@ class SDE(sde.SDE):
             term2 = np.array(0)
             for idx in range(int_idx1 + 1, int_idx2):
                 int_grid_tmp = self._int_grid[int_idx1:idx + 1]
-
-#                int_kappa_tmp = self._int_kappa_step[int_idx1:idx + 1]
                 int_kappa_tmp = \
                     np.append(self._int_kappa_step[int_idx1 + 1:idx + 1],
                               np.array(0))
-
                 int_kappa_tmp = np.cumsum(int_kappa_tmp[::-1])[::-1]
                 integrand = \
                     np.exp(-int_kappa_tmp) * self._y_int_grid[int_idx1:idx + 1]
@@ -365,12 +335,9 @@ class SDE(sde.SDE):
             cov = np.array(0)
             for idx in range(int_idx1 + 1, int_idx2):
                 int_grid_temp = self._int_grid[int_idx1:idx + 1]
-
-#                int_kappa_temp = self._int_kappa_step[int_idx1:idx + 1]
                 int_kappa_temp = \
                     np.append(self._int_kappa_step[int_idx1 + 1:idx + 1],
                               np.array(0))
-
                 int_kappa_temp = np.cumsum(int_kappa_temp[::-1])[::-1]
                 integrand = \
                     np.exp(-int_kappa_temp) \
@@ -429,13 +396,6 @@ class SDE(sde.SDE):
             discount[time_idx] = discount[time_idx - 1] \
                 + self.discount_increment(rate[time_idx - 1], time_idx,
                                           x_discount)
-
-        # Add forward rate contribution
-#        for time_idx in range(self._event_grid.size):
-#            rate[time_idx] += self._forward_rate_contrib[time_idx, 0]
-#            discount[time_idx] += self._forward_rate_contrib[time_idx, 1]
-
         # Get pseudo discount factors at event dates
         discount = np.exp(discount)
-
         return rate, discount
