@@ -45,10 +45,10 @@ class ZCBond(bonds.Bond):
         int_idx2 = self._int_event_idx[self.maturity_idx] + 1
         # Slice of integration grid
         int_grid = self._int_grid[int_idx1:int_idx2]
+
         # Slice of time-integrated kappa for each integration step
         self.kappa_vol_y()
         int_kappa = self._int_kappa_step[int_idx1:int_idx2]
-
         self._kappa_int_grid = None
         self._vol_int_grid = None
         self._y_int_grid = None

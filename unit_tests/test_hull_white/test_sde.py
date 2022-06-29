@@ -94,12 +94,6 @@ class SDE(unittest.TestCase):
         vol = np.array([np.arange(10),
                         0.01 * np.array([1, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
         vol = misc.DiscreteFunc("vol", vol[0], vol[1])
-
-        # Bond object, maturity index = 1
-        # ASSUMING CONSTANT KAPPA
-        bond = zcbond.ZCBond(kappa, vol, forward_rate_old, event_grid, 1)
-        bond.initialization()
-
         # SDE object
         n_paths = 20000
         np.random.seed(0)
@@ -131,16 +125,6 @@ if __name__ == '__main__':
 
 #    unittest.main()
 
-    # Plot Monte-Carlo scenarios
-    spot_initial = 0.02
-    forward_rate_structure = \
-        np.array([1, 1, 1, 1.5, 1.5, 2, 2, 2.5, 2.5, 3, 3])
-    forward_rate_old = \
-        np.array([np.arange(11), spot_initial * forward_rate_structure])
-    forward_rate_old = \
-        misc.DiscreteFunc("forward rate", forward_rate_old[0],
-                          forward_rate_old[1], interp_scheme="linear")
-
     event_grid = np.arange(11)
     # Define discount curve on event_grid
     forward_rate = 0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
@@ -148,7 +132,8 @@ if __name__ == '__main__':
     discount_curve = misc.DiscreteFunc("discount curve", event_grid,
                                        discount_curve, interp_scheme="linear")
 
-    # Speed of mean reversion strip -- CONSTANT KAPPA!!! Call option price only implemented for constant kappa...
+    # Speed of mean reversion strip -- CONSTANT KAPPA!!!
+    # Call option price only implemented for constant kappa...
     kappa = np.array([np.array([2, 3, 7]), 0.01 * np.array([1, 1, 1])])
     kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
 
@@ -157,6 +142,7 @@ if __name__ == '__main__':
                     0.003 * np.array([1, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
     vol = misc.DiscreteFunc("vol", vol[0], vol[1])
 
+    # Plot Monte-Carlo scenarios
     event_grid_plot = 0.01 * np.arange(0, 1001)
     # SDE object
     n_paths = 10
@@ -181,12 +167,10 @@ if __name__ == '__main__':
     # SDE object
     n_paths = 10000
     np.random.seed(0)
-    hull_white = sde.SDE(kappa, vol, forward_rate_old, event_grid)
+    hull_white = sde.SDE(kappa, vol, discount_curve, event_grid)
     hull_white.initialization()
-
     # Pseudo rate and discount factors
     rate_pseudo, discount_pseudo = hull_white.paths(0, n_paths)
-
     # Zero-coupon bond object
     bond = \
         zcbond.ZCBond(kappa, vol, discount_curve, event_grid, maturity_idx)
@@ -209,9 +193,7 @@ if __name__ == '__main__':
         bond_price = bond.price(rate_pseudo[expiry_idx, :], expiry_idx)
         payoff = np.maximum(bond_price - strike, 0)
         call_price_n = np.sum(discount * payoff) / n_paths
-
         diff = abs(call_price_a - call_price_n) / call_price_a
-
         print(spot, call_price_a, call_price_n, diff)
 
     unittest.main()
