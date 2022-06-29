@@ -160,7 +160,7 @@ if __name__ == '__main__':
     # European call option object
     print("European call option:")
     maturity_idx = event_grid.size - 1
-    strike = 0.2
+    strike = 0.65 # 0.2
     expiry_idx = 5
     call = call.Call(kappa, vol, discount_curve, event_grid,
                      strike, expiry_idx, maturity_idx)
@@ -174,7 +174,7 @@ if __name__ == '__main__':
     # Zero-coupon bond object
     bond = \
         zcbond.ZCBond(kappa, vol, discount_curve, event_grid, maturity_idx)
-    for s in range(2, 12, 2):
+    for s in range(2, 12, 1):
         spot = 0.001 * s
         forward_rate = spot * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
         discount_curve = np.exp(-forward_rate * event_grid)
@@ -194,6 +194,6 @@ if __name__ == '__main__':
         payoff = np.maximum(bond_price - strike, 0)
         call_price_n = np.sum(discount * payoff) / n_paths
         diff = abs(call_price_a - call_price_n) / call_price_a
-        print(spot, call_price_a, call_price_n, diff)
+        print(s, call_price_a, call_price_n, diff)
 
     unittest.main()

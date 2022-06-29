@@ -26,9 +26,10 @@ class Call(options.VanillaOption):
                          event_grid, strike, expiry_idx)
         self._maturity_idx = maturity_idx
 
+        self._option_type = global_types.InstrumentType.EUROPEAN_CALL
+
         self._zcbond = \
             zcbond.ZCBond(kappa, vol, discount_curve, event_grid, maturity_idx)
-        self._option_type = global_types.InstrumentType.EUROPEAN_CALL
 
     @property
     def option_type(self) -> global_types.InstrumentType:
@@ -70,15 +71,13 @@ class Call(options.VanillaOption):
         self._zcbond.maturity_idx = self.maturity_idx
         price2 = self._zcbond.price(spot, event_idx)
 
-        # Discount bond volatility
-        kappa = self.kappa.values[0]
-
         self.integration_grid()
-
         int_event_idx1 = self.int_event_idx[event_idx]
         int_event_idx2 = self.int_event_idx[self.expiry_idx]
         int_grid = self.int_grid[int_event_idx1:int_event_idx2 + 1]
         vol = self.vol.interpolation(int_grid)
+
+        kappa = self.kappa.values[0]
 
         integrand = vol ** 2 * np.exp(2 * kappa * int_grid)
 
