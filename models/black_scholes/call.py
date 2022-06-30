@@ -13,10 +13,11 @@ class Call(option.VanillaOption):
     def __init__(self,
                  rate: float,
                  vol: float,
+                 event_grid: np.ndarray,
                  strike: float,
                  expiry: float,
                  dividend: float = 0):
-        super().__init__(rate, vol, strike, expiry, dividend)
+        super().__init__(rate, vol, event_grid, strike, expiry, dividend)
         self._option_type = global_types.InstrumentType.EUROPEAN_CALL
 
     @property
@@ -39,7 +40,7 @@ class Call(option.VanillaOption):
               time: float) -> (float, np.ndarray):
         """Price function."""
         d1, d2 = self.d1d2(spot, time)
-        spot *= np.exp(-self.dividend * (self._expiry - time))
+        spot *= np.exp(-self.dividend * (self.expiry - time))
         return spot * norm.cdf(d1) \
             - self.strike * norm.cdf(d2) \
             * math.exp(-self.rate * (self.expiry - time))

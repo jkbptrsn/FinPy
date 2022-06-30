@@ -12,12 +12,13 @@ class VanillaOption(options.VanillaOption, sde.SDE):
     def __init__(self,
                  rate: float,
                  vol: float,
+                 event_grid: np.ndarray,
                  strike: float,
-                 expiry: float,
+                 expiry_idx: int,
                  dividend: float = 0):
-        super().__init__(rate, vol, dividend)
+        super().__init__(rate, vol, event_grid, dividend)
         self._strike = strike
-        self._expiry = expiry
+        self._expiry_idx = expiry_idx
 
     @property
     @abc.abstractmethod
@@ -34,11 +35,15 @@ class VanillaOption(options.VanillaOption, sde.SDE):
 
     @property
     def expiry(self) -> float:
-        return self._expiry
+        return self._event_grid[self._expiry_idx]
 
-    @expiry.setter
-    def expiry(self, expiry_):
-        self._expiry = expiry_
+    @property
+    def expiry_idx(self) -> int:
+        return self._expiry_idx
+
+    @expiry_idx.setter
+    def expiry_idx(self, expiry_idx_):
+        self._expiry_idx = expiry_idx_
 
     @abc.abstractmethod
     def payoff(self,
@@ -70,8 +75,8 @@ class VanillaOption(options.VanillaOption, sde.SDE):
         - Returns Tuple[np.ndarray, np.ndarray] if only time is a float
         - Doesn't work if both spot and time are np.ndarrays
         """
-        spot *= np.exp(-self.dividend * (self._expiry - time))
+        spot *= np.exp(-self.dividend * (self.expiry - time))
         d1 = np.log(spot / self._strike) \
-            + (self.rate + self.vol ** 2 / 2) * (self._expiry - time)
-        d1 /= self.vol * np.sqrt(self._expiry - time)
-        return d1, d1 - self.vol * np.sqrt(self._expiry - time)
+            + (self.rate + self.vol ** 2 / 2) * (self.expiry - time)
+        d1 /= self.vol * np.sqrt(self.expiry - time)
+        return d1, d1 - self.vol * np.sqrt(self.expiry - time)

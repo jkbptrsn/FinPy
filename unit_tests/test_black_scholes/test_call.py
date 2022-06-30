@@ -32,16 +32,18 @@ if __name__ == '__main__':
     vol = 0.2
     strike = 50
     expiry = 2
+    expiry_idx = 1
     time = 0
     spot = np.arange(2, 100, 2) * 1.0
-    c1 = call.Call(rate, vol, strike, expiry)
-    b1 = binary.BinaryAssetCall(rate, vol, strike, expiry)
-    b2 = binary.BinaryCashCall(rate, vol, strike, expiry)
+    event_grid = np.array([time, expiry])
+    c1 = call.Call(rate, vol, event_grid, strike, expiry_idx)
+#    b1 = binary.BinaryAssetCall(rate, vol, strike, expiry)
+#    b2 = binary.BinaryCashCall(rate, vol, strike, expiry)
     plt.plot(spot, c1.payoff(spot), '-k')
     plt.plot(spot, c1.price(spot, 0), '-ob')
-    plt.plot(spot, b1.price(spot, 0), '-r')
-    plt.plot(spot, strike * b2.price(spot, 0), '-g')
-    plt.plot(spot, b1.price(spot, 0) - strike * b2.price(spot, 0), '-y')
+#    plt.plot(spot, b1.price(spot, 0), '-r')
+#    plt.plot(spot, strike * b2.price(spot, 0), '-g')
+#    plt.plot(spot, b1.price(spot, 0) - strike * b2.price(spot, 0), '-y')
     plt.show()
 
     unittest.main()

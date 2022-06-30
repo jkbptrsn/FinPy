@@ -8,17 +8,19 @@ import utils.global_types as global_types
 
 
 class SDE(sde.SDE):
-    """Black-Scholes SDE:
-    dS_t / S_t = (rate - dividend) * dt + vol * dW_t
+    """SDE for the Black-Scholes model
+        dS_t / S_t = (rate - dividend) * dt + vol * dW_t
     """
 
     def __init__(self,
                  rate: float,
                  vol: float,
+                 event_grid: np.ndarray,
                  dividend: float = 0):
         self._rate = rate
         self._vol = vol
         self._dividend = dividend
+        self._event_grid = event_grid
         self._model_name = global_types.ModelName.BLACk_SCHOLES
 
     def __repr__(self) -> str:
@@ -47,6 +49,10 @@ class SDE(sde.SDE):
     @dividend.setter
     def dividend(self, dividend_):
         self._dividend = dividend_
+
+    @property
+    def event_grid(self):
+        return self._event_grid
 
     @property
     def model_name(self) -> str:
