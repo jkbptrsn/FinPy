@@ -72,6 +72,13 @@ class SDE(sde.SDE):
     def model_name(self) -> str:
         return self._model_name
 
+    def initialization(self):
+        """Initialize the Monte-Carlo engine by calculating mean and
+        variance of the stock price process.
+        """
+        self.price_mean()
+        self.price_variance()
+
     def price_mean(self):
         """Conditional mean of stock price process."""
         self._price_mean[1:] = \

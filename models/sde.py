@@ -16,5 +16,4 @@ class SDE(metaclass=abc.ABCMeta):
               spot: float,
               n_paths: int,
               antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
-        """Generate paths."""
         pass

@@ -13,7 +13,7 @@ class SDE(sde.SDE):
 
     - rate: Risk-free interest rate
     - vol: Volatility
-    - event_grid: event dates, i.e., trade date, payment dates, etc.
+    - event_grid: Event dates, i.e., trade date, payment dates, etc.
     - dividend: Dividend yield
     """
 
@@ -28,6 +28,9 @@ class SDE(sde.SDE):
         self._dividend = dividend
 
         self._model_name = global_types.ModelName.BLACK_SCHOLES
+
+        self._price_mean = np.zeros(self._event_grid.size)
+        self._price_variance = np.zeros(self._event_grid.size)
 
     def __repr__(self) -> str:
         return f"{self._model_name} SDE object"
@@ -72,6 +75,38 @@ class SDE(sde.SDE):
     def model_name(self) -> str:
         return self._model_name
 
+    def initialization(self):
+        """Initialize the Monte-Carlo engine by calculating mean and
+        variance of the stock price process.
+        """
+        self.price_mean()
+        self.price_variance()
+
+    def price_mean(self):
+        """Conditional mean of stock price process."""
+        self._price_mean[0] = 1
+        factor = self._rate - self._dividend
+        self._price_mean[1:] = np.exp(factor * np.diff(self._event_grid))
+
+    def price_variance(self):
+        """Conditional variance of stock price process."""
+        factor = self._rate - self._dividend
+        self._price_variance[1:] = \
+            np.exp(2 * factor * np.diff(self._event_grid)) \
+            * (np.exp(self._vol ** 2 * np.diff(self._event_grid)) - 1)
+
+    def price_increment(self,
+                        spot: (float, np.ndarray),
+                        time_idx: int,
+                        normal_rand: (float, np.ndarray)) \
+            -> (float, np.ndarray):
+        """Increment stock price process (the spot price is subtracted
+        to get the increment).
+        """
+        mean = spot * self._price_mean[time_idx]
+        variance = spot ** 2 * self._price_variance[time_idx]
+        return mean + math.sqrt(variance) * normal_rand - spot
+
     def paths(self,
               spot: float,
               n_paths: int,
@@ -86,12 +121,10 @@ class SDE(sde.SDE):
         price = np.zeros((self._event_grid.size, n_paths))
         price[0] = spot
         for time_idx in range(1, self._event_grid.size):
-            dt = self._event_grid[time_idx] - self._event_grid[time_idx - 1]
             realizations = misc.normal_realizations(n_paths, seed, antithetic)
-            price[time_idx] = \
-                price[time_idx - 1] \
-                * np.exp((self._rate - self._vol ** 2 / 2) * dt
-                         + self._vol * math.sqrt(dt) * realizations)
+            price[time_idx] = price[time_idx - 1] \
+                + self.price_increment(price[time_idx - 1], time_idx,
+                                       realizations)
         return price
 
     def path_wise(self,
