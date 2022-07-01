@@ -7,20 +7,28 @@ import utils.global_types as global_types
 
 
 class SDE(sde.SDE):
-    """Cox-Ingersoll-Ross (CIR) SDE:
+    """SDE for the Cox-Ingersoll-Ross (CIR) model
         dr_t = kappa * ( mean_rate - r_t) * dt + vol * sqrt(r_t) * dW_t
     subject to the condition
         2 * kappa * theta > vol ** 2
     such that r_t = 0 is precluded.
+
+    - kappa: Speed of mean reversion
+    - mean_rate: Long-time mean
+    - vol: Volatility
+    - event_grid: event dates, i.e., trade date, payment dates, etc.
     """
 
     def __init__(self,
                  kappa: float,
                  mean_rate: float,
-                 vol: float):
+                 vol: float,
+                 event_grid: np.ndarray):
         self._kappa = kappa
         self._mean_rate = mean_rate
         self._vol = vol
+        self._event_grid = event_grid
+
         self._model_name = global_types.ModelName.CIR
 
     def __repr__(self):
@@ -51,22 +59,31 @@ class SDE(sde.SDE):
         self._vol = vol_
 
     @property
+    def event_grid(self) -> np.ndarray:
+        return self._event_grid
+
+    @event_grid.setter
+    def event_grid(self,
+                   event_grid_: np.ndarray):
+        self._event_grid = event_grid_
+
+    @property
     def model_name(self) -> global_types.ModelName:
         return self._model_name
 
-    def mean(self,
-             spot: (float, np.ndarray),
-             delta_t: float) -> (float, np.ndarray):
-        """Conditional mean of stochastic process.
+    def rate_mean(self,
+                  spot: (float, np.ndarray),
+                  delta_t: float) -> (float, np.ndarray):
+        """Conditional mean of short rate process.
         Eq. (3.23), Brigo & Mercurio 2007.
         """
         exp_kappa = math.exp(- self._kappa * delta_t)
         return spot * exp_kappa + self._mean_rate * (1 - exp_kappa)
 
-    def variance(self,
-                 spot: float,
-                 delta_t: (float, np.ndarray)) -> (float, np.ndarray):
-        """Conditional variance of stochastic process.
+    def rate_variance(self,
+                      spot: float,
+                      delta_t: (float, np.ndarray)) -> (float, np.ndarray):
+        """Conditional variance of short rate process.
         Eq. (3.23), Brigo & Mercurio 2007.
         """
         vol_sq = self._vol ** 2
@@ -81,22 +98,7 @@ class SDE(sde.SDE):
              time: float,
              n_paths: int,
              antithetic: bool = False) -> (float, np.ndarray):
-        """Generate paths(s), at t = time, of Ornstein-Uhlenbeck motion
-        using analytic expression.
-
-        antithetic : Antithetic sampling for Monte-Carlo variance
-        reduction. Defaults to False.
-        """
-        if antithetic:
-            if n_paths % 2 == 1:
-                raise ValueError("In antithetic sampling, "
-                                 "n_paths should be even.")
-            realizations = norm.rvs(size=n_paths // 2)
-            realizations = np.append(realizations, -realizations)
-        else:
-            realizations = norm.rvs(size=n_paths)
-        return self.mean(spot, time) \
-            + math.sqrt(self.variance(spot, time)) * realizations
+        pass
 
     def path_time_grid(self,
                        spot: float,
@@ -104,11 +106,17 @@ class SDE(sde.SDE):
         """Generate one path, represented on time_grid, of
         Ornstein-Uhlenbeck motion using analytic expression.
         """
-        delta_t = time_grid[1:] - time_grid[:-1]
-        realizations = norm.rvs(size=delta_t.shape[0])
-        spot_moved = np.zeros(delta_t.shape[0] + 1)
-        spot_moved[0] = spot
-        for count, e in enumerate(np.column_stack(delta_t, realizations)):
-            spot_moved[count + 1] = self.mean(spot_moved[count], e[0]) \
-                + np.sqrt(self.variance(spot_moved[count], e[0])) * e[1]
-        return spot_moved
+        pass
+
+    def paths(self,
+              spot: float,
+              n_paths: int,
+              seed: int = None,
+              antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+        """Generate paths represented on _event_grid of correlated short
+        rate and discount processes using exact discretization.
+
+        antithetic : Antithetic sampling for Monte-Carlo variance
+        reduction. Defaults to False.
+        """
+        pass

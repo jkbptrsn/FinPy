@@ -12,22 +12,28 @@ class Bond(bonds.Bond, sde.SDE):
                  kappa: float,
                  mean_rate: float,
                  vol: float,
-                 maturity: float):
-        super().__init__(kappa, mean_rate, vol)
-        self._maturity = maturity
+                 event_grid: np.ndarray,
+                 maturity_idx: int):
+        super().__init__(kappa, mean_rate, vol, event_grid)
+        self._maturity_idx = maturity_idx
 
     @property
     @abc.abstractmethod
-    def option_type(self):
+    def bond_type(self):
         pass
 
     @property
     def maturity(self) -> float:
-        return self._maturity
+        return self.event_grid[self._maturity_idx]
 
-    @maturity.setter
-    def maturity(self, maturity_):
-        self._maturity = maturity_
+    @property
+    def maturity_idx(self) -> int:
+        return self._maturity_idx
+
+    @maturity_idx.setter
+    def maturity_idx(self,
+                     maturity_idx_: int):
+        self._maturity_idx = maturity_idx_
 
 
 def a_factor(time1: float,
