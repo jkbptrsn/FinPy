@@ -4,18 +4,19 @@ from scipy.stats import norm
 from typing import Tuple
 
 import models.sde as sde
+import utils.global_types as global_types
 
 
 class SDE(sde.SDE):
-    """Black-Scholes SDE:
-    dS_t / S_t = rate * dt + vol * dW_t
-    todo: What about 2-d, or n-d?
+    """SDE for Bachelier model
+        dS_t / S_t = vol * dW_t
     """
 
     def __init__(self, rate, vol):
         self._rate = rate
         self._vol = vol
-        self._model_name = 'Black-Scholes'
+
+        self._model_name = global_types.ModelName.BACHELIER
 
     def __repr__(self):
         return f"{self._model_name} SDE object"

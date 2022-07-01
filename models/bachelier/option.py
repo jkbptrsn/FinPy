@@ -4,7 +4,7 @@ import numpy as np
 from typing import Tuple
 
 import models.black_scholes.sde as sde
-import models.option as option
+import instruments.options as option
 
 # todo: Exotic option call, e.g. compound options with two strikes?
 
