@@ -55,6 +55,11 @@ class SDE(sde.SDE):
     def event_grid(self):
         return self._event_grid
 
+    @event_grid.setter
+    def event_grid(self,
+                   event_grid_: np.ndarray):
+        self._event_grid = event_grid_
+
     @property
     def dividend(self) -> float:
         return self._dividend
