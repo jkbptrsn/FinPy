@@ -67,13 +67,11 @@ class VanillaOption(options.VanillaOption, sde.SDE):
 
     def d1d2(self,
              spot: (float, np.ndarray),
-             time: (float, np.ndarray)) \
+             time: float) \
             -> (Tuple[float, float], Tuple[np.ndarray, np.ndarray]):
         """Factors in Black-Scholes formula.
-        - Returns Tuple[float, float] if spot and time are floats
-        - Returns Tuple[np.ndarray, np.ndarray] if only spot is a float
-        - Returns Tuple[np.ndarray, np.ndarray] if only time is a float
-        - Doesn't work if both spot and time are np.ndarrays
+        - Returns Tuple[float, float] if spot is a float
+        - Returns Tuple[np.ndarray, np.ndarray] otherwise
         """
         spot *= np.exp(-self.dividend * (self.expiry - time))
         d1 = np.log(spot / self._strike) \

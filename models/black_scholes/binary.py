@@ -18,9 +18,12 @@ class BinaryCashCall(option.VanillaOption):
     def __init__(self,
                  rate: float,
                  vol: float,
+                 event_grid: np.ndarray,
                  strike: float,
-                 expiry: float):
-        super().__init__(rate, vol, strike, expiry)
+                 expiry_idx: int,
+                 dividend: float = 0):
+        super().__init__(rate, vol, event_grid, strike, expiry_idx, dividend)
+
         self._option_type = global_types.InstrumentType.BINARY_CASH_CALL
 
     @property
@@ -34,15 +37,17 @@ class BinaryCashCall(option.VanillaOption):
 
     def price(self,
               spot: (float, np.ndarray),
-              time: float):
+              time_idx: int):
         """Price function."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
         return math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2)
 
     def delta(self,
               spot: (float, np.ndarray),
-              time: float):
+              time_idx: int):
         """1st order price sensitivity wrt the underlying state."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
         return math.exp(-self.rate * (self.expiry - time)) * norm.pdf(d2) \
             / (spot * self.vol * math.sqrt(self.expiry - time))
@@ -57,9 +62,12 @@ class BinaryAssetCall(option.VanillaOption):
     def __init__(self,
                  rate: float,
                  vol: float,
+                 event_grid: np.ndarray,
                  strike: float,
-                 expiry: float):
-        super().__init__(rate, vol, strike, expiry)
+                 expiry_idx: int,
+                 dividend: float = 0):
+        super().__init__(rate, vol, event_grid, strike, expiry_idx, dividend)
+
         self._option_type = global_types.InstrumentType.BINARY_ASSET_CALL
 
     @property
@@ -73,15 +81,17 @@ class BinaryAssetCall(option.VanillaOption):
 
     def price(self,
               spot: (float, np.ndarray),
-              time: float):
+              time_idx: int):
         """Price function."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
         return spot * norm.cdf(d1)
 
     def delta(self,
               spot: (float, np.ndarray),
-              time: float):
+              time_idx: int):
         """1st order price sensitivity wrt the underlying state."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
         return spot * norm.pdf(d1) \
             / (spot * self.vol * math.sqrt(self.expiry - time)) + norm.cdf(d1)
@@ -95,9 +105,12 @@ class BinaryCashPut(option.VanillaOption):
     def __init__(self,
                  rate: float,
                  vol: float,
+                 event_grid: np.ndarray,
                  strike: float,
-                 expiry: float):
-        super().__init__(rate, vol, strike, expiry)
+                 expiry_idx: int,
+                 dividend: float = 0):
+        super().__init__(rate, vol, event_grid, strike, expiry_idx, dividend)
+
         self._option_type = global_types.InstrumentType.BINARY_CASH_PUT
 
     @property
@@ -111,15 +124,17 @@ class BinaryCashPut(option.VanillaOption):
 
     def price(self,
               spot: (float, np.ndarray),
-              time: float):
+              time_idx: int):
         """Price function."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
         return math.exp(-self.rate * (self.expiry - time)) * norm.cdf(-d2)
 
     def delta(self,
               spot: (float, np.ndarray),
-              time: float):
+              time_idx: int):
         """1st order price sensitivity wrt the underlying state."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
         return - math.exp(-self.rate * (self.expiry - time)) * norm.pdf(-d2) \
             / (spot * self.vol * math.sqrt(self.expiry - time))
@@ -134,9 +149,12 @@ class BinaryAssetPut(option.VanillaOption):
     def __init__(self,
                  rate: float,
                  vol: float,
+                 event_grid: np.ndarray,
                  strike: float,
-                 expiry: float):
-        super().__init__(rate, vol, strike, expiry)
+                 expiry_idx: int,
+                 dividend: float = 0):
+        super().__init__(rate, vol, event_grid, strike, expiry_idx, dividend)
+
         self._option_type = global_types.InstrumentType.BINARY_ASSET_PUT
 
     @property
@@ -150,15 +168,17 @@ class BinaryAssetPut(option.VanillaOption):
 
     def price(self,
               spot: (float, np.ndarray),
-              time: float):
+              time_idx: int):
         """Price function."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
         return spot * norm.cdf(-d1)
 
     def delta(self,
               spot: (float, np.ndarray),
-              time: float):
+              time_idx: int):
         """1st order price sensitivity wrt the underlying state."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
         return - spot * norm.pdf(-d1) \
             / (spot * self.vol * math.sqrt(self.expiry - time)) + norm.cdf(-d1)

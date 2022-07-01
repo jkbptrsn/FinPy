@@ -5,6 +5,7 @@ from typing import Tuple
 
 import models.sde as sde
 import utils.global_types as global_types
+import utils.misc as misc
 
 
 class SDE(sde.SDE):
@@ -26,6 +27,7 @@ class SDE(sde.SDE):
         self._vol = vol
         self._event_grid = event_grid
         self._dividend = dividend
+
         self._model_name = global_types.ModelName.BLACK_SCHOLES
 
     def __repr__(self) -> str:
@@ -69,14 +71,24 @@ class SDE(sde.SDE):
     def paths(self,
               spot: float,
               n_paths: int,
-              antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+              seed: int = None,
+              antithetic: bool = False) -> np.ndarray:
         """Generate paths represented on _event_grid of equity price
         process using exact discretization.
 
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.
         """
-        pass
+        price = np.zeros((self._event_grid.size, n_paths))
+        price[0] = spot
+        for time_idx in range(1, self._event_grid.size):
+            dt = self._event_grid[time_idx] - self._event_grid[time_idx - 1]
+            realizations = misc.normal_realizations(n_paths, seed, antithetic)
+            price[time_idx] = \
+                price[time_idx - 1] \
+                * np.exp((self._rate - self._vol ** 2 / 2) * dt
+                         + self._vol * math.sqrt(dt) * realizations)
+        return price
 
     def path(self,
              spot: (float, np.ndarray),

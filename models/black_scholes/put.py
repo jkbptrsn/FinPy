@@ -13,10 +13,12 @@ class Put(option.VanillaOption):
     def __init__(self,
                  rate: float,
                  vol: float,
+                 event_grid: np.ndarray,
                  strike: float,
-                 expiry: float,
+                 expiry_idx: int,
                  dividend: float = 0):
-        super().__init__(rate, vol, strike, expiry, dividend)
+        super().__init__(rate, vol, event_grid, strike, expiry_idx, dividend)
+
         self._option_type = global_types.InstrumentType.EUROPEAN_PUT
 
     @property
@@ -36,42 +38,47 @@ class Put(option.VanillaOption):
 
     def price(self,
               spot: (float, np.ndarray),
-              time: float) -> (float, np.ndarray):
+              time_idx: int) -> (float, np.ndarray):
         """Price function."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
-        spot *= np.exp(-self.dividend * (self._expiry - time))
+        spot *= np.exp(-self.dividend * (self.expiry - time))
         return - spot * norm.cdf(-d1) \
             + self.strike * norm.cdf(-d2) \
             * math.exp(-self.rate * (self.expiry - time))
 
     def delta(self,
               spot: (float, np.ndarray),
-              time: float) -> (float, np.ndarray):
+              time_idx: int) -> (float, np.ndarray):
         """1st order price sensitivity wrt the underlying state."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
-        return np.exp(-self.dividend * (self._expiry - time)) \
+        return np.exp(-self.dividend * (self.expiry - time)) \
             * (norm.cdf(d1) - 1)
 
     def gamma(self,
               spot: (float, np.ndarray),
-              time: float) -> (float, np.ndarray):
+              time_idx: int) -> (float, np.ndarray):
         """2st order price sensitivity wrt the underlying state."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
         return math.exp(-self.dividend * (self.expiry - time)) * norm.pdf(d1) \
             / (spot * self.vol * math.sqrt(self.expiry - time))
 
     def rho(self,
             spot: (float, np.ndarray),
-            time: float) -> (float, np.ndarray):
+            time_idx: int) -> (float, np.ndarray):
         """1st order price sensitivity wrt rate."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
         return - self.strike * (self.expiry - time) \
             * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(-d2)
 
     def theta(self,
               spot: (float, np.ndarray),
-              time: float) -> (float, np.ndarray):
+              time_idx: int) -> (float, np.ndarray):
         """1st order price sensitivity wrt time."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
         spot *= math.exp(-self.dividend * (self.expiry - time))
         return - spot * norm.pdf(d1) * self.vol \
@@ -82,7 +89,8 @@ class Put(option.VanillaOption):
 
     def vega(self,
              spot: (float, np.ndarray),
-             time: float) -> (float, np.ndarray):
+             time_idx: int) -> (float, np.ndarray):
         """1st order price sensitivity wrt volatility."""
+        time = self.event_grid[time_idx]
         d1, d2 = self.d1d2(spot, time)
         return spot * norm.pdf(d1) * math.sqrt(self.expiry - time)
