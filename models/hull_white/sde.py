@@ -363,18 +363,6 @@ class SDE(sde.SDE):
         discount_var = self._discount_variance[time_idx]
         return covariance / math.sqrt(rate_var * discount_var)
 
-    def path(self,
-             spot: (float, np.ndarray),
-             time: float,
-             n_paths: int,
-             antithetic: bool = False) -> (float, np.ndarray):
-        pass
-
-    def path_time_grid(self,
-                       spot: float,
-                       time_grid: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        pass
-
     def paths(self,
               spot: float,
               n_paths: int,

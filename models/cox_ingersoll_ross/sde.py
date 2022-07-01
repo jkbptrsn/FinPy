@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from scipy.stats import norm
+from typing import Tuple
 
 import models.sde as sde
 import utils.global_types as global_types
@@ -92,21 +92,6 @@ class SDE(sde.SDE):
         exp_two_kappa = np.exp(- two_kappa * delta_t)
         return spot * vol_sq * (exp_kappa - exp_two_kappa) / self._kappa \
             + self._mean_rate * vol_sq * (1 - exp_kappa) ** 2 / two_kappa
-
-    def path(self,
-             spot: (float, np.ndarray),
-             time: float,
-             n_paths: int,
-             antithetic: bool = False) -> (float, np.ndarray):
-        pass
-
-    def path_time_grid(self,
-                       spot: float,
-                       time_grid: np.ndarray) -> np.ndarray:
-        """Generate one path, represented on time_grid, of
-        Ornstein-Uhlenbeck motion using analytic expression.
-        """
-        pass
 
     def paths(self,
               spot: float,

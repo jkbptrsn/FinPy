@@ -1,7 +1,5 @@
 import math
 import numpy as np
-from scipy.stats import norm
-from typing import Tuple
 
 import models.sde as sde
 import utils.global_types as global_types
@@ -91,27 +89,6 @@ class SDE(sde.SDE):
         mean = self._price_mean[time_idx]
         variance = self._price_variance[time_idx]
         return mean + math.sqrt(variance) * normal_rand
-
-    def path(self,
-             spot: (float, np.ndarray),
-             time: float,
-             n_paths: int,
-             antithetic: bool = False) -> (float, np.ndarray):
-        """Generate paths(s), at t = time, of geometric Brownian motion
-        using analytic expression.
-
-        antithetic : Antithetic sampling for Monte-Carlo variance
-        reduction. Defaults to False.
-        """
-        pass
-
-    def path_grid(self,
-                  spot: float,
-                  time_grid: np.ndarray) -> np.ndarray:
-        """Generate one path, represented on time_grid, of geometric
-        Brownian motion using analytic expression.
-        """
-        pass
 
     def paths(self,
               spot: float,

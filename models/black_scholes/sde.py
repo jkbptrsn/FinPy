@@ -1,6 +1,5 @@
 import math
 import numpy as np
-from scipy.stats import norm
 from typing import Tuple
 
 import models.sde as sde
@@ -94,40 +93,6 @@ class SDE(sde.SDE):
                 * np.exp((self._rate - self._vol ** 2 / 2) * dt
                          + self._vol * math.sqrt(dt) * realizations)
         return price
-
-    def path(self,
-             spot: (float, np.ndarray),
-             time: float,
-             n_paths: int,
-             antithetic: bool = False) -> (float, np.ndarray):
-        """Generate path(s), at t = time, of geometric Brownian motion
-        using analytic expression.
-
-        antithetic : Antithetic sampling for Monte-Carlo variance
-        reduction. Defaults to False.
-        """
-        if antithetic:
-            if n_paths % 2 == 1:
-                raise ValueError("In antithetic sampling, "
-                                 "n_paths should be even.")
-            realizations = norm.rvs(size=n_paths // 2)
-            realizations = np.append(realizations, -realizations)
-        else:
-            realizations = norm.rvs(size=n_paths)
-        return spot * np.exp((self.rate - self.vol ** 2 / 2) * time
-                             + self.vol * math.sqrt(time) * realizations)
-
-    def path_time_grid(self,
-                       spot: float,
-                       time_grid: np.ndarray) -> np.ndarray:
-        """Generate one path, represented on time_grid, of geometric
-        Brownian motion using analytic expression.
-        """
-        dt = time_grid[1:] - time_grid[:-1]
-        spot_moved = spot * np.cumprod(
-            np.exp((self.rate - self.vol ** 2 / 2) * dt
-                   + self.vol * np.sqrt(dt) * norm.rvs(size=dt.shape[0])))
-        return np.append(spot, spot_moved)
 
     def path_wise(self,
                   spot: np.ndarray,
