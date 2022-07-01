@@ -382,8 +382,6 @@ class SDE(sde.SDE):
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.
         """
-        if antithetic and n_paths % 2 == 1:
-            raise ValueError("In antithetic sampling, n_paths should be even.")
         rate = np.zeros((self._event_grid.size, n_paths))
         rate[0, :] = spot
         discount = np.zeros((self._event_grid.size, n_paths))

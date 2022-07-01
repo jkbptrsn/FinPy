@@ -8,9 +8,12 @@ import utils.misc as misc
 
 
 class SDE(sde.SDE):
-    """The SDE for the short rate in the Vasicek model:
+    """SDE for the short rate in the Vasicek model
         dr_t = kappa * (mean_rate - r_t) * dt + vol * dW_t
 
+    - kappa: Speed of mean reversion
+    - mean_rate: Long-time mean
+    - vol: Volatility
     - event_grid: event dates, i.e., trade date, payment dates, etc.
     """
 
@@ -200,8 +203,6 @@ class SDE(sde.SDE):
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.
         """
-        if antithetic and n_paths % 2 == 1:
-            raise ValueError("In antithetic sampling, n_paths should be even.")
         rate = np.zeros((self._event_grid.size, n_paths))
         rate[0, :] = spot
         discount = np.zeros((self._event_grid.size, n_paths))
