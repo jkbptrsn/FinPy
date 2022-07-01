@@ -10,6 +10,11 @@ import utils.global_types as global_types
 class SDE(sde.SDE):
     """SDE for the Black-Scholes model
         dS_t / S_t = (rate - dividend) * dt + vol * dW_t
+
+    - rate: Risk-free interest rate
+    - vol: Volatility
+    - event_grid: event dates, i.e., trade date, payment dates, etc.
+    - dividend: Dividend yield
     """
 
     def __init__(self,
@@ -19,9 +24,9 @@ class SDE(sde.SDE):
                  dividend: float = 0):
         self._rate = rate
         self._vol = vol
-        self._dividend = dividend
         self._event_grid = event_grid
-        self._model_name = global_types.ModelName.BLACk_SCHOLES
+        self._dividend = dividend
+        self._model_name = global_types.ModelName.BLACK_SCHOLES
 
     def __repr__(self) -> str:
         return f"{self._model_name} SDE object"
@@ -31,7 +36,8 @@ class SDE(sde.SDE):
         return self._rate
 
     @rate.setter
-    def rate(self, rate_):
+    def rate(self,
+             rate_: float):
         self._rate = rate_
 
     @property
@@ -39,24 +45,38 @@ class SDE(sde.SDE):
         return self._vol
 
     @vol.setter
-    def vol(self, vol_):
+    def vol(self,
+            vol_: float):
         self._vol = vol_
-
-    @property
-    def dividend(self) -> float:
-        return self._dividend
-
-    @dividend.setter
-    def dividend(self, dividend_):
-        self._dividend = dividend_
 
     @property
     def event_grid(self):
         return self._event_grid
 
     @property
+    def dividend(self) -> float:
+        return self._dividend
+
+    @dividend.setter
+    def dividend(self,
+                 dividend_: float):
+        self._dividend = dividend_
+
+    @property
     def model_name(self) -> str:
         return self._model_name
+
+    def paths(self,
+              spot: float,
+              n_paths: int,
+              antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+        """Generate paths represented on _event_grid of equity price
+        process using exact discretization.
+
+        antithetic : Antithetic sampling for Monte-Carlo variance
+        reduction. Defaults to False.
+        """
+        pass
 
     def path(self,
              spot: (float, np.ndarray),

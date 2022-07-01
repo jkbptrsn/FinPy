@@ -20,9 +20,8 @@ class InstrumentType(Enum):
 
 
 class ModelName(Enum):
-    # TODO: change k to K
-    BLACk_SCHOLES = 1
-    BACHELIER = 2
-    VASICEK = 3
-    CIR = 4
-    HULL_WHITE_1F = 5
+    BACHELIER = 1
+    BLACK_SCHOLES = 2
+    CIR = 3
+    HULL_WHITE_1F = 4
+    VASICEK = 5
