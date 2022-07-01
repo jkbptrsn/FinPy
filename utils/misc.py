@@ -80,18 +80,28 @@ def cholesky_2d(correlation: float,
     """
     corr_matrix = np.array([[1, correlation], [correlation, 1]])
     corr_matrix = np.linalg.cholesky(corr_matrix)
-    if type(seed) == int:
-        np.random.seed(seed)
+    x1 = normal_realizations(n_sets, seed, antithetic)
+    x2 = normal_realizations(n_sets, seed, antithetic)
+    return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
+        corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
+
+
+def normal_realizations(n_realizations: int,
+                        seed: int = None,
+                        antithetic: bool = False) -> np.ndarray:
+    """Realizations of a standard normal random variable."""
+    if antithetic and n_realizations % 2 == 1:
+        raise ValueError("In antithetic sampling, the number of "
+                         "realizations should be even.")
     anti = 1
     if antithetic:
         anti = 2
-    x1 = norm.rvs(size=n_sets // anti)
-    x2 = norm.rvs(size=n_sets // anti)
+    if type(seed) == int:
+        np.random.seed(seed)
+    realizations = norm.rvs(size=n_realizations // anti)
     if antithetic:
-        x1 = np.append(x1, -x1)
-        x2 = np.append(x2, -x2)
-    return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
-        corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
+        realizations = np.append(realizations, -realizations)
+    return realizations
 
 
 def monte_carlo_error(values: np.ndarray) -> float:
