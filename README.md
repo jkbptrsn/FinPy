@@ -18,3 +18,7 @@ Models
     - dr(t) = kappa(t) * [ theta(t) - r(t) ] * dt + vol(t) * dW(t)
   - Cox-Ingersoll-Ross
     - dr(t) = kappa * [ theta - r(t) ] * dt + vol * r(t)^(1/2) * dW(t)
+
+Miscellaneous
+- Best resources for learning Python
+  - Deep Dive 1-4 by Fred Baptiste (udemy courses)
