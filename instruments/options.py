@@ -11,7 +11,8 @@ class VanillaOption(metaclass=abc.ABCMeta):
 
     @strike.setter
     @abc.abstractmethod
-    def strike(self, strike_):
+    def strike(self,
+               strike_: float):
         pass
 
     @property

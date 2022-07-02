@@ -120,8 +120,10 @@ class SDE(sde.SDE):
         """
         price = np.zeros((self._event_grid.size, n_paths))
         price[0] = spot
+        if seed is not None:
+            np.random.seed(seed)
         for time_idx in range(1, self._event_grid.size):
-            realizations = misc.normal_realizations(n_paths, seed, antithetic)
+            realizations = misc.normal_realizations(n_paths, antithetic=antithetic)
             price[time_idx] = price[time_idx - 1] \
                 + self.price_increment(price[time_idx - 1], time_idx,
                                        realizations)

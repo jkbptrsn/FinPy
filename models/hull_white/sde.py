@@ -378,10 +378,12 @@ class SDE(sde.SDE):
         rate = np.zeros((self._event_grid.size, n_paths))
         rate[0, :] = spot
         discount = np.zeros((self._event_grid.size, n_paths))
+        if seed is not None:
+            np.random.seed(seed)
         for time_idx in range(1, self._event_grid.size):
             correlation = self.correlation(time_idx)
             x_rate, x_discount = \
-                misc.cholesky_2d(correlation, n_paths, seed, antithetic)
+                misc.cholesky_2d(correlation, n_paths, antithetic=antithetic)
             rate[time_idx] = rate[time_idx - 1] \
                 + self.rate_increment(rate[time_idx - 1], time_idx, x_rate)
             discount[time_idx] = discount[time_idx - 1] \

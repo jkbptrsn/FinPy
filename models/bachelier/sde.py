@@ -8,23 +8,20 @@ import utils.misc as misc
 
 class SDE(sde.SDE):
     """SDE for the Bachelier model
-        dS_t = (rate - dividend) * dt + vol * dW_t
+        dS_t = rate * dt + vol * dW_t
 
     - rate: Risk-free interest rate
     - vol: Volatility
     - event_grid: Event dates, i.e., trade date, payment dates, etc.
-    - dividend: Dividend yield
     """
 
     def __init__(self,
                  rate: float,
                  vol: float,
-                 event_grid: np.ndarray,
-                 dividend: float = 0):
+                 event_grid: np.ndarray):
         self._rate = rate
         self._vol = vol
         self._event_grid = event_grid
-        self._dividend = dividend
 
         self._model_name = global_types.ModelName.BACHELIER
 
@@ -35,38 +32,31 @@ class SDE(sde.SDE):
         return f"{self._model_name} SDE object"
 
     @property
-    def rate(self):
+    def rate(self) -> float:
         return self._rate
 
     @rate.setter
-    def rate(self, rate_):
+    def rate(self,
+             rate_: float):
         self._rate = rate_
 
     @property
-    def vol(self):
+    def vol(self) -> float:
         return self._vol
 
     @vol.setter
-    def vol(self, vol_):
+    def vol(self,
+            vol_: float):
         self._vol = vol_
 
     @property
-    def event_grid(self):
+    def event_grid(self) -> np.ndarray:
         return self._event_grid
 
     @event_grid.setter
     def event_grid(self,
                    event_grid_: np.ndarray):
         self._event_grid = event_grid_
-
-    @property
-    def dividend(self) -> float:
-        return self._dividend
-
-    @dividend.setter
-    def dividend(self,
-                 dividend_: float):
-        self._dividend = dividend_
 
     @property
     def model_name(self) -> str:
@@ -81,8 +71,7 @@ class SDE(sde.SDE):
 
     def price_mean(self):
         """Conditional mean of stock price process."""
-        self._price_mean[1:] = \
-            (self._rate - self._dividend) * np.diff(self._event_grid)
+        self._price_mean[1:] = self._rate * np.diff(self._event_grid)
 
     def price_variance(self):
         """Conditional variance of stock price process."""
@@ -110,8 +99,11 @@ class SDE(sde.SDE):
         """
         price = np.zeros((self._event_grid.size, n_paths))
         price[0] = spot
+        if seed is not None:
+            np.random.seed(seed)
         for time_idx in range(1, self._event_grid.size):
-            realizations = misc.normal_realizations(n_paths, seed, antithetic)
+            realizations = \
+                misc.normal_realizations(n_paths, antithetic=antithetic)
             price[time_idx] = price[time_idx - 1] \
                 + self.price_increment(time_idx, realizations)
         return price

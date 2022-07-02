@@ -72,7 +72,6 @@ def trapz(grid: np.ndarray,
 
 def cholesky_2d(correlation: float,
                 n_sets: int,
-                seed: int = None,
                 antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
     """Sets of two correlated standard normal random variables using
     Cholesky decomposition. In the 2-D case, the transformation is
@@ -80,14 +79,13 @@ def cholesky_2d(correlation: float,
     """
     corr_matrix = np.array([[1, correlation], [correlation, 1]])
     corr_matrix = np.linalg.cholesky(corr_matrix)
-    x1 = normal_realizations(n_sets, seed, antithetic)
-    x2 = normal_realizations(n_sets, seed, antithetic)
+    x1 = normal_realizations(n_sets, antithetic=antithetic)
+    x2 = normal_realizations(n_sets, antithetic=antithetic)
     return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
         corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
 
 
 def normal_realizations(n_realizations: int,
-                        seed: int = None,
                         antithetic: bool = False) -> np.ndarray:
     """Realizations of a standard normal random variable."""
     if antithetic and n_realizations % 2 == 1:
@@ -96,8 +94,6 @@ def normal_realizations(n_realizations: int,
     anti = 1
     if antithetic:
         anti = 2
-    if type(seed) == int:
-        np.random.seed(seed)
     realizations = norm.rvs(size=n_realizations // anti)
     if antithetic:
         realizations = np.append(realizations, -realizations)

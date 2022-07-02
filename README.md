@@ -19,6 +19,10 @@ Models
   - Cox-Ingersoll-Ross
     - dr(t) = kappa * [ theta - r(t) ] * dt + vol * r(t)^(1/2) * dW(t)
 
+Development
+- PEP 8 style guide
+- Docstring format?
+
 Miscellaneous
 - Best resources for learning Python
-  - Deep Dive 1-4 by Fred Baptiste (udemy courses)
+  - Python Deep Dive 1-4 by Fred Baptiste (udemy courses)

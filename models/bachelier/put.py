@@ -2,67 +2,77 @@ import math
 import numpy as np
 from scipy.stats import norm
 
-import models.black_scholes.option as option
+import models.bachelier.option as option
 import utils.global_types as global_types
 import utils.payoffs as payoffs
 
 
 class Put(option.VanillaOption):
-    """European put option in Black-Scholes model."""
-    # todo: Include dividends
+    """European put option in Bachelier model."""
 
-    def __init__(self, rate, vol, strike, expiry):
-        super().__init__(rate, vol, strike, expiry)
+    def __init__(self,
+                 rate: float,
+                 vol: float,
+                 event_grid: np.ndarray,
+                 strike: float,
+                 expiry_idx: int):
+        super().__init__(rate, vol, event_grid, strike, expiry_idx)
+
         self._option_type = global_types.InstrumentType.EUROPEAN_PUT
 
     @property
-    def option_type(self):
+    def option_type(self) -> global_types.InstrumentType:
         return self._option_type
 
-    def payoff(self, spot: (float, np.ndarray)) -> (float, np.ndarray):
+    def payoff(self,
+               spot: (float, np.ndarray)) -> (float, np.ndarray):
+        """..."""
         return payoffs.put(spot, self.strike)
 
-    def payoff_dds(self, spot: (float, np.ndarray)) -> (float, np.ndarray):
+    def payoff_dds(self,
+                   spot: (float, np.ndarray)) -> (float, np.ndarray):
+        """..."""
         return - payoffs.binary_cash_put(spot, self.strike)
 
     def price(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        d1, d2 = self.d1d2(spot, time)
-        return - spot * norm.cdf(-d1) \
-            + self.strike * norm.cdf(-d2) \
-            * math.exp(-self.rate * (self.expiry - time))
+        """..."""
+        dn = self.dn(spot, time)
+        # Time-to-maturity
+        ttm = self.expiry - time
+        # Discount factor
+        discount = math.exp(-self.rate * ttm)
+        return discount \
+            * ((self.strike - spot) * norm.cdf(-dn)
+               + self.vol * math.sqrt(self.expiry - time) * norm.pdf(dn))
 
     def delta(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        d1, d2 = self.d1d2(spot, time)
-        return norm.cdf(d1) - 1
+        """..."""
+        pass
 
     def gamma(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        d1, d2 = self.d1d2(spot, time)
-        return norm.pdf(d1) / (spot * self.vol * math.sqrt(self.expiry - time))
+        """..."""
+        pass
 
     def vega(self,
              spot: (float, np.ndarray),
              time: float) -> (float, np.ndarray):
-        d1, d2 = self.d1d2(spot, time)
-        return spot * norm.pdf(d1) * math.sqrt(self.expiry - time)
+        """..."""
+        pass
 
     def theta(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        d1, d2 = self.d1d2(spot, time)
-        return - spot * norm.pdf(d1) * self.vol \
-            / (2 * math.sqrt(self.expiry - time)) \
-            + self.rate * self.strike \
-            * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(-d2)
+        """..."""
+        pass
 
     def rho(self,
             spot: (float, np.ndarray),
             time: float) -> (float, np.ndarray):
-        d1, d2 = self.d1d2(spot, time)
-        return - self.strike * (self.expiry - time) \
-            * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(-d2)
+        """..."""
+        pass
