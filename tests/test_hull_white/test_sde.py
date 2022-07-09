@@ -138,8 +138,12 @@ if __name__ == '__main__':
     kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
 
     # Volatility strip
+#    vol = np.array([np.arange(10),
+#                    0.003 * np.array([3, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
+
     vol = np.array([np.arange(10),
-                    0.003 * np.array([1, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
+                0.003 * np.array([2, 2, 2, 2, 2, 2, 2, 2, 2, 2])])
+
     vol = misc.DiscreteFunc("vol", vol[0], vol[1])
 
     # Plot Monte-Carlo scenarios
@@ -164,13 +168,44 @@ if __name__ == '__main__':
     expiry_idx = 5
     call = call.Call(kappa, vol, discount_curve, event_grid,
                      strike, expiry_idx, maturity_idx)
-    # SDE object
+    # SDE objects
     n_paths = 10000
-    np.random.seed(0)
-    hull_white = sde.SDE(kappa, vol, discount_curve, event_grid)
+    hull_white = sde.SDE(kappa, vol, discount_curve, event_grid) #, int_step_size=0.001)
     hull_white.initialization()
+
+    hull_white_const = sde.SDEConstant(kappa, vol, discount_curve, event_grid)
+    hull_white_const.initialization()
+
     # Pseudo rate and discount factors
-    rate_pseudo, discount_pseudo = hull_white.paths(0, n_paths)
+    rate_pseudo, discount_pseudo = hull_white.paths(0, n_paths, seed=0)
+    rate_pseudo_const, discount_pseudo_const = hull_white_const.paths(0, n_paths, seed=0)
+
+    print("Rate mean:")
+    for n in range(hull_white.event_grid.size):
+        print(n, hull_white._rate_mean[n], hull_white_const.rate_mean[n],
+              np.abs((hull_white._rate_mean[n] - hull_white_const.rate_mean[n]) / hull_white_const.rate_mean[n]) )
+    print("Rate variance:")
+    for n in range(hull_white.event_grid.size):
+        print(n, hull_white._rate_variance[n], hull_white_const.rate_variance[n],
+              np.abs((hull_white._rate_variance[n] - hull_white_const.rate_variance[n]) / hull_white_const.rate_variance[n]))
+    print("Discount mean:")
+    for n in range(hull_white.event_grid.size):
+        print(n, hull_white._discount_mean[n], hull_white_const.discount_mean[n],
+              np.abs((hull_white._discount_mean[n] - hull_white_const.discount_mean[n]) / hull_white_const.discount_mean[n]))
+    print("Discount variance:")
+    for n in range(hull_white.event_grid.size):
+        print(n, hull_white._discount_variance[n], hull_white_const.discount_variance[n],
+              np.abs((hull_white._discount_variance[n] - hull_white_const.discount_variance[n]) / hull_white_const.discount_variance[n]))
+
+    print("Covariance:")
+    for n in range(hull_white.event_grid.size):
+        print(n, hull_white._covariance[n], hull_white_const.covariance[n],
+              np.abs((hull_white._covariance[n] - hull_white_const.covariance[n]) / hull_white_const.covariance[n]))
+
+#    print("Trajectories:")
+#    for n in range(n_paths):
+#        print(n, rate_pseudo[:, n], rate_pseudo_const[:, n])
+
     # Zero-coupon bond object
     bond = \
         zcbond.ZCBond(kappa, vol, discount_curve, event_grid, maturity_idx)
@@ -194,6 +229,14 @@ if __name__ == '__main__':
         payoff = np.maximum(bond_price - strike, 0)
         call_price_n = np.sum(discount * payoff) / n_paths
         diff = abs(call_price_a - call_price_n) / call_price_a
-        print(s, call_price_a, call_price_n, diff)
+
+        discount = \
+            discount_pseudo_const[expiry_idx, :] * discount_curve.values[expiry_idx]
+        bond_price = bond.price(rate_pseudo_const[expiry_idx, :], expiry_idx)
+        payoff = np.maximum(bond_price - strike, 0)
+        call_price_n_const = np.sum(discount * payoff) / n_paths
+        diff_const = abs(call_price_a - call_price_n_const) / call_price_a
+
+        print(s, call_price_a, call_price_n, diff, call_price_n_const, diff_const)
 
     unittest.main()
