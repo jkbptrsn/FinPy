@@ -71,7 +71,7 @@ class Call(options.VanillaOption):
         self._zcbond.maturity_idx = self.maturity_idx
         price2 = self._zcbond.price(spot, event_idx)
 
-        self.integration_grid()
+        self.setup_int_grid()
         int_event_idx1 = self.int_event_idx[event_idx]
         int_event_idx2 = self.int_event_idx[self.expiry_idx]
         int_grid = self.int_grid[int_event_idx1:int_event_idx2 + 1]

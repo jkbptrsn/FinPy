@@ -41,18 +41,18 @@ class ZCBond(bonds.Bond):
         # P(0,T)
         price2 = self.discount_curve.values[self.maturity_idx]
         # Integration indices of two adjacent event dates
-        int_idx1 = self._int_event_idx[event_idx]
-        int_idx2 = self._int_event_idx[self.maturity_idx] + 1
+        int_idx1 = self.int_event_idx[event_idx]
+        int_idx2 = self.int_event_idx[self.maturity_idx] + 1
         # Slice of integration grid
-        int_grid = self._int_grid[int_idx1:int_idx2]
+        int_grid = self.int_grid[int_idx1:int_idx2]
 
         # Slice of time-integrated kappa for each integration step
-        self.kappa_vol_y()
-        int_kappa = self._int_kappa_step[int_idx1:int_idx2]
-        self._kappa_int_grid = None
-        self._vol_int_grid = None
-        self._y_int_grid = None
-        self._int_kappa_step = None
+        self.setup_kappa_vol_y()
+        int_kappa = self.int_kappa_step[int_idx1:int_idx2]
+        self.kappa_int_grid = None
+        self.vol_int_grid = None
+        self.y_int_grid = None
+        self.int_kappa_step = None
 
         # G-function
         # Eq. (10.18), L.B.G. Andersen & V.V. Piterbarg 2010

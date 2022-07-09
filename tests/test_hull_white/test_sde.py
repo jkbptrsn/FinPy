@@ -34,8 +34,8 @@ class SDE(unittest.TestCase):
         vol = misc.DiscreteFunc("vol", vol[0], vol[1])
         # SDE object
         hull_white = sde.SDE(kappa, vol, discount_curve, event_grid)
-        hull_white.integration_grid()
-        hull_white.kappa_vol_y()
+        hull_white.setup_int_grid()
+        hull_white.setup_kappa_vol_y()
         for idx, y_numerical in enumerate(hull_white.y_event_grid):
             diff = y_analytical[idx] - y_numerical
 #            print("test y-function: ", abs(diff))
@@ -182,25 +182,25 @@ if __name__ == '__main__':
 
     print("Rate mean:")
     for n in range(hull_white.event_grid.size):
-        print(n, hull_white._rate_mean[n], hull_white_const.rate_mean[n],
-              np.abs((hull_white._rate_mean[n] - hull_white_const.rate_mean[n]) / hull_white_const.rate_mean[n]) )
+        print(n, hull_white.rate_mean[n], hull_white_const.rate_mean[n],
+              np.abs((hull_white.rate_mean[n] - hull_white_const.rate_mean[n]) / hull_white_const.rate_mean[n]) )
     print("Rate variance:")
     for n in range(hull_white.event_grid.size):
-        print(n, hull_white._rate_variance[n], hull_white_const.rate_variance[n],
-              np.abs((hull_white._rate_variance[n] - hull_white_const.rate_variance[n]) / hull_white_const.rate_variance[n]))
+        print(n, hull_white.rate_variance[n], hull_white_const.rate_variance[n],
+              np.abs((hull_white.rate_variance[n] - hull_white_const.rate_variance[n]) / hull_white_const.rate_variance[n]))
     print("Discount mean:")
     for n in range(hull_white.event_grid.size):
-        print(n, hull_white._discount_mean[n], hull_white_const.discount_mean[n],
-              np.abs((hull_white._discount_mean[n] - hull_white_const.discount_mean[n]) / hull_white_const.discount_mean[n]))
+        print(n, hull_white.discount_mean[n], hull_white_const.discount_mean[n],
+              np.abs((hull_white.discount_mean[n] - hull_white_const.discount_mean[n]) / hull_white_const.discount_mean[n]))
     print("Discount variance:")
     for n in range(hull_white.event_grid.size):
-        print(n, hull_white._discount_variance[n], hull_white_const.discount_variance[n],
-              np.abs((hull_white._discount_variance[n] - hull_white_const.discount_variance[n]) / hull_white_const.discount_variance[n]))
+        print(n, hull_white.discount_variance[n], hull_white_const.discount_variance[n],
+              np.abs((hull_white.discount_variance[n] - hull_white_const.discount_variance[n]) / hull_white_const.discount_variance[n]))
 
     print("Covariance:")
     for n in range(hull_white.event_grid.size):
-        print(n, hull_white._covariance[n], hull_white_const.covariance[n],
-              np.abs((hull_white._covariance[n] - hull_white_const.covariance[n]) / hull_white_const.covariance[n]))
+        print(n, hull_white.covariance[n], hull_white_const.covariance[n],
+              np.abs((hull_white.covariance[n] - hull_white_const.covariance[n]) / hull_white_const.covariance[n]))
 
 #    print("Trajectories:")
 #    for n in range(n_paths):
