@@ -4,7 +4,7 @@ import unittest
 
 import models.hull_white.sde as sde
 import models.hull_white.zero_coupon_bond as zcbond
-import models.hull_white.call as call
+import models.hull_white.call_option as call
 import utils.misc as misc
 
 
@@ -247,7 +247,7 @@ class SDE(unittest.TestCase):
                                   discount_curve, interp_scheme="linear")
             # Update discount curves
             call_1.discount_curve = discount_curve
-            call_1._zcbond.discount_curve = discount_curve
+            call_1.zcbond.discount_curve = discount_curve
             bond.discount_curve = discount_curve
             # Call option price, analytical
             call_price_a = call_1.price(0, 0)
@@ -317,7 +317,7 @@ class SDE(unittest.TestCase):
                                   discount_curve, interp_scheme="linear")
             # Update discount curves
             call_1.discount_curve = discount_curve
-            call_1._zcbond.discount_curve = discount_curve
+            call_1.zcbond.discount_curve = discount_curve
             bond.discount_curve = discount_curve
             # Call option price, analytical
             call_price_a = call_1.price(0, 0)

@@ -2,16 +2,19 @@ import math
 import numpy as np
 from scipy.stats import norm
 
+import models.options as options
+import models.hull_white.sde as sde
 import models.hull_white.zero_coupon_bond as zcbond
-import models.hull_white.options as options
 import utils.global_types as global_types
 import utils.misc as misc
 import utils.payoffs as payoffs
 
 
-class Call(options.VanillaOption):
+class Call(sde.SDE, options.VanillaOption):
     """European call option written on zero-coupon bond in Hull-White
     model.
+
+    Note: Assuming that speed of mean reversion is constant.
     """
 
     def __init__(self,
@@ -21,55 +24,41 @@ class Call(options.VanillaOption):
                  event_grid: np.ndarray,
                  strike: float,
                  expiry_idx: int,
-                 maturity_idx: int):
-        super().__init__(kappa, vol, discount_curve,
-                         event_grid, strike, expiry_idx)
-        self._maturity_idx = maturity_idx
+                 maturity_idx: int,
+                 int_step_size: float = 1 / 365):
+        super().__init__(kappa, vol, discount_curve, event_grid, int_step_size)
+        self.strike = strike
+        self.expiry_idx = expiry_idx
+        self.maturity_idx = maturity_idx
 
-        self._option_type = global_types.InstrumentType.EUROPEAN_CALL
+        self.option_type = global_types.InstrumentType.EUROPEAN_CALL
 
-        self._zcbond = \
+        self.zcbond = \
             zcbond.ZCBond(kappa, vol, discount_curve, event_grid, maturity_idx)
 
     @property
-    def option_type(self) -> global_types.InstrumentType:
-        return self._option_type
+    def expiry(self) -> float:
+        return self.event_grid[self.expiry_idx]
 
     @property
     def maturity(self) -> float:
-        return self.event_grid[self._maturity_idx]
-
-    @property
-    def maturity_idx(self) -> int:
-        return self._maturity_idx
-
-    @maturity_idx.setter
-    def maturity_idx(self,
-                     maturity_idx_: int):
-        self._maturity_idx = maturity_idx_
+        return self.event_grid[self.maturity_idx]
 
     def payoff(self,
                spot: (float, np.ndarray)) -> (float, np.ndarray):
         """Payoff function."""
         return payoffs.call(spot, self.strike)
 
-    def payoff_dds(self,
-                   spot: (float, np.ndarray)) -> (float, np.ndarray):
-        """1st order partial derivative of payoff function wrt the
-        underlying state."""
-        return payoffs.binary_cash_call(spot, self.strike)
-
     def price(self,
               spot: (float, np.ndarray),
               event_idx: int) -> (float, np.ndarray):
-        """Price function:
+        """Price function.
         Proposition 4.5.1, L.B.G. Andersen & V.V. Piterbarg 2010.
-        Assuming speed of mean reversion is constant...
         """
-        self._zcbond.maturity_idx = self.expiry_idx
-        price1 = self._zcbond.price(spot, event_idx)
-        self._zcbond.maturity_idx = self.maturity_idx
-        price2 = self._zcbond.price(spot, event_idx)
+        self.zcbond.maturity_idx = self.expiry_idx
+        price1 = self.zcbond.price(spot, event_idx)
+        self.zcbond.maturity_idx = self.maturity_idx
+        price2 = self.zcbond.price(spot, event_idx)
 
         self.setup_int_grid()
         int_event_idx1 = self.int_event_idx[event_idx]
