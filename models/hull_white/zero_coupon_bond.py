@@ -1,13 +1,13 @@
-import math
 import numpy as np
 
-import models.hull_white.bonds as bonds
+import models.bonds as bonds
+import models.hull_white.sde as sde
 import utils.global_types as global_types
 import utils.misc as misc
 import utils.payoffs as payoffs
 
 
-class ZCBond(bonds.Bond):
+class ZCBond(sde.SDE, bonds.Bond):
     """Zero-coupon bond class in Hull-White model."""
 
     def __init__(self,
@@ -15,17 +15,23 @@ class ZCBond(bonds.Bond):
                  vol: misc.DiscreteFunc,
                  discount_curve: misc.DiscreteFunc,
                  event_grid: np.ndarray,
-                 maturity_idx: int):
-        super().__init__(kappa, vol, discount_curve, event_grid, maturity_idx)
-        self._bond_type = global_types.InstrumentType.ZERO_COUPON_BOND
+                 maturity_idx: int,
+                 int_step_size: float = 1 / 365):
+        super().__init__(kappa, vol, discount_curve, event_grid, int_step_size)
+        self.maturity_idx = maturity_idx
+
+        # Initialize SDE object
+        self.initialization()
+
+        self.bond_type = global_types.InstrumentType.ZERO_COUPON_BOND
 
     @property
-    def bond_type(self) -> global_types.InstrumentType:
-        return self._bond_type
+    def maturity(self) -> float:
+        return self.event_grid[self.maturity_idx]
 
-    @staticmethod
-    def payoff(spot: (float, np.ndarray)) -> (float, np.ndarray):
-        """Payoff function."""
+    def payoff(self,
+               spot: (float, np.ndarray)) -> (float, np.ndarray):
+        """Payoff of zero coupon bond."""
         return payoffs.zero_coupon_bond(spot)
 
     def price(self,
