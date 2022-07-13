@@ -12,34 +12,6 @@ import utils.misc as misc
 class SDE(unittest.TestCase):
     # TODO: test of Monte-Carlo error
 
-    def test_getters_and_setters(self):
-        """Test getters and setters of Vasicek SDE class."""
-        kappa = 0.1
-        mean_rate = 0.03
-        vol = 0.05
-        event_grid = np.arange(10)
-        vasicek_sde = sde.SDE(kappa, mean_rate, vol, event_grid)
-        self.assertEqual(vasicek_sde.kappa, kappa)
-        self.assertEqual(vasicek_sde.mean_rate, mean_rate)
-        self.assertEqual(vasicek_sde.vol, vol)
-        self.assertTrue(np.array_equal(vasicek_sde.event_grid, event_grid))
-        kappa += 1
-        mean_rate += 1
-        vol += 1
-        event_grid += 1
-        self.assertNotEqual(vasicek_sde.kappa, kappa)
-        self.assertNotEqual(vasicek_sde.mean_rate, mean_rate)
-        self.assertNotEqual(vasicek_sde.vol, vol)
-        self.assertTrue(np.array_equal(vasicek_sde.event_grid, event_grid))
-        vasicek_sde.kappa = kappa
-        vasicek_sde.mean_rate = mean_rate
-        vasicek_sde.vol = vol
-        vasicek_sde.event_grid = event_grid
-        self.assertEqual(vasicek_sde.kappa, kappa)
-        self.assertEqual(vasicek_sde.mean_rate, mean_rate)
-        self.assertEqual(vasicek_sde.vol, vol)
-        self.assertTrue(np.array_equal(vasicek_sde.event_grid, event_grid))
-
     def test_zero_coupon_bond_pricing(self):
         """Compare Monte-Carlo pricing of zero-coupon bond with
         analytical result.
