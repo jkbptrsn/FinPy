@@ -162,7 +162,7 @@ if __name__ == '__main__':
     put_price_n_std = spot_vector_ * 0
     put_price_a = spot_vector_ * 0
     np.random.seed(0)
-    n_paths_ = 100
+    n_paths_ = 200
     for idx, s in enumerate(spot_vector_):
         # Integration until maturity_
         vasicek_sde.event_grid = np.array([0, maturity_])

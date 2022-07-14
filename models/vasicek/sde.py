@@ -29,11 +29,11 @@ class SDE(sde.SDE):
 
         self.model_name = global_types.ModelName.VASICEK
 
-        self._rate_mean = np.zeros((self.event_grid.size, 2))
-        self._rate_variance = np.zeros(self.event_grid.size)
-        self._discount_mean = np.zeros((self.event_grid.size, 2))
-        self._discount_variance = np.zeros(self.event_grid.size)
-        self._covariance = np.zeros(self.event_grid.size)
+        self.rate_mean = np.zeros((self.event_grid.size, 2))
+        self.rate_variance = np.zeros(self.event_grid.size)
+        self.discount_mean = np.zeros((self.event_grid.size, 2))
+        self.discount_variance = np.zeros(self.event_grid.size)
+        self.covariance = np.zeros(self.event_grid.size)
 
     def __repr__(self):
         return f"{self.model_name} SDE object"
@@ -42,28 +42,28 @@ class SDE(sde.SDE):
         """Initialize the Monte-Carlo engine by calculating mean and
         variance of the short rate and discount processes, respectively.
         """
-        self.rate_mean()
-        self.rate_variance()
-        self.discount_mean()
-        self.discount_variance()
-        self.covariance()
+        self.calc_rate_mean()
+        self.calc_rate_variance()
+        self.calc_discount_mean()
+        self.calc_discount_variance()
+        self.calc_covariance()
 
-    def rate_mean(self):
+    def calc_rate_mean(self):
         """Conditional mean of short rate process.
         Eq. (10.12), L.B.G. Andersen & V.V. Piterbarg 2010.
         """
         exp_kappa = np.exp(-self.kappa * np.diff(self.event_grid))
-        self._rate_mean[0, 0] = 1
-        self._rate_mean[1:, 0] = exp_kappa
-        self._rate_mean[1:, 1] = self.mean_rate * (1 - exp_kappa)
+        self.rate_mean[0, 0] = 1
+        self.rate_mean[1:, 0] = exp_kappa
+        self.rate_mean[1:, 1] = self.mean_rate * (1 - exp_kappa)
 
-    def rate_variance(self):
+    def calc_rate_variance(self):
         """Conditional variance of short rate process.
         Eq. (10.13), L.B.G. Andersen & V.V. Piterbarg 2010.
         """
         two_kappa = 2 * self.kappa
         exp_two_kappa = np.exp(-two_kappa * np.diff(self.event_grid))
-        self._rate_variance[1:] = \
+        self.rate_variance[1:] = \
             self.vol ** 2 * (1 - exp_two_kappa) / two_kappa
 
     def rate_increment(self,
@@ -74,12 +74,11 @@ class SDE(sde.SDE):
         """Increment short rate process (the spot rate is subtracted to
         get the increment).
         """
-        mean = \
-            self._rate_mean[time_idx, 0] * spot + self._rate_mean[time_idx, 1]
-        variance = self._rate_variance[time_idx]
+        mean = self.rate_mean[time_idx, 0] * spot + self.rate_mean[time_idx, 1]
+        variance = self.rate_variance[time_idx]
         return mean + math.sqrt(variance) * normal_rand - spot
 
-    def discount_mean(self):
+    def calc_discount_mean(self):
         """Conditional mean of discount process, i.e.,
         -int_t^{t+dt} r_u du.
         Eq. (10.12+), L.B.G. Andersen & V.V. Piterbarg 2010.
@@ -87,10 +86,10 @@ class SDE(sde.SDE):
         dt = np.diff(self.event_grid)
         exp_kappa = np.exp(-self.kappa * dt)
         exp_kappa = (1 - exp_kappa) / self.kappa
-        self._discount_mean[1:, 0] = -exp_kappa
-        self._discount_mean[1:, 1] = self.mean_rate * (exp_kappa - dt)
+        self.discount_mean[1:, 0] = -exp_kappa
+        self.discount_mean[1:, 1] = self.mean_rate * (exp_kappa - dt)
 
-    def discount_variance(self):
+    def calc_discount_variance(self):
         """Conditional variance of discount process, i.e.,
         -int_t^{t+dt} r_u du.
         Eq. (10.13+), L.B.G. Andersen & V.V. Piterbarg 2010.
@@ -101,7 +100,7 @@ class SDE(sde.SDE):
         two_kappa = 2 * self.kappa
         exp_two_kappa = np.exp(-two_kappa * dt)
         kappa_cubed = self.kappa ** 3
-        self._discount_variance[1:] = \
+        self.discount_variance[1:] = \
             vol_sq * (4 * exp_kappa - 3 + two_kappa * dt
                       - exp_two_kappa) / (2 * kappa_cubed)
 
@@ -111,12 +110,12 @@ class SDE(sde.SDE):
                            normal_rand: (float, np.ndarray)) \
             -> (float, np.ndarray):
         """Increment discount process."""
-        mean = self._discount_mean[time_idx, 0] * rate_spot \
-            + self._discount_mean[time_idx, 1]
-        variance = self._discount_variance[time_idx]
+        mean = self.discount_mean[time_idx, 0] * rate_spot \
+            + self.discount_mean[time_idx, 1]
+        variance = self.discount_variance[time_idx]
         return mean + math.sqrt(variance) * normal_rand
 
-    def covariance(self):
+    def calc_covariance(self):
         """Covariance between between short rate and discount processes.
         Lemma 10.1.11, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
@@ -125,7 +124,7 @@ class SDE(sde.SDE):
         kappa_sq = self.kappa ** 2
         exp_kappa = np.exp(-self.kappa * dt)
         exp_two_kappa = np.exp(-2 * self.kappa * dt)
-        self._covariance[1:] = \
+        self.covariance[1:] = \
             vol_sq * (2 * exp_kappa - exp_two_kappa - 1) / (2 * kappa_sq)
 
     def correlation(self,
@@ -133,9 +132,9 @@ class SDE(sde.SDE):
         """Correlation between between short rate and discount
         processes.
         """
-        covariance = self._covariance[time_idx]
-        rate_var = self._rate_variance[time_idx]
-        discount_var = self._discount_variance[time_idx]
+        covariance = self.covariance[time_idx]
+        rate_var = self.rate_variance[time_idx]
+        discount_var = self.discount_variance[time_idx]
         return covariance / math.sqrt(rate_var * discount_var)
 
     def paths(self,
