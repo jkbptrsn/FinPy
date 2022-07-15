@@ -11,7 +11,7 @@ import models.bachelier.put as ba_put
 import models.vasicek.zero_coupon_bond as va_bond
 import models.vasicek.call_option as va_call
 import models.vasicek.put_option as va_put
-import models.cox_ingersoll_ross.zcbond as cir_bond
+import models.cox_ingersoll_ross.zero_coupon_bond as cir_bond
 import utils.plots as plots
 
 import numerical_methods.finite_difference.theta as theta

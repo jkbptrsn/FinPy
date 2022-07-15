@@ -24,52 +24,15 @@ class SDE(sde.SDE):
                  mean_rate: float,
                  vol: float,
                  event_grid: np.ndarray):
-        self._kappa = kappa
-        self._mean_rate = mean_rate
-        self._vol = vol
-        self._event_grid = event_grid
+        self.kappa = kappa
+        self.mean_rate = mean_rate
+        self.vol = vol
+        self.event_grid = event_grid
 
-        self._model_name = global_types.ModelName.CIR
+        self.model_name = global_types.ModelName.CIR
 
     def __repr__(self):
-        return f"{self._model_name} SDE object"
-
-    @property
-    def kappa(self) -> float:
-        return self._kappa
-
-    @kappa.setter
-    def kappa(self, kappa_):
-        self._kappa = kappa_
-
-    @property
-    def mean_rate(self) -> float:
-        return self._mean_rate
-
-    @mean_rate.setter
-    def mean_rate(self, mean_rate_):
-        self._mean_rate = mean_rate_
-
-    @property
-    def vol(self) -> float:
-        return self._vol
-
-    @vol.setter
-    def vol(self, vol_):
-        self._vol = vol_
-
-    @property
-    def event_grid(self) -> np.ndarray:
-        return self._event_grid
-
-    @event_grid.setter
-    def event_grid(self,
-                   event_grid_: np.ndarray):
-        self._event_grid = event_grid_
-
-    @property
-    def model_name(self) -> global_types.ModelName:
-        return self._model_name
+        return f"{self.model_name} SDE object"
 
     def rate_mean(self,
                   spot: (float, np.ndarray),
@@ -77,8 +40,8 @@ class SDE(sde.SDE):
         """Conditional mean of short rate process.
         Eq. (3.23), Brigo & Mercurio 2007.
         """
-        exp_kappa = math.exp(- self._kappa * delta_t)
-        return spot * exp_kappa + self._mean_rate * (1 - exp_kappa)
+        exp_kappa = math.exp(- self.kappa * delta_t)
+        return spot * exp_kappa + self.mean_rate * (1 - exp_kappa)
 
     def rate_variance(self,
                       spot: float,
@@ -86,12 +49,12 @@ class SDE(sde.SDE):
         """Conditional variance of short rate process.
         Eq. (3.23), Brigo & Mercurio 2007.
         """
-        vol_sq = self._vol ** 2
-        two_kappa = 2 * self._kappa
-        exp_kappa = np.exp(- self._kappa * delta_t)
+        vol_sq = self.vol ** 2
+        two_kappa = 2 * self.kappa
+        exp_kappa = np.exp(- self.kappa * delta_t)
         exp_two_kappa = np.exp(- two_kappa * delta_t)
-        return spot * vol_sq * (exp_kappa - exp_two_kappa) / self._kappa \
-            + self._mean_rate * vol_sq * (1 - exp_kappa) ** 2 / two_kappa
+        return spot * vol_sq * (exp_kappa - exp_two_kappa) / self.kappa \
+            + self.mean_rate * vol_sq * (1 - exp_kappa) ** 2 / two_kappa
 
     def paths(self,
               spot: float,

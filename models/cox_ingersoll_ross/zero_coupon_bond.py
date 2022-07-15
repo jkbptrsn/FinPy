@@ -1,11 +1,13 @@
 import numpy as np
 
-import models.cox_ingersoll_ross.bonds as bonds
+import models.bonds as bonds
+import models.cox_ingersoll_ross.misc as misc
+import models.cox_ingersoll_ross.sde as sde
 import utils.global_types as global_types
 import utils.payoffs as payoffs
 
 
-class ZCBond(bonds.Bond):
+class ZCBond(sde.SDE, bonds.Bond):
     """Zero-coupon bond in CIR model."""
 
     def __init__(self,
@@ -14,35 +16,36 @@ class ZCBond(bonds.Bond):
                  vol: float,
                  event_grid: np.ndarray,
                  maturity_idx: int):
-        super().__init__(kappa, mean_rate, vol, event_grid, maturity_idx)
+        super().__init__(kappa, mean_rate, vol, event_grid)
+        self.maturity_idx = maturity_idx
 
-        self._bond_type = global_types.InstrumentType.ZERO_COUPON_BOND
+        self.bond_type = global_types.InstrumentType.ZERO_COUPON_BOND
 
     @property
-    def bond_type(self) -> global_types.InstrumentType:
-        return self._bond_type
+    def maturity(self) -> float:
+        return self.event_grid[self.maturity_idx]
 
     def a_factor(self,
                  time: float) -> float:
         """Eq. (3.25), Brigo & Mercurio 2007."""
-        return bonds.a_factor(time, self.maturity, self.kappa,
-                              self.mean_rate, self.vol)
+        return misc.a_factor(time, self.maturity, self.kappa,
+                             self.mean_rate, self.vol)
 
     def b_factor(self,
                  time: float) -> float:
         """Eq. (3.25), Brigo & Mercurio 2007."""
-        return bonds.b_factor(time, self.maturity, self.kappa, self.vol)
+        return misc.b_factor(time, self.maturity, self.kappa, self.vol)
 
     def dadt(self,
              time: float) -> float:
         """Time derivative of A: Eq. (3.8), Brigo & Mercurio 2007."""
-        return bonds.dadt(time, self.maturity, self.kappa,
-                          self.mean_rate, self.vol)
+        return misc.dadt(time, self.maturity, self.kappa,
+                         self.mean_rate, self.vol)
 
     def dbdt(self,
              time: float) -> float:
         """Time derivative of B: Eq. (3.8), Brigo & Mercurio 2007."""
-        return bonds.dbdt(time, self.maturity, self.kappa, self.vol)
+        return misc.dbdt(time, self.maturity, self.kappa, self.vol)
 
     def payoff(self,
                spot: (float, np.ndarray)) -> (float, np.ndarray):
