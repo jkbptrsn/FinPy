@@ -15,17 +15,20 @@ class SDE(sde.SDE):
     - mean_rate: Long-time mean
     - vol: Volatility
     - event_grid: event dates, i.e., trade date, payment dates, etc.
+    - int_step_size: Integration/propagation step size
     """
 
     def __init__(self,
                  kappa: float,
                  mean_rate: float,
                  vol: float,
-                 event_grid: np.ndarray):
+                 event_grid: np.ndarray,
+                 int_step_size: float = 1 / 365):
         self.kappa = kappa
         self.mean_rate = mean_rate
         self.vol = vol
         self.event_grid = event_grid
+        self.int_step_size = int_step_size
 
         self.model_name = global_types.ModelName.VASICEK
 

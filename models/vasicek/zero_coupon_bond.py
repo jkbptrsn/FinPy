@@ -1,11 +1,13 @@
+import math
 import numpy as np
 
-import models.vasicek.bonds as bonds
+import models.bonds as bonds
+import models.vasicek.sde as sde
 import utils.global_types as global_types
 import utils.payoffs as payoffs
 
 
-class ZCBond(bonds.Bond):
+class ZCBond(sde.SDE, bonds.Bond):
     """Zero-coupon bond in Vasicek model."""
 
     def __init__(self,
@@ -13,39 +15,51 @@ class ZCBond(bonds.Bond):
                  mean_rate: float,
                  vol: float,
                  event_grid: np.ndarray,
-                 maturity_idx: int):
-        super().__init__(kappa, mean_rate, vol, event_grid, maturity_idx)
-        self._bond_type = global_types.InstrumentType.ZERO_COUPON_BOND
+                 maturity_idx: int,
+                 int_step_size: float = 1 / 365):
+        super().__init__(kappa, mean_rate, vol, event_grid, int_step_size)
+        self.maturity_idx = maturity_idx
+
+        self.bond_type = global_types.InstrumentType.ZERO_COUPON_BOND
 
     @property
-    def bond_type(self) -> global_types.InstrumentType:
-        return self._bond_type
+    def maturity(self) -> float:
+        return self.event_grid[self.maturity_idx]
 
     def a_factor(self,
                  time: float) -> float:
         """Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010."""
-        return bonds.a_factor(time, self.maturity, self.kappa,
-                              self.mean_rate, self.vol)
+        vol_sq = self.vol ** 2
+        four_kappa = 4 * self.kappa
+        two_kappa_sq = 2 * self.kappa ** 2
+        b = self.b_factor(time)
+        return (self.mean_rate - vol_sq / two_kappa_sq) \
+            * (b - (self.maturity - time)) - vol_sq * b ** 2 / four_kappa
 
     def b_factor(self,
                  time: float) -> float:
         """Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010."""
-        return bonds.b_factor(time, self.maturity, self.kappa)
+        return \
+            (1 - math.exp(- self.kappa * (self.maturity - time))) / self.kappa
 
     def dadt(self,
              time: float) -> float:
         """Time derivative of A
         Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        return bonds.dadt(time, self.maturity, self.kappa,
-                          self.mean_rate, self.vol)
+        vol_sq = self.vol ** 2
+        two_kappa = 2 * self.kappa
+        two_kappa_sq = 2 * self.kappa ** 2
+        db = self.dbdt(time)
+        return (self.mean_rate - vol_sq / two_kappa_sq) * (db + 1) \
+            - vol_sq * self.b_factor(time) * db / two_kappa
 
     def dbdt(self,
              time: float) -> float:
         """Time derivative of B
         Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        return bonds.dbdt(time, self.maturity, self.kappa)
+        return -math.exp(-self.kappa * (self.maturity - time))
 
     def payoff(self,
                spot: (float, np.ndarray)) -> (float, np.ndarray):
