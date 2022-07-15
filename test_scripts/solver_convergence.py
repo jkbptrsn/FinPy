@@ -9,8 +9,8 @@ import models.black_scholes.put as bs_put
 import models.bachelier.call as ba_call
 import models.bachelier.put as ba_put
 import models.vasicek.zero_coupon_bond as va_bond
-import models.vasicek.call as va_call
-import models.vasicek.put as va_put
+import models.vasicek.call_option as va_call
+import models.vasicek.put_option as va_put
 import models.cox_ingersoll_ross.zcbond as cir_bond
 import utils.plots as plots
 

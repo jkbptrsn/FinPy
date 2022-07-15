@@ -1,13 +1,15 @@
 import numpy as np
 from scipy.stats import norm
 
+import models.options as options
+import models.vasicek.misc as misc
+import models.vasicek.sde as sde
 import models.vasicek.zero_coupon_bond as zcbond
-import models.vasicek.options as options
 import utils.global_types as global_types
 import utils.payoffs as payoffs
 
 
-class Call(options.VanillaOption):
+class Call(sde.SDE, options.VanillaOption):
     """European call option written on zero-coupon bond in Vasicek
     model.
     """
@@ -19,27 +21,22 @@ class Call(options.VanillaOption):
                  event_grid: np.ndarray,
                  strike: float,
                  expiry_idx: int,
-                 maturity_idx: int):
-        super().__init__(kappa, mean_rate, vol, event_grid, strike, expiry_idx)
-        self._maturity_idx = maturity_idx
-        self._option_type = global_types.InstrumentType.EUROPEAN_CALL
+                 maturity_idx: int,
+                 int_step_size: float = 1 / 365):
+        super().__init__(kappa, mean_rate, vol, event_grid, int_step_size)
+        self.strike = strike
+        self.expiry_idx = expiry_idx
+        self.maturity_idx = maturity_idx
+
+        self.option_type = global_types.InstrumentType.EUROPEAN_CALL
 
     @property
-    def option_type(self) -> global_types.InstrumentType:
-        return self._option_type
+    def expiry(self) -> float:
+        return self.event_grid[self.expiry_idx]
 
     @property
     def maturity(self) -> float:
-        return self.event_grid[self._maturity_idx]
-
-    @property
-    def maturity_idx(self) -> int:
-        return self._maturity_idx
-
-    @maturity_idx.setter
-    def maturity_idx(self,
-                     maturity_idx_: int):
-        self._maturity_idx = maturity_idx_
+        return self.event_grid[self.maturity_idx]
 
     def payoff(self,
                spot: (float, np.ndarray)) -> (float, np.ndarray):
@@ -60,11 +57,11 @@ class Call(options.VanillaOption):
                             self.event_grid, self.expiry_idx)
         zc1_price = zc1.price(spot, time)
         zc2 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                            self.event_grid, self._maturity_idx)
+                            self.event_grid, self.maturity_idx)
         zc2_price = zc2.price(spot, time)
-        s_p = options.sigma_p(time, self.expiry, self.maturity,
-                              self.kappa, self.vol)
-        h = options.h_factor(zc1_price, zc2_price, s_p, self.strike)
+        s_p = misc.sigma_p(time, self.expiry, self.maturity,
+                           self.kappa, self.vol)
+        h = misc.h_factor(zc1_price, zc2_price, s_p, self.strike)
         return zc2_price * norm.cdf(h) \
             - self.strike * zc1_price * norm.cdf(h - s_p)
 
@@ -77,12 +74,12 @@ class Call(options.VanillaOption):
         zc1_price = zc1.price(spot, time)
         zc1_delta = zc1.delta(spot, time)
         zc2 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                            self.event_grid, self._maturity_idx)
+                            self.event_grid, self.maturity_idx)
         zc2_price = zc2.price(spot, time)
         zc2_delta = zc2.delta(spot, time)
-        s_p = options.sigma_p(time, self.expiry, self.maturity,
-                              self.kappa, self.vol)
-        h = options.h_factor(zc1_price, zc2_price, s_p, self.strike)
+        s_p = misc.sigma_p(time, self.expiry, self.maturity,
+                           self.kappa, self.vol)
+        h = misc.h_factor(zc1_price, zc2_price, s_p, self.strike)
         dhdr = (zc2_delta / zc2_price - zc1_delta / zc1_price) / s_p
         return zc2_delta * norm.cdf(h) \
             - self.strike * zc1_delta * norm.cdf(h - s_p) \
@@ -99,13 +96,13 @@ class Call(options.VanillaOption):
         zc1_delta = zc1.delta(spot, time)
         zc1_gamma = zc1.gamma(spot, time)
         zc2 = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                            self.event_grid, self._maturity_idx)
+                            self.event_grid, self.maturity_idx)
         zc2_price = zc2.price(spot, time)
         zc2_delta = zc2.delta(spot, time)
         zc2_gamma = zc2.gamma(spot, time)
-        s_p = options.sigma_p(time, self.expiry, self.maturity,
-                              self.kappa, self.vol)
-        h = options.h_factor(zc1_price, zc2_price, s_p, self.strike)
+        s_p = misc.sigma_p(time, self.expiry, self.maturity,
+                           self.kappa, self.vol)
+        h = misc.h_factor(zc1_price, zc2_price, s_p, self.strike)
         dhdr = (zc2_delta / zc2_price - zc1_delta / zc1_price) / s_p
         d2hdr2 = (- zc2_delta ** 2 / zc2_price ** 2
                   + zc2_gamma / zc2_price

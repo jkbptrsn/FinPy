@@ -1,20 +1,5 @@
-import abc
 import math
 import numpy as np
-
-import instruments.bonds as bonds
-import models.vasicek.sde as sde
-
-
-class Bond(bonds.Bond, sde.SDE):
-    """Bond class in Vasicek model."""
-
-    def __init__(self,
-                 kappa: float,
-                 mean_rate: float,
-                 vol: float,
-                 event_grid: np.ndarray):
-        super().__init__(kappa, mean_rate, vol, event_grid)
 
 
 def a_factor(time1: float,
@@ -60,4 +45,24 @@ def dbdt(time1: float,
     """Time derivative of B
     Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
     """
-    return - math.exp(- kappa * (time2 - time1))
+    return -math.exp(- kappa * (time2 - time1))
+
+
+def sigma_p(time1: float,
+            time2: float,
+            time3: float,
+            kappa: float,
+            vol: float) -> float:
+    """Eq. (3.10), D. Brigo & F. Mercurio 2007."""
+    two_kappa = 2 * kappa
+    exp_kappa = math.exp(- two_kappa * (time2 - time1))
+    b = b_factor(time2, time3, kappa)
+    return vol * b * math.sqrt((1 - exp_kappa) / two_kappa)
+
+
+def h_factor(zc1_price: (float, np.ndarray),
+             zc2_price: (float, np.ndarray),
+             s_p: float,
+             strike: float) -> (float, np.ndarray):
+    """Eq. (3.10), D. Brigo & F. Mercurio 2007."""
+    return np.log(zc2_price / (zc1_price * strike)) / s_p + s_p / 2

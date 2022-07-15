@@ -3,8 +3,8 @@ import numpy as np
 import unittest
 
 import models.vasicek.sde as sde
-import models.vasicek.call as call
-import models.vasicek.put as put
+import models.vasicek.call_option as call
+import models.vasicek.put_option as put
 import models.vasicek.zero_coupon_bond as zcbond
 import utils.misc as misc
 

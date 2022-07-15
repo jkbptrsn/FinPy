@@ -1,7 +1,7 @@
-import math
 import numpy as np
 
 import models.bonds as bonds
+import models.vasicek.misc as misc
 import models.vasicek.sde as sde
 import utils.global_types as global_types
 import utils.payoffs as payoffs
@@ -29,37 +29,28 @@ class ZCBond(sde.SDE, bonds.Bond):
     def a_factor(self,
                  time: float) -> float:
         """Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010."""
-        vol_sq = self.vol ** 2
-        four_kappa = 4 * self.kappa
-        two_kappa_sq = 2 * self.kappa ** 2
-        b = self.b_factor(time)
-        return (self.mean_rate - vol_sq / two_kappa_sq) \
-            * (b - (self.maturity - time)) - vol_sq * b ** 2 / four_kappa
+        return misc.a_factor(time, self.maturity, self.kappa,
+                             self.mean_rate, self.vol)
 
     def b_factor(self,
                  time: float) -> float:
         """Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010."""
-        return \
-            (1 - math.exp(- self.kappa * (self.maturity - time))) / self.kappa
+        return misc.b_factor(time, self.maturity, self.kappa)
 
     def dadt(self,
              time: float) -> float:
         """Time derivative of A
         Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        vol_sq = self.vol ** 2
-        two_kappa = 2 * self.kappa
-        two_kappa_sq = 2 * self.kappa ** 2
-        db = self.dbdt(time)
-        return (self.mean_rate - vol_sq / two_kappa_sq) * (db + 1) \
-            - vol_sq * self.b_factor(time) * db / two_kappa
+        return misc.dadt(time, self.maturity, self.kappa,
+                         self.mean_rate, self.vol)
 
     def dbdt(self,
              time: float) -> float:
         """Time derivative of B
         Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        return -math.exp(-self.kappa * (self.maturity - time))
+        return misc.dbdt(time, self.maturity, self.kappa)
 
     def payoff(self,
                spot: (float, np.ndarray)) -> (float, np.ndarray):
