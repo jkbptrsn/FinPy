@@ -26,7 +26,8 @@ class Call(sde.SDE, options.VanillaOption):
                  expiry_idx: int,
                  maturity_idx: int,
                  int_step_size: float = 1 / 365):
-        super().__init__(kappa, vol, discount_curve, event_grid, int_step_size)
+        super().__init__(kappa, vol, event_grid, int_step_size)
+        self.discount_curve = discount_curve
         self.strike = strike
         self.expiry_idx = expiry_idx
         self.maturity_idx = maturity_idx

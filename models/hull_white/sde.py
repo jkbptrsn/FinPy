@@ -9,6 +9,42 @@ import utils.misc as misc
 # TODO: abstract base class for SDE
 
 
+def rate_adjustment(event_grid: np.ndarray,
+                    rate_paths: np.ndarray,
+                    forward_curve: misc.DiscreteFunc,
+                    replace: bool = False) -> (None, np.ndarray):
+    """Adjust pseudo rate path for each Monte-Carlo scenario. Assume
+    that pseudo rate paths are represented on event_grid."""
+    forward_curve_grid = forward_curve.interpolation(event_grid)
+    if replace:
+        for event_idx in range(event_grid.size):
+            rate_paths[event_idx, :] += forward_curve_grid[event_idx]
+    else:
+        rate_paths_adj = np.zeros(rate_paths.shape)
+        for event_idx in range(event_grid.size):
+            rate_paths_adj[event_idx, :] = \
+                rate_paths[event_idx, :] + forward_curve_grid[event_idx]
+        return rate_paths_adj
+
+
+def discount_adjustment(event_grid: np.ndarray,
+                        discount_paths: np.ndarray,
+                        discount_curve: misc.DiscreteFunc,
+                        replace: bool = False) -> (None, np.ndarray):
+    """Adjust pseudo discount path for each Monte-Carlo scenario. Assume
+    that pseudo discount paths are represented on event_grid."""
+    discount_curve_grid = discount_curve.interpolation(event_grid)
+    if replace:
+        for event_idx in range(event_grid.size):
+            discount_paths[event_idx, :] *= discount_curve_grid[event_idx]
+    else:
+        discount_paths_adj = np.zeros(discount_paths.shape)
+        for event_idx in range(event_grid.size):
+            discount_paths_adj[event_idx, :] = \
+                discount_paths[event_idx, :] * discount_curve_grid[event_idx]
+        return discount_paths_adj
+
+
 class SDEConstant(sde.SDE):
     """SDE for the pseudo short rate in the Hull-White (Extended
     Vasicek) model
@@ -27,12 +63,10 @@ class SDEConstant(sde.SDE):
     def __init__(self,
                  kappa: misc.DiscreteFunc,
                  vol: misc.DiscreteFunc,
-                 discount_curve: misc.DiscreteFunc,
                  event_grid: np.ndarray,
                  int_step_size: float = 1 / 365):
         self.kappa = kappa
         self.vol = vol
-        self.discount_curve = discount_curve
         self.event_grid = event_grid
         self.int_step_size = int_step_size
 
@@ -279,12 +313,10 @@ class SDE(sde.SDE):
     def __init__(self,
                  kappa: misc.DiscreteFunc,
                  vol: misc.DiscreteFunc,
-                 discount_curve: misc.DiscreteFunc,
                  event_grid: np.ndarray,
                  int_step_size: float = 1 / 365):
         self.kappa = kappa
         self.vol = vol
-        self.discount_curve = discount_curve
         self.event_grid = event_grid
         self.int_step_size = int_step_size
 

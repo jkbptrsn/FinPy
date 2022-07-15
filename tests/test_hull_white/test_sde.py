@@ -27,14 +27,8 @@ class SDE(unittest.TestCase):
         # Volatility strip
         vol = np.array([np.arange(2), vol_const * np.ones(2)])
         vol = misc.DiscreteFunc("vol", vol[0], vol[1])
-        # Discount curve on event_grid (not used)
-        forward_rate = 0.02 * np.ones(event_grid.size)
-        discount_curve = np.exp(-forward_rate * event_grid)
-        discount_curve = \
-            misc.DiscreteFunc("discount curve", event_grid,
-                              discount_curve, interp_scheme="linear")
         # SDE object
-        hull_white = sde.SDE(kappa, vol, discount_curve, event_grid)
+        hull_white = sde.SDE(kappa, vol, event_grid)
         hull_white.setup_int_grid()
         hull_white.setup_kappa_vol_y()
         for idx, y_numerical in enumerate(hull_white.y_event_grid):
@@ -63,7 +57,7 @@ class SDE(unittest.TestCase):
                               discount_curve, interp_scheme="linear")
         # SDE object
         n_paths = 1000
-        hull_white = sde.SDE(kappa, vol, discount_curve, event_grid)
+        hull_white = sde.SDE(kappa, vol, event_grid)
         hull_white.initialization()
         rate, discount = hull_white.paths(0, n_paths, seed=0, antithetic=True)
         # Threshold
@@ -100,9 +94,11 @@ class SDE(unittest.TestCase):
                               discount_curve, interp_scheme="linear")
         # SDE object
         n_paths = 10000
-        hull_white = sde.SDE(kappa, vol, discount_curve, event_grid)
+        hull_white = sde.SDE(kappa, vol, event_grid)
         hull_white.initialization()
         rate, discount = hull_white.paths(0, n_paths, seed=0, antithetic=True)
+        sde.discount_adjustment(event_grid, discount,
+                                discount_curve, replace=True)
         price_a_c = 0
         price_a_p = 0
         price_n_c = 0
@@ -110,7 +106,6 @@ class SDE(unittest.TestCase):
         for event_idx in range(1, event_grid.size):
             discount_a = discount_curve.values[event_idx]
             discount_n = np.sum(discount[event_idx, :]) / n_paths
-            discount_n *= discount_curve.values[event_idx]
             # Coupon
             price_a_c += coupon * discount_a
             price_n_c += coupon * discount_n
@@ -145,9 +140,9 @@ class SDE(unittest.TestCase):
                               discount_curve, interp_scheme="linear")
         # SDE objects
         n_paths = 1000
-        hw = sde.SDE(kappa, vol, discount_curve, event_grid)
+        hw = sde.SDE(kappa, vol, event_grid)
         hw.initialization()
-        hw_const = sde.SDEConstant(kappa, vol, discount_curve, event_grid)
+        hw_const = sde.SDEConstant(kappa, vol, event_grid)
         hw_const.initialization()
         # Pseudo rate and discount factors
         rate_pseudo, discount_pseudo = hw.paths(0, n_paths, seed=0)
@@ -216,9 +211,9 @@ class SDE(unittest.TestCase):
                               discount_curve, interp_scheme="linear")
         # SDE objects
         n_paths = 10000
-        hw = sde.SDE(kappa, vol, discount_curve, event_grid)
+        hw = sde.SDE(kappa, vol, event_grid)
         hw.initialization()
-        hw_const = sde.SDEConstant(kappa, vol, discount_curve, event_grid)
+        hw_const = sde.SDEConstant(kappa, vol, event_grid)
         hw_const.initialization()
         # Pseudo rate and discount factors
         rate_pseudo, discount_pseudo = \
@@ -252,14 +247,18 @@ class SDE(unittest.TestCase):
             # Call option price, analytical
             call_price_a = call_1.price(0, 0)
             # Call option price, numerical
-            discount = discount_pseudo[expiry_idx, :] \
-                * discount_curve.values[expiry_idx]
+            discount = \
+                sde.discount_adjustment(event_grid, discount_pseudo,
+                                        discount_curve)
+            discount = discount[expiry_idx]
             bond_price = bond.price(rate_pseudo[expiry_idx, :], expiry_idx)
             payoff = np.maximum(bond_price - strike, 0)
             call_price_n = np.sum(discount * payoff) / n_paths
             diff = abs((call_price_a - call_price_n) / call_price_a)
-            discount = discount_pseudo_const[expiry_idx, :] \
-                * discount_curve.values[expiry_idx]
+            discount = \
+                sde.discount_adjustment(event_grid, discount_pseudo_const,
+                                        discount_curve)
+            discount = discount[expiry_idx]
             bond_price = \
                 bond.price(rate_pseudo_const[expiry_idx, :], expiry_idx)
             payoff = np.maximum(bond_price - strike, 0)
@@ -290,7 +289,7 @@ class SDE(unittest.TestCase):
                               discount_curve, interp_scheme="linear")
         # SDE objects
         n_paths = 10000
-        hw = sde.SDE(kappa, vol, discount_curve, event_grid)
+        hw = sde.SDE(kappa, vol, event_grid)
         hw.initialization()
         # Pseudo rate and discount factors
         rate_pseudo, discount_pseudo = \
@@ -323,7 +322,9 @@ class SDE(unittest.TestCase):
             call_price_a = call_1.price(0, 0)
             # Call option price, numerical
             discount = \
-                discount_pseudo[expiry_idx, :] * discount_curve.values[expiry_idx]
+                sde.discount_adjustment(event_grid, discount_pseudo,
+                                        discount_curve)
+            discount = discount[expiry_idx]
             bond_price = bond.price(rate_pseudo[expiry_idx, :], expiry_idx)
             payoff = np.maximum(bond_price - strike, 0)
             call_price_n = np.sum(discount * payoff) / n_paths
@@ -351,7 +352,7 @@ if __name__ == '__main__':
     event_grid_plot = 0.01 * np.arange(0, 1001)
     # SDE object
     n_paths = 10
-    hull_white = sde.SDE(kappa, vol, discount_curve, event_grid_plot)
+    hull_white = sde.SDE(kappa, vol, event_grid_plot)
     hull_white.initialization()
     rate, discount = hull_white.paths(0, n_paths, seed=0)
     d_curve = discount_curve.interpolation(event_grid_plot)

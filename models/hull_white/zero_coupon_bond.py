@@ -17,7 +17,8 @@ class ZCBond(sde.SDE, bonds.Bond):
                  event_grid: np.ndarray,
                  maturity_idx: int,
                  int_step_size: float = 1 / 365):
-        super().__init__(kappa, vol, discount_curve, event_grid, int_step_size)
+        super().__init__(kappa, vol, event_grid, int_step_size)
+        self.discount_curve = discount_curve
         self.maturity_idx = maturity_idx
 
         # Initialize SDE object
