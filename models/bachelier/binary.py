@@ -1,13 +1,11 @@
-import math
 import numpy as np
-from scipy.stats import norm
 
-import models.bachelier.option as option
+import models.bachelier.sde as sde
 import utils.global_types as global_types
 import utils.payoffs as payoffs
 
 
-class BinaryCashCall(option.VanillaOption):
+class BinaryCashCall(sde.SDE):
     """European cash-or-nothing call option in Bachelier model. Pays out
     one unit of cash if the spot is above the strike at expiry.
     """
@@ -18,13 +16,15 @@ class BinaryCashCall(option.VanillaOption):
                  event_grid: np.ndarray,
                  strike: float,
                  expiry_idx: int):
-        super().__init__(rate, vol, event_grid, strike, expiry_idx)
+        super().__init__(rate, vol, event_grid)
+        self.strike = strike
+        self.expiry_idx = expiry_idx
 
-        self._option_type = global_types.InstrumentType.BINARY_CASH_CALL
+        self.option_type = global_types.InstrumentType.BINARY_CASH_CALL
 
     @property
-    def option_type(self) -> global_types.InstrumentType:
-        return self._option_type
+    def expiry(self) -> float:
+        return self.event_grid[self.expiry_idx]
 
     def payoff(self,
                spot: (float, np.ndarray)) -> (float, np.ndarray):
@@ -38,7 +38,7 @@ class BinaryCashCall(option.VanillaOption):
         pass
 
 
-class BinaryAssetCall(option.VanillaOption):
+class BinaryAssetCall(sde.SDE):
     """European asset-or-nothing call option in Bachelier model. Pays
     out one unit of the asset if the spot is above the strike at expiry.
     """
@@ -49,13 +49,15 @@ class BinaryAssetCall(option.VanillaOption):
                  event_grid: np.ndarray,
                  strike: float,
                  expiry_idx: int):
-        super().__init__(rate, vol, event_grid, strike, expiry_idx)
+        super().__init__(rate, vol, event_grid)
+        self.strike = strike
+        self.expiry_idx = expiry_idx
 
-        self._option_type = global_types.InstrumentType.BINARY_ASSET_CALL
+        self.option_type = global_types.InstrumentType.BINARY_ASSET_CALL
 
     @property
-    def option_type(self) -> global_types.InstrumentType:
-        return self._option_type
+    def expiry(self) -> float:
+        return self.event_grid[self.expiry_idx]
 
     def payoff(self,
                spot: (float, np.ndarray)) -> (float, np.ndarray):
@@ -69,7 +71,7 @@ class BinaryAssetCall(option.VanillaOption):
         pass
 
 
-class BinaryCashPut(option.VanillaOption):
+class BinaryCashPut(sde.SDE):
     """European cash-or-nothing put option in Bachelier model. Pays out
     one unit of cash if the spot is below the strike at expiry.
     """
@@ -80,13 +82,15 @@ class BinaryCashPut(option.VanillaOption):
                  event_grid: np.ndarray,
                  strike: float,
                  expiry_idx: int):
-        super().__init__(rate, vol, event_grid, strike, expiry_idx)
+        super().__init__(rate, vol, event_grid)
+        self.strike = strike
+        self.expiry_idx = expiry_idx
 
-        self._option_type = global_types.InstrumentType.BINARY_CASH_PUT
+        self.option_type = global_types.InstrumentType.BINARY_CASH_PUT
 
     @property
-    def option_type(self) -> global_types.InstrumentType:
-        return self._option_type
+    def expiry(self) -> float:
+        return self.event_grid[self.expiry_idx]
 
     def payoff(self,
                spot: (float, np.ndarray)) -> (float, np.ndarray):
@@ -100,7 +104,7 @@ class BinaryCashPut(option.VanillaOption):
         pass
 
 
-class BinaryAssetPut(option.VanillaOption):
+class BinaryAssetPut(sde.SDE):
     """European asset-or-nothing put option in Bachelier model. Pays out
     one unit of the asset if the spot is below the strike at expiry.
     """
@@ -111,13 +115,15 @@ class BinaryAssetPut(option.VanillaOption):
                  event_grid: np.ndarray,
                  strike: float,
                  expiry_idx: int):
-        super().__init__(rate, vol, event_grid, strike, expiry_idx)
+        super().__init__(rate, vol, event_grid)
+        self.strike = strike
+        self.expiry_idx = expiry_idx
 
-        self._option_type = global_types.InstrumentType.BINARY_ASSET_PUT
+        self.option_type = global_types.InstrumentType.BINARY_ASSET_PUT
 
     @property
-    def option_type(self) -> global_types.InstrumentType:
-        return self._option_type
+    def expiry(self) -> float:
+        return self.event_grid[self.expiry_idx]
 
     def payoff(self,
                spot: (float, np.ndarray)) -> (float, np.ndarray):

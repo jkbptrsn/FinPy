@@ -2,12 +2,13 @@ import math
 import numpy as np
 from scipy.stats import norm
 
-import models.bachelier.option as option
+import models.bachelier.misc as misc
+import models.bachelier.sde as sde
 import utils.global_types as global_types
 import utils.payoffs as payoffs
 
 
-class Call(option.VanillaOption):
+class Call(sde.SDE):
     """European call option in Bachelier model."""
 
     def __init__(self,
@@ -16,13 +17,15 @@ class Call(option.VanillaOption):
                  event_grid: np.ndarray,
                  strike: float,
                  expiry_idx: int):
-        super().__init__(rate, vol, event_grid, strike, expiry_idx)
+        super().__init__(rate, vol, event_grid)
+        self.strike = strike
+        self.expiry_idx = expiry_idx
 
-        self._option_type = global_types.InstrumentType.EUROPEAN_CALL
+        self.option_type = global_types.InstrumentType.EUROPEAN_CALL
 
     @property
-    def option_type(self) -> global_types.InstrumentType:
-        return self._option_type
+    def expiry(self) -> float:
+        return self.event_grid[self.expiry_idx]
 
     def payoff(self,
                spot: (float, np.ndarray)) -> (float, np.ndarray):
@@ -38,7 +41,7 @@ class Call(option.VanillaOption):
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
         """..."""
-        dn = self.dn(spot, time)
+        dn = misc.dn(spot, time, self.expiry, self.strike, self.vol)
         # Time-to-maturity
         ttm = self.expiry - time
         # Discount factor
