@@ -22,78 +22,38 @@ class SDE(sde.SDE):
                  vol: float,
                  event_grid: np.ndarray,
                  dividend: float = 0):
-        self._rate = rate
-        self._vol = vol
-        self._event_grid = event_grid
-        self._dividend = dividend
+        self.rate = rate
+        self.vol = vol
+        self.event_grid = event_grid
+        self.dividend = dividend
 
-        self._model_name = global_types.ModelName.BLACK_SCHOLES
+        self.model_name = global_types.ModelName.BLACK_SCHOLES
 
-        self._price_mean = np.zeros(self._event_grid.size)
-        self._price_variance = np.zeros(self._event_grid.size)
+        self.price_mean = np.zeros(self.event_grid.size)
+        self.price_variance = np.zeros(self.event_grid.size)
 
     def __repr__(self) -> str:
-        return f"{self._model_name} SDE object"
-
-    @property
-    def rate(self) -> float:
-        return self._rate
-
-    @rate.setter
-    def rate(self,
-             rate_: float):
-        self._rate = rate_
-
-    @property
-    def vol(self) -> float:
-        return self._vol
-
-    @vol.setter
-    def vol(self,
-            vol_: float):
-        self._vol = vol_
-
-    @property
-    def event_grid(self):
-        return self._event_grid
-
-    @event_grid.setter
-    def event_grid(self,
-                   event_grid_: np.ndarray):
-        self._event_grid = event_grid_
-
-    @property
-    def dividend(self) -> float:
-        return self._dividend
-
-    @dividend.setter
-    def dividend(self,
-                 dividend_: float):
-        self._dividend = dividend_
-
-    @property
-    def model_name(self) -> str:
-        return self._model_name
+        return f"{self.model_name} SDE object"
 
     def initialization(self):
         """Initialize the Monte-Carlo engine by calculating mean and
         variance of the stock price process.
         """
-        self.price_mean()
-        self.price_variance()
+        self.calc_price_mean()
+        self.calc_price_variance()
 
-    def price_mean(self):
+    def calc_price_mean(self):
         """Conditional mean of stock price process."""
-        self._price_mean[0] = 1
-        factor = self._rate - self._dividend
-        self._price_mean[1:] = np.exp(factor * np.diff(self._event_grid))
+        self.price_mean[0] = 1
+        factor = self.rate - self.dividend
+        self.price_mean[1:] = np.exp(factor * np.diff(self.event_grid))
 
-    def price_variance(self):
+    def calc_price_variance(self):
         """Conditional variance of stock price process."""
-        factor = self._rate - self._dividend
-        self._price_variance[1:] = \
-            np.exp(2 * factor * np.diff(self._event_grid)) \
-            * (np.exp(self._vol ** 2 * np.diff(self._event_grid)) - 1)
+        factor = self.rate - self.dividend
+        self.price_variance[1:] = \
+            np.exp(2 * factor * np.diff(self.event_grid)) \
+            * (np.exp(self.vol ** 2 * np.diff(self.event_grid)) - 1)
 
     def price_increment(self,
                         spot: (float, np.ndarray),
@@ -103,8 +63,8 @@ class SDE(sde.SDE):
         """Increment stock price process (the spot price is subtracted
         to get the increment).
         """
-        mean = spot * self._price_mean[time_idx]
-        variance = spot ** 2 * self._price_variance[time_idx]
+        mean = spot * self.price_mean[time_idx]
+        variance = spot ** 2 * self.price_variance[time_idx]
         return mean + math.sqrt(variance) * normal_rand - spot
 
     def paths(self,
@@ -118,12 +78,13 @@ class SDE(sde.SDE):
         antithetic : Antithetic sampling for Monte-Carlo variance
         reduction. Defaults to False.
         """
-        price = np.zeros((self._event_grid.size, n_paths))
+        price = np.zeros((self.event_grid.size, n_paths))
         price[0] = spot
         if seed is not None:
             np.random.seed(seed)
-        for time_idx in range(1, self._event_grid.size):
-            realizations = misc.normal_realizations(n_paths, antithetic=antithetic)
+        for time_idx in range(1, self.event_grid.size):
+            realizations = \
+                misc.normal_realizations(n_paths, antithetic=antithetic)
             price[time_idx] = price[time_idx - 1] \
                 + self.price_increment(price[time_idx - 1], time_idx,
                                        realizations)
