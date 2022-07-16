@@ -336,28 +336,46 @@ class SDE(unittest.TestCase):
 if __name__ == '__main__':
 
     event_grid = np.arange(11)
-    # Spped of mean reversion strip
-    kappa = np.array([np.array([2, 3, 7]), 0.01 * np.array([2, 1, 2])])
+    # Speed of mean reversion strip
+    kappa = np.array([np.array([0, 10]), 0.023 * np.array([1, 1])])
     kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
     # Volatility strip
-    vol = np.array([np.arange(10),
-                    0.003 * np.array([3, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
+    vol = np.array([np.array([0, 0.25, 0.5, 1, 2, 3, 4, 5, 7, 10, 20]),
+                    np.array([0.0165, 0.0143, 0.0140, 0.0132, 0.0128, 0.0103,
+                              0.0067, 0.0096, 0.0087, 0.0091, 0.0098])])
     vol = misc.DiscreteFunc("vol", vol[0], vol[1])
     # Discount curve on event_grid
-    forward_rate = 0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
-    discount_curve = np.exp(-forward_rate * event_grid)
-    discount_curve = misc.DiscreteFunc("discount curve", event_grid,
-                                       discount_curve, interp_scheme="linear")
+    time_grid = np.array([0.09, 0.26, 0.5, 1, 1.5, 2, 3, 4,
+                          5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30])
+    rate_grid = np.array([-0.0034, 0.0005, 0.0061, 0.0135, 0.0179,
+                          0.0202, 0.0224, 0.0237, 0.0246, 0.0252,
+                          0.0256, 0.0261, 0.0265, 0.0270, 0.0277,
+                          0.0281, 0.0267, 0.0249, 0.0233])
+    discount_curve = np.exp(-rate_grid * time_grid)
+    discount_curve = misc.DiscreteFunc("discount curve", time_grid,
+                                       discount_curve, interp_scheme="quadratic")
+    time_grid_plot = 0.1 * np.arange(0, 301)
+    plt.plot(time_grid_plot, discount_curve.interpolation(time_grid_plot))
+    plt.xlabel("Time")
+    plt.ylabel("Zero coupon bond price")
+    plt.show()
     # Plot Monte-Carlo scenarios
     event_grid_plot = 0.01 * np.arange(0, 1001)
     # SDE object
-    n_paths = 10
+    n_paths = 25
     hull_white = sde.SDE(kappa, vol, event_grid_plot)
     hull_white.initialization()
     rate, discount = hull_white.paths(0, n_paths, seed=0)
     d_curve = discount_curve.interpolation(event_grid_plot)
+    f1, ax1 = plt.subplots(3, 1, sharex=True)
     for n in range(n_paths):
-        plt.plot(event_grid_plot, rate[:, n])
-        plt.plot(event_grid_plot, discount[:, n])
-        plt.plot(event_grid_plot, discount[:, n] * d_curve)
+        ax1[0].plot(event_grid_plot, rate[:, n])
+        ax1[1].plot(event_grid_plot, discount[:, n])
+        ax1[2].plot(event_grid_plot, discount[:, n] * d_curve)
+    ax1[0].set_xlabel("Time")
+    ax1[1].set_xlabel("Time")
+    ax1[2].set_xlabel("Time")
+    ax1[0].set_ylabel("Pseudo rate")
+    ax1[1].set_ylabel("Pseudo discount curve")
+    ax1[2].set_ylabel("Discount curve")
     plt.show()
