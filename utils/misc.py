@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from scipy.interpolate import interp1d
+from scipy.optimize import brentq
 from scipy.stats import norm
 from typing import Tuple
 
@@ -105,3 +106,18 @@ def monte_carlo_error(values: np.ndarray) -> float:
     sample_mean = np.sum(values) / values.size
     sample_variance = np.sum((values - sample_mean) ** 2) / (values.size - 1)
     return math.sqrt(sample_variance) / math.sqrt(values.size)
+
+
+def price_refinance_bond(coupon: float,
+                         n_payments: int,
+                         sum_discount_factors: float) -> float:
+    """Refinance bond is an annuity."""
+    constant_payment = coupon / (1 - (1 + coupon) ** (-n_payments))
+    return 1 - constant_payment * sum_discount_factors
+
+
+def calc_refinance_coupon(n_payments: int,
+                          sum_discount_factors: float) -> float:
+    """Calculate coupon of refinance bond assuming par value."""
+    arguments = (n_payments, sum_discount_factors)
+    return brentq(price_refinance_bond, -0.5, 0.5, args=arguments)

@@ -332,6 +332,91 @@ class SDE(unittest.TestCase):
             # print(s, call_price_a, call_price_n, diff)
             self.assertTrue(diff < threshold[s - 2])
 
+    def test_refi_coupon_calc(self):
+        """Calculate re-finance coupon..."""
+        # Speed of mean reversion strip
+        kappa = np.array([np.array([0, 10]), 0.023 * np.array([1, 1])])
+        kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
+        # Volatility strip
+        vol = np.array([np.array([0, 0.25, 0.5, 1, 2, 3, 4, 5, 7, 10, 20]),
+                        np.array([0.0165, 0.0143, 0.0140, 0.0132, 0.0128,
+                                  0.0103, 0.0067, 0.0096, 0.0087, 0.0091,
+                                  0.0098])])
+        vol = misc.DiscreteFunc("vol", vol[0], vol[1])
+        # Discount curve
+        time_grid = np.array([0.09, 0.26, 0.5, 1, 1.5, 2, 3, 4,
+                              5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30])
+        rate_grid = np.array([-0.0034, 0.0005, 0.0061, 0.0135, 0.0179,
+                              0.0202, 0.0224, 0.0237, 0.0246, 0.0252,
+                              0.0256, 0.0261, 0.0265, 0.0270, 0.0277,
+                              0.0281, 0.0267, 0.0249, 0.0233])
+        discount_curve = np.exp(-rate_grid * time_grid)
+        discount_curve = \
+            misc.DiscreteFunc("discount curve", time_grid,
+                              discount_curve, interp_scheme="quadratic")
+
+        # Yearly payments...
+        event_grid = np.arange(4 * 30 + 1) / 4
+#        event_grid = np.arange(11)
+
+        # Discount curve on event_grid
+        discount_curve = discount_curve.interpolation(event_grid)
+        discount_curve = \
+            misc.DiscreteFunc("discount curve", event_grid,
+                              discount_curve, interp_scheme="quadratic")
+
+        # SDE object
+        n_paths = 500000
+        hull_white = sde.SDE(kappa, vol, event_grid)
+        hull_white.initialization()
+        rate, discount = hull_white.paths(0, n_paths, seed=0)
+        sde.discount_adjustment(event_grid, discount,
+                                discount_curve, replace=True)
+
+        # Zero-coupon bond object
+        maturity_idx = event_grid.size - 1
+        bond = \
+            zcbond.ZCBond(kappa, vol, discount_curve, event_grid, maturity_idx)
+
+        for n in range(1, event_grid.size - 1):
+            maturity_indices = np.arange(n + 1, event_grid.size)
+#            discount_vector = bond.price_vector(rate[n], n, maturity_indices)
+            print("Event idx: ", n)
+#            print("Pseudo rates: \n", rate[n])
+#            print("Discount curves: \n", discount_vector)
+            # Yearly coupon, because payments are yearly in this example...
+            n_payments = event_grid.size - n - 1
+#            coupon = 0.04
+#            const_payment = coupon / (1 - (1 + coupon) ** (-n_payments))
+#            sum_discount = discount_vector.sum(axis=0)
+#            print("# of payments: ", n_payments)
+#            print("Sum discount: \n", sum_discount)
+#            print("Coupon of refinance bond: ")
+
+            rate_max = np.max(rate[n])
+            rate_min = np.min(rate[n])
+            rate_interval = rate_max - rate_min
+            rate_n_grid = 10
+            rate_grid = np.arange(rate_n_grid) / (rate_n_grid - 1)
+            rate_grid = rate_interval * rate_grid + rate_min
+#            print("Rate grid: \n", rate_grid)
+            discount_grid = bond.price_vector(rate_grid, n, maturity_indices)
+            sum_discount_grid = discount_grid.sum(axis=0)
+            coupon_grid = np.zeros(rate_n_grid)
+            for m in range(rate_n_grid):
+                coupon_grid[m] = \
+                    misc.calc_refinance_coupon(n_payments, sum_discount_grid[m])
+#            print("Coupon grid: \n", coupon_grid)
+            coupon_grid = \
+                misc.DiscreteFunc("Coupon grid", rate_grid,
+                                  coupon_grid, interp_scheme="quadratic")
+            coupon_grid = coupon_grid.interpolation(rate[n])
+
+#            for m in range(n_paths):
+#                coupon = \
+#                    misc.calc_refinance_coupon(n_payments, sum_discount[m])
+#                print(coupon, coupon_grid[m])
+
 
 if __name__ == '__main__':
 
