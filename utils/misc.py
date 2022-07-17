@@ -108,16 +108,17 @@ def monte_carlo_error(values: np.ndarray) -> float:
     return math.sqrt(sample_variance) / math.sqrt(values.size)
 
 
-def price_refinance_bond(coupon: float,
-                         n_payments: int,
-                         sum_discount_factors: float) -> float:
-    """Refinance bond is an annuity."""
+def price_refinancing_bond(coupon: float,
+                           n_payments: int,
+                           sum_discount_factors: float) -> float:
+    """Refinancing bond is an annuity. Return the difference between
+    par and the price of the refinancing bond."""
     constant_payment = coupon / (1 - (1 + coupon) ** (-n_payments))
     return 1 - constant_payment * sum_discount_factors
 
 
-def calc_refinance_coupon(n_payments: int,
-                          sum_discount_factors: float) -> float:
-    """Calculate coupon of refinance bond assuming par value."""
+def calc_refinancing_coupon(n_payments: int,
+                            sum_discount_factors: float) -> float:
+    """Calculate coupon of refinancing bond assuming par value."""
     arguments = (n_payments, sum_discount_factors)
-    return brentq(price_refinance_bond, -0.5, 0.5, args=arguments)
+    return brentq(price_refinancing_bond, -0.9, 0.9, args=arguments)
