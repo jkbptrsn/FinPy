@@ -9,12 +9,12 @@ Models
   - Black-Scholes 
     - Geometric Brownian motion
     - dS(t) / S(t) = rate * dt + vol * dW(t)
-- Short rate
+- Short rate, 1-factor
   - Vasicek
-    - Gaussian mean reverting process 
+    - Gaussian mean reverting motion 
     - dr(t) = kappa * [ theta - r(t) ] * dt + vol * dW(t)
   - Hull-White (Extended Vasicek)
-    - Gaussian mean reverting process
+    - Gaussian mean reverting motion
     - dr(t) = kappa(t) * [ theta(t) - r(t) ] * dt + vol(t) * dW(t)
   - Cox-Ingersoll-Ross
     - dr(t) = kappa * [ theta - r(t) ] * dt + vol * r(t)^(1/2) * dW(t)
