@@ -20,10 +20,11 @@ The library covers the following models
     - Mean reverting square root process
     - dr(t) = kappa * [ theta - r(t) ] * dt + vol * r(t)^(1/2) * dW(t)
 
-Development of the library
-- PEP 8 style guide
-- Docstring format?
+Development guidelines and coding standards
+- PEP 8 is followed rigorously (unless...)
+- Docstrings in classes and functions are mandatory (format?)
+- Annotations (type hinting) are mandatory  
 
 Miscellaneous
-- Resources for learning Python
+- Good resources for learning Python
   - Python Deep Dive 1-4 by Fred Baptiste (udemy courses)
