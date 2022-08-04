@@ -22,8 +22,9 @@ The library covers the following models
 
 Development guidelines and coding standards
 - PEP 8 is followed rigorously (unless...)
-- Docstrings in classes and functions are mandatory (format?)
-- Annotations (type hinting) are mandatory  
+- Docstrings in Google format are mandatory
+- Type annotations are mandatory
+- Unit tests...
 
 Miscellaneous
 - Good resources for learning Python
