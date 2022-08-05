@@ -1,5 +1,69 @@
 \documentclass{report}
 
+\usepackage{amsfonts, amsmath, amssymb}
+
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+
 \begin{document}
-Yeah
+
+\section{Appendix}
+
+\subsection{Vasicek Model}
+The Vasicek model REF! is a short rate model, where the underlying stochastic differential equation reads
+\begin{equation}
+dr_t = \kappa \left( \theta - r_t \right) dt + \sigma dW_t.
+\end{equation}
+
+The SDE can be solved analytically. First define the function
+\begin{equation}
+h(t, r_t) = r_t \text{e}^{\kappa t}
+\end{equation}
+and then use Ito's lemma
+\begin{eqnarray}
+dh(t, r_t) &=& \frac{\partial h}{\partial t} dt + \frac{\partial h}{\partial r_t} r_t + \frac{1}{2}\frac{\partial^2 h}{\partial r_t^2} \left(dr_t\right)^2 \\
+&=& \kappa h(t, r_t) dt + \text{e}^{\kappa t} dr_t \\
+&=& \kappa \text{e}^{\kappa t} \theta dt + \sigma \text{e}^{\kappa t} dW_t
+\end{eqnarray}
+such that
+\begin{eqnarray}
+h(t_2, r_{t_2}) &=& h(t_1, r_{t_1}) + \theta \kappa \int_{t_1}^{t_2} \text{e}^{\kappa t} dt + \sigma \int_{t_1}^{t_2} \text{e}^{\kappa t} dW_t \\
+r_{t_2} &=& \text{e}^{-\kappa t_2} r_{t_1} + \theta \text{e}^{-\kappa t_1} + \sigma \int_{t_1}^{t_2} \text{e}^{-\kappa \left(t_2 - t\right)} dW_t \\
+\end{eqnarray}
+
+The stochastic discount factor is given by
+\begin{equation}
+D(t_{1}, t_{2}) = \exp \left( I(t_1, t_2) \right) = \exp \left( -\int_{t_1}^{t_2} r_t dt \right)
+\end{equation}
+
+The conditional expectation of $r_t$
+\begin{equation}
+\E \left[ r_{t_2} | r_{t_1} \right] = 
+\end{equation}
+
+The conditional variance of $r_t$
+\begin{equation}
+\Var \left[ r_{t_2} | r_{t_1} \right] = 
+\end{equation}
+
+The conditional expectation of $I(t_{1}, t_{2})$
+\begin{equation}
+\E \left[ r_{t_2} | r_{t_1} \right] = 
+\end{equation}
+
+The conditional variance of $I(t_{1}, t_{2})$
+\begin{equation}
+\Var \left[ r_{t_2} | r_{t_1} \right] = 
+\end{equation}
+
+The covariance of $r_t$ and $I(t_{1}, t_{2})$ is given by
+
+
+\subsection{1-Factor Hull-White Model}
+The 1-Factor Hull-White model REF! is an extension of the Vasicek Model, where the parameters are allowed to be time-dependent, i.e.,
+\begin{equation}
+dr_t = \kappa_t \left( \theta_t - r_t \right) dt + \sigma_t dW_t,
+\end{equation}
+
 \end{document}
