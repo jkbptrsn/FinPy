@@ -21,6 +21,7 @@ The library covers the following models
     - dr(t) = kappa * [ theta - r(t) ] * dt + vol * r(t)^(1/2) * dW(t)
 
 Development guidelines and coding standards
+- Python 3.10.6
 - PEP 8 is followed rigorously (unless...)
 - Docstrings in Google format are mandatory
 - Type annotations are mandatory
