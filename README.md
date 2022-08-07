@@ -1,5 +1,5 @@
-# finpy
-Financial engineering library in Python
+# FinPy
+Financial engineering library for Python
 
 The library covers the following models
 - Equity
