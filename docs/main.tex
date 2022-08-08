@@ -6,64 +6,102 @@
 \newcommand{\Var}{\mathrm{Var}}
 \newcommand{\Cov}{\mathrm{Cov}}
 
+\title{FinPy \\[0.4cm] \Large Financial engineering library for Python}
+
 \begin{document}
 
-\section{Appendix}
+\maketitle
 
-\subsection{Vasicek Model}
-The Vasicek model REF! is a short rate model, where the underlying stochastic differential equation reads
-\begin{equation}
-dr_t = \kappa \left( \theta - r_t \right) dt + \sigma dW_t.
-\end{equation}
+\tableofcontents
 
-The SDE can be solved analytically. First define the function
+% \chapter{Introduction}
+
+% \chapter{Models}
+
+\appendix
+
+\chapter{Short Rate Models}
+
+\section{Vasicek Model}
+The Vasicek model \cite{Vasicek1977} is a short rate model defined by the stochastic differential equation 
 \begin{equation}
-h(t, r_t) = r_t \text{e}^{\kappa t}
+dr_t = \kappa \left( \theta - r_t \right) dt + \sigma dW_t,
 \end{equation}
-and then use Ito's lemma
+where $\kappa > 0$ is the speed of mean reversion, $\theta$ denotes the long-term level, and $\sigma > 0$ is the volatility.
+The SDE can be solved analytically by introducing the function
+\begin{equation}
+h(t, r_t) = r_t \text{e}^{\kappa t},
+\end{equation}
+using It\^{o}'s lemma
 \begin{eqnarray}
 dh(t, r_t) &=& \frac{\partial h}{\partial t} dt + \frac{\partial h}{\partial r_t} r_t + \frac{1}{2}\frac{\partial^2 h}{\partial r_t^2} \left(dr_t\right)^2 \\
 &=& \kappa h(t, r_t) dt + \text{e}^{\kappa t} dr_t \\
-&=& \kappa \text{e}^{\kappa t} \theta dt + \sigma \text{e}^{\kappa t} dW_t
+&=& \theta \kappa \text{e}^{\kappa t} dt + \sigma \text{e}^{\kappa t} dW_t,
 \end{eqnarray}
+and integrating over time
+\begin{equation}
+h(t_2, r_{t_2}) = h(t_1, r_{t_1}) + \theta \kappa \int_{t_1}^{t_2} \text{e}^{\kappa t} dt + \sigma \int_{t_1}^{t_2} \text{e}^{\kappa t} dW_t,
+\end{equation}
 such that
+\begin{equation}
+r_{t_2} = \theta + \left( r_{t_1} - \theta \right) \text{e}^{-\kappa (t_2 - t_1)} + \sigma \int_{t_1}^{t_2} \text{e}^{-\kappa \left(t_2 - t\right)} dW_t.
+\end{equation}
+
+The short rate process is clearly Gaussian with conditional mean
+\begin{equation}
+\E \left[ r_{t_2} | r_{t_1} \right] = \theta + \left( r_{t_1} - \theta \right) \text{e}^{-\kappa (t_2 - t_1)},
+\end{equation}
+and, using the It\^{o} isometry, the conditional variance of the process becomes
 \begin{eqnarray}
-h(t_2, r_{t_2}) &=& h(t_1, r_{t_1}) + \theta \kappa \int_{t_1}^{t_2} \text{e}^{\kappa t} dt + \sigma \int_{t_1}^{t_2} \text{e}^{\kappa t} dW_t \\
-r_{t_2} &=& \text{e}^{-\kappa t_2} r_{t_1} + \theta \text{e}^{-\kappa t_1} + \sigma \int_{t_1}^{t_2} \text{e}^{-\kappa \left(t_2 - t\right)} dW_t \\
+\Var \left[ r_{t_2} | r_{t_1} \right] &=& \sigma^2 \E \left[ \left( \int_{t_1}^{t_2} \text{e}^{-\kappa \left(t_2 - t\right)} dW_t \right)^2 \right] \\
+&=& \frac{\sigma^2}{2 \kappa} \left( 1 - \text{e}^{-2 \kappa (t_2 - t_1)}\right).
 \end{eqnarray}
 
-The stochastic discount factor is given by
+The stochastic discount factor is written as
 \begin{equation}
-D(t_{1}, t_{2}) = \exp \left( I(t_1, t_2) \right) = \exp \left( -\int_{t_1}^{t_2} r_t dt \right)
+D_{t} = \exp \left( I_t \right),
 \end{equation}
+where
+\begin{eqnarray}
+I_t &=& -\int_0^t r_u du \\
+&=& - \int_0^t \left( \theta + \left( r_0 - \theta \right) \text{e}^{-\kappa u } \right) du - \sigma \int_0^t \int_0^u \text{e}^{-\kappa \left(u - v\right)} dW_v du \\
+&=& - \theta t - \frac{r_0 - \theta}{\kappa} \left( 1 - \text{e}^{-\kappa t} \right) - \sigma \int_0^t \int_v^t \text{e}^{-\kappa \left(u - v\right)} du dW_v.
+\end{eqnarray}
 
-The conditional expectation of $r_t$
+The conditional mean of $I_t$ is
 \begin{equation}
-\E \left[ r_{t_2} | r_{t_1} \right] = 
+\E \left[ I_{t_{2}} | I_{t_1}, r_{t_1} \right] = I_{t_1} - \theta \left( t_2 - t_1 \right) 
+- \frac{r_{t_1} - \theta}{\kappa} \left( 1 - \text{e}^{-\kappa \left(t_2 - t_1 \right)} \right),
 \end{equation}
-
-The conditional variance of $r_t$
-\begin{equation}
-\Var \left[ r_{t_2} | r_{t_1} \right] = 
-\end{equation}
-
-The conditional expectation of $I(t_{1}, t_{2})$
-\begin{equation}
-\E \left[ r_{t_2} | r_{t_1} \right] = 
-\end{equation}
-
-The conditional variance of $I(t_{1}, t_{2})$
-\begin{equation}
-\Var \left[ r_{t_2} | r_{t_1} \right] = 
-\end{equation}
-
-The covariance of $r_t$ and $I(t_{1}, t_{2})$ is given by
+and, using the It\^{o} isometry, the conditional variance becomes
+\begin{eqnarray}
+\Var \left[ I_{t_{2}} | I_{t_1}, r_{t_1} \right] &=& \sigma^2 \E \left[ \left( \int_{t_1}^{t_2} \int_v^{t_2} \text{e}^{-\kappa \left(u - v\right)} du dW_v \right)^2 \right] \\
+&=& \frac{\sigma^2}{2 \kappa^3} \left( 4 \text{e}^{-\kappa (t_2 - t_1)} - \text{e}^{-2\kappa (t_2 - t_1)} + 2 \kappa (t_2 - t_1) - 3 \right)
+\end{eqnarray}
 
 
-\subsection{1-Factor Hull-White Model}
+The covariance of $r_t$ and $I_t$ is given by
+\begin{eqnarray}
+r_t &=& D_{r_t} + S_{r_t} \\
+I_t &=& D_{I_t} + S_{I_t}
+\end{eqnarray}
+
+\begin{eqnarray}
+\Cov \left[ r_t, I_t \right] &=& \E \left[ r_t I_t \right] - \E \left[ r_t \right] \E \left[ I_t \right] \\
+&=& \E \left[ D_{r_t} D_{I_t} + S_{r_t} D_{I_t} + D_{r_t} S_{I_t} + S_{r_t} S_{I_t} \right] - D_{r_t} D_{I_t} \\
+&=& \E \left[ S_{r_t} S_{I_t} \right].
+\end{eqnarray}
+
+
+
+\section{1-Factor Hull-White Model}
 The 1-Factor Hull-White model REF! is an extension of the Vasicek Model, where the parameters are allowed to be time-dependent, i.e.,
 \begin{equation}
 dr_t = \kappa_t \left( \theta_t - r_t \right) dt + \sigma_t dW_t,
 \end{equation}
+
+
+\bibliographystyle{plain}
+\bibliography{articles} 
 
 \end{document}
