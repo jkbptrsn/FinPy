@@ -22,9 +22,8 @@ The library covers the following models
 
 Development guidelines and coding standards
 - Python 3.10.6
-- PEP 8 is followed rigorously (unless...)
-- Docstrings in Google format are mandatory
-- Type annotations are mandatory
+- PEP 8 and Google Python Style Guide are followed rigorously (unless...)
+- Type annotations and docstrings in Google format are mandatory
 - Unit tests...
 
 Miscellaneous

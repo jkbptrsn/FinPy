@@ -1,21 +1,15 @@
 from enum import Enum
 
 
-class ExerciseType(Enum):
-    EUROPEAN = 1
-    AMERICAN = 2
-    BERMUDAN = 3
-
-
 class InstrumentType(Enum):
-    EUROPEAN_CALL = 1
-    EUROPEAN_PUT = 2
-    AMERICAN_CALL = 3
-    AMERICAN_PUT = 4
-    BINARY_CASH_CALL = 5
-    BINARY_ASSET_CALL = 6
-    BINARY_CASH_PUT = 7
-    BINARY_ASSET_PUT = 8
+    AMERICAN_CALL = 1
+    AMERICAN_PUT = 2
+    BINARY_CASH_CALL = 3
+    BINARY_ASSET_CALL = 4
+    BINARY_CASH_PUT = 5
+    BINARY_ASSET_PUT = 6
+    EUROPEAN_CALL = 7
+    EUROPEAN_PUT = 8
     ZERO_COUPON_BOND = 9
 
 
@@ -25,3 +19,8 @@ class ModelName(Enum):
     CIR = 3
     HULL_WHITE_1F = 4
     VASICEK = 5
+
+
+class OptionExerciseType(Enum):
+    AMERICAN = 1
+    EUROPEAN = 2
