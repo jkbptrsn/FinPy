@@ -7,13 +7,11 @@ class Bond(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def payoff(self,
-               spot: (float, np.ndarray)) -> (float, np.ndarray):
-        """Payoff function."""
+               spot_rate: (float, np.ndarray)) -> (float, np.ndarray):
         pass
 
     @abc.abstractmethod
     def price(self,
-              spot: (float, np.ndarray),
+              spot_rate: (float, np.ndarray),
               event_idx: int) -> (float, np.ndarray):
-        """Price function."""
         pass
