@@ -1,85 +1,103 @@
 import numpy as np
 
-import models.bonds as bonds
-import models.vasicek.misc as misc
-import models.vasicek.sde as sde
-import utils.global_types as global_types
-import utils.payoffs as payoffs
+from models import bonds
+from models.vasicek import misc
+from models.vasicek import sde
+from utils import global_types
+from utils import payoffs
 
 
 class ZCBond(sde.SDE, bonds.Bond):
-    """Zero-coupon bond in Vasicek model."""
+    """Zero-coupon bond in the Vasicek model.
+
+    Attributes:
+        kappa: Speed of mean reversion.
+        mean_rate: Mean reversion level.
+        vol: Volatility.
+        event_grid: Event dates, e.g. payment dates, represented as year
+            fractions from the as-of date.
+        maturity_idx : Maturity index on event_grid.
+    """
 
     def __init__(self,
                  kappa: float,
                  mean_rate: float,
                  vol: float,
                  event_grid: np.ndarray,
-                 maturity_idx: int,
-                 int_step_size: float = 1 / 365):
-        super().__init__(kappa, mean_rate, vol, event_grid, int_step_size)
+                 maturity_idx: int):
+        super().__init__(kappa, mean_rate, vol, event_grid)
         self.maturity_idx = maturity_idx
 
         self.bond_type = global_types.InstrumentType.ZERO_COUPON_BOND
+
+    def __repr__(self):
+        return f"{self.bond_type} bond object"
 
     @property
     def maturity(self) -> float:
         return self.event_grid[self.maturity_idx]
 
-    def a_factor(self,
-                 time: float) -> float:
-        """Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010."""
-        return misc.a_factor(time, self.maturity, self.kappa,
-                             self.mean_rate, self.vol)
+    def a_function(self,
+                   event_idx: int) -> float:
+        event_time = self.event_grid[event_idx]
+        return misc.a_function(event_time, self.maturity, self.kappa,
+                               self.mean_rate, self.vol)
 
-    def b_factor(self,
-                 time: float) -> float:
-        """Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010."""
-        return misc.b_factor(time, self.maturity, self.kappa)
+    def b_function(self,
+                   event_idx: int) -> float:
+        event_time = self.event_grid[event_idx]
+        return misc.b_function(event_time, self.maturity, self.kappa)
 
     def dadt(self,
-             time: float) -> float:
-        """Time derivative of A
-        Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
-        """
-        return misc.dadt(time, self.maturity, self.kappa,
-                         self.mean_rate, self.vol)
+             event_idx: int) -> float:
+        event_time = self.event_grid[event_idx]
+        return misc.dadt(event_time, self.maturity, self.kappa, self.mean_rate,
+                         self.vol)
 
     def dbdt(self,
-             time: float) -> float:
-        """Time derivative of B
-        Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
-        """
-        return misc.dbdt(time, self.maturity, self.kappa)
+             event_idx: int) -> float:
+        event_time = self.event_grid[event_idx]
+        return misc.dbdt(event_time, self.maturity, self.kappa)
 
     def payoff(self,
-               spot: (float, np.ndarray)) -> (float, np.ndarray):
-        """Payoff function."""
-        return payoffs.zero_coupon_bond(spot)
+               spot_rate: (float, np.ndarray)) -> (float, np.ndarray):
+        return payoffs.zero_coupon_bond(spot_rate)
 
     def price(self,
-              spot: (float, np.ndarray),
-              time: float) -> (float, np.ndarray):
-        """Price function
-        Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+              spot_rate: (float, np.ndarray),
+              event_idx: int) -> (float, np.ndarray):
+        """Zero-coupon bond price.
+
+        See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        return np.exp(self.a_factor(time) - self.b_factor(time) * spot)
+        return np.exp(self.a_function(event_idx)
+                      - self.b_function(event_idx) * spot_rate)
 
     def delta(self,
-              spot: (float, np.ndarray),
-              time: float) -> (float, np.ndarray):
-        """1st order price sensitivity wrt the underlying state."""
-        return - self.b_factor(time) * self.price(spot, time)
+              spot_rate: (float, np.ndarray),
+              event_idx: int) -> (float, np.ndarray):
+        """1st order price sensitivity wrt the underlying state.
+
+        See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
+        return -self.b_function(event_idx) * self.price(spot_rate, event_idx)
 
     def gamma(self,
-              spot: (float, np.ndarray),
-              time: float) -> (float, np.ndarray):
-        """2st order price sensitivity wrt the underlying state."""
-        return self.b_factor(time) ** 2 * self.price(spot, time)
+              spot_rate: (float, np.ndarray),
+              event_idx: int) -> (float, np.ndarray):
+        """2nd order price sensitivity wrt the underlying state.
+
+        See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
+        return \
+            self.b_function(event_idx) ** 2 * self.price(spot_rate, event_idx)
 
     def theta(self,
-              spot: (float, np.ndarray),
-              time: float) -> (float, np.ndarray):
-        """1st order price sensitivity wrt time."""
-        return self.price(spot, time) \
-            * (self.dadt(time) - self.dbdt(time) * spot)
+              spot_rate: (float, np.ndarray),
+              event_idx: int) -> (float, np.ndarray):
+        """1st order price sensitivity wrt time.
+
+        See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
+        return self.price(spot_rate, event_idx) \
+            * (self.dadt(event_idx) - self.dbdt(event_idx) * spot_rate)

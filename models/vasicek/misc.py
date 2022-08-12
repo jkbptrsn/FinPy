@@ -2,25 +2,48 @@ import math
 import numpy as np
 
 
-def a_factor(time1: float,
-             time2: float,
-             kappa: float,
-             mean_rate: float,
-             vol: float) -> float:
-    """Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010."""
+def a_function(time1: float,
+               time2: float,
+               kappa: float,
+               mean_rate: float,
+               vol: float) -> float:
+    """Calculate A-function.
+
+    See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+
+    Args:
+        time1: Initial time.
+        time2: Final time.
+        kappa: Speed of mean reversion.
+        mean_rate: Mean reversion level.
+        vol: Volatility.
+
+    Returns:
+        A-function.
+    """
     vol_sq = vol ** 2
-    four_kappa = 4 * kappa
     two_kappa_sq = 2 * kappa ** 2
-    b = b_factor(time1, time2, kappa)
+    b = b_function(time1, time2, kappa)
     return (mean_rate - vol_sq / two_kappa_sq) \
-        * (b - (time2 - time1)) - vol_sq * b ** 2 / four_kappa
+        * (b - (time2 - time1)) - vol_sq * b ** 2 / (4 * kappa)
 
 
-def b_factor(time1: float,
-             time2: float,
-             kappa: float) -> float:
-    """Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010."""
-    return (1 - math.exp(- kappa * (time2 - time1))) / kappa
+def b_function(time1: float,
+               time2: float,
+               kappa: float) -> float:
+    """Calculate B-function.
+
+    See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+
+    Args:
+        time1: Initial time.
+        time2: Final time.
+        kappa: Speed of mean reversion.
+
+    Returns:
+        B-function.
+    """
+    return (1 - math.exp(-kappa * (time2 - time1))) / kappa
 
 
 def dadt(time1: float,
@@ -28,24 +51,43 @@ def dadt(time1: float,
          kappa: float,
          mean_rate: float,
          vol: float) -> float:
-    """Time derivative of A
-    Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+    """Calculate 1st order partial derivative of A-function wrt time.
+
+    See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+
+    Args:
+        time1: Initial time.
+        time2: Final time.
+        kappa: Speed of mean reversion.
+        mean_rate: Mean reversion level.
+        vol: Volatility.
+
+    Returns:
+        Time derivative of A-function.
     """
     vol_sq = vol ** 2
-    two_kappa = 2 * kappa
     two_kappa_sq = 2 * kappa ** 2
     db = dbdt(time1, time2, kappa)
     return (mean_rate - vol_sq / two_kappa_sq) * (db + 1) \
-        - vol_sq * b_factor(time1, time2, kappa) * db / two_kappa
+        - vol_sq * b_function(time1, time2, kappa) * db / (2 * kappa)
 
 
 def dbdt(time1: float,
          time2: float,
          kappa: float) -> float:
-    """Time derivative of B
-    Proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+    """Calculate 1st order partial derivative of B-function wrt time.
+
+    See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+
+    Args:
+        time1: Initial time.
+        time2: Final time.
+        kappa: Speed of mean reversion.
+
+    Returns:
+        Time derivative of B-function.
     """
-    return -math.exp(- kappa * (time2 - time1))
+    return -math.exp(-kappa * (time2 - time1))
 
 
 def sigma_p(time1: float,
@@ -56,7 +98,7 @@ def sigma_p(time1: float,
     """Eq. (3.10), D. Brigo & F. Mercurio 2007."""
     two_kappa = 2 * kappa
     exp_kappa = math.exp(- two_kappa * (time2 - time1))
-    b = b_factor(time2, time3, kappa)
+    b = b_function(time2, time3, kappa)
     return vol * b * math.sqrt((1 - exp_kappa) / two_kappa)
 
 
