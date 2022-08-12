@@ -16,7 +16,7 @@ class ZCBond(sde.SDE, bonds.Bond):
         vol: Volatility.
         event_grid: Event dates, e.g. payment dates, represented as year
             fractions from the as-of date.
-        maturity_idx : Maturity index on event_grid.
+        maturity_idx: Maturity index on event_grid.
     """
 
     def __init__(self,
@@ -60,44 +60,44 @@ class ZCBond(sde.SDE, bonds.Bond):
         return misc.dbdt(event_time, self.maturity, self.kappa)
 
     def payoff(self,
-               spot_rate: (float, np.ndarray)) -> (float, np.ndarray):
-        return payoffs.zero_coupon_bond(spot_rate)
+               spot: (float, np.ndarray)) -> (float, np.ndarray):
+        return payoffs.zero_coupon_bond(spot)
 
     def price(self,
-              spot_rate: (float, np.ndarray),
+              spot: (float, np.ndarray),
               event_idx: int) -> (float, np.ndarray):
         """Zero-coupon bond price.
 
         See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
         return np.exp(self.a_function(event_idx)
-                      - self.b_function(event_idx) * spot_rate)
+                      - self.b_function(event_idx) * spot)
 
     def delta(self,
-              spot_rate: (float, np.ndarray),
+              spot: (float, np.ndarray),
               event_idx: int) -> (float, np.ndarray):
         """1st order price sensitivity wrt the underlying state.
 
         See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        return -self.b_function(event_idx) * self.price(spot_rate, event_idx)
+        return -self.b_function(event_idx) * self.price(spot, event_idx)
 
     def gamma(self,
-              spot_rate: (float, np.ndarray),
+              spot: (float, np.ndarray),
               event_idx: int) -> (float, np.ndarray):
         """2nd order price sensitivity wrt the underlying state.
 
         See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
         return \
-            self.b_function(event_idx) ** 2 * self.price(spot_rate, event_idx)
+            self.b_function(event_idx) ** 2 * self.price(spot, event_idx)
 
     def theta(self,
-              spot_rate: (float, np.ndarray),
+              spot: (float, np.ndarray),
               event_idx: int) -> (float, np.ndarray):
         """1st order price sensitivity wrt time.
 
         See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        return self.price(spot_rate, event_idx) \
-            * (self.dadt(event_idx) - self.dbdt(event_idx) * spot_rate)
+        return self.price(spot, event_idx) \
+            * (self.dadt(event_idx) - self.dbdt(event_idx) * spot)
