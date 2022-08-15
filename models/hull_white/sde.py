@@ -1,12 +1,14 @@
 import math
 import numpy as np
+
 from typing import Tuple
 
-import models.sde as sde
-import utils.global_types as global_types
-import utils.misc as misc
+from models import sde
+from utils import global_types
+from utils import misc
 
-# TODO: abstract base class for SDE
+# One setup_int_grid method
+# One paths method
 
 
 def rate_adjustment(event_grid: np.ndarray,
@@ -46,18 +48,21 @@ def discount_adjustment(event_grid: np.ndarray,
 
 
 class SDEConstant(sde.SDE):
-    """SDE for the pseudo short rate in the Hull-White (Extended
-    Vasicek) model
+    """SDE for the pseudo short rate in the 1-factor Hull-White model.
+
+    The pseudo short rate is defined by
         dx_t = (y_t - kappa * x_t) * dt + vol * dW_t,
     where
-        r_t = x_t + f(0,t) (f is the instantaneous forward rate).
-    Proposition 10.1.7, L.B.G. Andersen & V.V. Piterbarg 2010.
+        x_t = r_t - f(0,t) (f is the instantaneous forward rate). See
+    proposition 10.1.7, L.B.G. Andersen & V.V. Piterbarg 2010.
 
-    - kappa: Speed of mean reversion (constant)
-    - vol: Volatility (constant)
-    - discount_curve: Discount factor for each event date
-    - event_grid: Event dates, i.e., trade date, payment dates, etc.
-    - int_step_size: Integration/propagation step size
+    Attributes:
+        kappa: Speed of mean reversion -- assumed to be constant.
+        vol: Volatility -- assumed to be constant.
+        event_grid: Events, e.g. payment dates, represented as year
+            fractions from the as-of date.
+        int_step_size: Integration/propagation step size represented as
+            a year fraction. Default is 1 / 365.
     """
 
     def __init__(self,
@@ -72,58 +77,56 @@ class SDEConstant(sde.SDE):
 
         self.model_name = global_types.ModelName.HULL_WHITE_1F
 
-        # Arrays used for exact discretization
+        # Arrays used for exact discretization.
         self.rate_mean = np.zeros((event_grid.size, 2))
         self.rate_variance = np.zeros(event_grid.size)
         self.discount_mean = np.zeros((event_grid.size, 2))
         self.discount_variance = np.zeros(event_grid.size)
         self.covariance = np.zeros(event_grid.size)
 
-        # Integration grid
+        # Integration grid.
         self.int_grid = None
-        # Indices of event dates on integration grid
+        # Indices of event dates on integration grid.
         self.int_event_idx = None
-        # y-function on integration and event grids
-        # Eq. (10.17), L.B.G. Andersen & V.V. Piterbarg 2010.
+        # y-function on integration and event grids. See Eq. (10.17),
+        # L.B.G. Andersen & V.V. Piterbarg 2010.
         self.y_int_grid = None
         self.y_event_grid = np.zeros(event_grid.size)
-        # Euler propagation scheme
+
+        # Euler propagation scheme.
         self.kappa_int_grid = None
         self.vol_int_grid = None
-        # Array used in initialization of the SDE object
-        self.int_kappa_step = None
+
+        # Initialization...?
 
     def __repr__(self):
         return f"{self.model_name} SDE object"
 
     def initialization(self):
-        """Initialize the Monte-Carlo simulation:
-        - Exact discretization: On event grid, calculate mean and
-          variance of the short rate and discount processes,
-          respectively.
-        - Approximate discretization: On integration grid, ...
+        """Initialization of the Monte-Carlo engine.
+
+        Calculate time-dependent mean and variance of the pseudo short
+        rate and discount processes, respectively.
         """
         self.setup_int_grid()
         self.setup_kappa_vol_y()
-        self.calc_rate_mean()
-        self.calc_rate_variance()
-        self.calc_discount_mean()
-        self.calc_discount_variance()
-        self.calc_covariance()
-        # Array is not used after initialization
-        self.int_kappa_step = None
+        self._calc_rate_mean()
+        self._calc_rate_variance()
+        self._calc_discount_mean()
+        self._calc_discount_variance()
+        self._calc_covariance()
 
     def setup_int_grid(self):
-        """Time grid for numerical integration."""
-        # Assume that the first event date is the initial time point on
-        # the integration grid
+        """Construct time grid for numerical integration."""
+        # Assume that the first event is the initial time point on the
+        # integration grid.
         self.int_grid = np.array(self.event_grid[0])
-        # The first event has index zero on the integration grid
+        # The first event has index zero on the integration grid.
         self.int_event_idx = np.array(0)
-        # Step size between two adjacent event dates
+        # Step size between two adjacent events.
         step_size_grid = np.diff(self.event_grid)
         for idx, step_size in enumerate(step_size_grid):
-            # Number of integration steps
+            # Number of integration steps.
             steps = math.floor(step_size / self.int_step_size)
             initial_date = self.event_grid[idx]
             if steps == 0:
@@ -132,7 +135,6 @@ class SDEConstant(sde.SDE):
                 grid = self.int_step_size * np.arange(1, steps + 1) \
                     + initial_date
                 diff_step = step_size - steps * self.int_step_size
-                # TODO: Is this necessary?
                 if diff_step > 1.0e-8:
                     grid = np.append(grid, grid[-1] + diff_step)
             self.int_grid = np.append(self.int_grid, grid)
@@ -140,31 +142,34 @@ class SDEConstant(sde.SDE):
         self.int_event_idx = np.cumsum(self.int_event_idx)
 
     def setup_kappa_vol_y(self):
-        """Speed of mean reversion, volatility and y-function
-        represented on integration grid.
-        Proposition 10.1.7, L.B.G. Andersen & V.V. Piterbarg 2010.
+        """Set up speed of mean reversion, volatility and y-function.
+
+        See proposition 10.1.7, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        # Speed of mean reversion on integration grid
+        # Speed of mean reversion on integration grid. kappa is assumed
+        # to be constant.
         kappa = self.kappa.values[0]
         self.kappa_int_grid = kappa + 0 * self.int_grid
-        # Volatility on integration grid
+        # Volatility on integration grid. vol is assumed to be constant.
         vol = self.vol.values[0]
         self.vol_int_grid = vol + 0 * self.int_grid
-        # Calculation of y-function on integration grid
+        # Calculation of y-function on integration grid.
         exp_kappa = np.exp(-2 * kappa * self.int_grid)
         self.y_int_grid = vol ** 2 * (1 - exp_kappa) / (2 * kappa)
-        # Save y-function on event grid
+        # Save y-function on event grid.
         for idx, event_idx in enumerate(self.int_event_idx):
             self.y_event_grid[idx] = self.y_int_grid[event_idx]
 
-    def calc_rate_mean(self):
-        """Factors for calculating conditional mean of pseudo short
-        rate.
-        Eq. (10.40), L.B.G. Andersen & V.V. Piterbarg 2010.
+    def _calc_rate_mean(self):
+        """Conditional mean of pseudo short rate process.
+
+        See Eq. (10.40), L.B.G. Andersen & V.V. Piterbarg 2010.
         """
+        # Speed of mean reversion is assumed to be constant.
         kappa = self.kappa.values[0]
+        # Volatility is assumed to be constant.
         vol = self.vol.values[0]
-        self.rate_mean[0] = [1, 0]
+        self.rate_mean[0] = np.array([1, 0])
         self.rate_mean[1:, 0] = np.exp(-kappa * np.diff(self.event_grid))
         exp_kappa_1 = np.exp(-2 * kappa * self.event_grid[1:])
         exp_kappa_2 = np.exp(-kappa * np.diff(self.event_grid))
@@ -174,35 +179,50 @@ class SDEConstant(sde.SDE):
             vol ** 2 * (1 + exp_kappa_1 - exp_kappa_2 - exp_kappa_3) \
             / (2 * kappa ** 2)
 
-    def calc_rate_variance(self):
-        """Factors for calculating conditional variance of pseudo short
-        rate.
-        Eq. (10.41), L.B.G. Andersen & V.V. Piterbarg 2010.
+    def _calc_rate_variance(self):
+        """Conditional variance of pseudo short rate process.
+
+        See Eq. (10.41), L.B.G. Andersen & V.V. Piterbarg 2010.
         """
+        # Speed of mean reversion is assumed to be constant.
         kappa = self.kappa.values[0]
+        # Volatility is assumed to be constant.
         vol = self.vol.values[0]
         self.rate_variance[1:] = \
             vol ** 2 * (1 - np.exp(-2 * kappa * np.diff(self.event_grid))) \
             / (2 * kappa)
 
-    def rate_increment(self,
-                       spot: (float, np.ndarray),
-                       time_idx: int,
-                       normal_rand: (float, np.ndarray)) \
+    def _rate_increment(self,
+                        spot: (float, np.ndarray),
+                        time_idx: int,
+                        normal_rand: (float, np.ndarray)) \
             -> (float, np.ndarray):
-        """Increment pseudo short rate process (the spot value is
-        subtracted to get the increment).
+        """Increment pseudo short rate process.
+
+        The spot value is subtracted to get the increment.
+
+        Args:
+            spot: Pseudo short rate at time corresponding to time index.
+            time_idx: Time index.
+            normal_rand: Realizations of independent standard normal
+                random variables.
+
+        Returns:
+            Incremented pseudo short rate process.
         """
         mean = self.rate_mean[time_idx][0] * spot + self.rate_mean[time_idx][1]
         variance = self.rate_variance[time_idx]
         return mean + math.sqrt(variance) * normal_rand - spot
 
-    def calc_discount_mean(self):
-        """Factors for calculating conditional mean of pseudo discount
-        process, i.e., - int_t^{t+dt} r_u du.
+    def _calc_discount_mean(self):
+        """Conditional mean of pseudo discount process.
+
+        The pseudo discount process is really -int_t^{t+dt} x_u du. See
         Eq. (10.42), L.B.G. Andersen & V.V. Piterbarg 2010.
         """
+        # Speed of mean reversion is assumed to be constant.
         kappa = self.kappa.values[0]
+        # Volatility is assumed to be constant.
         vol = self.vol.values[0]
         self.discount_mean[1:, 0] = \
             (1 - np.exp(-kappa * np.diff(self.event_grid))) / kappa
@@ -218,44 +238,63 @@ class SDEConstant(sde.SDE):
             vol ** 2 * (kappa * np.diff(self.event_grid) + exp_kappa_1
                         + exp_kappa_2 + exp_kappa_3) / (2 * kappa ** 3)
 
-    def calc_discount_variance(self):
-        """Factors for calculating conditional variance of pseudo
-        discount process, i.e., - int_t^{t+dt} r_u du.
+    def _calc_discount_variance(self):
+        """Conditional variance of pseudo discount process.
+
+        The pseudo discount process is really -int_t^{t+dt} x_u du. See
         Eq. (10.43), L.B.G. Andersen & V.V. Piterbarg 2010.
         """
         self.discount_variance[1:] = \
             2 * self.discount_mean[1:, 1] \
             - self.y_event_grid[:-1] * self.discount_mean[1:, 0] ** 2
 
-    def discount_increment(self,
-                           rate_spot: (float, np.ndarray),
-                           time_idx: int,
-                           normal_rand: (float, np.ndarray)) \
+    def _discount_increment(self,
+                            rate_spot: (float, np.ndarray),
+                            time_idx: int,
+                            normal_rand: (float, np.ndarray)) \
             -> (float, np.ndarray):
-        """Increment pseudo discount process."""
+        """Increment pseudo discount process.
+
+        The pseudo discount process is really -int_t^{t+dt} x_u du.
+
+        Args:
+            rate_spot: Pseudo short rate at time corresponding to time index.
+            time_idx: Time index.
+            normal_rand: Realizations of independent standard normal
+                random variables.
+
+        Returns:
+            Incremented pseudo discount process.
+        """
         mean = \
             - rate_spot * self.discount_mean[time_idx][0] \
             - self.discount_mean[time_idx][1]
         variance = self.discount_variance[time_idx]
         return mean + math.sqrt(variance) * normal_rand
 
-    def calc_covariance(self):
-        """Covariance between between pseudo short rate and pseudo
-        discount processes.
-        Lemma 10.1.11, L.B.G. Andersen & V.V. Piterbarg 2010.
+    def _calc_covariance(self):
+        """Covariance between between short rate and discount processes.
+
+        See lemma 10.1.11, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
+        # Speed of mean reversion is assumed to be constant.
         kappa = self.kappa.values[0]
+        # Volatility is assumed to be constant.
         vol = self.vol.values[0]
         exp_kappa_1 = np.exp(-2 * kappa * np.diff(self.event_grid))
         exp_kappa_2 = np.exp(-kappa * np.diff(self.event_grid))
         self.covariance[1:] = \
             -vol ** 2 * (1 + exp_kappa_1 - 2 * exp_kappa_2) / (2 * kappa ** 2)
 
-    def correlation(self,
-                    time_idx: int) -> float:
-        """Correlation between between pseudo short rate and pseudo
-        discount processes.
-        Lemma 10.1.11, L.B.G. Andersen & V.V. Piterbarg 2010.
+    def _correlation(self,
+                     time_idx: int) -> float:
+        """Correlation between short rate and discount processes.
+
+        Args:
+            time_idx: Time index.
+
+        Returns:
+            Correlation at time corresponding to time index.
         """
         covariance = self.covariance[time_idx]
         rate_var = self.rate_variance[time_idx]
@@ -265,30 +304,38 @@ class SDEConstant(sde.SDE):
     def paths(self,
               spot: float,
               n_paths: int,
+              rng: np.random.Generator = None,
               seed: int = None,
-              antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
-        """Generate paths, represented on _event_grid, of correlated
-        pseudo short rate and pseudo discount processes using exact
-        discretization.
+              antithetic: bool = False) -> tuple[np.ndarray, np.ndarray]:
+        """Monte-Carlo paths using exact discretization.
 
-        antithetic : Antithetic sampling for Monte-Carlo variance
-        reduction. Defaults to False.
+        Args:
+            spot: Pseudo short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of pseudo short rate and pseudo discount
+            processes represented on event_grid.
         """
         rate = np.zeros((self.event_grid.size, n_paths))
         rate[0, :] = spot
         discount = np.zeros((self.event_grid.size, n_paths))
-        if seed is not None:
-            np.random.seed(seed)
+        if rng is None:
+            rng = np.random.default_rng(seed)
         for time_idx in range(1, self.event_grid.size):
-            correlation = self.correlation(time_idx)
+            correlation = self._correlation(time_idx)
             x_rate, x_discount = \
-                misc.cholesky_2d(correlation, n_paths, antithetic=antithetic)
+                misc.cholesky_2d(correlation, n_paths, rng, antithetic)
             rate[time_idx] = rate[time_idx - 1] \
-                + self.rate_increment(rate[time_idx - 1], time_idx, x_rate)
+                + self._rate_increment(rate[time_idx - 1], time_idx, x_rate)
             discount[time_idx] = discount[time_idx - 1] \
-                + self.discount_increment(rate[time_idx - 1], time_idx,
-                                          x_discount)
-        # Get pseudo discount factors at event dates
+                + self._discount_increment(rate[time_idx - 1], time_idx,
+                                           x_discount)
+        # Get pseudo discount factors on event_grid.
         discount = np.exp(discount)
         return rate, discount
 
@@ -593,6 +640,7 @@ class SDE(sde.SDE):
     def paths(self,
               spot: float,
               n_paths: int,
+              rng: np.random.Generator = None,
               seed: int = None,
               antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
         """Generate paths, represented on _event_grid, of correlated
@@ -605,12 +653,12 @@ class SDE(sde.SDE):
         rate = np.zeros((self.event_grid.size, n_paths))
         rate[0, :] = spot
         discount = np.zeros((self.event_grid.size, n_paths))
-        if seed is not None:
-            np.random.seed(seed)
+        if rng is None:
+            rng = np.random.default_rng(seed)
         for time_idx in range(1, self.event_grid.size):
             correlation = self.correlation(time_idx)
             x_rate, x_discount = \
-                misc.cholesky_2d(correlation, n_paths, antithetic=antithetic)
+                misc.cholesky_2d(correlation, n_paths, rng, antithetic=antithetic)
             rate[time_idx] = rate[time_idx - 1] \
                 + self.rate_increment(rate[time_idx - 1], time_idx, x_rate)
             discount[time_idx] = discount[time_idx - 1] \

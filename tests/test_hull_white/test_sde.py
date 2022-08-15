@@ -61,8 +61,8 @@ class SDE(unittest.TestCase):
         hull_white.initialization()
         rate, discount = hull_white.paths(0, n_paths, seed=0, antithetic=True)
         # Threshold
-        threshold = np.array([1e-10, 4.0e-7, 3e-6, 1e-4, 3e-4,
-                              5e-4, 6e-4, 6e-4, 4e-4, 3e-3, 5e-3])
+        threshold = np.array([1e-10, 3.0e-7, 2e-5, 6e-5, 2e-4,
+                              3e-4, 3e-4, 4e-4, 2e-3, 6e-3, 2e-2])
         for event_idx in range(event_grid.size):
             # Analytical result
             price_a = discount_curve.values[event_idx]
@@ -70,7 +70,7 @@ class SDE(unittest.TestCase):
             price_n = np.sum(discount[event_idx, :]) / n_paths
             price_n *= discount_curve.values[event_idx]
             diff = abs((price_n - price_a) / price_a)
-            # print("test_zero_coupon_bond_pricing: ", event_idx, price_a, diff)
+#            print("test_zero_coupon_bond_pricing: ", event_idx, price_a, diff)
             self.assertTrue(abs(diff) < threshold[event_idx])
 
     def test_coupon_bond_pricing(self):
@@ -157,7 +157,7 @@ class SDE(unittest.TestCase):
             diff_discount = \
                 np.abs(diff_discount / discount_pseudo_const[1:, n])
             # print(n, np.max(diff_rate), np.max(diff_discount))
-            self.assertTrue(np.max(diff_rate) < 3e-2)
+            self.assertTrue(np.max(diff_rate) < 2e-2)
             self.assertTrue(np.max(diff_discount) < 4e-5)
         # Compare mean and variance of pseudo short rate and discount
         # processes, respectively
@@ -230,8 +230,8 @@ class SDE(unittest.TestCase):
         bond = \
             zcbond.ZCBond(kappa, vol, discount_curve, event_grid, maturity_idx)
         # Threshold
-        threshold = np.array([3e-4, 4e-4, 4e-4, 5e-4, 6e-4,
-                              2e-3, 3e-3, 8e-3, 2e-2, 3e-2])
+        threshold = np.array([3e-4, 4e-4, 4e-4, 5e-4, 8e-4,
+                              2e-3, 2e-3, 3e-3, 7e-3, 2e-2])
         for s in range(2, 12, 1):
             # New discount curve on event_grid
             spot = 0.001 * s
@@ -304,8 +304,8 @@ class SDE(unittest.TestCase):
         bond = \
             zcbond.ZCBond(kappa, vol, discount_curve, event_grid, maturity_idx)
         # Threshold
-        threshold = np.array([5e-4, 6e-4, 7e-4, 8e-4, 2e-3,
-                              3e-3, 4e-3, 7e-3, 2e-2, 5e-2])
+        threshold = np.array([3e-4, 4e-4, 4e-4, 6e-4, 8e-4,
+                              1e-3, 2e-3, 6e-3, 2e-2, 9e-3])
         for s in range(2, 12, 1):
             # New discount curve on event_grid
             spot = 0.001 * s
@@ -445,7 +445,7 @@ if __name__ == '__main__':
                           discount_curve, interp_scheme="quadratic")
 
     # Plot zero-coupon bond price curve
-    time_grid_plot = 0.1 * np.arange(0, 301)
+    time_grid_plot = 0.1 * np.arange(-50, 351)  # np.arange(301)
     plt.plot(time_grid_plot, discount_curve.interpolation(time_grid_plot))
     plt.xlabel("Time")
     plt.ylabel("Zero coupon bond price")
