@@ -3,11 +3,24 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.optimize import brentq
 from scipy.stats import norm
-from typing import Tuple
+
+# Alphabetical order...
 
 
 class DiscreteFunc:
-    """Interpolation and extrapolation of discrete function."""
+    """Interpolation and extrapolation of a discrete function.
+
+    Attributes:
+        name: Name of the function.
+        time_grid: Time grid in year fractions.
+        values: Function value at each point on time grid.
+        interp_scheme: Interpolation scheme.
+            Default is flat interpolation ("zero"). Some other
+            interpolation schemes are "linear", "quadratic", "cubic",
+            etc. For more information, see the scipy documentation.
+        extrap_scheme: Use corresponding extrapolation scheme. Default
+            is True.
+    """
 
     def __init__(self,
                  name: str,
@@ -15,53 +28,30 @@ class DiscreteFunc:
                  values: np.ndarray,
                  interp_scheme: str = "zero",
                  extrap_scheme: bool = True):
-        self._name = name
-        self._time_grid = time_grid
-        self._values = values
-        self._interp_scheme = interp_scheme
-        self._extrap_scheme = extrap_scheme
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def time_grid(self) -> np.ndarray:
-        return self._time_grid
-
-    @property
-    def values(self) -> np.ndarray:
-        return self._values
-
-    @property
-    def interp_scheme(self) -> str:
-        return self._interp_scheme
-
-    @interp_scheme.setter
-    def interp_scheme(self,
-                      interp_scheme_: str):
-        self._interp_scheme = interp_scheme_
-
-    @property
-    def extrap_scheme(self) -> bool:
-        return self._extrap_scheme
-
-    @extrap_scheme.setter
-    def extrap_scheme(self,
-                      extrap_scheme_: bool):
-        self._extrap_scheme = extrap_scheme_
+        self.name = name
+        self.time_grid = time_grid
+        self.values = values
+        self.interp_scheme = interp_scheme
+        self.extrap_scheme = extrap_scheme
 
     def interpolation(self,
-                      time_grid_new: (float, np.ndarray)) \
+                      interp_time_grid: (float, np.ndarray)) \
             -> (float, np.ndarray):
-        """Interpolate (and extrapolate) on time_grid_new."""
-        if self._extrap_scheme:
+        """Interpolate (and extrapolate) on interp_time_grid.
+
+        Args:
+            interp_time_grid: Interpolation time grid in year fractions.
+
+        Returns:
+            Function values on interpolation time grid.
+        """
+        if self.extrap_scheme:
             extrap = "extrapolate"
         else:
             extrap = None
-        f = interp1d(self._time_grid, self._values,
-                     kind=self._interp_scheme, fill_value=extrap)
-        return f(time_grid_new)
+        f = interp1d(self.time_grid, self.values, kind=self.interp_scheme,
+                     fill_value=extrap)
+        return f(interp_time_grid)
 
 
 def trapz(grid: np.ndarray,
@@ -73,20 +63,22 @@ def trapz(grid: np.ndarray,
 
 def cholesky_2d(correlation: float,
                 n_sets: int,
-                antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+                rng: np.random.Generator,
+                antithetic: bool = False) -> tuple[np.ndarray, np.ndarray]:
     """Sets of two correlated standard normal random variables using
     Cholesky decomposition. In the 2-D case, the transformation is
     simply: (x1, correlation * x1 + sqrt{1 - correlation ** 2} * x2)
     """
     corr_matrix = np.array([[1, correlation], [correlation, 1]])
     corr_matrix = np.linalg.cholesky(corr_matrix)
-    x1 = normal_realizations(n_sets, antithetic=antithetic)
-    x2 = normal_realizations(n_sets, antithetic=antithetic)
+    x1 = normal_realizations(n_sets, rng, antithetic)
+    x2 = normal_realizations(n_sets, rng, antithetic)
     return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
         corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
 
 
 def normal_realizations(n_realizations: int,
+                        rng: np.random.Generator,
                         antithetic: bool = False) -> np.ndarray:
     """Realizations of a standard normal random variable."""
     if antithetic and n_realizations % 2 == 1:
@@ -95,17 +87,27 @@ def normal_realizations(n_realizations: int,
     anti = 1
     if antithetic:
         anti = 2
-    realizations = norm.rvs(size=n_realizations // anti)
+    realizations = rng.normal(size=n_realizations // anti)
+
+#    realizations = norm.rvs(size=n_realizations // anti)
+
     if antithetic:
         realizations = np.append(realizations, -realizations)
     return realizations
 
 
-def monte_carlo_error(values: np.ndarray) -> float:
-    """TODO: check this formula -- divide by sqrt(n)?"""
-    sample_mean = np.sum(values) / values.size
-    sample_variance = np.sum((values - sample_mean) ** 2) / (values.size - 1)
-    return math.sqrt(sample_variance) / math.sqrt(values.size)
+def monte_carlo_error(realizations: np.ndarray) -> float:
+    """Calculate the standard error of the Monte-Carlo estimate.
+
+    Args:
+        realizations: Realizations of the relevant random variable.
+
+    Returns:
+        Standard error.
+    """
+    sample_size = realizations.size
+    sample_variance = realizations.var(ddof=1)
+    return math.sqrt(sample_variance) / math.sqrt(sample_size)
 
 
 def price_refinancing_bond(coupon: float,
