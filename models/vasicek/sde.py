@@ -35,7 +35,7 @@ class SDE(sde.SDE):
 
         self.model_name = global_types.ModelName.VASICEK
 
-        # Arrays used for exact discretization
+        # Arrays used for exact discretization.
         self.rate_mean = np.zeros((self.event_grid.size, 2))
         self.rate_variance = np.zeros(self.event_grid.size)
         self.discount_mean = np.zeros((self.event_grid.size, 2))
@@ -87,6 +87,15 @@ class SDE(sde.SDE):
         """Increment short rate process one time step.
 
         The spot rate is subtracted to get the increment.
+
+        Args:
+            spot: Short rate at time corresponding to time index.
+            time_idx: Time index.
+            normal_rand: Realizations of independent standard normal
+                random variables.
+
+        Returns:
+            Incremented short rate process.
         """
         mean = self.rate_mean[time_idx, 0] * spot + self.rate_mean[time_idx, 1]
         variance = self.rate_variance[time_idx]
@@ -125,7 +134,17 @@ class SDE(sde.SDE):
                             time_idx: int,
                             normal_rand: (float, np.ndarray)) \
             -> (float, np.ndarray):
-        """Increment discount process one time step."""
+        """Increment discount process one time step.
+
+        Args:
+            rate_spot: Short rate at time corresponding to time index.
+            time_idx: Time index.
+            normal_rand: Realizations of independent standard normal
+                random variables.
+
+        Returns:
+            Incremented discount process.
+        """
         mean = self.discount_mean[time_idx, 0] * rate_spot \
             + self.discount_mean[time_idx, 1]
         variance = self.discount_variance[time_idx]
