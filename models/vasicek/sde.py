@@ -35,6 +35,7 @@ class SDE(sde.SDE):
 
         self.model_name = global_types.ModelName.VASICEK
 
+        # Arrays used for exact discretization
         self.rate_mean = np.zeros((self.event_grid.size, 2))
         self.rate_variance = np.zeros(self.event_grid.size)
         self.discount_mean = np.zeros((self.event_grid.size, 2))
