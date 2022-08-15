@@ -2,9 +2,34 @@ import math
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.optimize import brentq
-from scipy.stats import norm
 
-# Alphabetical order...
+
+def cholesky_2d(correlation: float,
+                n_sets: int,
+                rng: np.random.Generator,
+                antithetic: bool = False) -> tuple[np.ndarray, np.ndarray]:
+    """Cholesky decomposition of correlation matrix in 2-D.
+
+    In the 2-D case, the transformation is simply:
+    (x1, correlation * x1 + sqrt{1 - correlation ** 2} * x2)
+
+    Args:
+        correlation: Correlation scalar.
+        n_sets: Number of realization sets of two correlated normal
+            random variables.
+        rng: Random number generator.
+        antithetic: Antithetic sampling for variance reduction.
+            Default is False.
+
+    Returns:
+        Realization sets of two correlated normal random variables.
+    """
+    corr_matrix = np.array([[1, correlation], [correlation, 1]])
+    corr_matrix = np.linalg.cholesky(corr_matrix)
+    x1 = normal_realizations(n_sets, rng, antithetic)
+    x2 = normal_realizations(n_sets, rng, antithetic)
+    return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
+        corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
 
 
 class DiscreteFunc:
@@ -54,33 +79,20 @@ class DiscreteFunc:
         return f(interp_time_grid)
 
 
-def trapz(grid: np.ndarray,
-          function: np.ndarray) -> np.ndarray:
-    """Trapezoidal integration for each step along the grid."""
-    dx = np.diff(grid)
-    return dx * (function[1:] + function[:-1]) / 2
-
-
-def cholesky_2d(correlation: float,
-                n_sets: int,
-                rng: np.random.Generator,
-                antithetic: bool = False) -> tuple[np.ndarray, np.ndarray]:
-    """Sets of two correlated standard normal random variables using
-    Cholesky decomposition. In the 2-D case, the transformation is
-    simply: (x1, correlation * x1 + sqrt{1 - correlation ** 2} * x2)
-    """
-    corr_matrix = np.array([[1, correlation], [correlation, 1]])
-    corr_matrix = np.linalg.cholesky(corr_matrix)
-    x1 = normal_realizations(n_sets, rng, antithetic)
-    x2 = normal_realizations(n_sets, rng, antithetic)
-    return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
-        corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
-
-
 def normal_realizations(n_realizations: int,
                         rng: np.random.Generator,
                         antithetic: bool = False) -> np.ndarray:
-    """Realizations of a standard normal random variable."""
+    """Realizations of a standard normal random variable.
+
+    Args:
+        n_realizations: Number of realizations.
+        rng: Random number generator.
+        antithetic: Antithetic sampling for variance reduction.
+            Default is False.
+
+    Returns:
+        Realizations...
+    """
     if antithetic and n_realizations % 2 == 1:
         raise ValueError("In antithetic sampling, the number of "
                          "realizations should be even.")
@@ -88,12 +100,16 @@ def normal_realizations(n_realizations: int,
     if antithetic:
         anti = 2
     realizations = rng.normal(size=n_realizations // anti)
-
-#    realizations = norm.rvs(size=n_realizations // anti)
-
     if antithetic:
         realizations = np.append(realizations, -realizations)
     return realizations
+
+
+def trapz(grid: np.ndarray,
+          function: np.ndarray) -> np.ndarray:
+    """Trapezoidal integration for each step along the grid."""
+    dx = np.diff(grid)
+    return dx * (function[1:] + function[:-1]) / 2
 
 
 def monte_carlo_error(realizations: np.ndarray) -> float:
