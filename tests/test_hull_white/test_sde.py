@@ -17,22 +17,23 @@ class SDE(unittest.TestCase):
         constant volatility, the y-function has a closed form. See
         proposition 10.1.7, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
-        # Speed of mean reversion
+        # Event dates in year fractions.
+        event_grid = np.arange(0, 31, 2)
+        # Speed of mean reversion.
         kappa_const = 0.05
         two_kappa = 2 * kappa_const
-        # Volatility
+        # Volatility.
         vol_const = 0.02
-        event_grid = np.arange(0, 31, 2)
-        # Closed-form evaluation of y-function
+        # Closed-form evaluation of y-function.
         y_analytical = \
             vol_const ** 2 * (1 - np.exp(-two_kappa * event_grid)) / two_kappa
-        # Speed of mean reversion strip
+        # Speed of mean reversion strip.
         kappa = np.array([np.arange(2), kappa_const * np.ones(2)])
         kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
-        # Volatility strip
+        # Volatility strip.
         vol = np.array([np.arange(2), vol_const * np.ones(2)])
         vol = misc.DiscreteFunc("vol", vol[0], vol[1])
-        # SDE object
+        # SDE object.
         hull_white = sde.SDE(kappa, vol, event_grid, int_step_size=1 / 52)
         for idx, y_numerical in enumerate(hull_white.y_event_grid):
             if idx >= 1:
@@ -40,155 +41,164 @@ class SDE(unittest.TestCase):
                 # print(idx, y_analytical[idx], diff)
                 self.assertTrue(diff < 3.1e-7)
 
-    def test_sde_objects(self):
-        """Compare SDE objects for calculation of call options written
-        on zero coupon bonds.
+    def test_sde_classes(self):
+        """Test the classes SDEConstant and SDE.
+
+        In the case of both constant speed of mean reversion and
+        constant volatility, the time-dependent mean and variance of
+        the pseudo short rate and discount processes, respectively,
+        should be.
         """
+        # Event dates in year fractions.
         event_grid = np.arange(11)
-        # Speed of mean reversion strip -- constant kappa!
-        kappa = np.array([np.array([2, 3, 7]), 0.01 * np.array([1, 1, 1])])
+        # Speed of mean reversion.
+        kappa_const = 0.03
+        # Volatility.
+        vol_const = 0.02
+        # Speed of mean reversion strip.
+        kappa = np.array([np.arange(2), kappa_const * np.ones(2)])
         kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
-        # Volatility strip -- constant vol!
-        vol = np.array([np.arange(10),
-                        0.003 * np.array([2, 2, 2, 2, 2, 2, 2, 2, 2, 2])])
+        # Volatility strip.
+        vol = np.array([np.arange(2), vol_const * np.ones(2)])
         vol = misc.DiscreteFunc("vol", vol[0], vol[1])
-        # Discount curve on event_grid
-        forward_rate = 0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
-        discount_curve = np.exp(-forward_rate * event_grid)
-        discount_curve = \
-            misc.DiscreteFunc("discount curve", event_grid,
-                              discount_curve, interp_scheme="linear")
-        # SDE objects
-        n_paths = 1000
-        hw = sde.SDE(kappa, vol, event_grid)
-        hw_const = sde.SDEConstant(kappa, vol, event_grid)
-        # Pseudo rate and discount factors
-        rate_pseudo, discount_pseudo = hw.paths(0, n_paths, seed=0)
-        rate_pseudo_const, discount_pseudo_const = \
-            hw_const.paths(0, n_paths, seed=0)
-        # Compare trajectories
-        for n in range(n_paths):
-            diff_rate = np.abs(rate_pseudo[1:, n] - rate_pseudo_const[1:, n])
-            diff_rate = np.abs(diff_rate / rate_pseudo_const[1:, n])
-            diff_discount = \
-                np.abs(discount_pseudo[1:, n] - discount_pseudo_const[1:, n])
-            diff_discount = \
-                np.abs(diff_discount / discount_pseudo_const[1:, n])
-            # print(n, np.max(diff_rate), np.max(diff_discount))
-            self.assertTrue(np.max(diff_rate) < 2e-2)
-            self.assertTrue(np.max(diff_discount) < 4e-5)
+        # Number of Monte-Carlo paths.
+        n_paths = 100000
+        # SDE objects.
+        hw = sde.SDE(kappa, vol, event_grid, int_step_size=1 / 52)
+        hw_const = \
+            sde.SDEConstant(kappa, vol, event_grid, int_step_size=1 / 52)
+        # Pseudo rate and discount factors.
+        rate, discount = hw.paths(0, n_paths, seed=0)
+        rate_const, discount_const = hw_const.paths(0, n_paths, seed=0)
+        # Compare trajectories.
+        diff_rate = np.abs(rate[1:, :] - rate_const[1:, :]) / rate_const[1:, :]
+        diff_rate = np.max(diff_rate)
+        diff_discount = \
+            np.abs(discount[1:, :] - discount_const[1:, :]) \
+            / discount_const[1:, :]
+        diff_discount = np.max(diff_discount)
+        print(diff_rate, diff_discount)
+        self.assertTrue(diff_rate < 8.3e-3)
+        self.assertTrue(diff_discount < 1.7e-4)
         # Compare mean and variance of pseudo short rate and discount
-        # processes, respectively
-        for n in range(1, event_grid.size):
-            diff_rate_mean = \
-                np.abs((hw.rate_mean[n] - hw_const.rate_mean[n])
-                       / hw_const.rate_mean[n])
-            diff_rate_variance = \
-                np.abs((hw.rate_variance[n] - hw_const.rate_variance[n])
-                       / hw_const.rate_variance[n])
-            diff_discount_mean = \
-                np.abs((hw.discount_mean[n] - hw_const.discount_mean[n])
-                       / hw_const.discount_mean[n])
-            diff_discount_variance = \
-                np.abs((hw.discount_variance[n]
-                        - hw_const.discount_variance[n])
-                       / hw_const.discount_variance[n])
-            diff_covariance = \
-                np.abs((hw.covariance[n] - hw_const.covariance[n])
-                       / hw_const.covariance[n])
-            # print("Rate mean:", n, hw_const.rate_mean[n], diff_rate_mean)
-            # print("Rate variance:", n, hw_const.rate_variance[n], diff_rate_variance)
-            # print("Discount mean:", n, hw_const.discount_mean[n], diff_discount_mean)
-            # print("Discount variance:", n, hw_const.discount_variance[n], diff_discount_variance)
-            # print("Covariance:", n, hw_const.covariance[n], diff_covariance)
-            self.assertTrue(diff_rate_mean[0] < 1e-10)
-            self.assertTrue(diff_rate_mean[1] < 6e-5)
-            self.assertTrue(diff_rate_variance < 3e-10)
-            self.assertTrue(diff_discount_mean[0] < 3e-5)
-            self.assertTrue(diff_discount_mean[1] < 6e-5)
-            self.assertTrue(diff_discount_variance < 2e-3)
-            self.assertTrue(diff_covariance < 3e-5)
+        # processes, respectively.
+        diff_rate_mean = hw.rate_mean[1:, :] - hw_const.rate_mean[1:, :]
+        diff_rate_mean = np.abs(diff_rate_mean) / hw_const.rate_mean[1:, :]
+        # print(np.max(diff_rate_mean[:, 0]), np.max(diff_rate_mean[:, 1]))
+        self.assertTrue(np.max(diff_rate_mean[:, 0]) < 1.0e-10)
+        self.assertTrue(np.max(diff_rate_mean[:, 1]) < 1.4e-7)
+        diff_rate_var = hw.rate_variance[1:] - hw_const.rate_variance[1:]
+        diff_rate_var = np.abs(diff_rate_var / hw_const.rate_variance[1:])
+        # print(np.max(diff_rate_var))
+        self.assertTrue(np.max(diff_rate_var) < 1.2e-7)
+        diff_discount_mean = \
+            hw.discount_mean[1:, :] - hw_const.discount_mean[1:, :]
+        diff_discount_mean = \
+            np.abs(diff_discount_mean) / hw_const.discount_mean[1:, :]
+        # print(np.max(diff_discount_mean[:, 0]), np.max(diff_discount_mean[:, 1]))
+        self.assertTrue(np.max(diff_discount_mean[:, 0]) < 2.8e-8)
+        self.assertTrue(np.max(diff_discount_mean[:, 0]) < 1.9e-4)
+        diff_discount_var = \
+            hw.discount_variance[1:] - hw_const.discount_variance[1:]
+        diff_discount_var = \
+            np.abs(diff_discount_var / hw_const.discount_variance[1:])
+        # print(np.max(diff_discount_var))
+        self.assertTrue(np.max(diff_discount_var) < 1.9e-4)
+        diff_cov = hw.covariance[1:] - hw_const.covariance[1:]
+        diff_cov = np.abs(diff_cov / hw_const.covariance[1:])
+        # print(np.max(diff_cov))
+        self.assertTrue(np.max(diff_cov) < 5.7e-4)
 
     def test_zero_coupon_bond_pricing(self):
-        """Compare analytical and numerical calculation of zero-coupon
-        bonds with different maturities.
+        """Test Monte-Carlo evaluation of zero-coupon bond price.
+
+        Compare closed-form expression and Monte-Carlo simulation of
+        zero-coupon bonds with different maturities.
         """
+        # Event dates in year fractions.
         event_grid = np.arange(11)
-        # Speed of mean reversion strip
-        kappa = np.array([np.array([2, 3, 7]), 0.01 * np.array([2, 1, 2])])
+        # Speed of mean reversion.
+        kappa_const = 0.015
+        # Volatility.
+        vol_const = 0.005
+        # Speed of mean reversion strip.
+        kappa = \
+            np.array([np.array([2, 3, 7]), kappa_const * np.array([2, 1, 2])])
         kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
-        # Volatility strip
+        # Volatility strip.
         vol = np.array([np.arange(10),
-                        0.01 * np.array([1, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
+                        vol_const * np.array([1, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
         vol = misc.DiscreteFunc("vol", vol[0], vol[1])
-        # Discount curve on event_grid
+        # Discount curve.
         forward_rate = 0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
         discount_curve = np.exp(-forward_rate * event_grid)
         discount_curve = \
-            misc.DiscreteFunc("discount curve", event_grid,
-                              discount_curve, interp_scheme="linear")
-        # SDE object
-        n_paths = 1000
-        hull_white = sde.SDE(kappa, vol, event_grid)
+            misc.DiscreteFunc("discount curve", event_grid, discount_curve)
+        # Number of Monte-Carlo paths.
+        n_paths = 100000
+        # SDE object.
+        hull_white = sde.SDE(kappa, vol, event_grid, int_step_size=1 / 52)
         rate, discount = hull_white.paths(0, n_paths, seed=0, antithetic=True)
-        # Threshold
-        threshold = np.array([1e-10, 3.0e-7, 2e-5, 6e-5, 2e-4,
-                              3e-4, 3e-4, 4e-4, 2e-3, 6e-3, 2e-2])
-        for event_idx in range(event_grid.size):
-            # Analytical result
-            price_a = discount_curve.values[event_idx]
-            # Monte-Carlo estimate
-            price_n = np.sum(discount[event_idx, :]) / n_paths
-            price_n *= discount_curve.values[event_idx]
-            diff = abs((price_n - price_a) / price_a)
-#            print("test_zero_coupon_bond_pricing: ", event_idx, price_a, diff)
-            self.assertTrue(abs(diff) < threshold[event_idx])
+        discount = sde.discount_adjustment(discount, discount_curve)
+        # Analytical results.
+        price_a = discount_curve.values
+        # Monte-Carlo estimates.
+        price_n = discount.sum(axis=1) / n_paths
+        # Maximum relative difference.
+        diff = np.abs((price_n - price_a) / price_a)
+        print(diff, np.max(diff))
+        self.assertTrue(np.max(diff) < 2.4e-5)
 
     def test_coupon_bond_pricing(self):
-        """Compare analytical and numerical calculation of 10Y
+        """Test Monte-Carlo evaluation of coupon bond price.
+
+        Compare closed-form expression and Monte-Carlo simulation of 10Y
         coupon bond with yearly coupon frequency.
         """
-        coupon = 0.03
+        # Event dates in year fractions.
         event_grid = np.arange(11)
-        # Speed of mean reversion strip
-        kappa = np.array([np.array([2, 3, 7]), 0.01 * np.array([2, 1, 2])])
+        # Yearly coupon.
+        coupon = 0.03
+        # Speed of mean reversion.
+        kappa_const = 0.015
+        # Volatility.
+        vol_const = 0.005
+        # Speed of mean reversion strip.
+        kappa = \
+            np.array([np.array([2, 3, 7]), kappa_const * np.array([2, 1, 2])])
         kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
-        # Volatility strip
+        # Volatility strip.
         vol = np.array([np.arange(10),
-                        0.01 * np.array([1, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
+                        vol_const * np.array([1, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
         vol = misc.DiscreteFunc("vol", vol[0], vol[1])
-        # Discount curve on event_grid
+        # Discount curve.
         forward_rate = 0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
         discount_curve = np.exp(-forward_rate * event_grid)
         discount_curve = \
             misc.DiscreteFunc("discount curve", event_grid,
                               discount_curve, interp_scheme="linear")
-        # SDE object
-        n_paths = 10000
-        hull_white = sde.SDE(kappa, vol, event_grid)
+        # Number of Monte-Carlo paths.
+        n_paths = 100000
+        # SDE object.
+        hull_white = sde.SDE(kappa, vol, event_grid, int_step_size=1 / 52)
         rate, discount = hull_white.paths(0, n_paths, seed=0, antithetic=True)
-        sde.discount_adjustment(event_grid, discount,
-                                discount_curve, replace=True)
-        price_a_c = 0
-        price_a_p = 0
-        price_n_c = 0
-        price_n_p = 0
-        for event_idx in range(1, event_grid.size):
-            discount_a = discount_curve.values[event_idx]
-            discount_n = np.sum(discount[event_idx, :]) / n_paths
-            # Coupon
-            price_a_c += coupon * discount_a
-            price_n_c += coupon * discount_n
-            # Principal
-            if event_idx == event_grid.size - 1:
-                price_a_p = discount_a
-                price_n_p = discount_n
-        diff_c = abs(price_n_c - price_a_c) / price_a_c
-        diff_p = abs(price_n_p - price_a_p) / price_a_p
-        # print("test_coupon_bond_pricing:", price_a_c, diff_c)
-        # print("test_coupon_bond_pricing:", price_a_p, diff_p)
-        self.assertTrue(diff_c < 2e-4)
-        self.assertTrue(diff_p < 2e-3)
+        discount = sde.discount_adjustment(discount, discount_curve)
+        # Analytical discount factors.
+        discount_a = discount_curve.values
+        # Monte-Carlo discount factors.
+        discount_n = discount.sum(axis=1) / n_paths
+        # Prices contributions from coupon payments and principal.
+        price_a_c = np.sum(coupon * discount_a[1:])
+        price_a_p = discount_a[-1]
+        price_n_c = np.sum(coupon * discount_n[1:])
+        price_n_p = discount_n[-1]
+        # Relative differences.
+        diff_c = abs((price_n_c - price_a_c) / price_a_c)
+        diff_p = abs((price_n_p - price_a_p) / price_a_p)
+        print(price_a_c, diff_c)
+        print(price_a_p, diff_p)
+        self.assertTrue(diff_c < 2.0e-6)
+        self.assertTrue(diff_p < 1.6e-5)
 
     def test_call_option_pricing_1(self):
         """Compare analytical and numerical calculation of call options
@@ -244,17 +254,14 @@ class SDE(unittest.TestCase):
             # Call option price, analytical
             call_price_a = call_1.price(0, 0)
             # Call option price, numerical
-            discount = \
-                sde.discount_adjustment(event_grid, discount_pseudo,
-                                        discount_curve)
+            discount = sde.discount_adjustment(discount_pseudo, discount_curve)
             discount = discount[expiry_idx]
             bond_price = bond.price(rate_pseudo[expiry_idx, :], expiry_idx)
             payoff = np.maximum(bond_price - strike, 0)
             call_price_n = np.sum(discount * payoff) / n_paths
             diff = abs((call_price_a - call_price_n) / call_price_a)
             discount = \
-                sde.discount_adjustment(event_grid, discount_pseudo_const,
-                                        discount_curve)
+                sde.discount_adjustment(discount_pseudo_const, discount_curve)
             discount = discount[expiry_idx]
             bond_price = \
                 bond.price(rate_pseudo_const[expiry_idx, :], expiry_idx)
@@ -317,9 +324,7 @@ class SDE(unittest.TestCase):
             # Call option price, analytical
             call_price_a = call_1.price(0, 0)
             # Call option price, numerical
-            discount = \
-                sde.discount_adjustment(event_grid, discount_pseudo,
-                                        discount_curve)
+            discount = sde.discount_adjustment(discount_pseudo, discount_curve)
             discount = discount[expiry_idx]
             bond_price = bond.price(rate_pseudo[expiry_idx, :], expiry_idx)
             payoff = np.maximum(bond_price - strike, 0)
@@ -361,8 +366,7 @@ class SDE(unittest.TestCase):
         n_paths = 10000
         hull_white = sde.SDE(kappa, vol, event_grid)
         rate, discount = hull_white.paths(0, n_paths, seed=0)
-        sde.discount_adjustment(event_grid, discount,
-                                discount_curve, replace=True)
+        discount = sde.discount_adjustment(discount, discount_curve)
         # Zero-coupon bond object
         maturity_idx = event_grid.size - 1
         bond = \
@@ -476,8 +480,7 @@ if __name__ == '__main__':
     n_paths = 50000
     hull_white = sde.SDE(kappa, vol, event_grid)
     rate, discount = hull_white.paths(0, n_paths, seed=0)
-    sde.discount_adjustment(event_grid, discount,
-                            discount_curve, replace=True)
+    discount = sde.discount_adjustment(discount, discount_curve)
 
     # Plot y-function
     plt.plot(hull_white.event_grid, hull_white.y_event_grid, "-b")
