@@ -1,6 +1,7 @@
 import math
 import numpy as np
 
+from models import sde
 from utils import global_types
 from utils import misc
 
@@ -41,7 +42,7 @@ def discount_adjustment(event_grid: np.ndarray,
         return discount_paths_adj
 
 
-class SDEBasic:
+class SDEBasic(sde.SDE):
     """Basic SDE class for the 1-factor Hull-White model.
 
     Attributes:
