@@ -115,6 +115,29 @@ B(t,T) &=& \frac{1 - \text{e}^{-\kappa (T-t)}}{\kappa}.
 
 Closed form pricing functions for European call and put options written on zero-coupon bonds can also be derived, see REF X.
 
+\subsection{Transformation to short rate representation}
+
+Zero-coupon bond prices and instantaneous forward rates are related by
+\begin{equation}
+P(0,t) = \e^{- \int_0^t f(0,u) du}.
+\end{equation}
+
+Using the transformation of the short rate in Eq.~X, we get that
+\begin{eqnarray}
+P(0,t) &=& \E \left[ \e^{- \int_0^t r_u du} \right] \\
+&=& \e^{- \int_0^t f(0,u) du} \E \left[ \e^{- \int_0^t x_u du} \right],
+\end{eqnarray}
+which implies that
+\begin{equation}
+\E \left[ \e^{- \int_0^t x_u du} \right] = 1.
+\end{equation}
+
+Also for a given scenario, i.e., $r_t(\omega) = x_t (\omega) + f(0,t)$, we get
+\begin{equation}
+\e^{- \int_0^t r_u (\omega) du} = P(0,t) \e^{- \int_0^t x_u (\omega) du}.
+\end{equation}
+
+
 \section{1-Factor Hull-White Model}
 The 1-Factor Hull-White model REF! is an extension of the Vasicek Model, where the parameters are allowed to be time-dependent, i.e.,
 \begin{equation}
