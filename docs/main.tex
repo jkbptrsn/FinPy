@@ -38,7 +38,7 @@ h(t, r_t) = r_t \e^{\kappa t},
 \end{equation}
 using It\^{o}'s lemma
 \begin{eqnarray}
-dh(t, r_t) &=& \frac{\partial h}{\partial t} dt + \frac{\partial h}{\partial r_t} r_t + \frac{1}{2}\frac{\partial^2 h}{\partial r_t^2} \left(dr_t\right)^2 \\
+dh(t, r_t) &=& \frac{\partial h}{\partial t} dt + \frac{\partial h}{\partial r_t} dr_t + \frac{1}{2}\frac{\partial^2 h}{\partial r_t^2} \left(dr_t\right)^2 \\
 &=& \kappa h(t, r_t) dt + \e^{\kappa t} dr_t \\
 &=& \theta \kappa \e^{\kappa t} dt + \sigma \e^{\kappa t} dW_t,
 \end{eqnarray}
@@ -57,7 +57,7 @@ The short rate process is clearly Gaussian with conditional mean (the expectatio
 \end{equation}
 and, using the It\^{o} isometry, the conditional variance of the process becomes
 \begin{eqnarray}
-\Var \left[ r_{t_2} | r_{t_1} \right] &=& \sigma^2 \E \left[ \left( \int_{t_1}^{t_2} \e^{-\kappa \left(t_2 - t\right)} dW_t \right)^2 \right] \\
+\Var \left[ r_{t_2} | r_{t_1} \right] &=& \E \left[ \left( \sigma \int_{t_1}^{t_2} \e^{-\kappa \left(t_2 - t\right)} dW_t \right)^2 \right] \\
 &=& \frac{\sigma^2}{2 \kappa} \left( 1 - \e^{-2 \kappa \Delta t}\right).
 \end{eqnarray}
 
@@ -79,7 +79,7 @@ The conditional mean of $I_t$ is
 \end{equation}
 and, using the It\^{o} isometry, the conditional variance becomes
 \begin{eqnarray}
-\Var \left[ I_{t_{2}} | I_{t_1}, r_{t_1} \right] &=& \sigma^2 \E \left[ \left( \int_{t_1}^{t_2} \int_v^{t_2} \e^{-\kappa \left(u - v\right)} du dW_v \right)^2 \right] \\
+\Var \left[ I_{t_{2}} | I_{t_1}, r_{t_1} \right] &=& \E \left[ \left( \sigma \int_{t_1}^{t_2} \int_v^{t_2} \e^{-\kappa \left(u - v\right)} du dW_v \right)^2 \right] \\
 &=& \frac{\sigma^2}{2 \kappa^3} \left( 4 \e^{-\kappa \Delta t} - \e^{-2\kappa \Delta t} + 2 \kappa \Delta t - 3 \right)
 \end{eqnarray}
 
@@ -118,10 +118,71 @@ Closed form pricing functions for European call and put options written on zero-
 \section{1-Factor Hull-White Model}
 The 1-Factor Hull-White model REF! is an extension of the Vasicek Model, where the parameters are allowed to be time-dependent, i.e.,
 \begin{equation}
-dr_t = \kappa_t \left( \theta_t - r_t \right) dt + \sigma_t dW_t,
+dr_t = \kappa_t \left( \theta_t - r_t \right) dt + \sigma_t dW_t.
 \end{equation}
 
+The $\theta_t$ is chosen such that the short rate model is consistent with the initial yield curve.
 
+We define $x_t = r_t - f(0,t)$ such that
+\begin{equation}
+dx_t = \left( y_t - \kappa_t r_t \right) dt + \sigma_t dW_t,
+\label{eq:HullWhiteSDEx}
+\end{equation}
+where
+\begin{equation}
+y_y = \int_0^t \e^{-2\int_u^t \kappa_s ds} \sigma_u^2 du.
+\end{equation}
+
+The SDE in Eq.~(\ref{eq:HullWhiteSDEx}) can be solved analytically by introducing the function
+\begin{equation}
+h(t, x_t) = x_t \e^{\int_0^t \kappa_u du}
+\end{equation}
+using It\^{o}'s lemma
+\begin{eqnarray}
+dh(t, x_t) &=& \frac{\partial h}{\partial t} dt + \frac{\partial h}{\partial x_t} dx_t + \frac{1}{2}\frac{\partial^2 h}{\partial x_t^2} \left(dx_t\right)^2 \\
+&=& \kappa_t h(t, x_t) dt + \e^{\kappa t} dx_t \\
+&=& y_t \e^{\int_0^t \kappa_u du} dt + \sigma_t \e^{\int_0^t \kappa_u du} dW_t,
+\end{eqnarray}
+and integrating from $t_1$ to $t_2$
+\begin{equation}
+h(t_2, r_{t_2}) = h(t_1, r_{t_1}) + \int_{t_1}^{t_2} y_t \e^{\int_0^t \kappa_u du} dt + \int_{t_1}^{t_2} \sigma_t \e^{\int_0^t \kappa_u du} dW_t,
+\end{equation}
+such that
+\begin{equation}
+x_{t_2} = x_{t_1} \e^{-\int_{t_1}^{t_2} \kappa_u du}  + \int_{t_1}^{t_2} y_t \e^{-\int_t^{t_2} \kappa_u du} dt + \int_{t_1}^{t_2} \sigma_t \e^{-\int_t^{t_2} \kappa_u du} dW_t.
+\end{equation}
+
+The pseudo short rate process is clearly Gaussian with conditional mean (the expectation operator is defined with respect to the $Q$-measure)
+\begin{equation}
+\E \left[ x_{t_2} | x_{t_1} \right] = x_{t_1} \e^{-\int_{t_1}^{t_2} \kappa_u du}  + \int_{t_1}^{t_2} y_t \e^{-\int_t^{t_2} \kappa_u du} dt,
+\end{equation}
+and, using the It\^{o} isometry, the conditional variance of the process becomes
+\begin{eqnarray}
+\Var \left[ x_{t_2} | x_{t_1} \right] &=& \E \left[ \left( \int_{t_1}^{t_2} \sigma_t \e^{-\int_t^{t_2} \kappa_u du} dW_t \right)^2 \right] \\
+&=& \int_{t_1}^{t_2} \sigma_t^2 \e^{-2\int_t^{t_2} \kappa_u du} dt.
+\end{eqnarray}
+
+The stochastic pseudo discount factor is written as
+\begin{equation}
+D_{t} = \exp \left( I_t \right),
+\end{equation}
+where
+\begin{eqnarray}
+I_t &=& -\int_0^t x_u du \\
+&=& - x_{0} \int_0^t \e^{-\int_{0}^{u} \kappa_v dv} du - \int_0^t\int_{0}^{u} y_v \e^{-\int_v^{u} \kappa_s ds} dv du \\
+&& - \int_0^t \int_{0}^{u} \sigma_v \e^{-\int_v^{u} \kappa_s ds} dW_v du.
+\end{eqnarray}
+
+The conditional mean of $I_t$ is
+\begin{equation}
+\E \left[ I_{t_{2}} | I_{t_1}, r_{t_1} \right] = I_{t_1} - x_{t_1} \int_{t_1}^{t_2} \e^{-\int_{0}^{u} \kappa_v dv} du - \int_{t_1}^{t_2} \int_{0}^{u} y_v \e^{-\int_v^{u} \kappa_s ds} dv du,
+\end{equation}
+and, using the It\^{o} isometry, the conditional variance becomes
+\begin{eqnarray}
+\Var \left[ I_{t_{2}} | I_{t_1}, r_{t_1} \right] &=& \E \left[ \left( \int_0^t \int_{0}^{u} \sigma_v \e^{-\int_v^{u} \kappa_s ds} dW_v du \right)^2 \right].
+\end{eqnarray}
+
+% Bibliography
 \bibliographystyle{plain}
 \bibliography{articles} 
 
