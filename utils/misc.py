@@ -107,9 +107,20 @@ def normal_realizations(n_realizations: int,
 
 def trapz(grid: np.ndarray,
           function: np.ndarray) -> np.ndarray:
-    """Trapezoidal integration for each step along the grid."""
+    """Trapezoidal integration.
+
+    Args:
+        grid: Grid on which the function is represented.
+        function: Function value for each grid point.
+
+    Returns:
+        Trapezoidal integral for each step along the grid.
+    """
     dx = np.diff(grid)
     return dx * (function[1:] + function[:-1]) / 2
+
+
+###############################################################################
 
 
 def monte_carlo_error(realizations: np.ndarray) -> float:

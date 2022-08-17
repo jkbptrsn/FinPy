@@ -5,6 +5,9 @@ from models import sde
 from utils import global_types
 from utils import misc
 
+# kappa_int_grid and vol_int_grid are not used.
+# Should be used in an Euler propagation...
+
 
 def rate_adjustment(event_grid: np.ndarray,
                     rate_paths: np.ndarray,
@@ -24,22 +27,22 @@ def rate_adjustment(event_grid: np.ndarray,
         return rate_paths_adj
 
 
-def discount_adjustment(event_grid: np.ndarray,
-                        discount_paths: np.ndarray,
-                        discount_curve: misc.DiscreteFunc,
-                        replace: bool = False) -> (None, np.ndarray):
-    """Adjust pseudo discount path for each Monte-Carlo scenario. Assume
-    that pseudo discount paths are represented on event_grid."""
-    discount_curve_grid = discount_curve.interpolation(event_grid)
-    if replace:
-        for event_idx in range(event_grid.size):
-            discount_paths[event_idx, :] *= discount_curve_grid[event_idx]
-    else:
-        discount_paths_adj = np.zeros(discount_paths.shape)
-        for event_idx in range(event_grid.size):
-            discount_paths_adj[event_idx, :] = \
-                discount_paths[event_idx, :] * discount_curve_grid[event_idx]
-        return discount_paths_adj
+def discount_adjustment(discount_paths: np.ndarray,
+                        discount_curve: misc.DiscreteFunc) -> np.ndarray:
+    """Adjust pseudo discount paths.
+
+    Assume that discount curve and pseudo discount paths are represented
+    on event_grid.
+
+    Args:
+        discount_paths:
+        discount_curve:
+
+    Returns:
+
+    """
+    adjustment = discount_paths.transpose() * discount_curve.values
+    return adjustment.transpose()
 
 
 class SDEBasic(sde.SDE):
@@ -406,7 +409,8 @@ class SDE(SDEBasic):
         # Array only used in initialization of the SDE object.
         self.int_kappa_step = None
         self.initialization()
-        del self.int_kappa_step
+        # Not deleted due to use in ZCBond class!
+        # del self.int_kappa_step
 
     def _setup_kappa_vol_y(self):
         """Set-up speed of mean reversion, volatility and y-function.
