@@ -10,10 +10,10 @@ from utils import misc
 from utils import payoffs
 
 
-class Call(sde.SDE, options.VanillaOption):
-    """European call option class for the 1-factor Hull-White model.
+class Put(sde.SDE, options.VanillaOption):
+    """European put option class for the 1-factor Hull-White model.
 
-    The European call option is written on a zero-coupon bond.
+    The European put option is written on a zero-coupon bond.
     Note: The speed of mean reversion is assumed to be constant!
 
     Attributes:
@@ -44,7 +44,7 @@ class Call(sde.SDE, options.VanillaOption):
         self.expiry_idx = expiry_idx
         self.maturity_idx = maturity_idx
 
-        self.option_type = global_types.InstrumentType.EUROPEAN_CALL
+        self.option_type = global_types.InstrumentType.EUROPEAN_PUT
 
         # Underlying zero-coupon bond
         self.zcbond = \
@@ -75,7 +75,7 @@ class Call(sde.SDE, options.VanillaOption):
             event_idx: Event-grid index of current time.
 
         Returns:
-            Call option price.
+            Put option price.
         """
         # Price of zero-coupon bond maturing at expiry_idx.
         self.zcbond.maturity_idx = self.expiry_idx
@@ -103,8 +103,8 @@ class Call(sde.SDE, options.VanillaOption):
         d = math.log(bond_price_maturity / (self.strike * bond_price_expiry))
         d_plus = (d + v / 2) / math.sqrt(v)
         d_minus = (d - v / 2) / math.sqrt(v)
-        return bond_price_maturity * norm.cdf(d_plus) \
-            - self.strike * bond_price_expiry * norm.cdf(d_minus)
+        return -bond_price_maturity * norm.cdf(-d_plus) \
+            + self.strike * bond_price_expiry * norm.cdf(-d_minus)
 
     def delta(self,
               spot: (float, np.ndarray),
