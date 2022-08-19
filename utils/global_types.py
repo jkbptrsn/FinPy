@@ -12,7 +12,8 @@ class InstrumentType(Enum):
     EUROPEAN_CALL = 8
     EUROPEAN_PUT = 9
     SWAP = 10
-    ZERO_COUPON_BOND = 11
+    SWAPTION = 11
+    ZERO_COUPON_BOND = 12
 
 
 class ModelName(Enum):
