@@ -8,10 +8,11 @@ class InstrumentType(Enum):
     BINARY_ASSET_CALL = 4
     BINARY_CASH_PUT = 5
     BINARY_ASSET_PUT = 6
-    EUROPEAN_CALL = 7
-    EUROPEAN_PUT = 8
-    SWAP = 9
-    ZERO_COUPON_BOND = 10
+    CAPLET = 7
+    EUROPEAN_CALL = 8
+    EUROPEAN_PUT = 9
+    SWAP = 10
+    ZERO_COUPON_BOND = 11
 
 
 class ModelName(Enum):

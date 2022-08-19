@@ -2,11 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import unittest
 
-from models.hull_white import sde
-from models.hull_white import zero_coupon_bond
 from models.hull_white import call_option
+from models.hull_white import caplet
 from models.hull_white import put_option
+from models.hull_white import sde
 from models.hull_white import swap
+from models.hull_white import zero_coupon_bond
 from utils import misc
 
 
@@ -502,6 +503,80 @@ class SDE(unittest.TestCase):
             # Relative difference.
             diff = abs((swap_price_a - swap_price_n) / swap_price_a)
             # print(s, swap_price_a, swap_price_n, diff)
+            self.assertTrue(diff < threshold[s // 2 - 1])
+
+    def test_caplet_pricing(self):
+        """Test Monte-Carlo evaluation of caplet price.
+
+        Compare closed-form expression and Monte-Carlo simulation of
+        caplet.
+        """
+        # Event dates in year fractions.
+        event_grid = np.arange(11)
+        # Speed of mean reversion.
+        kappa_const = 0.015
+        # Volatility.
+        vol_const = 0.005
+        # Speed of mean reversion strip.
+        kappa = \
+            np.array([np.array([2, 3, 7]), kappa_const * np.array([1, 1, 1])])
+        kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
+        # Volatility strip.
+        vol = np.array([np.arange(10),
+                        vol_const * np.array([3, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
+        vol = misc.DiscreteFunc("vol", vol[0], vol[1])
+        # Discount curve.
+        forward_rate = 0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
+        discount_curve = np.exp(-forward_rate * event_grid)
+        discount_curve = \
+            misc.DiscreteFunc("discount curve", event_grid, discount_curve)
+        # Number of Monte-Carlo paths.
+        n_paths = 100000
+        # SDE object.
+        hw = sde.SDE(kappa, vol, event_grid, int_step_size=1 / 52)
+        # Pseudo rate and discount factors
+        r_pseudo, d_pseudo = hw.paths(0, n_paths, seed=0, antithetic=True)
+        # Fixed rate of caplet
+        fixed_rate = 0.01
+        # Expiry index.
+        expiry_idx = 5
+        # Maturity index.
+        maturity_idx = event_grid.size - 1
+        # Caplet object
+        caplet_obj = caplet.Caplet(kappa, vol, discount_curve, event_grid,
+                                   expiry_idx, maturity_idx, fixed_rate,
+                                   int_step_size=1 / 52)
+        # Threshold
+        threshold = np.array([3e-4, 4e-4, 4e-5, 7e-5, 4e-5, 3e-5])
+        for s in range(2, 13, 2):
+            # New discount curve on event_grid.
+            spot = 0.001 * s
+            forward_rate = spot * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
+            discount_curve = np.exp(-forward_rate * event_grid)
+            discount_curve = \
+                misc.DiscreteFunc("discount curve", event_grid, discount_curve)
+            # Update discount curve.
+            caplet_obj.zcbond.discount_curve = discount_curve
+            # Caplet price, analytical.
+            caplet_price_a = caplet_obj.price(0, 0)
+            # Caplet price, numerical.
+            # Discount factor.
+            discount = sde.discount_adjustment(d_pseudo, discount_curve)
+            # Simple forward rate from expiry to maturity
+            discount_forward = \
+                caplet_obj.zcbond._calc_price(r_pseudo[expiry_idx], expiry_idx,
+                                              maturity_idx)
+            tau = event_grid[maturity_idx] - event_grid[expiry_idx]
+            simple_forward_rate = (1 / discount_forward - 1) / tau
+            # Monte-Carlo estimate of caplet price.
+            caplet_price_n = \
+                tau * np.maximum(simple_forward_rate - fixed_rate, 0)
+            # Payoff is payed at maturity, and not expiry...
+            caplet_price_n *= discount[maturity_idx]
+            caplet_price_n = np.sum(caplet_price_n) / n_paths
+            # Relative difference.
+            diff = abs((caplet_price_a - caplet_price_n) / caplet_price_a)
+            # print(s, caplet_price_a, caplet_price_n, diff)
             self.assertTrue(diff < threshold[s // 2 - 1])
 
     def test_refi_coupon_calc(self):

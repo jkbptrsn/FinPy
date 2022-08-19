@@ -8,6 +8,8 @@ from utils import misc
 # kappa_int_grid and vol_int_grid are not used.
 # Should be used in an Euler propagation...
 
+###############################################################################
+
 
 def rate_adjustment(event_grid: np.ndarray,
                     rate_paths: np.ndarray,
@@ -25,6 +27,9 @@ def rate_adjustment(event_grid: np.ndarray,
             rate_paths_adj[event_idx, :] = \
                 rate_paths[event_idx, :] + forward_curve_grid[event_idx]
         return rate_paths_adj
+
+
+###############################################################################
 
 
 def discount_adjustment(discount_paths: np.ndarray,
