@@ -5,6 +5,8 @@ import unittest
 from models.hull_white import sde
 from models.hull_white import zero_coupon_bond
 from models.hull_white import call_option
+from models.hull_white import put_option
+from models.hull_white import swap
 from utils import misc
 
 
@@ -227,127 +229,280 @@ class SDE(unittest.TestCase):
             misc.DiscreteFunc("discount curve", event_grid, discount_curve)
         # Number of Monte-Carlo paths.
         n_paths = 100000
-        # SDE objects
+        # SDE objects.
         hw = sde.SDE(kappa, vol, event_grid, int_step_size=1 / 52)
         hw_const = \
             sde.SDEConstant(kappa, vol, event_grid, int_step_size=1 / 52)
-        # Pseudo rate and discount factors
+        # Pseudo rate and discount factors.
         r_pseudo, d_pseudo = hw.paths(0, n_paths, seed=0, antithetic=True)
         r_pseudo_const, d_pseudo_const = \
             hw_const.paths(0, n_paths, seed=0, antithetic=True)
-        # Expiry index
+        # Expiry index.
         expiry_idx = 5
-        # Maturity index
+        # Maturity index.
         maturity_idx = event_grid.size - 1
-        # Strike value
+        # Strike value.
         strike = 0.65
-        # Call option object
+        # Call option object.
         call = call_option.Call(kappa, vol, discount_curve, event_grid,
                                 strike, expiry_idx, maturity_idx,
                                 int_step_size=1 / 52)
-        # Zero-coupon bond object
+        # Zero-coupon bond object.
         bond = zero_coupon_bond.ZCBond(kappa, vol, discount_curve, event_grid,
                                        maturity_idx, int_step_size=1 / 52)
-        # Threshold
+        # Threshold.
         threshold = np.array([5e-5, 5e-5, 5e-5, 7e-5, 2e-4, 5e-3])
         for s in range(2, 13, 2):
-            # New discount curve on event_grid
+            # New discount curve on event_grid.
             spot = 0.001 * s
             forward_rate = spot * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
             discount_curve = np.exp(-forward_rate * event_grid)
             discount_curve = \
                 misc.DiscreteFunc("discount curve", event_grid, discount_curve)
-            # Update discount curves
+            # Update discount curves.
             call.discount_curve = discount_curve
             call.zcbond.discount_curve = discount_curve
             bond.discount_curve = discount_curve
-            # Call option price, analytical
+            # Call option price, analytical.
             call_price_a = call.price(0, 0)
-            # Call option price, numerical, SDE class
-            # Zero-coupon bond price at expiry
+            # Call option price, numerical, SDE class.
+            # Zero-coupon bond price at expiry.
             bond_price = bond.price(r_pseudo[expiry_idx], expiry_idx)
-            # Call option payoff
+            # Call option payoff.
             payoff = np.maximum(bond_price - strike, 0)
-            # Discount factor
+            # Discount factor.
             discount = sde.discount_adjustment(d_pseudo, discount_curve)
-            # Monte-Carlo estimate of call option price at time zero
+            # Monte-Carlo estimate of call option price at time zero.
             call_price_n = np.sum(discount[expiry_idx] * payoff) / n_paths
-            # Relative difference
+            # Relative difference.
             diff = abs((call_price_a - call_price_n) / call_price_a)
-            # Call option price, numerical, SDEConstant class
-            # Zero-coupon bond price at expiry
+            # Call option price, numerical, SDEConstant class.
+            # Zero-coupon bond price at expiry.
             bond_price = bond.price(r_pseudo_const[expiry_idx], expiry_idx)
-            # Call option payoff
+            # Call option payoff.
             payoff = np.maximum(bond_price - strike, 0)
-            # Discount factor
+            # Discount factor.
             discount = sde.discount_adjustment(d_pseudo_const, discount_curve)
-            # Monte-Carlo estimate of call option price at time zero
+            # Monte-Carlo estimate of call option price at time zero.
             call_price_n = np.sum(discount[expiry_idx] * payoff) / n_paths
-            # Relative difference
+            # Relative difference.
             diff_const = abs((call_price_a - call_price_n) / call_price_a)
             # print(s, call_price_a, diff, diff_const)
             self.assertTrue(diff < threshold[s // 2 - 1])
             self.assertTrue(diff_const < threshold[s // 2 - 1])
 
     def test_call_option_pricing_2(self):
-        """Compare analytical and numerical calculation of call options
-        written on zero coupon bonds.
+        """Test Monte-Carlo evaluation of call option price.
+
+        Compare closed-form expression and Monte-Carlo simulation of
+        European call option written on zero coupon bond.
         """
+        # Event dates in year fractions.
         event_grid = np.arange(11)
+        # Speed of mean reversion.
+        kappa_const = 0.015
+        # Volatility.
+        vol_const = 0.005
         # Speed of mean reversion strip -- constant kappa!
-        kappa = np.array([np.array([2, 3, 7]), 0.01 * np.array([1, 1, 1])])
+        kappa = \
+            np.array([np.array([2, 3, 7]), kappa_const * np.array([1, 1, 1])])
         kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
-        # Volatility strip
+        # Volatility strip.
         vol = np.array([np.arange(10),
-                        0.003 * np.array([3, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
+                        vol_const * np.array([3, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
         vol = misc.DiscreteFunc("vol", vol[0], vol[1])
-        # Discount curve on event_grid
+        # Discount curve.
         forward_rate = 0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
         discount_curve = np.exp(-forward_rate * event_grid)
         discount_curve = \
-            misc.DiscreteFunc("discount curve", event_grid,
-                              discount_curve, interp_scheme="linear")
-        # SDE objects
-        n_paths = 10000
-        hw = sde.SDE(kappa, vol, event_grid)
+            misc.DiscreteFunc("discount curve", event_grid, discount_curve)
+        # Number of Monte-Carlo paths.
+        n_paths = 100000
+        # SDE object.
+        hw = sde.SDE(kappa, vol, event_grid, int_step_size=1 / 52)
         # Pseudo rate and discount factors
-        rate_pseudo, d_pseudo = \
-            hw.paths(0, n_paths, seed=0, antithetic=True)
-        # Call option
-        maturity_idx = event_grid.size - 1
-        strike = 0.65
+        r_pseudo, d_pseudo = hw.paths(0, n_paths, seed=0, antithetic=True)
+        # Expiry index.
         expiry_idx = 5
-        call_1 = call_option.Call(kappa, vol, discount_curve, event_grid,
-                           strike, expiry_idx, maturity_idx)
-        # Zero-coupon bond
-        bond = \
-            zero_coupon_bond.ZCBond(kappa, vol, discount_curve, event_grid, maturity_idx)
+        # Maturity index.
+        maturity_idx = event_grid.size - 1
+        # Strike value.
+        strike = 0.65
+        # Call option object.
+        call = call_option.Call(kappa, vol, discount_curve, event_grid, strike,
+                                expiry_idx, maturity_idx, int_step_size=1 / 52)
+        # Zero-coupon bond object.
+        bond = zero_coupon_bond.ZCBond(kappa, vol, discount_curve, event_grid,
+                                       maturity_idx, int_step_size=1 / 52)
         # Threshold
-        threshold = np.array([3e-4, 4e-4, 4e-4, 6e-4, 8e-4,
-                              1e-3, 2e-3, 6e-3, 2e-2, 9e-3])
-        for s in range(2, 12, 1):
-            # New discount curve on event_grid
+        threshold = np.array([6e-5, 4e-5, 2e-4, 3e-4, 1e-3, 7e-3])
+        for s in range(2, 13, 2):
+            # New discount curve on event_grid.
             spot = 0.001 * s
             forward_rate = spot * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
             discount_curve = np.exp(-forward_rate * event_grid)
             discount_curve = \
-                misc.DiscreteFunc("discount curve", event_grid,
-                                  discount_curve, interp_scheme="linear")
-            # Update discount curves
-            call_1.discount_curve = discount_curve
-            call_1.zcbond.discount_curve = discount_curve
+                misc.DiscreteFunc("discount curve", event_grid, discount_curve)
+            # Update discount curves.
+            call.discount_curve = discount_curve
+            call.zcbond.discount_curve = discount_curve
             bond.discount_curve = discount_curve
-            # Call option price, analytical
-            call_price_a = call_1.price(0, 0)
-            # Call option price, numerical
-            discount = sde.discount_adjustment(d_pseudo, discount_curve)
-            discount = discount[expiry_idx]
-            bond_price = bond.price(rate_pseudo[expiry_idx, :], expiry_idx)
+            # Call option price, analytical.
+            call_price_a = call.price(0, 0)
+            # Call option price, numerical.
+            # Zero-coupon bond price at expiry.
+            bond_price = bond.price(r_pseudo[expiry_idx], expiry_idx)
+            # Call option payoff.
             payoff = np.maximum(bond_price - strike, 0)
-            call_price_n = np.sum(discount * payoff) / n_paths
+            # Discount factor.
+            discount = sde.discount_adjustment(d_pseudo, discount_curve)
+            # Monte-Carlo estimate of call option price at time zero.
+            call_price_n = np.sum(discount[expiry_idx] * payoff) / n_paths
+            # Relative difference.
             diff = abs((call_price_a - call_price_n) / call_price_a)
             # print(s, call_price_a, call_price_n, diff)
-            self.assertTrue(diff < threshold[s - 2])
+            self.assertTrue(diff < threshold[s // 2 - 1])
+
+    def test_put_option_pricing(self):
+        """Test Monte-Carlo evaluation of put option price.
+
+        Compare closed-form expression and Monte-Carlo simulation of
+        European put option written on zero coupon bond.
+        """
+        # Event dates in year fractions.
+        event_grid = np.arange(11)
+        # Speed of mean reversion.
+        kappa_const = 0.015
+        # Volatility.
+        vol_const = 0.005
+        # Speed of mean reversion strip -- constant kappa!
+        kappa = \
+            np.array([np.array([2, 3, 7]), kappa_const * np.array([1, 1, 1])])
+        kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
+        # Volatility strip.
+        vol = np.array([np.arange(10),
+                        vol_const * np.array([3, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
+        vol = misc.DiscreteFunc("vol", vol[0], vol[1])
+        # Discount curve.
+        forward_rate = 0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
+        discount_curve = np.exp(-forward_rate * event_grid)
+        discount_curve = \
+            misc.DiscreteFunc("discount curve", event_grid, discount_curve)
+        # Number of Monte-Carlo paths.
+        n_paths = 100000
+        # SDE object.
+        hw = sde.SDE(kappa, vol, event_grid, int_step_size=1 / 52)
+        # Pseudo rate and discount factors
+        r_pseudo, d_pseudo = hw.paths(0, n_paths, seed=0, antithetic=True)
+        # Expiry index.
+        expiry_idx = 5
+        # Maturity index.
+        maturity_idx = event_grid.size - 1
+        # Strike value.
+        strike = 0.8
+        # Put option object.
+        put = put_option.Put(kappa, vol, discount_curve, event_grid, strike,
+                             expiry_idx, maturity_idx, int_step_size=1 / 52)
+        # Zero-coupon bond object.
+        bond = zero_coupon_bond.ZCBond(kappa, vol, discount_curve, event_grid,
+                                       maturity_idx, int_step_size=1 / 52)
+        # Threshold
+        threshold = np.array([6e-3, 2e-3, 3e-4, 5e-4, 6e-5, 3e-6])
+        for s in range(2, 13, 2):
+            # New discount curve on event_grid.
+            spot = 0.001 * s
+            forward_rate = spot * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
+            discount_curve = np.exp(-forward_rate * event_grid)
+            discount_curve = \
+                misc.DiscreteFunc("discount curve", event_grid, discount_curve)
+            # Update discount curves.
+            put.discount_curve = discount_curve
+            put.zcbond.discount_curve = discount_curve
+            bond.discount_curve = discount_curve
+            # Put option price, analytical.
+            put_price_a = put.price(0, 0)
+            # Put option price, numerical.
+            # Zero-coupon bond price at expiry.
+            bond_price = bond.price(r_pseudo[expiry_idx], expiry_idx)
+            # Put option payoff.
+            payoff = np.maximum(strike - bond_price, 0)
+            # Discount factor.
+            discount = sde.discount_adjustment(d_pseudo, discount_curve)
+            # Monte-Carlo estimate of put option price at time zero.
+            put_price_n = np.sum(discount[expiry_idx] * payoff) / n_paths
+            # Relative difference.
+            diff = abs((put_price_a - put_price_n) / put_price_a)
+            # print(s, put_price_a, put_price_n, diff)
+            self.assertTrue(diff < threshold[s // 2 - 1])
+
+    def test_swap_pricing(self):
+        """Test Monte-Carlo evaluation of swap price.
+
+        Compare closed-form expression and Monte-Carlo simulation of
+        fixed-for-floating swap.
+        """
+        # Event dates in year fractions.
+        event_grid = np.arange(11)
+        # Speed of mean reversion.
+        kappa_const = 0.015
+        # Volatility.
+        vol_const = 0.005
+        # Speed of mean reversion strip.
+        kappa = \
+            np.array([np.array([2, 3, 7]), kappa_const * np.array([2, 1, 2])])
+        kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
+        # Volatility strip.
+        vol = np.array([np.arange(10),
+                        vol_const * np.array([3, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
+        vol = misc.DiscreteFunc("vol", vol[0], vol[1])
+        # Discount curve.
+        forward_rate = 0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
+        discount_curve = np.exp(-forward_rate * event_grid)
+        discount_curve = \
+            misc.DiscreteFunc("discount curve", event_grid, discount_curve)
+        # Number of Monte-Carlo paths.
+        n_paths = 100000
+        # SDE object.
+        hw = sde.SDE(kappa, vol, event_grid, int_step_size=1 / 52)
+        # Pseudo rate and discount factors
+        r_pseudo, d_pseudo = hw.paths(0, n_paths, seed=0, antithetic=True)
+        # Fixed rate of swap
+        fixed_rate = 0.03
+        # Swap object
+        swap_obj = swap.Swap(kappa, vol, discount_curve, event_grid,
+                             fixed_rate, int_step_size=1 / 52)
+        # Threshold
+        threshold = np.array([2e-4, 4e-4, 6e-4, 2e-4, 8e-5, 5e-5])
+        for s in range(2, 13, 2):
+            # New discount curve on event_grid.
+            spot = 0.001 * s
+            forward_rate = spot * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
+            discount_curve = np.exp(-forward_rate * event_grid)
+            discount_curve = \
+                misc.DiscreteFunc("discount curve", event_grid, discount_curve)
+            # Update discount curve.
+            swap_obj.zcbond.discount_curve = discount_curve
+            # Swap price, analytical.
+            swap_price_a = swap_obj.price(0, 0)
+            # Swap price, numerical.
+            # Discount factor.
+            discount = sde.discount_adjustment(d_pseudo, discount_curve)
+            # Simple forward rate
+            simple_forward_rate = np.zeros(discount.shape)
+            for idx, tau in enumerate(np.diff(event_grid)):
+                discount_forward = \
+                    swap_obj.zcbond._calc_price(r_pseudo[idx], idx, idx + 1)
+                simple_forward_rate[idx] = (1 / discount_forward - 1) / tau
+            # Monte-Carlo estimate of swap price.
+            swap_price_n = \
+                discount[1:] * (simple_forward_rate[:-1] - fixed_rate)
+            swap_price_n = swap_price_n.transpose() * np.diff(event_grid)
+            swap_price_n = swap_price_n.transpose()
+            swap_price_n = np.sum(swap_price_n) / n_paths
+            # Relative difference.
+            diff = abs((swap_price_a - swap_price_n) / swap_price_a)
+            # print(s, swap_price_a, swap_price_n, diff)
+            self.assertTrue(diff < threshold[s // 2 - 1])
 
     def test_refi_coupon_calc(self):
         """Calculate re-finance coupon..."""
