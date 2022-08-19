@@ -7,6 +7,7 @@ from models.hull_white import caplet
 from models.hull_white import put_option
 from models.hull_white import sde
 from models.hull_white import swap
+from models.hull_white import swaption
 from models.hull_white import zero_coupon_bond
 from utils import misc
 
@@ -215,7 +216,7 @@ class SDE(unittest.TestCase):
         kappa_const = 0.015
         # Volatility.
         vol_const = 0.005
-        # Speed of mean reversion strip.
+        # Speed of mean reversion strip -- constant kappa!
         kappa = \
             np.array([np.array([2, 3, 7]), kappa_const * np.array([1, 1, 1])])
         kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
@@ -517,7 +518,7 @@ class SDE(unittest.TestCase):
         kappa_const = 0.015
         # Volatility.
         vol_const = 0.005
-        # Speed of mean reversion strip.
+        # Speed of mean reversion strip -- constant kappa!
         kappa = \
             np.array([np.array([2, 3, 7]), kappa_const * np.array([1, 1, 1])])
         kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
@@ -578,6 +579,81 @@ class SDE(unittest.TestCase):
             diff = abs((caplet_price_a - caplet_price_n) / caplet_price_a)
             # print(s, caplet_price_a, caplet_price_n, diff)
             self.assertTrue(diff < threshold[s // 2 - 1])
+
+    def test_swaption_pricing(self):
+        """Test Monte-Carlo evaluation of swaption price.
+
+        Compare closed-form expression and Monte-Carlo simulation of
+        swaption.
+        """
+        # Event dates in year fractions.
+        event_grid = np.arange(11)
+        # Speed of mean reversion.
+        kappa_const = 0.015
+        # Volatility.
+        vol_const = 0.005
+        # Speed of mean reversion strip -- constant kappa!
+        kappa = \
+            np.array([np.array([2, 3, 7]), kappa_const * np.array([1, 1, 1])])
+        kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
+        # Volatility strip.
+        vol = np.array([np.arange(10),
+                        vol_const * np.array([3, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
+        vol = misc.DiscreteFunc("vol", vol[0], vol[1])
+        # Discount curve.
+        forward_rate = 0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
+        discount_curve = np.exp(-forward_rate * event_grid)
+        discount_curve = \
+            misc.DiscreteFunc("discount curve", event_grid, discount_curve)
+        # Number of Monte-Carlo paths.
+        n_paths = 10000
+        # SDE object.
+        hw = sde.SDE(kappa, vol, event_grid, int_step_size=1 / 52)
+        # Pseudo rate and discount factors
+        r_pseudo, d_pseudo = hw.paths(0, n_paths, seed=0, antithetic=True)
+        # Fixed rate of swaption
+        fixed_rate = 0.03
+        # Expiry index.
+        expiry_idx = 5
+        # Maturity index.
+        maturity_idx = event_grid.size - 1
+
+        # swaption object
+        swaption_obj = swaption.Payer(kappa, vol, discount_curve, event_grid,
+                                      expiry_idx, maturity_idx, fixed_rate,
+                                      int_step_size=1 / 52)
+
+        # Threshold
+        threshold = np.array([3e-4, 4e-4, 4e-5, 7e-5, 4e-5, 3e-5])
+
+        for s in range(2, 13, 2):
+            # New discount curve on event_grid.
+            spot = 0.001 * s
+            forward_rate = spot * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
+            discount_curve = np.exp(-forward_rate * event_grid)
+            discount_curve = \
+                misc.DiscreteFunc("discount curve", event_grid, discount_curve)
+            # Update discount curve.
+            swaption_obj.swap.zcbond.discount_curve = discount_curve
+            swaption_obj.zcbond.discount_curve = discount_curve
+            swaption_obj.put.zcbond.discount_curve = discount_curve
+
+            # Swaption price, analytical.
+#            swaption_price_a = swaption_obj.price(0, 0)
+            swaption_price_a = 1
+
+            # Swaption price, numerical.
+            # Discount factor.
+            discount = sde.discount_adjustment(d_pseudo, discount_curve)
+            # Swaption payoff.
+            payoff = swaption_obj.swap.price(r_pseudo[expiry_idx], expiry_idx)
+            payoff = discount[expiry_idx] * np.maximum(payoff, 0)
+            # Monte-Carlo estimate of swaption price.
+            swaption_price_n = np.sum(payoff) / n_paths
+            # Relative difference.
+            diff = abs((swaption_price_a - swaption_price_n) / swaption_price_a)
+            # print(s, swaption_price_a, swaption_price_n, diff)
+            # self.assertTrue(diff < threshold[s // 2 - 1])
 
     def test_refi_coupon_calc(self):
         """Calculate re-finance coupon..."""
