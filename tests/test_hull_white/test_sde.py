@@ -701,6 +701,7 @@ class SDE(unittest.TestCase):
             # All "maturities" from t_{n + 1} to T inclusive
             maturity_indices = np.arange(n + 1, event_grid.size)
             # Discount curve for each pseudo rate scenario
+            # REVISE PRICE_VECTOR METHOD IN BOND CLASS!!!
             discount_vector = bond.price_vector(rate[n], n, maturity_indices)
 #            print("Discount curves, MC scenarios: \n", discount_vector)
             sum_discount = discount_vector.sum(axis=0)
@@ -715,6 +716,7 @@ class SDE(unittest.TestCase):
             rate_grid = rate_interval * rate_grid + rate_min
 #            print("Rate grid: \n", rate_grid)
             # Discount curve for each pseudo rate grid point
+            # REVISE PRICE_VECTOR METHOD IN BOND CLASS!!!
             discount_grid = bond.price_vector(rate_grid, n, maturity_indices)
 #            print("Discount curves, rate grid: \n", discount_grid)
             sum_discount_grid = discount_grid.sum(axis=0)
