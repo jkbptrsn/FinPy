@@ -417,10 +417,10 @@ if __name__ == '__main__':
 
     forward_rate_ext_plot = forward_rate_ext.interpolation(time_grid_plot)
     forward_rate_ext_plot *= 100
-    # ax1.plot(time_grid_plot, forward_rate_ext_plot, "--b")
+    lgd2 = ax1.plot(time_grid_plot, forward_rate_ext_plot, "-r", label="f(0,t)")
 
     forward_rate_plot *= 100
-    lgd2 = ax1.plot(time_grid_plot, forward_rate_plot, "-r", label="f(0,t)")
+    # lgd2 = ax1.plot(time_grid_plot, forward_rate_plot, "-r", label="f(0,t)")
     plt.ylabel("y(0,0,t) and f(0,t) [%]")
 
     ax2 = ax1.twinx()

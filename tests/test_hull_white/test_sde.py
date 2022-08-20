@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import unittest
 
+import input
 from models.hull_white import call_option
 from models.hull_white import caplet
 from models.hull_white import put_option
@@ -745,50 +746,190 @@ class SDE(unittest.TestCase):
 
 if __name__ == '__main__':
 
-    # Speed of mean reversion strip
-    kappa = np.array([np.array([0, 10]), 0.023 * np.array([1, 1])])
-    kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
+    # Speed of mean reversion strip.
+    kappa = input.kappa_strip
+    # Volatility strip.
+    vol = input.vol_strip
+    # Discount curve.
+    discount_curve = input.disc_curve
 
-    # Volatility strip
-    vol = np.array([np.array([0, 0.25, 0.5, 1, 2, 3, 4, 5, 7, 10, 20]),
-                    np.array([0.0165, 0.0143, 0.0140, 0.0132, 0.0128, 0.0103,
-                              0.0067, 0.0096, 0.0087, 0.0091, 0.0098])])
-    vol = misc.DiscreteFunc("vol", vol[0], vol[1])
+    # # Plot zero-coupon bond price curve.
+    # time_grid_plot = 0.1 * np.arange(301)
+    # plt.plot(time_grid_plot, discount_curve.interpolation(time_grid_plot))
+    # plt.xlabel("Time")
+    # plt.ylabel("Zero coupon bond price")
+    # plt.show()
 
-    # Discount curve on event_grid
-    time_grid = np.array([0.09, 0.26, 0.5, 1, 1.5, 2, 3, 4,
-                          5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30])
-    rate_grid = np.array([-0.0034, 0.0005, 0.0061, 0.0135, 0.0179,
-                          0.0202, 0.0224, 0.0237, 0.0246, 0.0252,
-                          0.0256, 0.0261, 0.0265, 0.0270, 0.0277,
-                          0.0281, 0.0267, 0.0249, 0.0233])
-    discount_curve = np.exp(-rate_grid * time_grid)
-    discount_curve = \
-        misc.DiscreteFunc("discount curve", time_grid,
-                          discount_curve, interp_scheme="quadratic")
+    event_grid_plot = 0.1 * np.arange(251)
+    n_paths = 20000 # 200000
+    hw = sde.SDE(kappa, vol, event_grid_plot, int_step_size=1 / 52)
+    rate, discount = hw.paths(0, n_paths, seed=0)
 
-    # Plot zero-coupon bond price curve
-    time_grid_plot = 0.1 * np.arange(-50, 351)  # np.arange(301)
-    plt.plot(time_grid_plot, discount_curve.interpolation(time_grid_plot))
-    plt.xlabel("Time")
-    plt.ylabel("Zero coupon bond price")
+    rate *= 100
+
+    forward_rate = input.forward_rate_ext
+    forward_rate_plot = forward_rate.interpolation(event_grid_plot)
+    forward_rate_plot *= 100
+    rate_adj = (rate.transpose() + forward_rate_plot).transpose()
+
+    rate_avg = np.sum(rate, axis=1) / n_paths
+    rate_adj_avg = np.sum(rate_adj, axis=1) / n_paths
+
+    d_curve = discount_curve.interpolation(event_grid_plot)
+    discount_curve_plot = \
+        misc.DiscreteFunc("discount plot", event_grid_plot, d_curve,
+                          interp_scheme="cubic")
+    discount_adj = sde.discount_adjustment(discount, discount_curve_plot)
+
+    discount_avg = np.sum(discount, axis=1) / n_paths
+    discount_adj_avg = np.sum(discount_adj, axis=1) / n_paths
+
+    n_bins = 100
+    # Rate grid
+    r_min = -10
+    r_max = 15
+    hist = np.histogram(rate_adj[1, :], bins=n_bins,
+                        range=(r_min - 1, r_max + 1), density=True)
+    r_grid = (hist[1][1:] + hist[1][:-1]) / 2
+    # Discount grid
+    d_min = 0
+    d_max = 2
+    hist = np.histogram(discount_adj[1, :], bins=n_bins, range=(d_min, d_max),
+                        density=True)
+    d_grid = (hist[1][1:] + hist[1][:-1]) / 2
+
+    # Density plots
+    X, Y = np.meshgrid(event_grid_plot, r_grid)
+    Z = np.zeros(X.shape)
+    Z_adj = np.zeros(X.shape)
+
+    XD, YD = np.meshgrid(event_grid_plot, d_grid)
+    ZD = np.zeros(X.shape)
+    ZD_adj = np.zeros(X.shape)
+
+    for n in range(event_grid_plot.size):
+        hist = np.histogram(rate[n, :], bins=n_bins,
+                            range=(r_min - 1, r_max + 1), density=True)
+        Z[:, n] = hist[0]
+        hist_adj = np.histogram(rate_adj[n, :], bins=n_bins,
+                                range=(r_min - 1, r_max + 1), density=True)
+        Z_adj[:, n] = hist_adj[0]
+
+        hist = np.histogram(discount[n, :], bins=n_bins,
+                            range=(d_min, d_max), density=True)
+        ZD[:, n] = hist[0]
+        hist = np.histogram(discount_adj[n, :], bins=n_bins,
+                            range=(d_min, d_max), density=True)
+        ZD_adj[:, n] = hist[0]
+
+    # Density plot of pseudo short rate
+    plt.pcolormesh(X, Y, Z, cmap=plt.colormaps['hot'], shading='gouraud')
+    plt.xlabel("t [years]")
+    plt.ylabel("Pseudo short rate x(t) = r(t) - f(0,t) [%]")
+    clb = plt.colorbar(ticks=0.01 * np.arange(0, 21, 2))
+    clb.set_label("Probability density")
+    plt.ylim(-8, 13)
+    plt.clim(0, 0.16)
+    lgd1 = plt.plot(event_grid_plot, rate_avg, "-b")
+    plt.legend(lgd1, ["E[x(t)]"])
+    plt.show()
+
+    # Density plot of pseudo discount curve
+    plt.pcolormesh(XD, YD, ZD, cmap=plt.colormaps['hot'], shading='gouraud')
+    plt.xlabel("t [years]")
+    plt.ylabel("Pseudo discount curve")
+    clb = plt.colorbar(ticks=0.1 * np.arange(0, 31, 5))
+    clb.set_label("Probability density")
+    plt.ylim(0.1, 1.9)
+    plt.clim(0, 3)
+    lgd1 = plt.plot(event_grid_plot, discount_avg, "-b")
+    plt.legend(lgd1, ["E[D(t)]"])
+    plt.show()
+
+    # Density plot of short rate
+    plt.pcolormesh(X, Y, Z_adj, cmap=plt.colormaps['hot'], shading='gouraud')
+    plt.xlabel("t [years]")
+    plt.ylabel("Short rate r(t) = x(t) + f(0,t) [%]")
+    clb = plt.colorbar(ticks=0.01 * np.arange(0, 21, 2))
+    clb.set_label("Probability density")
+    plt.ylim(-8, 13)
+    plt.clim(0, 0.16)
+    lgd1 = plt.plot(event_grid_plot, rate_adj_avg, "-b")
+    lgd2 = plt.plot(event_grid_plot, forward_rate_plot, "--b")
+    plt.legend(lgd1 + lgd2, ["E[r(t)]", "f(0,t)"])
+    plt.show()
+
+    # Density plot of discount curve
+    plt.pcolormesh(XD, YD, ZD_adj, cmap=plt.colormaps['hot'], shading='gouraud')
+    plt.xlabel("t [years]")
+    plt.ylabel("Discount curve")
+    clb = plt.colorbar(ticks=0.1 * np.arange(0, 31, 5))
+    clb.set_label("Probability density")
+    plt.ylim(0.1, 1.2)
+    plt.clim(0, 3)
+    lgd1 = plt.plot(event_grid_plot, discount_adj_avg, "-b")
+    plt.legend(lgd1, ["E[D(t)]"])
     plt.show()
 
     # Plot Monte-Carlo scenarios
-    event_grid_plot = 0.01 * np.arange(0, 1001)
+    event_grid_plot = 0.05 * np.arange(0, 501)
     n_paths = 25
     hw = sde.SDE(kappa, vol, event_grid_plot)
     rate, discount = hw.paths(0, n_paths, seed=0)
+
     d_curve = discount_curve.interpolation(event_grid_plot)
-    f1, ax1 = plt.subplots(3, 1, sharex=True)
-    for n in range(n_paths):
-        ax1[0].plot(event_grid_plot, rate[:, n])
-        ax1[1].plot(event_grid_plot, discount[:, n])
-        ax1[2].plot(event_grid_plot, discount[:, n] * d_curve)
-    ax1[2].set_xlabel("Time")
-    ax1[0].set_ylabel("Short rate")
-    ax1[1].set_ylabel("Discount curve")
-    ax1[2].set_ylabel("Adj. discount curve")
+    discount_curve_plot = \
+        misc.DiscreteFunc("discount plot", event_grid_plot, d_curve,
+                          interp_scheme="cubic")
+    discount_adj = sde.discount_adjustment(discount, discount_curve_plot)
+
+    # Pseudo short rate plots
+    plot1 = plt.plot(event_grid_plot, 100 * rate[:, 0], "-b", label="Path 1")
+    plot2 = plt.plot(event_grid_plot, 100 * rate[:, 2], "-r", label="Path 2")
+    plot3 = plt.plot(event_grid_plot, 100 * rate[:, 4], "-k", label="Path 3")
+    plt.xlabel("t [years]")
+    plt.ylabel("Pseudo short rate x(t) = r(t) - f(0,t) [%]")
+    plots = plot1 + plot2 + plot3
+    plt.legend(plots, [plot.get_label() for plot in plots], loc=3)
+    plt.show()
+
+    # Pseudo discount curve plots
+    plot1 = plt.plot(event_grid_plot, discount[:, 0], "-b", label="Path 1")
+    plot2 = plt.plot(event_grid_plot, discount[:, 2], "-r", label="Path 2")
+    plot3 = plt.plot(event_grid_plot, discount[:, 4], "-k", label="Path 3")
+    plt.xlabel("t [years]")
+    plt.ylabel("Pseudo discount curve")
+    plots = plot1 + plot2 + plot3
+    plt.legend(plots, [plot.get_label() for plot in plots], loc=3)
+    plt.show()
+
+    # Short rate plots
+    forward_rate = input.forward_rate_ext
+    forward_rate_plot = forward_rate.interpolation(event_grid_plot)
+
+    rate_adj = rate[:, 0] + forward_rate_plot
+    plot1 = plt.plot(event_grid_plot, 100 * rate_adj, "-b", label="Path 1")
+    rate_adj = rate[:, 2] + forward_rate_plot
+    plot2 = plt.plot(event_grid_plot, 100 * rate_adj, "-r", label="Path 2")
+    rate_adj = rate[:, 4] + forward_rate_plot
+    plot3 = plt.plot(event_grid_plot, 100 * rate_adj, "-k", label="Path 3")
+    plot4 = plt.plot(event_grid_plot, 100 * forward_rate_plot, "--k",
+                     label="f(0,t)")
+    plt.xlabel("t [years]")
+    plt.ylabel("Short rate r(t) = x(t) + f(0,t) [%]")
+    plots = plot1 + plot2 + plot3 + plot4
+    plt.legend(plots, [plot.get_label() for plot in plots], loc=3)
+    plt.show()
+
+    # Discount factor plots
+    plot1 = plt.plot(event_grid_plot, discount_adj[:, 0], "-b", label="Path 1")
+    plot2 = plt.plot(event_grid_plot, discount_adj[:, 2], "-r", label="Path 2")
+    plot3 = plt.plot(event_grid_plot, discount_adj[:, 4], "-k", label="Path 3")
+    plot4 = plt.plot(event_grid_plot, d_curve, "--k", label="P(0,t)")
+    plt.xlabel("t [years]")
+    plt.ylabel("Discount curve")
+    plots = plot1 + plot2 + plot3 + plot4
+    plt.legend(plots, [plot.get_label() for plot in plots], loc=3)
     plt.show()
 
     # Quarterly payment dates for a 30Y bond
@@ -800,83 +941,83 @@ if __name__ == '__main__':
         misc.DiscreteFunc("discount curve", event_grid,
                           discount_curve, interp_scheme="quadratic")
 
-    # SDE object
-    n_paths = 50000
-    hw = sde.SDE(kappa, vol, event_grid)
-    rate, discount = hw.paths(0, n_paths, seed=0)
-    discount = sde.discount_adjustment(discount, discount_curve)
-
-    # Plot y-function
-    plt.plot(hw.event_grid, hw.y_event_grid, "-b")
-    plt.xlabel("Time")
-    plt.ylabel("y function")
-    plt.show()
+    # # SDE object
+    # n_paths = 50000
+    # hw = sde.SDE(kappa, vol, event_grid)
+    # rate, discount = hw.paths(0, n_paths, seed=0)
+    # discount = sde.discount_adjustment(discount, discount_curve)
+    #
+    # # Plot y-function
+    # plt.plot(hw.event_grid, hw.y_event_grid, "-b")
+    # plt.xlabel("Time")
+    # plt.ylabel("y function")
+    # plt.show()
 
     # Zero-coupon bond object
     maturity_idx = event_grid.size - 1
     bond = zero_coupon_bond.ZCBond(kappa, vol, discount_curve, event_grid, maturity_idx)
 
-    fig, ax = plt.subplots(3, 1)
-    ax_count = 0
-    ax_twinx = list()
-    for ax_sub in ax:
-        ax_twinx.append(ax_sub.twinx())
-    for n in range(1, 21):
-        n_payments = event_grid.size - (n + 1)
-        # All "maturities" from t_{n + 1} to T inclusive
-        maturity_indices = np.arange(n + 1, event_grid.size)
-        # Discount curve for each pseudo rate scenario
-        discount_vector = bond.price_vector(rate[n], n, maturity_indices)
-        sum_discount = discount_vector.sum(axis=0)
-        # Construct pseudo rate grid
-        rate_max = np.max(rate[n])
-        rate_min = np.min(rate[n])
-        rate_interval = rate_max - rate_min
-        rate_n_grid = 5
-        rate_grid = np.arange(rate_n_grid) / (rate_n_grid - 1)
-        rate_grid = rate_interval * rate_grid + rate_min
-        # Discount curve for each pseudo rate grid point
-        discount_grid = bond.price_vector(rate_grid, n, maturity_indices)
-        sum_discount_grid = discount_grid.sum(axis=0)
-        # Coupons of refinance bond on pseudo rate grid
-        coupon_grid = np.zeros(rate_n_grid)
-        for m in range(rate_n_grid):
-            coupon_grid[m] = \
-                misc.calc_refinancing_coupon(n_payments, sum_discount_grid[m])
-        coupon_grid_save = coupon_grid
-        coupon_grid = \
-            misc.DiscreteFunc("Coupon grid", rate_grid,
-                              coupon_grid, interp_scheme="quadratic")
-        coupon_grid_int = coupon_grid.interpolation(rate[n])
-        # Coupons of refinance bond for MC scenarios
-        coupon_scenarios = np.zeros(n_paths)
-        for m in range(n_paths):
-            coupon_scenarios[m] = \
-                misc.calc_refinancing_coupon(n_payments, sum_discount[m])
-        print("Are all close: ",
-              np.allclose(coupon_scenarios, coupon_grid_int,
-                          rtol=1e-5, atol=1e-5))
-        if n == 1 or n == 4 or n == 20:
-            rate_n_grid_new = 100
-            rate_grid_new = np.arange(rate_n_grid_new) / (rate_n_grid_new - 1)
-            rate_grid_new = rate_interval * rate_grid_new + rate_min
-            coupon_grid_int_new = coupon_grid.interpolation(rate_grid_new)
-            if n == 20:
-                ax[ax_count].set_xlabel("Pseudo short rate, "
-                                        "x(t) = r(t) - f(0,t) [%]")
-            ax[ax_count].hist(100 * rate[n], 100, density=True, facecolor='r')
-            if n == 4:
-                ax[ax_count].set_ylabel("Density of "
-                                        "pseudo short rate", color="r")
-            ax[ax_count].tick_params(axis="y", labelcolor="r")
-            ax_twinx[ax_count].plot(100 * rate_grid_new,
-                                    100 * coupon_grid_int_new, '-b')
-            ax_twinx[ax_count].plot(100 * rate_grid,
-                                    100 * coupon_grid_save, 'ob')
-            if n == 4:
-                ax_twinx[ax_count].set_ylabel("Coupon of refinancing bond [%]",
-                                              color="b")
-            ax_twinx[ax_count].tick_params(axis="y", labelcolor="b")
-            ax[ax_count].set_xlim([-12.5, 12.5])
-            ax_count += 1
-    plt.show()
+    # fig, ax = plt.subplots(3, 1)
+    # ax_count = 0
+    # ax_twinx = list()
+    # for ax_sub in ax:
+    #     ax_twinx.append(ax_sub.twinx())
+    # for n in range(1, 21):
+    #     n_payments = event_grid.size - (n + 1)
+    #     # All "maturities" from t_{n + 1} to T inclusive
+    #     maturity_indices = np.arange(n + 1, event_grid.size)
+    #     # Discount curve for each pseudo rate scenario
+    #     discount_vector = bond.price_vector(rate[n], n, maturity_indices)
+    #     sum_discount = discount_vector.sum(axis=0)
+    #     # Construct pseudo rate grid
+    #     rate_max = np.max(rate[n])
+    #     rate_min = np.min(rate[n])
+    #     rate_interval = rate_max - rate_min
+    #     rate_n_grid = 5
+    #     rate_grid = np.arange(rate_n_grid) / (rate_n_grid - 1)
+    #     rate_grid = rate_interval * rate_grid + rate_min
+    #     # Discount curve for each pseudo rate grid point
+    #     discount_grid = bond.price_vector(rate_grid, n, maturity_indices)
+    #     sum_discount_grid = discount_grid.sum(axis=0)
+    #     # Coupons of refinance bond on pseudo rate grid
+    #     coupon_grid = np.zeros(rate_n_grid)
+    #     for m in range(rate_n_grid):
+    #         coupon_grid[m] = \
+    #             misc.calc_refinancing_coupon(n_payments, sum_discount_grid[m])
+    #     coupon_grid_save = coupon_grid
+    #     coupon_grid = \
+    #         misc.DiscreteFunc("Coupon grid", rate_grid,
+    #                           coupon_grid, interp_scheme="quadratic")
+    #     coupon_grid_int = coupon_grid.interpolation(rate[n])
+    #     # Coupons of refinance bond for MC scenarios
+    #     coupon_scenarios = np.zeros(n_paths)
+    #     for m in range(n_paths):
+    #         coupon_scenarios[m] = \
+    #             misc.calc_refinancing_coupon(n_payments, sum_discount[m])
+    #     print("Are all close: ",
+    #           np.allclose(coupon_scenarios, coupon_grid_int,
+    #                       rtol=1e-5, atol=1e-5))
+    #     if n == 1 or n == 4 or n == 20:
+    #         rate_n_grid_new = 100
+    #         rate_grid_new = np.arange(rate_n_grid_new) / (rate_n_grid_new - 1)
+    #         rate_grid_new = rate_interval * rate_grid_new + rate_min
+    #         coupon_grid_int_new = coupon_grid.interpolation(rate_grid_new)
+    #         if n == 20:
+    #             ax[ax_count].set_xlabel("Pseudo short rate, "
+    #                                     "x(t) = r(t) - f(0,t) [%]")
+    #         ax[ax_count].hist(100 * rate[n], 100, density=True, facecolor='r')
+    #         if n == 4:
+    #             ax[ax_count].set_ylabel("Density of "
+    #                                     "pseudo short rate", color="r")
+    #         ax[ax_count].tick_params(axis="y", labelcolor="r")
+    #         ax_twinx[ax_count].plot(100 * rate_grid_new,
+    #                                 100 * coupon_grid_int_new, '-b')
+    #         ax_twinx[ax_count].plot(100 * rate_grid,
+    #                                 100 * coupon_grid_save, 'ob')
+    #         if n == 4:
+    #             ax_twinx[ax_count].set_ylabel("Coupon of refinancing bond [%]",
+    #                                           color="b")
+    #         ax_twinx[ax_count].tick_params(axis="y", labelcolor="b")
+    #         ax[ax_count].set_xlim([-12.5, 12.5])
+    #         ax_count += 1
+    # plt.show()
