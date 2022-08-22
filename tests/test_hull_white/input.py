@@ -17,6 +17,9 @@ yield_curve = \
 
 # Discount curve.
 disc_grid = np.exp(-yield_grid * time_grid)
+# Time-grid extended to zero to avoid extrapolation error.
+time_grid = np.append(0, time_grid)
+disc_grid = np.append(1, disc_grid)
 disc_curve = \
     misc.DiscreteFunc("discount", time_grid, disc_grid, interp_scheme="cubic")
 
