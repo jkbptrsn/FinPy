@@ -1,0 +1,92 @@
+\section{Vasicek Model}
+The Vasicek model \cite{Vasicek1977} is a short rate model defined by the stochastic differential equation 
+\begin{equation}
+dr_t = \kappa \left( \theta - r_t \right) dt + \sigma dW_t,
+\label{eq:vasicekSDE}
+\end{equation}
+where $\kappa > 0$ is the speed of mean reversion, $\theta$ denotes the long-term short rate level, and $\sigma > 0$ is the volatility.
+As usual, $W_t$ denotes a one-dimensional Wiener process under the risk-neutral $Q$-measure.
+
+The SDE in Eq.~(\ref{eq:vasicekSDE}) can be solved analytically by introducing the function
+\begin{equation}
+h(t, r_t) = r_t \e^{\kappa t},
+\end{equation}
+using It\^{o}'s lemma
+\begin{eqnarray}
+dh(t, r_t) &=& \frac{\partial h}{\partial t} dt + \frac{\partial h}{\partial r_t} dr_t + \frac{1}{2}\frac{\partial^2 h}{\partial r_t^2} \left(dr_t\right)^2 \\
+&=& \kappa h(t, r_t) dt + \e^{\kappa t} dr_t \\
+&=& \theta \kappa \e^{\kappa t} dt + \sigma \e^{\kappa t} dW_t,
+\end{eqnarray}
+and integrating from $t_1$ to $t_2$
+\begin{equation}
+h(t_2, r_{t_2}) = h(t_1, r_{t_1}) + \theta \kappa \int_{t_1}^{t_2} \e^{\kappa t} dt + \sigma \int_{t_1}^{t_2} \e^{\kappa t} dW_t,
+\end{equation}
+such that ($\Delta t \coloneq t_2 - t_1$)
+\begin{equation}
+r_{t_2} = \theta + \left( r_{t_1} - \theta \right) \e^{-\kappa \Delta t} + \sigma \int_{t_1}^{t_2} \e^{-\kappa \left(t_2 - t\right)} dW_t.
+\end{equation}
+
+The short rate process is clearly Gaussian with conditional mean (the expectation operator is defined with respect to the $Q$-measure)
+\begin{equation}
+\E \left[ r_{t_2} | r_{t_1} \right] = \theta + \left( r_{t_1} - \theta \right) \e^{-\kappa \Delta t},
+\end{equation}
+and, using the It\^{o} isometry, the conditional variance of the process becomes
+\begin{eqnarray}
+\Var \left[ r_{t_2} | r_{t_1} \right] &=& \sigma^2 \E \left[ \left( \int_{t_1}^{t_2} \e^{-\kappa \left(t_2 - t\right)} dW_t \right)^2 \right] \\
+&=& \frac{\sigma^2}{2 \kappa} \left( 1 - \e^{-2 \kappa \Delta t}\right).
+\end{eqnarray}
+
+The corresponding stochastic discount factor is written as
+\begin{equation}
+D_{t} = \e^{I_t},
+\end{equation}
+where
+\begin{eqnarray}
+I_t &=& -\int_0^t r_u du \\
+&=& - \int_0^t \left( \theta + \left( r_0 - \theta \right) \e^{-\kappa u } \right) du - \sigma \int_0^t \int_0^u \e^{-\kappa \left(u - v\right)} dW_v du \\
+&=& - \theta t - \frac{r_0 - \theta}{\kappa} \left( 1 - \e^{-\kappa t} \right) - \sigma \int_0^t \int_v^t \e^{-\kappa \left(u - v\right)} du dW_v.
+\end{eqnarray}
+
+The stochastic discount factor process is likewise Gaussian with conditional mean
+\begin{equation}
+\E \left[ I_{t_{2}} | I_{t_1}, r_{t_1} \right] = I_{t_1} - \theta \Delta t 
+- \frac{r_{t_1} - \theta}{\kappa} \left( 1 - \e^{-\kappa \Delta t} \right),
+\end{equation}
+and, using the It\^{o} isometry, the conditional variance becomes
+\begin{eqnarray}
+\Var \left[ I_{t_{2}} | I_{t_1}, r_{t_1} \right] &=& \sigma^2 \E \left[ \left( \int_{t_1}^{t_2} \int_v^{t_2} \e^{-\kappa \left(u - v\right)} du dW_v \right)^2 \right] \\
+&=& \frac{\sigma^2}{2 \kappa^3} \left( 4 \e^{-\kappa \Delta t} - \e^{-2\kappa \Delta t} + 2 \kappa \Delta t - 3 \right).
+\end{eqnarray}
+
+We can write both $r_t$ and $I_t$ as a sum of a deterministic term ($D$) and a stochastic term ($S$)
+\begin{eqnarray}
+r_t &=& D_{r_t} + S_{r_t} \\
+I_t &=& D_{I_t} + S_{I_t},
+\end{eqnarray}
+such that the covariance of $r_t$ and $I_t$ is expressed as
+\begin{eqnarray}
+\Cov \left[ r_t, I_t \right] &=& \E \left[ r_t I_t \right] - \E \left[ r_t \right] \E \left[ I_t \right] \\
+&=& \E \left[ D_{r_t} D_{I_t} + S_{r_t} D_{I_t} + D_{r_t} S_{I_t} + S_{r_t} S_{I_t} \right] - D_{r_t} D_{I_t} \\
+&=& \E \left[ S_{r_t} S_{I_t} \right].
+\end{eqnarray}
+
+Using standard results for stochastic integrals, the covariance becomes
+\begin{eqnarray}
+\Cov \left[ r_t, I_t \right] &=& - \sigma^2 \E \left[ \int_0^t \e^{-\kappa (t - u)} dW_u \int_0^t \int_v^t \e^{-\kappa(u-v)} du dW_v \right] \\
+&=& -\sigma^2 \int_0^t \E \left[ \e^{-\kappa(t-v)} \int_v^t \e^{-\kappa(u-v)} du \right] dv \\
+&=& \frac{\sigma^2}{2 \kappa^2} \left( 2 \e^{-\kappa t} - \e^{-2\kappa t} - 1 \right).
+\end{eqnarray}
+
+The price of a $T$-maturity zero-coupon bond at time $t$ is given by
+\begin{eqnarray}
+P(t,T) &=& \E \left[ \text{e}^{I_T - I_t} \right] \\
+&=& \exp \left( \E \left[ I_T - I_t \right] + \frac{1}{2} \Var \left[ I_T - I_t \right] \right) \\
+&=& \exp \left( A(t,T) - B(t,T) r_t \right) ,
+\end{eqnarray}
+where
+\begin{eqnarray}
+A(t,T) &=& \left( \theta - \frac{\sigma^2}{2 \kappa^2} \right) \left( B(t,T) - (T- t)\right) - \frac{\sigma^2}{4 \kappa} B(t,T)^2 \\
+B(t,T) &=& \frac{1 - \text{e}^{-\kappa (T-t)}}{\kappa}.
+\end{eqnarray}
+
+Closed form pricing formulas for fixed-for-floating swaps, European call and put options written on zero-coupon bonds, caplets, and swaptions can also be derived, see \cite{Brigo2007, Andersen2010}.
