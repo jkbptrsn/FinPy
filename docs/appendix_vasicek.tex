@@ -28,11 +28,11 @@ r_{t_2} = \theta + \left( r_{t_1} - \theta \right) \e^{-\kappa \Delta t} + \sigm
 
 The short rate process is clearly Gaussian with conditional mean (the expectation operator is defined with respect to the $Q$-measure)
 \begin{equation}
-\E \left[ r_{t_2} | r_{t_1} \right] = \theta + \left( r_{t_1} - \theta \right) \e^{-\kappa \Delta t},
+\E_{t_1}\! \left[ r_{t_2} \right] = \theta + \left( r_{t_1} - \theta \right) \e^{-\kappa \Delta t},
 \end{equation}
 and, using the It\^{o} isometry, the conditional variance of the process becomes
 \begin{eqnarray}
-\Var \left[ r_{t_2} | r_{t_1} \right] &=& \sigma^2 \E \left[ \left( \int_{t_1}^{t_2} \e^{-\kappa \left(t_2 - t\right)} dW_t \right)^2 \right] \\
+\Var_{t_1}\! \left[ r_{t_2} \right] &=& \sigma^2 \E \left[ \left( \int_{t_1}^{t_2} \e^{-\kappa \left(t_2 - t\right)} dW_t \right)^2 \right] \\
 &=& \frac{\sigma^2}{2 \kappa} \left( 1 - \e^{-2 \kappa \Delta t}\right).
 \end{eqnarray}
 
@@ -49,12 +49,12 @@ I_t &=& -\int_0^t r_u du \\
 
 The stochastic discount factor process is likewise Gaussian with conditional mean
 \begin{equation}
-\E \left[ I_{t_{2}} | I_{t_1}, r_{t_1} \right] = I_{t_1} - \theta \Delta t 
+\E_{t_1}\! \left[ I_{t_{2}} \right] = I_{t_1} - \theta \Delta t 
 - \frac{r_{t_1} - \theta}{\kappa} \left( 1 - \e^{-\kappa \Delta t} \right),
 \end{equation}
 and, using the It\^{o} isometry, the conditional variance becomes
 \begin{eqnarray}
-\Var \left[ I_{t_{2}} | I_{t_1}, r_{t_1} \right] &=& \sigma^2 \E \left[ \left( \int_{t_1}^{t_2} \int_v^{t_2} \e^{-\kappa \left(u - v\right)} du dW_v \right)^2 \right] \\
+\Var_{t_1}\! \left[ I_{t_{2}} \right] &=& \sigma^2 \E \left[ \left( \int_{t_1}^{t_2} \int_v^{t_2} \e^{-\kappa \left(u - v\right)} du dW_v \right)^2 \right] \\
 &=& \frac{\sigma^2}{2 \kappa^3} \left( 4 \e^{-\kappa \Delta t} - \e^{-2\kappa \Delta t} + 2 \kappa \Delta t - 3 \right).
 \end{eqnarray}
 
@@ -70,17 +70,17 @@ such that the covariance of $r_t$ and $I_t$ is expressed as
 &=& \E \left[ S_{r_t} S_{I_t} \right].
 \end{eqnarray}
 
-Using standard results for stochastic integrals, the covariance becomes
+Using standard results for stochastic integrals, the conditional covariance becomes
 \begin{eqnarray}
-\Cov \left[ r_t, I_t \right] &=& - \sigma^2 \E \left[ \int_0^t \e^{-\kappa (t - u)} dW_u \int_0^t \int_v^t \e^{-\kappa(u-v)} du dW_v \right] \\
-&=& -\sigma^2 \int_0^t \E \left[ \e^{-\kappa(t-v)} \int_v^t \e^{-\kappa(u-v)} du \right] dv \\
-&=& \frac{\sigma^2}{2 \kappa^2} \left( 2 \e^{-\kappa t} - \e^{-2\kappa t} - 1 \right).
+\Cov_{t_1}\! \left[ r_{t_2}, I_{t_2} \right] &=& - \sigma^2 \E_{t_1}\! \left[ \int_{t_1}^{t_2} \e^{-\kappa (t_2 - u)} dW_u \int_{t_1}^{t_2} \int_v^{t_2} \e^{-\kappa(u-v)} du dW_v \right] \\
+&=& -\sigma^2 \int_{t_1}^{t_2} \E \left[ \e^{-\kappa(t_2-v)} \int_v^{t_2} \e^{-\kappa(u-v)} du \right] dv \\
+&=& \frac{\sigma^2}{2 \kappa^2} \left( 2 \e^{-\kappa \Delta t} - \e^{-2\kappa \Delta t} - 1 \right).
 \end{eqnarray}
 
 The price of a $T$-maturity zero-coupon bond at time $t$ is given by
 \begin{eqnarray}
-P(t,T) &=& \E \left[ \text{e}^{I_T - I_t} \right] \\
-&=& \exp \left( \E \left[ I_T - I_t \right] + \frac{1}{2} \Var \left[ I_T - I_t \right] \right) \\
+P(t,T) &=& \E_t\! \left[ \text{e}^{I_T - I_t} \right] \\
+&=& \exp \left( \E_t\! \left[ I_T - I_t \right] + \frac{1}{2} \Var_t\! \left[ I_T - I_t \right] \right) \\
 &=& \exp \left( A(t,T) - B(t,T) r_t \right) ,
 \end{eqnarray}
 where

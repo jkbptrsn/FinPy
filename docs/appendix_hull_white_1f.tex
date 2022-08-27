@@ -5,7 +5,7 @@ dr_t = \kappa_t \left( \theta_t - r_t \right) dt + \sigma_t dW_t.
 \end{equation}
 where the SDE parameters have the same interpretation as in the Vasicek model, and, again, $W_t$ denotes a one-dimensional Wiener process under the risk-neutral $Q$-measure.
 
-For the Hull-White model to be consistent with the yield curve at time zero, $\theta_t$ is given by \cite{Andersen2010}
+For the Hull-White model to be consistent with the initial yield curve, $\theta_t$ is given by \cite{Andersen2010}
 \begin{equation}
 \theta_t = \frac{1}{\kappa_t} \frac{\partial f(0,t)}{\partial t} + f(0,t) + \frac{1}{\kappa_t} \int_0^t \e^{-2\int_u^t \kappa_v dv} \sigma_u^2 du.
 \end{equation}
@@ -17,8 +17,10 @@ dx_t = \left( y_t - \kappa_t x_t \right) dt + \sigma_t dW_t, \;\;\; x_0 = 0,
 \end{equation}
 where
 \begin{equation}
-y_t = \int_0^t \e^{-2\int_u^t \kappa_v dv} \sigma_u^2 du.
+y_t = \int_0^t \e^{-2\int_u^t \kappa_v dv} \sigma_u^2 du,
 \end{equation}
+thus, the initial yield curve is used explicitly in the simulation of the pseudo 
+short rate, and any issues with yield curve interpolation are avoided.
 
 The SDE in Eq.~(\ref{eq:HullWhiteSDEx}) can be solved analytically by introducing the function
 \begin{equation}
@@ -41,15 +43,15 @@ x_{t_2} = x_{t_1} \e^{-\int_{t_1}^{t_2} \kappa_u du}  + \int_{t_1}^{t_2} y_t \e^
 
 As for the Vasicek model, the pseudo short rate process is Gaussian with conditional mean
 \begin{equation}
-\E \left[ x_{t_2} | x_{t_1} \right] = x_{t_1} \e^{-\int_{t_1}^{t_2} \kappa_u du}  + \int_{t_1}^{t_2} y_t \e^{-\int_t^{t_2} \kappa_u du} dt,
+\E_{t_1}\! \left[ x_{t_2} \right] = x_{t_1} \e^{-\int_{t_1}^{t_2} \kappa_u du}  + \int_{t_1}^{t_2} y_t \e^{-\int_t^{t_2} \kappa_u du} dt,
 \end{equation}
 and, using the It\^{o} isometry, the conditional variance of the process becomes
 \begin{eqnarray}
-\Var \left[ x_{t_2} | x_{t_1} \right] &=& \E \left[ \left( \int_{t_1}^{t_2} \sigma_t \e^{-\int_t^{t_2} \kappa_u du} dW_t \right)^2 \right] \\
+\Var_{t_1}\! \left[ x_{t_2} \right] &=& \E_{t_1}\! \left[ \left( \int_{t_1}^{t_2} \sigma_t \e^{-\int_t^{t_2} \kappa_u du} dW_t \right)^2 \right] \\
 &=& \int_{t_1}^{t_2} \sigma_t^2 \e^{-2\int_t^{t_2} \kappa_u du} dt.
 \end{eqnarray}
 
-The corresponding stochastic pseudo discount factor is written as
+The corresponding pseudo discount factor is written as
 \begin{equation}
 D_{t} = \e^{I_t},
 \end{equation}
@@ -57,21 +59,38 @@ where
 \begin{eqnarray}
 I_t &=& -\int_0^t x_u du \\
 &=& - x_{0} \int_0^t \e^{-\int_{0}^{u} \kappa_v dv} du - \int_0^t\int_{0}^{u} y_v \e^{-\int_v^{u} \kappa_s ds} dv du \\
-&& - \int_0^t \int_{0}^{u} \sigma_v \e^{-\int_v^{u} \kappa_s ds} dW_v du.
+&& - \int_0^t \int_{v}^{t} \sigma_v \e^{-\int_v^{u} \kappa_s ds} du dW_v,
 \end{eqnarray}
+where the order of integration has been changed in the last term.
 
 The discount factor process is likewise Gaussian with conditional mean
 \begin{equation}
-\E \left[ I_{t_{2}} | I_{t_1}, r_{t_1} \right] = I_{t_1} - x_{t_1} \int_{t_1}^{t_2} \e^{-\int_{t_1}^{u} \kappa_v dv} du - \int_{t_1}^{t_2} \int_{t_1}^{u} y_v \e^{-\int_v^{u} \kappa_s ds} dv du,
+\E_{t_1}\! \left[ I_{t_{2}} \right] = I_{t_1} - x_{t_1} \int_{t_1}^{t_2} \e^{-\int_{t_1}^{u} \kappa_v dv} du - \int_{t_1}^{t_2} \int_{t_1}^{u} y_v \e^{-\int_v^{u} \kappa_s ds} dv du,
 \end{equation}
 and, using the It\^{o} isometry, the conditional variance becomes
 \begin{eqnarray}
-\Var \left[ I_{t_{2}} | I_{t_1}, r_{t_1} \right] &=& \E \left[ \left( \int_0^t \int_{0}^{u} \sigma_v \e^{-\int_v^{u} \kappa_s ds} dW_v du \right)^2 \right].
+\Var_{t_1}\! \left[ I_{t_{2}} \right] &=& \E_{t_1}\! \left[ \left( \int_{t_1}^{t_2} \int_{v}^{t_2} \sigma_v \e^{-\int_v^{u} \kappa_s ds} du dW_v \right)^2 \right] \\
+&=& \int_{t_1}^{t_2} \sigma_v^2 \left( \int_{v}^{t_2} \e^{-\int_v^{u} \kappa_s ds} du \right)^2 dv.
 \end{eqnarray}
+
+\textcolor{red}{Compare (A.50) with Andersen \& Piterbarg!}
+
+Again, we can write both $x_t$ and $I_t$ as a sum of a deterministic term ($D$) and a stochastic term ($S$)
+\begin{eqnarray}
+x_t &=& D_{x_t} + S_{x_t} \\
+I_t &=& D_{I_t} + S_{I_t},
+\end{eqnarray}
+such that the covariance of $x_t$ and $I_t$ becomes
+\begin{eqnarray}
+\Cov_{t_1}\! \left[ x_{t_2}, I_{t_2} \right] &=& \E_{t_1}\! \left[ S_{x_{t_2}} S_{I_{t_2}} \right] \\
+&=& - \int_{t_1}^{t_2} \int_{t_1}^u \sigma_s^2 \e^{-\int_s^{u} \kappa_v dv} \e^{-\int_s^{t_2} \kappa_v dv} ds du.
+\end{eqnarray}
+
+\textcolor{red}{Derive (A.54), and compare with Andersen \& Piterbarg!}
 
 \subsection{Transformation from pseudo representation}
 
-Zero-coupon bond prices and instantaneous forward rates are related by
+The initial discount curve and instantaneous forward rate curve are related by
 \begin{equation}
 P(0,t) = \e^{- \int_0^t f(0,u) du}.
 \end{equation}
@@ -86,7 +105,8 @@ which implies that
 \E \left[ \e^{- \int_0^t x_u du} \right] = 1.
 \end{equation}
 
-For a given scenario, i.e., $r_t(\omega) = x_t (\omega) + f(0,t)$, we get
+For a given scenario, i.e., $r_t(\omega) = x_t (\omega) + f(0,t)$, we get the 
+time $t$ stochastic discount factor as
 \begin{equation}
 \e^{- \int_0^t r_u (\omega) du} = P(0,t) \e^{- \int_0^t x_u (\omega) du}.
 \end{equation}
