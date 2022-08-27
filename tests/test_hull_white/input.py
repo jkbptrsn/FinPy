@@ -391,13 +391,19 @@ forward_rate_ext = \
 
 if __name__ == '__main__':
 
-    plt.plot(yield_curve.time_grid, yield_curve.values, "ob")
-    plt.plot(yield_curve_ext.time_grid, yield_curve_ext.values, "-b")
+    # Plot yield curve.
+    plt.plot(yield_curve.time_grid, 100 * yield_curve.values, "ob")
+    plt.plot(yield_curve_ext.time_grid, 100 * yield_curve_ext.values, "-b")
+    plt.xlabel("t [years]")
+    plt.ylabel("y(0,0,t) [%]")
     plt.show()
 
+    # Compare interpolation schemes for the yield curve...
     yield_interpolation = yield_curve.interpolation(yield_curve_ext.time_grid)
     yield_diff = yield_interpolation - yield_curve_ext.values
-    plt.plot(yield_curve_ext.time_grid, yield_diff, "-b")
+    plt.plot(yield_curve_ext.time_grid, 100 * yield_diff, "-b")
+    plt.xlabel("t [years]")
+    plt.ylabel("y_interpolated(0,0,t) - y(0,0,t) [%]")
     plt.show()
 
     # Compare curves
@@ -413,26 +419,29 @@ if __name__ == '__main__':
 
     ax1 = plt.subplot()
     plt.xlabel("t [years]")
-    plt.xlim([0, 25])
+    plt.xlim([0, 30])
 
     yield_curve_plot *= 100
-    lgd1 = ax1.plot(time_grid_plot, yield_curve_plot, "-b", label="y(0,0,t)")
+    p1 = ax1.plot(time_grid_plot, yield_curve_plot,
+                  "-b", label="y(0,0,t): Yield curve")
 
     forward_rate_ext_plot = forward_rate_ext.interpolation(time_grid_plot)
     forward_rate_ext_plot *= 100
-    lgd2 = ax1.plot(time_grid_plot, forward_rate_ext_plot, "-r", label="f(0,t)")
+#    p2 = ax1.plot(time_grid_plot, forward_rate_ext_plot, "-r", label="f(0,t)")
 
     forward_rate_plot *= 100
-    # lgd2 = ax1.plot(time_grid_plot, forward_rate_plot, "-r", label="f(0,t)")
+    p2 = ax1.plot(time_grid_plot, forward_rate_plot,
+                  "-r", label="f(0,t): Instantaneous forward rate curve")
     plt.ylabel("y(0,0,t) and f(0,t) [%]")
 
     ax2 = ax1.twinx()
     disc_curve_plot = disc_curve.interpolation(time_grid_plot)
-    lgd3 = ax2.plot(time_grid_plot, disc_curve_plot, "-k", label="P(0,t)")
+    p3 = ax2.plot(time_grid_plot, disc_curve_plot,
+                  "-k", label="P(0,t): Discount curve")
     plt.ylabel("P(0,t)")
     plt.ylim([0, 1.05])
 
-    legends = lgd1 + lgd2 + lgd3
-    ax2.legend(legends, [legend.get_label() for legend in legends], loc=4)
+    plots = p1 + p2 + p3
+    ax2.legend(plots, [legend.get_label() for legend in plots], loc=4)
 
     plt.show()
