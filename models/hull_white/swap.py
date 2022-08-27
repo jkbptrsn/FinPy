@@ -53,11 +53,11 @@ class Swap(sde.SDE):
         event_grid_tmp = self.event_grid[event_idx:]
         for idx, tau in enumerate(np.diff(event_grid_tmp)):
             # Price of zero-coupon bond maturing at idx.
-            self.zcbond.maturity_idx = event_grid_tmp[idx]
+            self.zcbond.maturity_idx = event_idx + idx
             bond_price = self.zcbond.price(spot, event_idx)
             swap_price += bond_price
             # Price of zero-coupon bond maturing at idx + 1.
-            self.zcbond.maturity_idx = event_grid_tmp[idx + 1]
+            self.zcbond.maturity_idx = event_idx + idx + 1
             bond_price = self.zcbond.price(spot, event_idx)
             swap_price -= (1 + tau * self.fixed_rate) * bond_price
         return swap_price
