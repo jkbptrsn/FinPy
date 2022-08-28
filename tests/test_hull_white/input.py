@@ -268,6 +268,15 @@ yield_grid = np.array([
 yield_curve_ext = \
     misc.DiscreteFunc("yield", time_grid, yield_grid, interp_scheme="cubic")
 
+# Discount curve.
+disc_grid = np.exp(-yield_grid * time_grid)
+# Time-grid extended to zero to avoid extrapolation error.
+time_grid_ext = np.append(0, time_grid)
+disc_grid_ext = np.append(1, disc_grid)
+disc_curve_ext = \
+    misc.DiscreteFunc("discount", time_grid_ext, disc_grid_ext,
+                      interp_scheme="cubic")
+
 # Instantaneous forward rate curve. f(0,t).
 forward_rate_grid = np.array([
     -0.00435,

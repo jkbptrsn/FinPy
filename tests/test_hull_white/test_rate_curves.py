@@ -47,7 +47,7 @@ if __name__ == "__main__":
                                    maturity_idx, int_step_size)
 
     # Construct yield curve at event_idx with x_state = spot
-    event_idx = 61
+    event_idx = 3
     print(f"Term {event_idx} at time {event_grid[event_idx]}")
     spot = np.array([-0.005, 0, 0.005])
     maturity_indices = np.arange(event_idx + 1, event_grid.size)
@@ -56,15 +56,15 @@ if __name__ == "__main__":
     tau_cumulative = np.cumsum(np.diff(event_slice))
     price_vector = bond.price_vector(spot, event_idx, maturity_indices)
 
-    plt.plot(forward_rate.time_grid, 100 * forward_rate.values, "-.g")
+    plots = plt.plot(forward_rate.time_grid, 100 * forward_rate.values,
+                     "-.k", label="f(0,t)")
     plot_style = ["-b", "-r", "-k"]
     dot_style = ["ob", "or", "ok"]
     labels = ["x = -50 bps", "x = 0", "x = 50 bps"]
-    plots = None
     for n in range(spot.size):
         rate_vector = -np.log(price_vector[:, n]) / tau_cumulative
         if n == 0:
-            plots = plt.plot(time_vector, 100 * rate_vector,
+            plots += plt.plot(time_vector, 100 * rate_vector,
                              plot_style[n], label=labels[n])
             plt.plot(time_vector[0], 100 * rate_vector[0], dot_style[n])
         elif n == 1:
