@@ -3,6 +3,57 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.optimize import brentq
 
+import scipy
+# Sobol sequence generator for seq_size = event_grid.size - 1
+seq_size = 1
+sobol = scipy.stats.qmc.Sobol(2 * seq_size)
+# Sobol sequence for n_paths = 2 ** sobol_expo
+sobol_expo = 16
+#sobol_uni = sobol.random_base2(sobol_expo)
+sobol_uni = sobol.random(2 ** sobol_expo)
+# Corresponding 'normal' sequence
+sobol_norm = scipy.stats.norm.ppf(sobol_uni)
+call_number = 0
+
+n_rep_old = 0
+
+
+def cholesky_2d_sobol_test(correlation: float,
+                           n_sets: int,
+                           rng: np.random.Generator,
+                           antithetic: bool = False,
+                           n_rep: int = 0) -> tuple[np.ndarray, np.ndarray]:
+    """..."""
+    corr_matrix = np.array([[1, correlation], [correlation, 1]])
+    corr_matrix = np.linalg.cholesky(corr_matrix)
+    x1 = normal_realizations_sobol_test(n_sets, rng, antithetic, n_rep)
+    x2 = normal_realizations_sobol_test(n_sets, rng, antithetic, n_rep)
+    return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
+        corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
+
+
+def normal_realizations_sobol_test(n_realizations: int,
+                                   rng: np.random.Generator,
+                                   antithetic: bool = False,
+                                   n_rep: int = 0) -> np.ndarray:
+    """..."""
+    # Sobol test
+    global call_number
+    global n_rep_old
+    global sobol_uni
+    global sobol_norm
+    if n_rep_old != n_rep:
+#        sobol_uni = sobol.random_base2(sobol_expo)
+        sobol_uni = sobol.random(2 ** sobol_expo)
+        sobol_norm = scipy.stats.norm.ppf(sobol_uni)
+        call_number = 0
+        n_rep_old = n_rep
+#    print(call_number, sobol_norm[:, call_number])
+    realizations = sobol_norm[:, call_number]
+    call_number += 1
+
+    return realizations
+
 
 def cholesky_2d(correlation: float,
                 n_sets: int,
