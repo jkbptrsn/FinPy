@@ -259,20 +259,18 @@ class SDEBasic(sde.SDE):
     def paths_sobol_test(self,
                          spot: float,
                          n_paths: int,
-                         rng: np.random.Generator = None,
-                         seed: int = None,
-                         antithetic: bool = False,
-                         n_rep: int = 0) -> tuple[np.ndarray, np.ndarray]:
-        """..."""
+                         sobol_norm) -> tuple[np.ndarray, np.ndarray]:
+        """Quasi Monte-Carlo paths using exact discretization.
+
+        Sobol sequences are used in the path generation.
+        """
         rate = np.zeros((self.event_grid.size, n_paths))
         rate[0, :] = spot
         discount = np.zeros((self.event_grid.size, n_paths))
-        if rng is None:
-            rng = np.random.default_rng(seed)
         for time_idx in range(1, self.event_grid.size):
             correlation = self._correlation(time_idx)
             x_rate, x_discount = \
-                misc.cholesky_2d_sobol_test(correlation, n_paths, rng, antithetic, n_rep)
+                misc.cholesky_2d_sobol_test(correlation, sobol_norm, time_idx)
             rate[time_idx] = rate[time_idx - 1] \
                 + self._rate_increment(rate[time_idx - 1], time_idx, x_rate)
             discount[time_idx] = discount[time_idx - 1] \
