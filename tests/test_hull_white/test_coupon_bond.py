@@ -52,7 +52,7 @@ if __name__ == "__main__":
     # plt.show()
 
     # Array with number of MC paths for each convergence test.
-    n_paths_array = np.array([2 ** e for e in range(10, 19, 2)])
+    n_paths_array = np.array([2 ** e for e in range(10, 13, 2)])
     # Number of repetitions per test.
     n_reps = 100
 
