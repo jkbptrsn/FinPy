@@ -56,6 +56,9 @@ def cash_flow_issue_date(principal: float,
             cash_flow[1, j] = interest_payment(p_remaining, coupon)
             # Remaining principal.
             p_remaining -= cash_flow[0, j]
+        else:
+            # Interest payment.
+            cash_flow[1, j] = interest_payment(principal, coupon)
     if plot:
         plt.plot(terms, cash_flow[0, :], "ob",
                  markersize=4, label="Amortization")
