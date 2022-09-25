@@ -1,7 +1,7 @@
 \section{One-factor Hull-White Model}
 The one-factor Hull-White model \cite{Hull1990} is an extension of the Vasicek model such that the parameters are allowed to be time-dependent, i.e.
 \begin{equation}
-dr_t = \kappa_t \left( \theta_t - r_t \right) dt + \sigma_t dW_t.
+dr_t = \kappa_t \left( \theta_t - r_t \right) dt + \sigma_t dW_t. \label{eq:HullWhiteSDE}
 \end{equation}
 where the SDE parameters have the same interpretation as in the Vasicek model, and, again, $W_t$ denotes a one-dimensional Wiener process under the risk-neutral $Q$-measure.
 
@@ -10,6 +10,7 @@ For the Hull-White model to be consistent with the initial yield curve, $\theta_
 \theta_t = \frac{1}{\kappa_t} \frac{\partial f(0,t)}{\partial t} + f(0,t) + \frac{1}{\kappa_t} \int_0^t \e^{-2\int_u^t \kappa_v dv} \sigma_u^2 du.
 \end{equation}
 
+\subsection{Andersen-Piterbarg transformation}
 Now we define a pseudo short rate as $x_t = r_t - f(0,t)$ such that
 \begin{equation}
 dx_t = \left( y_t - \kappa_t x_t \right) dt + \sigma_t dW_t, \;\;\; x_0 = 0,
@@ -19,8 +20,8 @@ where
 \begin{equation}
 y_t = \int_0^t \e^{-2\int_u^t \kappa_v dv} \sigma_u^2 du,
 \end{equation}
-thus, the initial yield curve is used explicitly in the simulation of the pseudo 
-short rate, and any issues with yield curve interpolation are avoided.
+thus, the initial yield curve is not used explicitly in the simulation of the pseudo 
+short rate, and any numerical issues with yield curve interpolation are avoided.
 
 The SDE in Eq.~(\ref{eq:HullWhiteSDEx}) can be solved analytically by introducing the function
 \begin{equation}
@@ -88,7 +89,7 @@ such that the covariance of $x_t$ and $I_t$ becomes
 
 \textcolor{red}{Derive (A.54), and compare with Andersen \& Piterbarg!}
 
-\subsection{Transformation from pseudo representation}
+\subsubsection{Transformation from pseudo representation}
 
 The initial discount curve and instantaneous forward rate curve are related by
 \begin{equation}
@@ -109,4 +110,86 @@ For a given scenario, i.e., $r_t(\omega) = x_t (\omega) + f(0,t)$, we get the
 time $t$ stochastic discount factor as
 \begin{equation}
 \e^{- \int_0^t r_u (\omega) du} = P(0,t) \e^{- \int_0^t x_u (\omega) du}.
+\end{equation}
+
+
+\subsection{Pelsser transformation}
+First we solve Eq.~\ref{eq:HullWhiteSDE} directly
+\begin{equation}
+r_{t} = r_{0} \e^{-\int_{0}^{t} \kappa_u du}  + \int_{0}^{t} \kappa_u \theta_u \e^{-\int_u^{t} \kappa_v dv} du + \int_{0}^{t} \sigma_u \e^{-\int_u^{t} \kappa_v dv} dW_u.
+\end{equation}
+
+Then we introduce the pseudo short rate $z_t = r_t - \alpha_t$ \cite{Pelsser2000}, where 
+\begin{equation}
+\alpha_t = r_{0} \e^{-\int_{0}^{t} \kappa_u du}  + \int_{0}^{t} \kappa_u \theta_u \e^{-\int_u^{t} \kappa_v dv} du,
+\end{equation}
+such that
+\begin{equation}
+dz_t = - \kappa_t z_t dt + \sigma_t dW_t \;\;\; z_0 = 0,
+\end{equation}
+hence, again the initial yield curve is not used explicitly in the simulation of pseudo short rate.
+
+The SDE can be solved in a similar fashion to the Andersen-Piterbarg transformation such that
+\begin{equation}
+z_{t_2} = z_{t_1} \e^{-\int_{t_1}^{t_2} \kappa_t dt} + \int_{t_1}^{t_2} \sigma_t \e^{-\int_t^{t_2} \kappa_u du} dW_t.
+\end{equation}
+
+The pseudo short rate process is Gaussian with conditional mean
+\begin{equation}
+\E_{t_1}\! \left[ z_{t_2} \right] = z_{t_1} \e^{-\int_{t_1}^{t_2} \kappa_u du},
+\end{equation}
+and, using the It\^{o} isometry, the conditional variance of the process becomes
+\begin{eqnarray}
+\Var_{t_1}\! \left[ z_{t_2} \right] &=& \int_{t_1}^{t_2} \sigma_t^2 \e^{-2\int_t^{t_2} \kappa_u du} dt.
+\end{eqnarray}
+
+The corresponding pseudo discount factor is written as
+\begin{equation}
+D_{t} = \e^{I_t},
+\end{equation}
+where
+\begin{eqnarray}
+I_t &=& -\int_0^t z_u du \\
+&=& - z_{0} \int_0^t \e^{-\int_{0}^{u} \kappa_v dv} du - \int_0^t \int_{v}^{t} \sigma_v \e^{-\int_v^{u} \kappa_s ds} du dW_v,
+\end{eqnarray}
+where the order of integration has been changed in the last term.
+
+The discount factor process is likewise Gaussian with conditional mean
+\begin{equation}
+\E_{t_1}\! \left[ I_{t_{2}} \right] = I_{t_1} - z_{t_1} \int_{t_1}^{t_2} \e^{-\int_{t_1}^{u} \kappa_v dv} du,
+\end{equation}
+and, using the It\^{o} isometry, the conditional variance becomes
+\begin{eqnarray}
+\Var_{t_1}\! \left[ I_{t_{2}} \right] &=& \int_{t_1}^{t_2} \sigma_v^2 \left( \int_{v}^{t_2} \e^{-\int_v^{u} \kappa_s ds} du \right)^2 dv.
+\end{eqnarray}
+
+Again, we can write both $z_t$ and $I_t$ as a sum of a deterministic term ($D$) and a stochastic term ($S$)
+\begin{eqnarray}
+z_t &=& D_{z_t} + S_{z_t} \\
+I_t &=& D_{I_t} + S_{I_t},
+\end{eqnarray}
+such that the covariance of $z_t$ and $I_t$ becomes
+\begin{eqnarray}
+\Cov_{t_1}\! \left[ z_{t_2}, I_{t_2} \right] &=& \E_{t_1}\! \left[ S_{z_{t_2}} S_{I_{t_2}} \right] \\
+&=& - \int_{t_1}^{t_2} \int_{t_1}^u \sigma_s^2 \e^{-\int_s^{u} \kappa_v dv} \e^{-\int_s^{t_2} \kappa_v dv} ds du.
+\end{eqnarray}
+
+\subsubsection{Transformation from pseudo representation}
+
+Using the transformation of the short rate $r_t = z_t + \alpha_t$, we get that
+\begin{eqnarray}
+P(0,t) &=& \E \left[ \e^{- \int_0^t r_u du} \right] \\
+&=& \e^{- \int_0^t \alpha_u du} \E \left[ \e^{- \int_0^t z_u du} \right],
+\end{eqnarray}
+where
+\begin{eqnarray}
+\E \left[ \e^{I_t} \right] &=& \exp \left( \E \left[ I_t \right] + \frac{1}{2} \Var \left[ I_t \right] \right) \\
+&=& \exp \left(\frac{1}{2} \Var \left[ I_t \right] \right),
+\end{eqnarray}
+which is consistent with Eq.~(5.28) in \cite{Pelsser2000}.
+
+For a given scenario, i.e., $r_t(\omega) = z_t (\omega) + \alpha_t$, we get the 
+time $t$ stochastic discount factor as
+\begin{equation}
+\e^{- \int_0^t r_u (\omega) du} = \frac{P(0,t)}{\exp \left(\frac{1}{2} \Var \left[ I_t \right] \right)} \e^{- \int_0^t z_u (\omega) du}.
 \end{equation}
