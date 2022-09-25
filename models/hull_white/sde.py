@@ -587,3 +587,124 @@ class SDE(SDEBasic):
                 cov = np.append(cov,
                                 np.sum(misc.trapz(int_grid_tmp, integrand)))
             self.covariance[event_idx] = -np.sum(misc.trapz(int_grid, cov))
+
+
+class SDEPelsser(SDE):
+    """SDE for the pseudo short rate in the 1-factor Hull-White model.
+
+    The pseudo short rate is defined by
+        dz_t = - kappa_t * z_t * dt + vol_t * dW_t,
+    where
+        z_t = r_t - alpha_t. See
+    proposition 10.1.7, L.B.G. Andersen & V.V. Piterbarg 2010.
+
+    Attributes:
+        kappa: Speed of mean reversion.
+        vol: Volatility.
+        event_grid: Events, e.g. payment dates, represented as year
+            fractions from the as-of date.
+        int_step_size: Integration/propagation step size represented as
+            a year fraction. Default is 1 / 365.
+
+    Note: If kappa is >1, the integration step size should be decreased!
+    """
+
+    def __init__(self,
+                 kappa: misc.DiscreteFunc,
+                 vol: misc.DiscreteFunc,
+                 event_grid: np.ndarray,
+                 int_step_size: float = 1 / 365):
+        super().__init__(kappa, vol, event_grid, int_step_size)
+
+        # Array only used in initialization of the SDE object.
+        self.int_kappa_step = None
+        self.initialization()
+        # Not deleted due to use in ZCBond class!
+        # del self.int_kappa_step
+
+    def _rate_increment(self,
+                        spot: (float, np.ndarray),
+                        time_idx: int,
+                        normal_rand: (float, np.ndarray)) \
+            -> (float, np.ndarray):
+        """Increment pseudo short rate process.
+
+        The spot value is subtracted to get the increment.
+
+        Args:
+            spot: Pseudo short rate at time corresponding to time index.
+            time_idx: Time index.
+            normal_rand: Realizations of independent standard normal
+                random variables.
+
+        Returns:
+            Incremented pseudo short rate process.
+        """
+        mean = self.rate_mean[time_idx][0] * spot
+        variance = self.rate_variance[time_idx]
+        return mean + math.sqrt(variance) * normal_rand - spot
+
+    def _discount_increment(self,
+                            rate_spot: (float, np.ndarray),
+                            time_idx: int,
+                            normal_rand: (float, np.ndarray)) \
+            -> (float, np.ndarray):
+        """Increment pseudo discount process.
+
+        The pseudo discount process is really -int_t^{t+dt} z_u du.
+
+        Args:
+            rate_spot: Pseudo short rate at time corresponding to time
+                index.
+            time_idx: Time index.
+            normal_rand: Realizations of independent standard normal
+                random variables.
+
+        Returns:
+            Incremented pseudo discount process.
+        """
+        mean = - rate_spot * self.discount_mean[time_idx][0]
+        variance = self.discount_variance[time_idx]
+        return mean + math.sqrt(variance) * normal_rand
+
+    def paths(self,
+              spot: float,
+              n_paths: int,
+              rng: np.random.Generator = None,
+              seed: int = None,
+              antithetic: bool = False) -> tuple[np.ndarray, np.ndarray]:
+        """Monte-Carlo paths using exact discretization.
+
+        Args:
+            spot: Pseudo short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of pseudo short rate and discount processes
+            represented on event_grid.
+        """
+        rate = np.zeros((self.event_grid.size, n_paths))
+        rate[0, :] = spot
+        discount = np.zeros((self.event_grid.size, n_paths))
+        if rng is None:
+            rng = np.random.default_rng(seed)
+        for time_idx in range(1, self.event_grid.size):
+            correlation = self._correlation(time_idx)
+            x_rate, x_discount = \
+                misc.cholesky_2d(correlation, n_paths, rng, antithetic)
+            rate[time_idx] = rate[time_idx - 1] \
+                + self._rate_increment(rate[time_idx - 1], time_idx, x_rate)
+            discount[time_idx] = discount[time_idx - 1] \
+                + self._discount_increment(rate[time_idx - 1], time_idx,
+                                           x_discount)
+        # Get pseudo discount factors on event_grid.
+        discount = np.exp(discount)
+
+        # Adjust for Pelsser transformation. TODO: Better explanation
+        discount /= np.exp(self.discount_variance / 2)
+
+        return rate, discount
