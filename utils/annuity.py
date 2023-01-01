@@ -132,7 +132,7 @@ if __name__ == "__main__":
     n_io_terms = 4 * 10
 
     cash_flow_issue_period(principal, coupon_per_term, n_terms, n_io_terms,
-                           n_issue_terms, term_frequency, plot=True)
+                           n_issue_terms, term_frequency, plot=False)
 
     # Simple annuity with full amortization.
     terms, cash_flow = \
@@ -148,3 +148,35 @@ if __name__ == "__main__":
         print(f"Amortization = {cash_flow[0, n]:8.4f}")
         print(f"Interest = {cash_flow[1, n]:8.4f}")
         print(f"Principal after payment = {remaining_principal:8.4f}")
+
+    terms, cf_1 = \
+        cash_flow_issue_period(principal, 0.01, n_terms,
+                               n_io_terms, n_issue_terms,
+                               term_frequency, plot=False)
+    terms, cf_2 = \
+        cash_flow_issue_period(principal, 0.02, n_terms,
+                               n_io_terms, n_issue_terms,
+                               term_frequency, plot=False)
+    terms, cf_3 = \
+        cash_flow_issue_period(principal, 0.03, n_terms,
+                               n_io_terms, n_issue_terms,
+                               term_frequency, plot=False)
+    terms, cf_4 = \
+        cash_flow_issue_period(principal, 0.04, n_terms,
+                               n_io_terms, n_issue_terms,
+                               term_frequency, plot=False)
+    terms, cf_5 = \
+        cash_flow_issue_period(principal, 0.05, n_terms,
+                               n_io_terms, n_issue_terms,
+                               term_frequency, plot=False)
+    plt.plot(terms, cf_1[0, :], "ob", markersize=3, label="1%")
+    plt.plot(terms, cf_2[0, :], "or", markersize=3, label="2%")
+    plt.plot(terms, cf_3[0, :], "ok", markersize=3, label="3%")
+    plt.plot(terms, cf_4[0, :], "b", markersize=3, label="4%")
+    plt.plot(terms, cf_5[0, :], "r", markersize=3, label="5%")
+    plt.xlabel("Years from end of issue period")
+#    plt.xticks(range(int(terms.min()), int(terms.max()) + 1))
+    plt.ylabel("Instalments")
+    plt.legend()
+    plt.show()
+
