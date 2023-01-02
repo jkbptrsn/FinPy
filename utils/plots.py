@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy.stats import norm
 
 
 def plot1(solver, payoff, price, instrument=None, show=True):
@@ -76,3 +78,37 @@ def plot_path(time_grid, path, show=True):
 
     if show:
         plt.show()
+
+
+def plot_rate_distribution(event_idx, rate, mean, std):
+    """..."""
+    n_bins = 101
+    r_min = rate[event_idx, :].min()
+    r_max = rate[event_idx, :].max()
+    r_interval = r_max if r_max > abs(r_min) else abs(r_min)
+    bins = np.arange(n_bins) * 2 * r_interval / (n_bins - 1) - r_interval
+    plt.hist(rate[event_idx, :], bins=bins, density=True)
+
+    grid = (bins[1:] + bins[:-1]) / 2
+    plt.plot(grid, norm.pdf(grid, loc=mean, scale=std))
+    print(mean, std)
+
+#    plt.show()
+    plt.pause(0.2)
+
+
+def plot_rate_discount_distribution(event_idx, rate, discount):
+    """..."""
+#    n_bins = 101
+#    r_min = rate[event_idx, :].min()
+#    r_max = rate[event_idx, :].max()
+#    r_interval = r_max if r_max > abs(r_min) else abs(r_min)
+#    bins = np.arange(n_bins) * 2 * r_interval / (n_bins - 1) - r_interval
+
+    bin_range = [[-0.15, 0.15], [0, 3]]
+
+    plt.hist2d(rate[event_idx, :], discount[event_idx, :],
+               bins=100, range=bin_range, density=True)
+
+#    plt.show()
+    plt.pause(0.5)

@@ -588,6 +588,41 @@ class SDE(SDEBasic):
                                 np.sum(misc.trapz(int_grid_tmp, integrand)))
             self.covariance[event_idx] = -np.sum(misc.trapz(int_grid, cov))
 
+    def calc_rate_mean_custom(self, event_idx_1, event_idx_2):
+        """Conditional mean of pseudo short rate process.
+
+        See Eq. (10.40), L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
+        # Integration indices of the two events.
+        idx1 = self.int_event_idx[event_idx_1]
+        idx2 = self.int_event_idx[event_idx_2] + 1
+        # Slice of integration grid.
+        int_grid = self.int_grid[idx1:idx2]
+        # Slice of time-integrated kappa for each integration step.
+        int_kappa = np.append(self.int_kappa_step[idx1 + 1:idx2], 0)
+        factor1 = math.exp(-np.sum(int_kappa))
+        int_kappa = np.cumsum(int_kappa[::-1])[::-1]
+        integrand = np.exp(-int_kappa) * self.y_int_grid[idx1:idx2]
+        factor2 = np.sum(misc.trapz(int_grid, integrand))
+        return factor1, factor2
+
+    def calc_rate_variance_custom(self, event_idx_1, event_idx_2):
+        """Conditional variance of pseudo short rate process.
+
+        See Eq. (10.41), L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
+        # Integration indices of the two events.
+        idx1 = self.int_event_idx[event_idx_1]
+        idx2 = self.int_event_idx[event_idx_2] + 1
+        # Slice of integration grid.
+        int_grid = self.int_grid[idx1:idx2]
+        # Slice of time-integrated kappa for each integration step.
+        int_kappa = np.append(self.int_kappa_step[idx1 + 1:idx2], 0)
+        int_kappa = np.cumsum(int_kappa[::-1])[::-1]
+        integrand = np.exp(-int_kappa) * self.vol_int_grid[idx1:idx2]
+        integrand = integrand ** 2
+        return np.sum(misc.trapz(int_grid, integrand))
+
 
 class SDEPelsser(SDE):
     """SDE for the pseudo short rate in the 1-factor Hull-White model.
@@ -705,6 +740,6 @@ class SDEPelsser(SDE):
         discount = np.exp(discount)
 
         # Adjust for Pelsser transformation. TODO: Better explanation
-        discount /= np.exp(self.discount_variance / 2)
+        discount = discount.transpose() / np.exp(self.discount_variance / 2)
 
-        return rate, discount
+        return rate, discount.transpose()
