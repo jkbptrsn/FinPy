@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 
 def annuity_factor(n_terms: int,
@@ -80,7 +81,8 @@ def cash_flow_issue_period(principal: float,
                            n_issue_terms: int,
                            term_frequency: int,
                            *,
-                           plot: bool = False) \
+                           plot: bool = False,
+                           short_issuance: bool = False) \
         -> tuple[np.ndarray, np.ndarray]:
     """..."""
     p_per_issue_date = principal / n_issue_terms
@@ -88,6 +90,9 @@ def cash_flow_issue_period(principal: float,
                                             n_io_terms, term_frequency)
     terms_issue = np.arange(-n_issue_terms, 0) / term_frequency
     terms = np.arange(-n_issue_terms + 1, n_terms + 1) / term_frequency
+    if short_issuance:
+        terms_issue = np.arange(-9, -9 + n_issue_terms) / term_frequency
+        terms = np.arange(-n_issue_terms + 1 - 9, n_terms + 1 - 9) / term_frequency
     cash_flow = np.zeros((2, n_issue_terms + n_terms))
     for issue_idx in range(n_issue_terms):
         cash_flow[:, issue_idx:n_terms + issue_idx] += cash_flow_tmp
@@ -114,7 +119,7 @@ if __name__ == "__main__":
     principal = 100
 
     # Fixed yearly coupon.
-    coupon_yearly = 0.04
+    coupon_yearly = 0.01
 
     # Term frequency per year.
     term_frequency = 4
@@ -126,56 +131,85 @@ if __name__ == "__main__":
     n_terms = 120
 
     # Number of terms in bond issue period.
-    n_issue_terms = 4 * 3 + 1
+    n_issue_terms = 4 * 3 + 3  # 4
+
+    short_issuance = False
 
     # Number of remaining Interest-Only terms.
     n_io_terms = 4 * 10
 
-    cash_flow_issue_period(principal, coupon_per_term, n_terms, n_io_terms,
-                           n_issue_terms, term_frequency, plot=False)
-
-    # Simple annuity with full amortization.
     terms, cash_flow = \
-        cash_flow_issue_date(principal, coupon_per_term, n_terms, 0,
-                             term_frequency, plot=False)
-    prepayment_ = prepayment(principal, n_terms, coupon_per_term)
-    remaining_principal = principal
-    for n in range(n_terms):
-        print(f"\nPayment date = {n + 1}")
-        print(f"Principal before payment = {remaining_principal:8.4f}")
-        print(f"Yield = {prepayment_:8.4f}")
-        remaining_principal -= cash_flow[0, n]
-        print(f"Amortization = {cash_flow[0, n]:8.4f}")
-        print(f"Interest = {cash_flow[1, n]:8.4f}")
-        print(f"Principal after payment = {remaining_principal:8.4f}")
-
-    terms, cf_1 = \
-        cash_flow_issue_period(principal, 0.01, n_terms,
-                               n_io_terms, n_issue_terms,
-                               term_frequency, plot=False)
-    terms, cf_2 = \
-        cash_flow_issue_period(principal, 0.02, n_terms,
-                               n_io_terms, n_issue_terms,
-                               term_frequency, plot=False)
-    terms, cf_3 = \
-        cash_flow_issue_period(principal, 0.03, n_terms,
-                               n_io_terms, n_issue_terms,
-                               term_frequency, plot=False)
-    terms, cf_4 = \
-        cash_flow_issue_period(principal, 0.04, n_terms,
-                               n_io_terms, n_issue_terms,
-                               term_frequency, plot=False)
-    terms, cf_5 = \
-        cash_flow_issue_period(principal, 0.05, n_terms,
-                               n_io_terms, n_issue_terms,
-                               term_frequency, plot=False)
-    plt.plot(terms, cf_1[0, :], "ob", markersize=3, label="1%")
-    plt.plot(terms, cf_2[0, :], "or", markersize=3, label="2%")
-    plt.plot(terms, cf_3[0, :], "ok", markersize=3, label="3%")
-    plt.plot(terms, cf_4[0, :], "b", markersize=3, label="4%")
-    plt.plot(terms, cf_5[0, :], "r", markersize=3, label="5%")
-    plt.xlabel("Years from end of issue period")
+        cash_flow_issue_period(principal, coupon_per_term, n_terms, n_io_terms,
+                               n_issue_terms, term_frequency,
+                               plot=False, short_issuance=short_issuance)
+    plt.plot(terms, cash_flow[0, :], "-r", markersize=3, label="Instalment")
+    plt.plot(terms, cash_flow[1, :], "-b", markersize=3, label="Interest")
+    plt.plot(terms, cash_flow[0, :] + cash_flow[1, :], "-k", markersize=3, label="Total")
+    if short_issuance:
+        plt.title("1% 30Y IO10, Length of issuance periode ~ 3 terms")
+    else:
+        plt.title("1% 30Y IO10, Length of issuance periode ~ 14 terms")
+    plt.xlabel("Years from end of issuance period")
 #    plt.xticks(range(int(terms.min()), int(terms.max()) + 1))
-    plt.ylabel("Instalments")
+    plt.xlim([-5, 30])
+    plt.ylabel("Payments")
     plt.legend()
     plt.show()
+
+    df = pd.DataFrame()
+    df["instalment"] = cash_flow[0]
+    df["interest"] = cash_flow[1]
+    df.index = terms
+    if short_issuance:
+        df.to_excel("CK91_IO10_3terms.xlsx")
+    else:
+        df.to_excel("CK91_IO10_14terms.xlsx")
+    print(df)
+
+    # Simple annuity with full amortization.
+    if False:
+        terms, cash_flow = \
+            cash_flow_issue_date(principal, coupon_per_term, n_terms, 0,
+                                 term_frequency, plot=False)
+        prepayment_ = prepayment(principal, n_terms, coupon_per_term)
+        remaining_principal = principal
+        for n in range(n_terms):
+            print(f"\nPayment date = {n + 1}")
+            print(f"Principal before payment = {remaining_principal:8.4f}")
+            print(f"Yield = {prepayment_:8.4f}")
+            remaining_principal -= cash_flow[0, n]
+            print(f"Amortization = {cash_flow[0, n]:8.4f}")
+            print(f"Interest = {cash_flow[1, n]:8.4f}")
+            print(f"Principal after payment = {remaining_principal:8.4f}")
+
+    if False:
+        terms, cf_1 = \
+            cash_flow_issue_period(principal, 0.01, n_terms,
+                                   n_io_terms, n_issue_terms,
+                                   term_frequency, plot=False)
+        terms, cf_2 = \
+            cash_flow_issue_period(principal, 0.02, n_terms,
+                                   n_io_terms, n_issue_terms,
+                                   term_frequency, plot=False)
+        terms, cf_3 = \
+            cash_flow_issue_period(principal, 0.03, n_terms,
+                                   n_io_terms, n_issue_terms,
+                                   term_frequency, plot=False)
+        terms, cf_4 = \
+            cash_flow_issue_period(principal, 0.04, n_terms,
+                                   n_io_terms, n_issue_terms,
+                                   term_frequency, plot=False)
+        terms, cf_5 = \
+            cash_flow_issue_period(principal, 0.05, n_terms,
+                                   n_io_terms, n_issue_terms,
+                                   term_frequency, plot=False)
+        plt.plot(terms, cf_1[0, :], "ob", markersize=3, label="1%")
+        plt.plot(terms, cf_2[0, :], "or", markersize=3, label="2%")
+        plt.plot(terms, cf_3[0, :], "ok", markersize=3, label="3%")
+        plt.plot(terms, cf_4[0, :], "b", markersize=3, label="4%")
+        plt.plot(terms, cf_5[0, :], "r", markersize=3, label="5%")
+        plt.xlabel("Years from end of issue period")
+    #    plt.xticks(range(int(terms.min()), int(terms.max()) + 1))
+        plt.ylabel("Instalments")
+        plt.legend()
+        plt.show()
