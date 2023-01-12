@@ -34,15 +34,15 @@ model = "Vasicek"
 # model = "CIR"
 # model = "Extended Vasicek"
 
-instrument = 'Call'
-# instrument = 'Put'
+# instrument = 'Call'
+instrument = 'Put'
 # instrument = 'ZCBond'
 
 bc_type = "Linearity"
 # bc_type = "PDE"
 
-solver_type = "AndersenPiterbarg"
-# solver_type = "Andreasen"
+# solver_type = "AndersenPiterbarg"
+solver_type = "Andreasen"
 
 # Time execution
 start_time = datetime.now()

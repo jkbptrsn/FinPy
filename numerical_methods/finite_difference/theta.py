@@ -4,22 +4,33 @@ from scipy.linalg import solve_banded
 
 
 class Theta:
-    """Base class: Theta scheme for solving a parabolic 1-factor PDE.
+    """Theta method for solving a parabolic 1-factor PDE (base class).
 
     The general structure of the PDE is
-    dV/dt + drift * dV/dx + 1/2 * diffusion^2 * dV^2/dx^2 = rate * V
+        dV/dt + drift * dV/dx + 1/2 * diffusion^2 * dV^2/dx^2 = rate * V,
+    TODO: What about the RHS for Ornstein-Uhlenbeck processes?
+    where the underlying 1-dimensional Markov process reads
+        dx_t = drift(t, x_t) * dt + diffusion(t, x_t) * dW_t.
 
-    The numerical solution is determined using the theta method:
-        - theta = 0   : Explicit Euler
-        - theta = 1/2 : Crank-Nicolson (default)
-        - theta = 1   : Fully implicit
+    The numerical solution is determined using
+        - theta = 0   : Explicit method
+        - theta = 1/2 : Crank-Nicolson method (default)
+        - theta = 1   : Fully implicit method
 
     The grid in the spatial dimension is assumed equidistant.
 
+    Tri-diagonal form:
+        - 1st row: Super-diagonal (not including first element)
+        - 2nd row: Diagonal
+        - 3rd row: Sub-diagonal (not including last element)
+
+    TODO: Remove 2 extra grid points -- need for convergence tests?
     TODO: Add non-equidistant grid
     TODO: Smoothing of payoff functions -- not necessary according to Andreasen
     TODO: Rannacher time stepping with fully implicit method -- not necessary according to Andreasen
-    TODO: Upwinding
+    TODO: Upwinding -- rarely used by Andreasen
+    TODO: From tri to penta?
+    TODO: Static methods in separate file, with identity matrix and matrix products for both tri and penta
     """
 
     def __init__(self,
@@ -28,81 +39,50 @@ class Theta:
                  nstates: int,
                  dt: float,
                  theta: float = 0.5):
-        self._xmin = xmin
-        self._xmax = xmax
-        # Adding boundary states
-        self._nstates = nstates + 2
-        self._dt = dt
-        self._theta = theta
-        self._dx = (xmax - xmin) / (nstates - 1)
-        self._vec_drift = None
-        self._vec_diff_sq = None
-        self._vec_rate = None
-        self._vec_solution = None
-        self._mat_identity = None
-        self._mat_propagator = None
+        self.xmin = xmin
+        self.xmax = xmax
 
-    @property
-    def xmin(self) -> float:
-        return self._xmin
+        # Adding boundary states.
+        self.nstates = nstates + 2
+        self.dx = (xmax - xmin) / (nstates - 1)
 
-    @property
-    def xmax(self) -> float:
-        return self._xmax
+        self.dt = dt
+        self.theta = theta
 
-    @property
-    def nstates(self) -> int:
-        # Removing boundary states
-        return self._nstates - 2
-
-    @property
-    def dt(self) -> float:
-        return self._dt
-
-    @dt.setter
-    def dt(self, val: float):
-        self._dt = val
-
-    @property
-    def theta(self) -> float:
-        return self._theta
-
-    @theta.setter
-    def theta(self, val: float):
-        self._theta = val
-
-    @property
-    def dx(self) -> float:
-        return self._dx
+        self.vec_drift = None
+        self.vec_diff_sq = None
+        self.vec_rate = None
+        self.vec_solution = None
+        self.mat_identity = None
+        self.mat_propagator = None
 
     def grid(self) -> np.ndarray:
-        """Equidistant grid between _xmin and _xmax including both
-        points. Two boundary states are added at _xmin - _dx and
-        _xmax + _dx.
+        """Equidistant grid between xmin and xmax including both points.
+        Two boundary states are added at xmin - dx and xmax + dx.
         """
-        return self._dx * np.arange(-1, self._nstates - 1) + self._xmin
+        return self.dx * np.arange(-1, self.nstates - 1) + self.xmin
 
     def set_drift(self, drift: np.ndarray):
         """Drift vector defined by the underlying stochastic process."""
-        self._vec_drift = drift
+        self.vec_drift = drift
 
     def set_diffusion(self, diffusion: np.ndarray):
         """Squared diffusion vector defined by the underlying stochastic
         process.
         """
-        self._vec_diff_sq = np.square(diffusion)
+        self.vec_diff_sq = np.square(diffusion)
 
     def set_rate(self, rate: np.ndarray):
         """Rate vector defined by the underlying stochastic process."""
-        self._vec_rate = rate
+        self.vec_rate = rate
 
     @property
     def solution(self) -> np.ndarray:
-        return self._vec_solution
+        return self.vec_solution
 
     @solution.setter
     def solution(self, val: np.ndarray):
-        self._vec_solution = val
+        self.vec_solution = val
 
     @abc.abstractmethod
     def set_propagator(self):
@@ -116,40 +96,40 @@ class Theta:
         """Delta calculated by second order finite differences. Assuming
         equidistant and ascending grid.
         """
-        delta = np.zeros(self._nstates)
-        # Central finite difference
-        delta[1:-1] = (self._vec_solution[2:]
-                       - self._vec_solution[:-2]) / (2 * self._dx)
-        # Forward finite difference
-        delta[0] = (- self._vec_solution[2] / 2
-                    + 2 * self._vec_solution[1]
-                    - 3 * self._vec_solution[0] / 2) / self._dx
-        # Backward finite difference
-        delta[-1] = (self._vec_solution[-3] / 2
-                     - 2 * self._vec_solution[-2]
-                     + 3 * self._vec_solution[-1] / 2) / self._dx
+        delta = np.zeros(self.nstates)
+        # Central finite difference.
+        delta[1:-1] = (self.vec_solution[2:]
+                       - self.vec_solution[:-2]) / (2 * self.dx)
+        # Forward finite difference.
+        delta[0] = (- self.vec_solution[2] / 2
+                    + 2 * self.vec_solution[1]
+                    - 3 * self.vec_solution[0] / 2) / self.dx
+        # Backward finite difference.
+        delta[-1] = (self.vec_solution[-3] / 2
+                     - 2 * self.vec_solution[-2]
+                     + 3 * self.vec_solution[-1] / 2) / self.dx
         return delta
 
     def gamma_fd(self) -> np.ndarray:
         """Gamma calculated by second order finite differences. Assuming
         equidistant and ascending grid.
         """
-        dx_sq = self._dx ** 2
-        gamma = np.zeros(self._nstates)
+        dx_sq = self.dx ** 2
+        gamma = np.zeros(self.nstates)
         # Central finite difference
-        gamma[1:-1] = (self._vec_solution[2:]
-                       + self._vec_solution[:-2]
-                       - 2 * self._vec_solution[1:-1]) / dx_sq
+        gamma[1:-1] = (self.vec_solution[2:]
+                       + self.vec_solution[:-2]
+                       - 2 * self.vec_solution[1:-1]) / dx_sq
         # Forward finite difference
-        gamma[0] = (- self._vec_solution[3]
-                    + 4 * self._vec_solution[2]
-                    - 5 * self._vec_solution[1]
-                    + 2 * self._vec_solution[0]) / dx_sq
+        gamma[0] = (- self.vec_solution[3]
+                    + 4 * self.vec_solution[2]
+                    - 5 * self.vec_solution[1]
+                    + 2 * self.vec_solution[0]) / dx_sq
         # Backward finite difference
-        gamma[-1] = (- self._vec_solution[-4]
-                     + 4 * self._vec_solution[-3]
-                     - 5 * self._vec_solution[-2]
-                     + 2 * self._vec_solution[-1]) / dx_sq
+        gamma[-1] = (- self.vec_solution[-4]
+                     + 4 * self.vec_solution[-3]
+                     - 5 * self.vec_solution[-2]
+                     + 2 * self.vec_solution[-1]) / dx_sq
         return gamma
 
     def theta_fd(self) -> np.ndarray:
@@ -161,48 +141,60 @@ class Theta:
         # Save current solution
         solution_copy = self.solution.copy()
         # Forward propagation
-        self._dt = - self._dt
+        self.dt = - self.dt
         self.propagation()
         forward = self.solution.copy()
         # Backward propagation (two time steps)
-        self._dt = - self._dt
+        self.dt = - self.dt
         self.propagation()
         self.propagation()
         backward = self.solution.copy()
         # Restore current solution
         self.solution = solution_copy
-        return (forward - backward) / (2 * self._dt)
+        return (forward - backward) / (2 * self.dt)
 
     @staticmethod
-    def identity_matrix(n_elements):
-        """Identity matrix on tri-diagonal form.
-            - 1st row: Super-diagonal (not including first element)
-            - 2nd row: Diagonal
-            - 3rd row: Sub-diagonal (not including last element)
-        """
-        mat_identity = np.zeros((3, n_elements))
-        mat_identity[1, :] = 1
-        return mat_identity
+    def identity_matrix(n_elements) -> np.ndarray:
+        """Identity matrix on tri-diagonal form."""
+        mat = np.zeros((3, n_elements))
+        mat[1, :] = 1
+        return mat
 
     @staticmethod
-    def mat_vec_product(matrix: np.ndarray,
+    def matrix_col_prod(matrix: np.ndarray,
                         vector: np.ndarray) -> np.ndarray:
         """Product of tri-diagonal matrix and column vector."""
-        # Contribution from diagonal
+        # Contribution from diagonal.
         product = matrix[1, :] * vector
-        # Contribution from super-diagonal
+        # Contribution from super-diagonal.
         product[:-1] += matrix[0, 1:] * vector[1:]
-        # Contribution from sub-diagonal
+        # Contribution from sub-diagonal.
         product[1:] += matrix[2, :-1] * vector[:-1]
+        return product
+
+    @staticmethod
+    def row_matrix_prod(vector: np.ndarray,
+                        matrix: np.ndarray) -> np.ndarray:
+        """Product of row vector and tri-diagonal matrix."""
+        product = np.zeros(matrix.shape)
+        # Contribution from super-diagonal.
+        product[0, 1:] = vector[:-1] * matrix[0, 1:]
+        # Contribution from diagonal.
+        product[1, :] = vector * matrix[1, :]
+        # Contribution from sub-diagonal.
+        product[2, :-1] = vector[1:] * matrix[2, :-1]
         return product
 
 
 class Andreasen1D(Theta):
-    """The theta method implemented as shown in
-    Jesper Andreasen's PDE notes from 2011.
+    """The theta method implemented as shown in Jesper Andreasen's
+    PDE notes from 2011.
+
+    The propagator is defined by
+        dV/dt = - Propagator * V.
 
     TODO: Check convergence -- should match AndersenPiterbarg1D using bc_type = "Linearity"
-    TODO: Doesn't work correctly for Vasicek short rate model
+    TODO: Move ddx and d2dx2 to separate file, generalize for penta...
     """
 
     def __init__(self,
@@ -211,73 +203,60 @@ class Andreasen1D(Theta):
                  nstates: int,
                  dt: float,
                  theta: float = 0.5):
-        super().__init__(xmin, xmax, nstates, dt, theta=theta)
-
-    def mat_product(self,
-                    diagonal: np.ndarray,
-                    tridiagonal: np.ndarray) -> np.ndarray:
-        """Product of diagonal and tri-diagonal matrices."""
-        matrix = np.zeros((3, self._nstates))
-        matrix[0, 1:] = diagonal[:-1] * tridiagonal[0, 1:]
-        matrix[1, :] = diagonal * tridiagonal[1, :]
-        matrix[2, :-1] = diagonal[1:] * tridiagonal[2, :-1]
-        return matrix
+        super().__init__(xmin, xmax, nstates, dt, theta)
 
     def ddx(self) -> np.ndarray:
         """Central finite difference approximation of first order
         derivative operator. At the boundaries, first order
         forward/backward difference is used.
         """
-        matrix = np.zeros((3, self._nstates))
-        # Central difference
+        matrix = np.zeros((3, self.nstates))
+        # Central difference.
         matrix[0, 2:] = 1
         matrix[2, :-2] = -1
-        # Forward difference at lower boundary
+        # Forward difference at lower boundary.
         matrix[0, 1] = 2
         matrix[1, 0] = -2
-        # Backward difference at upper boundary
+        # Backward difference at upper boundary.
         matrix[1, -1] = 2
         matrix[2, -2] = -2
-        return matrix / (2 * self._dx)
+        return matrix / (2 * self.dx)
 
     def d2dx2(self) -> np.ndarray:
         """Central finite difference approximation of second order
         derivative operator. At the boundaries, the operator is set
         equal to zero.
         """
-        matrix = np.zeros((3, self._nstates))
+        matrix = np.zeros((3, self.nstates))
         matrix[0, 2:] = 1
         matrix[1, 1:-1] = -2
         matrix[2, :-2] = 1
-        return matrix / self._dx ** 2
+        return matrix / (self.dx ** 2)
 
     def initialization(self):
-        """Initialization of identity matrix, boundary conditions and
-        propagator matrix.
-        """
-        self._mat_identity = self.identity_matrix(self._nstates)
+        """Initialization of identity matrix and propagator matrix."""
+        self.mat_identity = self.identity_matrix(self.nstates)
         self.set_propagator()
 
     def set_propagator(self):
-        """Propagator on tri-diagonal form.
-            - 1st row: Super-diagonal (not including first element)
-            - 2nd row: Diagonal
-            - 3rd row: Sub-diagonal (not including last element)
-        """
-        self._mat_propagator = \
-            self.mat_product(self._vec_drift, self.ddx()) \
-            + self.mat_product(self._vec_diff_sq, self.d2dx2()) / 2 \
-            - self._vec_rate
+        """Propagator on tri-diagonal form."""
+        self.mat_propagator = \
+            - self.row_matrix_prod(self.vec_rate, self.mat_identity) \
+            + self.row_matrix_prod(self.vec_drift, self.ddx()) \
+            + self.row_matrix_prod(self.vec_diff_sq, self.d2dx2()) / 2
 
     def propagation(self):
-        """Propagation of solution vector for one time step _dt."""
-        rhs = self._mat_identity \
-            + (1 - self._theta) * self._dt * self._mat_propagator
-        rhs = self.mat_vec_product(rhs, self._vec_solution)
-        self.set_propagator()
-        lhs = self._mat_identity \
-            - self._theta * self._dt * self._mat_propagator
-        self._vec_solution = solve_banded((1, 1), lhs, rhs)
+        """Propagation of solution vector for one time step dt."""
+        rhs = self.mat_identity \
+            + (1 - self.theta) * self.dt * self.mat_propagator
+        rhs = self.matrix_col_prod(rhs, self.vec_solution)
+
+        # Update propagator, if drift/diffusion are time-dependent.
+        # But then one would also need to update vec_drift and vec_diff_sq...
+#        self.set_propagator()
+
+        lhs = self.mat_identity - self.theta * self.dt * self.mat_propagator
+        self.vec_solution = solve_banded((1, 1), lhs, rhs)
 
 
 class AndersenPiterbarg1D(Theta):
@@ -306,7 +285,7 @@ class AndersenPiterbarg1D(Theta):
         """Initialization of identity matrix, boundary conditions and
         propagator matrix.
         """
-        self._mat_identity = self.identity_matrix(self._nstates - 2)
+        self.mat_identity = self.identity_matrix(self.nstates - 2)
         self.set_boundary_conditions_dt()
         self.set_propagator()
 
@@ -316,11 +295,11 @@ class AndersenPiterbarg1D(Theta):
             - 2nd row: Diagonal
             - 3rd row: Sub-diagonal (not including last element)
         """
-        dx_sq = self._dx ** 2
+        dx_sq = self.dx ** 2
         # Eq. (2.7) - (2.9), L.B.G. Andersen & V.V. Piterbarg 2010
-        upper = (self._vec_drift / self._dx + self._vec_diff_sq / dx_sq) / 2
-        center = - self._vec_diff_sq / dx_sq - self._vec_rate
-        lower = (-self._vec_drift / self._dx + self._vec_diff_sq / dx_sq) / 2
+        upper = (self.vec_drift / self.dx + self.vec_diff_sq / dx_sq) / 2
+        center = - self.vec_diff_sq / dx_sq - self.vec_rate
+        lower = (-self.vec_drift / self.dx + self.vec_diff_sq / dx_sq) / 2
         # Keep elements for interior states
         upper = upper[1:-1]
         center = center[1:-1]
@@ -328,20 +307,20 @@ class AndersenPiterbarg1D(Theta):
         # Set propagator matrix consistent with the solve_banded
         # function (scipy.linalg)
         # Eq. (2.11), L.B.G. Andersen & V.V. Piterbarg 2010
-        self._mat_propagator = np.zeros((3, self._nstates - 2))
-        self._mat_propagator[0, 1:] = upper[:-1]
-        self._mat_propagator[1, :] = center
-        self._mat_propagator[2, :-1] = lower[1:]
+        self.mat_propagator = np.zeros((3, self.nstates - 2))
+        self.mat_propagator[0, 1:] = upper[:-1]
+        self.mat_propagator[1, :] = center
+        self.mat_propagator[2, :-1] = lower[1:]
         # Boundary conditions
         k1, k2, km_1, km, f1, fm = self.boundary_conditions()
         # Adjust propagator matrix for boundary conditions
         # Eq. (2.12) - (2.13), L.B.G. Andersen & V.V. Piterbarg 2010
-        self._mat_propagator[1, -1] += km * upper[-1]
-        self._mat_propagator[2, -2] += km_1 * upper[-1]
-        self._mat_propagator[1, 0] += k1 * lower[0]
-        self._mat_propagator[0, 1] += k2 * lower[0]
+        self.mat_propagator[1, -1] += km * upper[-1]
+        self.mat_propagator[2, -2] += km_1 * upper[-1]
+        self.mat_propagator[1, 0] += k1 * lower[0]
+        self.mat_propagator[0, 1] += k2 * lower[0]
         # Set boundary vector
-        self._vec_boundary = np.zeros(self._nstates - 2)
+        self._vec_boundary = np.zeros(self.nstates - 2)
         self._vec_boundary[0] = lower[0] * f1
         self._vec_boundary[-1] = upper[-1] * fm
 
@@ -350,24 +329,24 @@ class AndersenPiterbarg1D(Theta):
         # Save boundary conditions at previous time step
         self.set_boundary_conditions_dt()
         # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010
-        rhs = self._mat_identity \
-            + (1 - self.theta) * self._dt * self._mat_propagator
-        rhs = self.mat_vec_product(rhs, self._vec_solution[1:-1]) \
-            + (1 - self._theta) * self._dt * self._vec_boundary
-        # Update self._mat_propagator and self._vec_boundary
+        rhs = self.mat_identity \
+            + (1 - self.theta) * self.dt * self.mat_propagator
+        rhs = self.matrix_col_prod(rhs, self.vec_solution[1:-1]) \
+            + (1 - self.theta) * self.dt * self._vec_boundary
+        # Update self.mat_propagator and self._vec_boundary
         self.set_propagator()
         # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010
-        rhs += self._theta * self._dt * self._vec_boundary
-        lhs = self._mat_identity - self.theta * self._dt * self._mat_propagator
+        rhs += self.theta * self.dt * self._vec_boundary
+        lhs = self.mat_identity - self.theta * self.dt * self.mat_propagator
         # Solve Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010
-        self._vec_solution[1:-1] = solve_banded((1, 1), lhs, rhs)
+        self.vec_solution[1:-1] = solve_banded((1, 1), lhs, rhs)
         # Boundary conditions
         k1, k2, km_1, km, f1, fm = self.boundary_conditions()
         # Eq. (2.12) - (2.13), L.B.G. Andersen & V.V. Piterbarg 2010
-        self._vec_solution[0] = \
-            k1 * self._vec_solution[1] + k2 * self._vec_solution[2] + f1
-        self._vec_solution[-1] = \
-            km * self._vec_solution[-2] + km_1 * self._vec_solution[-3] + fm
+        self.vec_solution[0] = \
+            k1 * self.vec_solution[1] + k2 * self.vec_solution[2] + f1
+        self.vec_solution[-1] = \
+            km * self.vec_solution[-2] + km_1 * self.vec_solution[-3] + fm
 
     def boundary_conditions(self):
         """Calculate coefficients in Eq. (2.12) - (2.13),
@@ -397,42 +376,42 @@ class AndersenPiterbarg1D(Theta):
 
     def bc_coefficients(self) -> tuple:
         """Section 10.1.5.2, L.B.G. Andersen & V.V. Piterbarg 2010."""
-        dx_sq = self._dx ** 2
-        theta_dt = self._theta * self._dt
+        dx_sq = self.dx ** 2
+        theta_dt = self.theta * self.dt
         # Lower boundary
-        a = 1 + theta_dt * self._vec_drift[0] / self._dx \
-            - theta_dt * self._vec_diff_sq[0] / (2 * dx_sq) \
-            + theta_dt * self._vec_rate[0]
-        b = theta_dt * self._vec_diff_sq[0] / dx_sq \
-            - theta_dt * self._vec_drift[0] / self._dx
-        c = - theta_dt * self._vec_diff_sq[0] / (2 * dx_sq)
+        a = 1 + theta_dt * self.vec_drift[0] / self.dx \
+            - theta_dt * self.vec_diff_sq[0] / (2 * dx_sq) \
+            + theta_dt * self.vec_rate[0]
+        b = theta_dt * self.vec_diff_sq[0] / dx_sq \
+            - theta_dt * self.vec_drift[0] / self.dx
+        c = - theta_dt * self.vec_diff_sq[0] / (2 * dx_sq)
         # Upper boundary
-        a_p = 1 - theta_dt * self._vec_drift[-1] / self._dx \
-            - theta_dt * self._vec_diff_sq[-1] / (2 * dx_sq) \
-            + theta_dt * self._vec_rate[-1]
-        b_p = theta_dt * self._vec_diff_sq[-1] / dx_sq \
-            + theta_dt * self._vec_drift[-1] / self._dx
-        c_p = - theta_dt * self._vec_diff_sq[-1] / (2 * dx_sq)
+        a_p = 1 - theta_dt * self.vec_drift[-1] / self.dx \
+            - theta_dt * self.vec_diff_sq[-1] / (2 * dx_sq) \
+            + theta_dt * self.vec_rate[-1]
+        b_p = theta_dt * self.vec_diff_sq[-1] / dx_sq \
+            + theta_dt * self.vec_drift[-1] / self.dx
+        c_p = - theta_dt * self.vec_diff_sq[-1] / (2 * dx_sq)
         return a, b, c, a_p, b_p, c_p
 
     def bc_coefficients_dt(self) -> tuple:
         """Section 10.1.5.2, L.B.G. Andersen & V.V. Piterbarg 2010."""
-        dx_sq = self._dx ** 2
-        theta_dt = (1 - self._theta) * self._dt
+        dx_sq = self.dx ** 2
+        theta_dt = (1 - self.theta) * self.dt
         # Lower boundary
-        d = 1 - theta_dt * self._vec_drift[0] / self._dx \
-            + theta_dt * self._vec_diff_sq[0] / (2 * dx_sq) \
-            - theta_dt * self._vec_rate[0]
-        e = - theta_dt * self._vec_diff_sq[0] / dx_sq \
-            + theta_dt * self._vec_drift[0] / self._dx
-        f = theta_dt * self._vec_diff_sq[0] / (2 * dx_sq)
+        d = 1 - theta_dt * self.vec_drift[0] / self.dx \
+            + theta_dt * self.vec_diff_sq[0] / (2 * dx_sq) \
+            - theta_dt * self.vec_rate[0]
+        e = - theta_dt * self.vec_diff_sq[0] / dx_sq \
+            + theta_dt * self.vec_drift[0] / self.dx
+        f = theta_dt * self.vec_diff_sq[0] / (2 * dx_sq)
         # Upper boundary
-        d_p = 1 + theta_dt * self._vec_drift[-1] / self._dx \
-            + theta_dt * self._vec_diff_sq[-1] / (2 * dx_sq) \
-            - theta_dt * self._vec_rate[-1]
-        e_p = - theta_dt * self._vec_diff_sq[-1] / dx_sq \
-            - theta_dt * self._vec_drift[-1] / self._dx
-        f_p = theta_dt * self._vec_diff_sq[-1] / (2 * dx_sq)
+        d_p = 1 + theta_dt * self.vec_drift[-1] / self.dx \
+            + theta_dt * self.vec_diff_sq[-1] / (2 * dx_sq) \
+            - theta_dt * self.vec_rate[-1]
+        e_p = - theta_dt * self.vec_diff_sq[-1] / dx_sq \
+            - theta_dt * self.vec_drift[-1] / self.dx
+        f_p = theta_dt * self.vec_diff_sq[-1] / (2 * dx_sq)
         return d, e, f, d_p, e_p, f_p
 
     def set_boundary_conditions_dt(self):
@@ -440,11 +419,11 @@ class AndersenPiterbarg1D(Theta):
         d, e, f, d_p, e_p, f_p = self.bc_coefficients_dt()
         # Lower boundary
         self._bc[0] = \
-            d * self._vec_solution[0] \
-            + e * self._vec_solution[1] \
-            + f * self._vec_solution[2]
+            d * self.vec_solution[0] \
+            + e * self.vec_solution[1] \
+            + f * self.vec_solution[2]
         # Upper boundary
         self._bc[-1] = \
-            d_p * self._vec_solution[-1] \
-            + e_p * self._vec_solution[-2] \
-            + f_p * self._vec_solution[-3]
+            d_p * self.vec_solution[-1] \
+            + e_p * self.vec_solution[-2] \
+            + f_p * self.vec_solution[-3]
