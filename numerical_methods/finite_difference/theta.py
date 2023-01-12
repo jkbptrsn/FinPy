@@ -325,7 +325,7 @@ class AndersenPiterbarg1D(Theta):
         self._vec_boundary[-1] = upper[-1] * fm
 
     def propagation(self):
-        """Propagation of solution vector for one time step _dt."""
+        """Propagation of solution vector for one time step dt."""
         # Save boundary conditions at previous time step
         self.set_boundary_conditions_dt()
         # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010
@@ -427,3 +427,48 @@ class AndersenPiterbarg1D(Theta):
             d_p * self.vec_solution[-1] \
             + e_p * self.vec_solution[-2] \
             + f_p * self.vec_solution[-3]
+
+
+def setup_black_scholes(xmin: float,
+                        xmax: float,
+                        nstates: int,
+                        dt: float,
+                        rate: float,
+                        vol: float,
+                        theta: float = 0.5,
+                        method: str = "Andreasen"):
+    """Set up Black-Scholes PDE..."""
+    # Set up PDE solver.
+    if method == "Andersen":
+        solver = AndersenPiterbarg1D(xmin, xmax, nstates, dt, theta)
+    elif method == "Andreasen":
+        solver = Andreasen1D(xmin, xmax, nstates, dt, theta)
+    else:
+        raise ValueError("Method is not recognized.")
+    # Black-Scholes PDE.
+    solver.set_drift(rate * solver.grid())
+    solver.set_diffusion(vol * solver.grid())
+    solver.set_rate(rate + 0 * solver.grid())
+    return solver
+
+
+def norm_diff_1d(vec1: np.ndarray,
+                 vec2: np.ndarray,
+                 step_size1: float,
+                 slice_nr=2):
+
+    # Absolute difference. Exclude boundary points?
+    diff = np.abs(vec1[1:-1] - vec2[1:-1][::slice_nr])
+
+    # "Center" norm.
+    n_states = diff.size
+    idx_center = (n_states - 1) // 2
+    norm_center = diff[idx_center]
+
+    # Max norm.
+    norm_max = np.amax(diff)
+
+    # L2 norm.
+    norm_l2 = np.sqrt(np.sum(np.square(diff)) * step_size1)
+
+    return norm_center, norm_max, norm_l2
