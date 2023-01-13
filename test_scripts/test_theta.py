@@ -20,9 +20,9 @@ rannacher_stepping = False
 
 show_plots = True
 
-# model = "Black-Scholes"
+model = "Black-Scholes"
 # model = "Bachelier"
-model = "Vasicek"
+# model = "Vasicek"
 
 instrument = 'Call'
 # instrument = 'Put'
@@ -37,10 +37,10 @@ solver_type = "Andreasen"
 # Time execution
 start_time = datetime.now()
 
-rate = 0.02
-strike = 0.2
-vol = 0.05  # 0.3
-expiry = 10
+rate = 0.1  # 0.02
+strike = 50  # 0.2
+vol = 0.3  # 0.05
+expiry = 2  # 10
 kappa = 0.1
 theta_factor = 0.03
 
@@ -98,6 +98,14 @@ payoff = solver.solution.copy()
 
 # Propagate value vector backwards in time
 t1 = time.time()
+
+# Initial step
+if bc_type == "PDE":
+    dt_save = solver.dt
+    solver.dt = 0.00001 * dt_save
+    solver.propagation()
+    solver.dt = dt_save
+
 for t in range(t_steps - 1):
     solver.propagation()
     # Update current time

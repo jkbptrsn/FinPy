@@ -187,8 +187,8 @@ class Theta:
 
 
 class Andreasen1D(Theta):
-    """The theta method implemented as shown in Jesper Andreasen's
-    PDE notes from 2011.
+    """The theta method implemented as shown in
+    Jesper Andreasen's Finite Difference notes from 2011.
 
     The propagator is defined by
         dV/dt = - Propagator * V.
@@ -262,6 +262,10 @@ class Andreasen1D(Theta):
 class AndersenPiterbarg1D(Theta):
     """The theta method implemented as shown in
     L.B.G. Andersen & V.V. Piterbarg 2010.
+
+    TODO: "PDE" boundary conditions requires a very small initial time step,
+        and the convergence order differs from "Linearity". Hence, use
+        "Linearity" boundary conditions in "production".
     """
 
     def __init__(self,
@@ -272,77 +276,69 @@ class AndersenPiterbarg1D(Theta):
                  theta: float = 0.5,
                  bc_type: str = "Linearity"):
         super().__init__(xmin, xmax, nstates, dt, theta=theta)
-
-        self._bc_type = bc_type
-        self._vec_boundary = None
-        self._bc = np.zeros(2)
-
-    @property
-    def bc_type(self) -> str:
-        return self._bc_type
+        self.bc_type = bc_type
+        self.vec_boundary = None
+        self.bc = np.zeros(2)
 
     def initialization(self):
         """Initialization of identity matrix, boundary conditions and
         propagator matrix.
         """
         self.mat_identity = self.identity_matrix(self.nstates - 2)
+        self.mat_propagator = np.zeros((3, self.nstates - 2))
+        self.vec_boundary = np.zeros(self.nstates - 2)
+        # Save boundary conditions at previous time step.
         self.set_boundary_conditions_dt()
         self.set_propagator()
 
     def set_propagator(self):
-        """Propagator on tri-diagonal form.
-            - 1st row: Super-diagonal (not including first element)
-            - 2nd row: Diagonal
-            - 3rd row: Sub-diagonal (not including last element)
-        """
+        """Propagator on tri-diagonal form."""
         dx_sq = self.dx ** 2
-        # Eq. (2.7) - (2.9), L.B.G. Andersen & V.V. Piterbarg 2010
+        # Eq. (2.7) - (2.9), L.B.G. Andersen & V.V. Piterbarg 2010.
         upper = (self.vec_drift / self.dx + self.vec_diff_sq / dx_sq) / 2
         center = - self.vec_diff_sq / dx_sq - self.vec_rate
         lower = (-self.vec_drift / self.dx + self.vec_diff_sq / dx_sq) / 2
-        # Keep elements for interior states
+        # Keep elements for interior states.
         upper = upper[1:-1]
         center = center[1:-1]
         lower = lower[1:-1]
         # Set propagator matrix consistent with the solve_banded
         # function (scipy.linalg)
-        # Eq. (2.11), L.B.G. Andersen & V.V. Piterbarg 2010
-        self.mat_propagator = np.zeros((3, self.nstates - 2))
+        # Eq. (2.11), L.B.G. Andersen & V.V. Piterbarg 2010.
         self.mat_propagator[0, 1:] = upper[:-1]
         self.mat_propagator[1, :] = center
         self.mat_propagator[2, :-1] = lower[1:]
-        # Boundary conditions
+        # Boundary conditions.
         k1, k2, km_1, km, f1, fm = self.boundary_conditions()
         # Adjust propagator matrix for boundary conditions
-        # Eq. (2.12) - (2.13), L.B.G. Andersen & V.V. Piterbarg 2010
+        # Eq. (2.12) - (2.13), L.B.G. Andersen & V.V. Piterbarg 2010.
         self.mat_propagator[1, -1] += km * upper[-1]
         self.mat_propagator[2, -2] += km_1 * upper[-1]
         self.mat_propagator[1, 0] += k1 * lower[0]
         self.mat_propagator[0, 1] += k2 * lower[0]
         # Set boundary vector
-        self._vec_boundary = np.zeros(self.nstates - 2)
-        self._vec_boundary[0] = lower[0] * f1
-        self._vec_boundary[-1] = upper[-1] * fm
+        self.vec_boundary[0] = lower[0] * f1
+        self.vec_boundary[-1] = upper[-1] * fm
 
     def propagation(self):
         """Propagation of solution vector for one time step dt."""
-        # Save boundary conditions at previous time step
-        self.set_boundary_conditions_dt()
-        # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010
+        # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010.
         rhs = self.mat_identity \
             + (1 - self.theta) * self.dt * self.mat_propagator
         rhs = self.matrix_col_prod(rhs, self.vec_solution[1:-1]) \
-            + (1 - self.theta) * self.dt * self._vec_boundary
-        # Update self.mat_propagator and self._vec_boundary
+            + (1 - self.theta) * self.dt * self.vec_boundary
+        # Save boundary conditions at previous time step.
+        self.set_boundary_conditions_dt()
+        # Update self.mat_propagator and self.vec_boundary at t - dt.
         self.set_propagator()
-        # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010
-        rhs += self.theta * self.dt * self._vec_boundary
+        # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010.
+        rhs += self.theta * self.dt * self.vec_boundary
         lhs = self.mat_identity - self.theta * self.dt * self.mat_propagator
-        # Solve Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010
+        # Solve Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010.
         self.vec_solution[1:-1] = solve_banded((1, 1), lhs, rhs)
-        # Boundary conditions
+        # Boundary conditions.
         k1, k2, km_1, km, f1, fm = self.boundary_conditions()
-        # Eq. (2.12) - (2.13), L.B.G. Andersen & V.V. Piterbarg 2010
+        # Eq. (2.12) - (2.13), L.B.G. Andersen & V.V. Piterbarg 2010.
         self.vec_solution[0] = \
             k1 * self.vec_solution[1] + k2 * self.vec_solution[2] + f1
         self.vec_solution[-1] = \
@@ -356,36 +352,39 @@ class AndersenPiterbarg1D(Theta):
             - k2   = k_2(t)
             - km_1 = k_{m - 1}(t)
             - km   = k_m(t)
-            - f1   = overline{f}(t)
-            - fm   = underline{f}(t)
+            - f1   = underline{f}(t)
+            - fm   = overline{f}(t)
+        Also, see notes.
         """
-        if self._bc_type == "Linearity":
+        if self.bc_type == "Linearity":
             return 2, -1, -1, 2, 0, 0
-        elif self._bc_type == "PDE":
+        elif self.bc_type == "PDE":
             a, b, c, a_p, b_p, c_p = self.bc_coefficients()
             k1 = - b / a
             k2 = - c / a
-            f1 = self._bc[0] / a
+            f1 = self.bc[0] / a
             km = - b_p / a_p
             km_1 = - c_p / a_p
-            fm = self._bc[-1] / a_p
+            fm = self.bc[-1] / a_p
             return k1, k2, km_1, km, f1, fm
         else:
             raise ValueError(f"_bc_type can be either "
-                             f"\"Linearity\" or \"PDE\": {self._bc_type}")
+                             f"\"Linearity\" or \"PDE\": {self.bc_type}")
 
     def bc_coefficients(self) -> tuple:
-        """Section 10.1.5.2, L.B.G. Andersen & V.V. Piterbarg 2010."""
+        """Coefficients at time t, see notes.
+        Also, section 10.1.5.2, L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
         dx_sq = self.dx ** 2
         theta_dt = self.theta * self.dt
-        # Lower boundary
+        # Lower spatial boundary.
         a = 1 + theta_dt * self.vec_drift[0] / self.dx \
             - theta_dt * self.vec_diff_sq[0] / (2 * dx_sq) \
             + theta_dt * self.vec_rate[0]
         b = theta_dt * self.vec_diff_sq[0] / dx_sq \
             - theta_dt * self.vec_drift[0] / self.dx
         c = - theta_dt * self.vec_diff_sq[0] / (2 * dx_sq)
-        # Upper boundary
+        # Upper spatial boundary.
         a_p = 1 - theta_dt * self.vec_drift[-1] / self.dx \
             - theta_dt * self.vec_diff_sq[-1] / (2 * dx_sq) \
             + theta_dt * self.vec_rate[-1]
@@ -395,17 +394,19 @@ class AndersenPiterbarg1D(Theta):
         return a, b, c, a_p, b_p, c_p
 
     def bc_coefficients_dt(self) -> tuple:
-        """Section 10.1.5.2, L.B.G. Andersen & V.V. Piterbarg 2010."""
+        """Coefficients at time t + dt, see notes.
+        Also, section 10.1.5.2, L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
         dx_sq = self.dx ** 2
         theta_dt = (1 - self.theta) * self.dt
-        # Lower boundary
+        # Lower spatial boundary.
         d = 1 - theta_dt * self.vec_drift[0] / self.dx \
             + theta_dt * self.vec_diff_sq[0] / (2 * dx_sq) \
             - theta_dt * self.vec_rate[0]
         e = - theta_dt * self.vec_diff_sq[0] / dx_sq \
             + theta_dt * self.vec_drift[0] / self.dx
         f = theta_dt * self.vec_diff_sq[0] / (2 * dx_sq)
-        # Upper boundary
+        # Upper spatial boundary.
         d_p = 1 + theta_dt * self.vec_drift[-1] / self.dx \
             + theta_dt * self.vec_diff_sq[-1] / (2 * dx_sq) \
             - theta_dt * self.vec_rate[-1]
@@ -415,15 +416,17 @@ class AndersenPiterbarg1D(Theta):
         return d, e, f, d_p, e_p, f_p
 
     def set_boundary_conditions_dt(self):
-        """Section 10.1.5.2, L.B.G. Andersen & V.V. Piterbarg 2010."""
+        """Coefficients at time t + dt, see notes.
+        Also, section 10.1.5.2, L.B.G. Andersen & V.V. Piterbarg 2010.
+        """
         d, e, f, d_p, e_p, f_p = self.bc_coefficients_dt()
-        # Lower boundary
-        self._bc[0] = \
+        # Lower spatial boundary.
+        self.bc[0] = \
             d * self.vec_solution[0] \
             + e * self.vec_solution[1] \
             + f * self.vec_solution[2]
-        # Upper boundary
-        self._bc[-1] = \
+        # Upper spatial boundary.
+        self.bc[-1] = \
             d_p * self.vec_solution[-1] \
             + e_p * self.vec_solution[-2] \
             + f_p * self.vec_solution[-3]
