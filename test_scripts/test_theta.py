@@ -15,14 +15,16 @@ from numerical_methods.finite_difference import theta
 from utils import payoffs
 from utils import plots
 
+# TODO: Check analytical expression for gamma of call/put option in Vasicek model
+
 smoothing = False
 rannacher_stepping = False
 
 show_plots = True
 
-model = "Black-Scholes"
+# model = "Black-Scholes"
 # model = "Bachelier"
-# model = "Vasicek"
+model = "Vasicek"
 
 instrument = 'Call'
 # instrument = 'Put'
@@ -37,16 +39,16 @@ solver_type = "Andreasen"
 # Time execution
 start_time = datetime.now()
 
-rate = 0.1  # 0.02
-strike = 50  # 0.2
-vol = 0.3  # 0.05
-expiry = 2  # 10
-kappa = 0.1
-theta_factor = 0.03
+rate = 0.1
+strike = 0.5  # 1.5  # 50
+vol = 0.05  # 0.3
+expiry = 10  # 2
+kappa = 0.2
+theta_factor = 0.05
 
 t_min = 0
 t_max = expiry
-t_steps = 51
+t_steps = 201
 dt = (t_max - t_min) / (t_steps - 1)
 
 x_min = 5
@@ -54,9 +56,9 @@ x_max = 125
 x_steps = 51
 
 if model == "Vasicek":
-    x_min = -0.25
-    x_max = 0.25
-    x_steps = 101
+    x_min = -0.5  # -1.1
+    x_max = 0.5   # 1.1
+    x_steps = 201
 
 # Reset current time
 t_current = t_max
@@ -84,11 +86,11 @@ elif model == 'Vasicek':
 if instrument == 'Call':
     solver.solution = payoffs.call(solver.grid(), strike)
     if model == "Vasicek" or model == "Extended Vasicek":
-        solver.solution = 1 + 0 * solver.grid()
+        solver.solution = payoffs.zero_coupon_bond(solver.grid())
 elif instrument == 'Put':
     solver.solution = payoffs.put(solver.grid(), strike)
     if model == "Vasicek" or model == "Extended Vasicek":
-        solver.solution = 1 + 0 * solver.grid()
+        solver.solution = payoffs.zero_coupon_bond(solver.grid())
 elif instrument == 'ZCBond':
     solver.solution = payoffs.zero_coupon_bond(solver.grid())
 

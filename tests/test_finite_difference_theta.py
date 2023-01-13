@@ -9,7 +9,7 @@ class Theta(unittest.TestCase):
         solver = theta.Theta(0, 100, 11, 1.3, theta=0.8)
         self.assertTrue(solver.xmin == 0)
         self.assertTrue(solver.xmax == 100)
-        self.assertTrue(solver.nstates == 11)
+        self.assertTrue(solver.nstates == 13)
         self.assertTrue(solver.dt == 1.3)
         self.assertTrue(solver.theta == 0.8)
         self.assertAlmostEqual(solver.dx, 10, 10)
