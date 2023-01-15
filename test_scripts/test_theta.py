@@ -26,15 +26,15 @@ show_plots = True
 # model = "Bachelier"
 model = "Vasicek"
 
-instrument = 'Call'
+# instrument = 'Call'
 # instrument = 'Put'
-# instrument = 'ZCBond'
+instrument = 'ZCBond'
 
 bc_type = "Linearity"
 # bc_type = "PDE"
 
-# solver_type = "AndersenPiterbarg"
-solver_type = "Andreasen"
+solver_type = "AndersenPiterbarg"
+# solver_type = "Andreasen"
 
 # Time execution
 start_time = datetime.now()
@@ -44,7 +44,7 @@ strike = 0.5  # 1.5  # 50
 vol = 0.05  # 0.3
 expiry = 10  # 2
 kappa = 0.2
-theta_factor = 0.05
+mean_rate = 0.05
 
 t_min = 0
 t_max = expiry
@@ -78,7 +78,7 @@ elif model == 'Bachelier':
     solver.set_diffusion(vol + 0 * solver.grid())
     solver.set_rate(rate + 0 * solver.grid())
 elif model == 'Vasicek':
-    solver.set_drift(kappa * (theta_factor - solver.grid()))
+    solver.set_drift(kappa * (mean_rate - solver.grid()))
     solver.set_diffusion(vol + 0 * solver.grid())
     solver.set_rate(solver.grid())
 
@@ -131,17 +131,17 @@ if instrument == 'Call':
     elif model == "Bachelier":
         instru = ba_call.Call(vol, strike, np.array([0, expiry]), strike, 1)
     elif model == "Vasicek":
-        instru = va_call.Call(kappa, theta_factor, vol, np.array([0, expiry / 2, expiry]), strike, 1, 2)
+        instru = va_call.Call(kappa, mean_rate, vol, np.array([0, expiry / 2, expiry]), strike, 1, 2)
 elif instrument == 'Put':
     if model == 'Black-Scholes':
         instru = bs_put.Put(rate, vol, np.array([0, expiry]), strike, 1)
     elif model == "Bachelier":
         instru = ba_put.Put(vol, strike, np.array([0, expiry]), strike, 1)
     elif model == "Vasicek":
-        instru = va_put.Put(kappa, theta_factor, vol, np.array([0, expiry / 2, expiry]), strike, 1, 2)
+        instru = va_put.Put(kappa, mean_rate, vol, np.array([0, expiry / 2, expiry]), strike, 1, 2)
 elif instrument == 'ZCBond':
     if model == "Vasicek" or model == "Extended Vasicek":
-        instru = va_bond.ZCBond(kappa, theta_factor, vol, np.array([0, expiry]), 1)
+        instru = va_bond.ZCBond(kappa, mean_rate, vol, np.array([0, expiry]), 1)
         print(instrument, model)
 
 

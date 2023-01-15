@@ -455,6 +455,30 @@ def setup_black_scholes(xmin: float,
     return solver
 
 
+def setup_vasicek(xmin: float,
+                  xmax: float,
+                  nstates: int,
+                  dt: float,
+                  kappa: float,
+                  mean_rate: float,
+                  vol: float,
+                  theta: float = 0.5,
+                  method: str = "Andreasen"):
+    """Set up Vasicek PDE..."""
+    # Set up PDE solver.
+    if method == "Andersen":
+        solver = AndersenPiterbarg1D(xmin, xmax, nstates, dt, theta)
+    elif method == "Andreasen":
+        solver = Andreasen1D(xmin, xmax, nstates, dt, theta)
+    else:
+        raise ValueError("Method is not recognized.")
+    # Vasicek PDE.
+    solver.set_drift(kappa * (mean_rate - solver.grid()))
+    solver.set_diffusion(vol + 0 * solver.grid())
+    solver.set_rate(solver.grid())
+    return solver
+
+
 def norm_diff_1d(vec1: np.ndarray,
                  vec2: np.ndarray,
                  step_size1: float,
