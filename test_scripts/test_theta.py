@@ -6,10 +6,11 @@ from models.black_scholes import call as bs_call
 from models.black_scholes import put as bs_put
 from models.bachelier import call as ba_call
 from models.bachelier import put as ba_put
-
 from models.vasicek import zero_coupon_bond as va_bond
 from models.vasicek import call_option as va_call
 from models.vasicek import put_option as va_put
+
+from models.cox_ingersoll_ross import zero_coupon_bond as cir_bond
 
 from numerical_methods.finite_difference import theta
 from utils import payoffs
@@ -24,7 +25,8 @@ show_plots = True
 
 # model = "Black-Scholes"
 # model = "Bachelier"
-model = "Vasicek"
+# model = "Vasicek"
+model = "CIR"
 
 # instrument = 'Call'
 # instrument = 'Put'
@@ -60,6 +62,11 @@ if model == "Vasicek":
     x_max = 0.5   # 1.1
     x_steps = 201
 
+if model == "CIR":
+    x_min = 0.01
+    x_max = 0.5
+    x_steps = 201
+
 # Reset current time
 t_current = t_max
 
@@ -80,6 +87,11 @@ elif model == 'Bachelier':
 elif model == 'Vasicek':
     solver.set_drift(kappa * (mean_rate - solver.grid()))
     solver.set_diffusion(vol + 0 * solver.grid())
+    solver.set_rate(solver.grid())
+
+elif model == 'CIR':
+    solver.set_drift(kappa * (mean_rate - solver.grid()))
+    solver.set_diffusion(vol * np.sqrt(solver.grid()))
     solver.set_rate(solver.grid())
 
 # Terminal solution to PDE
@@ -142,7 +154,8 @@ elif instrument == 'Put':
 elif instrument == 'ZCBond':
     if model == "Vasicek" or model == "Extended Vasicek":
         instru = va_bond.ZCBond(kappa, mean_rate, vol, np.array([0, expiry]), 1)
-        print(instrument, model)
+    elif model == "CIR":
+        instru = cir_bond.ZCBond(kappa, mean_rate, vol, np.array([0, expiry]), 1)
 
 
 plots.plot1(solver, payoff, solver.solution, instrument=instru, show=show_plots)
