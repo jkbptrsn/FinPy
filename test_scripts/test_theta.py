@@ -26,11 +26,12 @@ show_plots = True
 # model = "Black-Scholes"
 # model = "Bachelier"
 # model = "Vasicek"
-model = "CIR"
+model = "Extended Vasicek"
+# model = "CIR"
 
-# instrument = 'Call'
-# instrument = 'Put'
-instrument = 'ZCBond'
+# instrument = "Call"
+# instrument = "Put"
+instrument = "ZCBond"
 
 bc_type = "Linearity"
 # bc_type = "PDE"
@@ -57,7 +58,7 @@ x_min = 5
 x_max = 125
 x_steps = 51
 
-if model == "Vasicek":
+if model in ("Vasicek", "Extended Vasicek"):
     x_min = -0.5  # -1.1
     x_max = 0.5   # 1.1
     x_steps = 201
@@ -88,10 +89,15 @@ elif model == 'Vasicek':
     solver.set_drift(kappa * (mean_rate - solver.grid()))
     solver.set_diffusion(vol + 0 * solver.grid())
     solver.set_rate(solver.grid())
-
 elif model == 'CIR':
     solver.set_drift(kappa * (mean_rate - solver.grid()))
     solver.set_diffusion(vol * np.sqrt(solver.grid()))
+    solver.set_rate(solver.grid())
+
+elif model == "Extended Vasicek":
+    y = vol ** 2 * (1 - np.exp(- 2 * kappa * t_current)) / (2 * kappa)
+    solver.set_drift(y - kappa * solver.grid())
+    solver.set_diffusion(vol + 0 * solver.grid())
     solver.set_rate(solver.grid())
 
 # Terminal solution to PDE
@@ -124,6 +130,16 @@ for t in range(t_steps - 1):
     solver.propagation()
     # Update current time
     t_current -= dt
+
+    if model == "Extended Vasicek":
+        y = vol ** 2 * (1 - np.exp(- 2 * kappa * t_current)) / (2 * kappa)
+        solver.set_drift(y - kappa * solver.grid())
+        solver.set_diffusion(vol + 0 * solver.grid())
+        solver.set_rate(solver.grid())
+
+        # TODO: Is this correct in terms of the time flow?
+        solver.set_boundary_conditions_dt()
+        solver.set_propagator()
 
     # European call option on ZC bond
     if t == (t_steps - 1) // 2 and (model == "Vasicek" or model == "Extended Vasicek"):
