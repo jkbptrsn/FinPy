@@ -246,7 +246,7 @@ for n in range(n_doubles):
 #        ax1[1].plot(solver.grid(), instru.delta(solver.grid(), 0), 'ob', markersize=3)
 #        ax1[2].plot(solver.grid(), instru.gamma(solver.grid(), 0), 'ob', markersize=3)
 
-    plots.plot1(solver, payoff, solver.solution, instrument=instru, show=show_plots)
+    plots.plot_price_and_greeks(solver, payoff, solver.solution, instrument=instru, show=show_plots)
 
     value = solver.solution
 

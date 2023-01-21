@@ -3,7 +3,7 @@ import numpy as np
 from scipy.stats import norm
 
 
-def plot1(solver, payoff, price, instrument=None, show=True):
+def plot_price_and_greeks(solver, payoff, price, instrument=None, show=True):
     """..."""
 
     plt.rcParams.update({"font.size": 10})
@@ -64,6 +64,58 @@ def plot1(solver, payoff, price, instrument=None, show=True):
     ax1[3].set_ylabel("Theta")
     ax1[3].set_xlabel("\"Value\" of underlying")
     ax1[3].grid(True)
+
+    # Figure 2
+    f2, ax2 = plt.subplots(4, 1, sharex=True)
+    f2.suptitle("Analytical result minus numerical result")
+
+    # Plot of instrument price.
+    if instrument:
+        try:
+            ax2[0].plot(solver.grid(),
+                        instrument.price(solver.grid(), 0) - price,
+                        'ob', markersize=2)
+        except AttributeError:
+            pass
+    ax2[0].set_ylabel("Price")
+    ax2[0].grid(True)
+
+    # Plot of instrument delta.
+    if instrument:
+        try:
+            ax2[1].plot(solver.grid(),
+                        instrument.delta(solver.grid(), 0) - solver.delta_fd(),
+                        'ob', markersize=2)
+        except (AttributeError, ValueError):
+            print("Error in plots.py")
+    ax2[1].set_ylabel("Delta")
+    ax2[1].grid(True)
+
+    # Plot of instrument gamma.
+    if instrument:
+        try:
+            ax2[2].plot(solver.grid(),
+                        instrument.gamma(solver.grid(), 0) - solver.gamma_fd(),
+                        'ob', markersize=2)
+        except (AttributeError, ValueError):
+            print("Error in plots.py")
+    ax2[2].set_ylabel("Gamma")
+    ax2[2].grid(True)
+
+    # Plot of instrument theta.
+    if instrument:
+        try:
+            ax2[3].plot(solver.grid(),
+                        instrument.theta(solver.grid(), 0) - solver.theta_fd(),
+                        'ob', markersize=2)
+        except (AttributeError, ValueError):
+            print("Error in plots.py")
+    ax2[3].set_ylabel("Theta")
+    ax2[3].set_xlabel("\"Value\" of underlying")
+    ax2[3].grid(True)
+
+    ax2[0].legend(bbox_to_anchor=(0, 1.02, 1, 0.2), loc="lower left",
+                  mode="expand", borderaxespad=0, ncol=3)
 
     if show:
         plt.show()

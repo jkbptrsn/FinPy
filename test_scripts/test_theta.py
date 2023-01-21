@@ -9,8 +9,9 @@ from models.bachelier import put as ba_put
 from models.vasicek import zero_coupon_bond as va_bond
 from models.vasicek import call_option as va_call
 from models.vasicek import put_option as va_put
-
 from models.cox_ingersoll_ross import zero_coupon_bond as cir_bond
+
+from models.hull_white import zero_coupon_bond as hw_bond
 
 from numerical_methods.finite_difference import theta
 from utils import payoffs
@@ -25,8 +26,8 @@ show_plots = True
 
 # model = "Black-Scholes"
 # model = "Bachelier"
-# model = "Vasicek"
-model = "Extended Vasicek"
+model = "Vasicek"
+# model = "Extended Vasicek"
 # model = "CIR"
 
 # instrument = "Call"
@@ -174,7 +175,7 @@ elif instrument == 'ZCBond':
         instru = cir_bond.ZCBond(kappa, mean_rate, vol, np.array([0, expiry]), 1)
 
 
-plots.plot1(solver, payoff, solver.solution, instrument=instru, show=show_plots)
+plots.plot_price_and_greeks(solver, payoff, solver.solution, instrument=instru, show=show_plots)
 
 value = solver.solution
 
