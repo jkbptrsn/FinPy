@@ -47,13 +47,17 @@ if __name__ == '__main__':
     b1 = binary.BinaryAssetCall(rate, vol, event_grid, strike, expiry_idx)
     b2 = binary.BinaryCashCall(rate, vol, event_grid, strike, expiry_idx)
 
-    plt.plot(spot, c.payoff(spot), '-k')
-    plt.plot(spot, c.price(spot, time_idx), '-ob')
-    plt.plot(spot, b1.price(spot, time_idx), '-r')
-    plt.plot(spot, strike * b2.price(spot, time_idx), '-g')
+    plt.plot(spot, c.payoff(spot), "-k", label="Option payoff")
+    plt.plot(spot, c.price(spot, time_idx), "-ob", label="Call")
+    plt.plot(spot, b1.price(spot, time_idx), "-r", label="Binary asset call")
+    plt.plot(spot, strike * b2.price(spot, time_idx), "-g", label="Binary cash call")
     call_price_decomposed = \
         b1.price(spot, time_idx) - strike * b2.price(spot, time_idx)
-    plt.plot(spot, call_price_decomposed, '-y')
+    plt.plot(spot, call_price_decomposed, "-y", label="Combine binaries")
+    plt.title("Call option, Black-Scholes model")
+    plt.xlabel("Stock price")
+    plt.ylabel("Call price")
+    plt.legend()
     plt.show()
 
     unittest.main()
