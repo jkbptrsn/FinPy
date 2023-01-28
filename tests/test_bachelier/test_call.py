@@ -56,17 +56,17 @@ if __name__ == '__main__':
         mc_put[idx] = np.sum(discounted_payoff) / n_paths
     # Call option
     c = call.Call(rate, vol, event_grid, strike, expiry_idx)
-    plt.plot(spot, c.payoff(spot), 'k')
-    plt.plot(spot, c.price(spot, 0), 'r')
-    plt.plot(spot, mc_call, 'ob')
+    plt.plot(spot, c.payoff(spot), "k", label="Payoff")
+    plt.plot(spot, c.price(spot, 0), "r", label="Analytical")
+    plt.plot(spot, mc_call, "ob", label="Monte-Carlo")
     plt.xlabel("Stock price")
     plt.ylabel("Call option price")
     plt.show()
     # Put option
     p = put.Put(rate, vol, event_grid, strike, expiry_idx)
-    plt.plot(spot, p.payoff(spot), 'k')
-    plt.plot(spot, p.price(spot, 0), 'r')
-    plt.plot(spot, mc_put, 'ob')
+    plt.plot(spot, p.payoff(spot), "k", label="Payoff")
+    plt.plot(spot, p.price(spot, 0), "r", label="Analytical")
+    plt.plot(spot, mc_put, "ob", label="Monte-Carlo")
     plt.xlabel("Stock price")
     plt.ylabel("Put option price")
     plt.show()

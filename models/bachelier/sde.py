@@ -70,9 +70,12 @@ class SDE(sde.SDE):
         price[0] = spot
         if seed is not None:
             np.random.seed(seed)
+
+        rng = np.random.default_rng(seed)
+
         for time_idx in range(1, self.event_grid.size):
             realizations = \
-                misc.normal_realizations(n_paths, antithetic=antithetic)
+                misc.normal_realizations(n_paths, rng, antithetic=antithetic)
             price[time_idx] = price[time_idx - 1] \
                 + self.price_increment(time_idx, realizations)
         return price
