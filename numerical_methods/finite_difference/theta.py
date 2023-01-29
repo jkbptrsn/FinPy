@@ -2,6 +2,8 @@ import abc
 import numpy as np
 from scipy.linalg import solve_banded
 
+from utils import timing
+
 
 class Theta:
     """Theta method for solving a parabolic 1-factor PDE (base class).
@@ -245,6 +247,7 @@ class Andreasen1D(Theta):
             + self.row_matrix_prod(self.vec_drift, self.ddx()) \
             + self.row_matrix_prod(self.vec_diff_sq, self.d2dx2()) / 2
 
+#    @timing.execution_time
     def propagation(self):
         """Propagation of solution vector for one time step dt."""
         rhs = self.mat_identity \
@@ -320,6 +323,7 @@ class AndersenPiterbarg1D(Theta):
         self.vec_boundary[0] = lower[0] * f1
         self.vec_boundary[-1] = upper[-1] * fm
 
+#    @timing.execution_time
     def propagation(self):
         """Propagation of solution vector for one time step dt."""
         # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010.
