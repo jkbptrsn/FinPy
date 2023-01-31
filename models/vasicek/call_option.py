@@ -8,7 +8,7 @@ from utils import payoffs
 
 
 class Call(sde.SDE, options.VanillaOption):
-    """European call option in the Vasicek model.
+    """European call option in Vasicek model.
 
     European call option written on a zero-coupon bond.
 
