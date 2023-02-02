@@ -9,7 +9,18 @@ import utils.payoffs as payoffs
 
 
 class Put(sde.SDE):
-    """European put option in Bachelier model."""
+    """European put option in Bachelier model.
+
+    European put option written on stock price.
+
+    Attributes:
+        rate: Interest rate.
+        vol: Volatility.
+        event_grid: Event dates, e.g. payment dates, represented as year
+            fractions from the as-of date.
+        strike: Strike price of stock at expiry.
+        expiry_idx: Expiry index on event_grid.
+    """
 
     def __init__(self,
                  rate: float,
