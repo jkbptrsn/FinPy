@@ -61,7 +61,7 @@ class BinaryCashCall(sde.SDE, options.VanillaOption):
     def gamma(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        """2st order price sensitivity wrt the underlying state."""
+        """2nd order price sensitivity wrt the underlying state."""
         pass
 
     def theta(self,
@@ -121,7 +121,7 @@ class BinaryAssetCall(sde.SDE, options.VanillaOption):
     def gamma(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        """2st order price sensitivity wrt the underlying state."""
+        """2nd order price sensitivity wrt the underlying state."""
         pass
 
     def theta(self,
@@ -180,7 +180,7 @@ class BinaryCashPut(sde.SDE, options.VanillaOption):
     def gamma(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        """2st order price sensitivity wrt the underlying state."""
+        """2nd order price sensitivity wrt the underlying state."""
         pass
 
     def theta(self,
@@ -240,7 +240,7 @@ class BinaryAssetPut(sde.SDE, options.VanillaOption):
     def gamma(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        """2st order price sensitivity wrt the underlying state."""
+        """2nd order price sensitivity wrt the underlying state."""
         pass
 
     def theta(self,

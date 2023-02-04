@@ -76,7 +76,7 @@ class Call(sde.SDE, options.VanillaOption):
     def gamma(self,
               spot: (float, np.ndarray),
               time_idx: int) -> (float, np.ndarray):
-        """2st order price sensitivity wrt the underlying state."""
+        """2nd order price sensitivity wrt the underlying state."""
         time = self.event_grid[time_idx]
         d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
                            self.expiry, self.strike, self.dividend)

@@ -8,7 +8,16 @@ import utils.payoffs as payoffs
 
 
 class ZCBond(sde.SDE, bonds.Bond):
-    """Zero-coupon bond in CIR model."""
+    """Zero-coupon bond in CIR model.
+
+    Attributes:
+        kappa: Speed of mean-reversion.
+        mean_rate: Mean interest rate.
+        vol: Volatility.
+        event_grid: Event dates, e.g. payment dates, represented as year
+            fractions from the as-of date.
+        maturity_idx: Maturity index on event_grid.
+    """
 
     def __init__(self,
                  kappa: float,
@@ -67,7 +76,7 @@ class ZCBond(sde.SDE, bonds.Bond):
     def gamma(self,
               spot: (float, np.ndarray),
               time: float) -> (float, np.ndarray):
-        """2st order price sensitivity wrt the underlying state."""
+        """2nd order price sensitivity wrt the underlying state."""
         return self.b_factor(time) ** 2 * self.price(spot, time)
 
     def theta(self,
