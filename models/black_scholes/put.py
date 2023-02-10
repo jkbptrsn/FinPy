@@ -43,19 +43,41 @@ class Put(sde.SDE, options.VanillaOption):
 
     def payoff(self,
                state: (float, np.ndarray)) -> (float, np.ndarray):
-        """Payoff function."""
+        """Payoff function.
+
+        Args:
+            state: State of underlying process.
+
+        Returns:
+            Payoff.
+        """
         return payoffs.put(state, self.strike)
 
     def payoff_dds(self,
                    state: (float, np.ndarray)) -> (float, np.ndarray):
         """1st order partial derivative of payoff function wrt the
-        underlying state."""
+        underlying state.
+
+        Args:
+            state: State of underlying process.
+
+        Returns:
+            Payoff.
+        """
         return - payoffs.binary_cash_put(state, self.strike)
 
     def price(self,
               spot: (float, np.ndarray),
               time_idx: int) -> (float, np.ndarray):
-        """Price function."""
+        """Price function.
+
+        Args:
+            spot: Spot price.
+            time_idx: Index on event grid.
+
+        Returns:
+            Price.
+        """
         time = self.event_grid[time_idx]
         d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
                            self.expiry, self.strike, self.dividend)
@@ -67,7 +89,15 @@ class Put(sde.SDE, options.VanillaOption):
     def delta(self,
               spot: (float, np.ndarray),
               time_idx: int) -> (float, np.ndarray):
-        """1st order price sensitivity wrt the underlying state."""
+        """1st order price sensitivity wrt the underlying state.
+
+        Args:
+            spot: Spot price.
+            time_idx: Index on event grid.
+
+        Returns:
+            Delta.
+        """
         time = self.event_grid[time_idx]
         d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
                            self.expiry, self.strike, self.dividend)
@@ -77,7 +107,15 @@ class Put(sde.SDE, options.VanillaOption):
     def gamma(self,
               spot: (float, np.ndarray),
               time_idx: int) -> (float, np.ndarray):
-        """2nd order price sensitivity wrt the underlying state."""
+        """2nd order price sensitivity wrt the underlying state.
+
+        Args:
+            spot: Spot price.
+            time_idx: Index on event grid.
+
+        Returns:
+            Gamma.
+        """
         time = self.event_grid[time_idx]
         d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
                            self.expiry, self.strike, self.dividend)
@@ -87,7 +125,15 @@ class Put(sde.SDE, options.VanillaOption):
     def rho(self,
             spot: (float, np.ndarray),
             time_idx: int) -> (float, np.ndarray):
-        """1st order price sensitivity wrt rate."""
+        """1st order price sensitivity wrt rate.
+
+        Args:
+            spot: Spot price.
+            time_idx: Index on event grid.
+
+        Returns:
+            Rho.
+        """
         time = self.event_grid[time_idx]
         d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
                            self.expiry, self.strike, self.dividend)
@@ -97,7 +143,15 @@ class Put(sde.SDE, options.VanillaOption):
     def theta(self,
               spot: (float, np.ndarray),
               time_idx: int) -> (float, np.ndarray):
-        """1st order price sensitivity wrt time."""
+        """1st order price sensitivity wrt time.
+
+        Args:
+            spot: Spot price.
+            time_idx: Index on event grid.
+
+        Returns:
+            Theta.
+        """
         time = self.event_grid[time_idx]
         d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
                            self.expiry, self.strike, self.dividend)
@@ -111,7 +165,15 @@ class Put(sde.SDE, options.VanillaOption):
     def vega(self,
              spot: (float, np.ndarray),
              time_idx: int) -> (float, np.ndarray):
-        """1st order price sensitivity wrt volatility."""
+        """1st order price sensitivity wrt volatility.
+
+        Args:
+            spot: Spot price.
+            time_idx: Index on event grid.
+
+        Returns:
+            Vega.
+        """
         time = self.event_grid[time_idx]
         d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
                            self.expiry, self.strike, self.dividend)
