@@ -24,15 +24,15 @@ rannacher_stepping = False
 
 show_plots = True
 
-# model = "Black-Scholes"
+model = "Black-Scholes"
 # model = "Bachelier"
-model = "Vasicek"
+# model = "Vasicek"
 # model = "Extended Vasicek"
 # model = "CIR"
 
-# instrument = "Call"
+instrument = "Call"
 # instrument = "Put"
-instrument = "ZCBond"
+# instrument = "ZCBond"
 
 bc_type = "Linearity"
 # bc_type = "PDE"
