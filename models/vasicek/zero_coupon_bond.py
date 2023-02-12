@@ -7,7 +7,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class ZCBond(sde.SDE, bonds.Bond):
+class ZCBond(sde.SDE, bonds.VanillaBond):
     """Zero-coupon bond in the Vasicek model.
 
     Attributes:

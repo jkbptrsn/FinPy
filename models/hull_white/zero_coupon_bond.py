@@ -7,7 +7,7 @@ from utils import misc
 from utils import payoffs
 
 
-class ZCBond(sde.SDE, bonds.Bond):
+class ZCBond(sde.SDE, bonds.VanillaBond):
     """Zero-coupon bond class for the 1-factor Hull-White model.
 
     Attributes:

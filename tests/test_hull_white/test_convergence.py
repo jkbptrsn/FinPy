@@ -100,14 +100,14 @@ def mc_simulation(instrument: str,
                 # Monte-Carlo estimate of instrument price.
                 if instrument == "ZCBond":
                     # Zero-coupon bond price at time zero.
-                    # Bond matures at last event.
+                    # VanillaBond matures at last event.
                     index = bond.maturity_idx
                     price_tmp = discount[index]
                 elif instrument == "Call" or instrument == "Put":
                     # Index corresponding to expiry.
                     index = instru_obj.expiry_idx
                     # Zero-coupon bond price at expiry.
-                    # Bond matures at last event.
+                    # VanillaBond matures at last event.
                     bond_price = bond.price(rate[index], index)
                     # Call/put option price.
                     if instrument == "Call":

@@ -2,8 +2,8 @@ import abc
 import numpy as np
 
 
-class Bond(metaclass=abc.ABCMeta):
-    """Abstract bond class."""
+class VanillaBond(metaclass=abc.ABCMeta):
+    """Abstract vanilla bond class."""
 
     @abc.abstractmethod
     def payoff(self,
@@ -11,7 +11,7 @@ class Bond(metaclass=abc.ABCMeta):
         """Payoff function.
 
         Args:
-            spot: Spot rate.
+            spot: Current rate.
 
         Returns:
             Bond payoff.
@@ -25,8 +25,8 @@ class Bond(metaclass=abc.ABCMeta):
         """Price function.
 
         Args:
-            spot: Spot rate.
-            event_idx: Index of time on event grid...
+            spot: Current rate.
+            event_idx: Index of event.
 
         Returns:
             Bond price.
