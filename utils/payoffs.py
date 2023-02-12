@@ -6,8 +6,8 @@ def binary_asset_call(spot: (float, np.ndarray),
     """Long asset-or-nothing call option position.
 
     Args:
-        spot: Spot price.
-        strike: Strike price.
+        spot: Current price.
+        strike: Strike price at expiry.
 
     Returns:
         Payoff.
@@ -20,8 +20,8 @@ def binary_asset_put(spot: (float, np.ndarray),
     """Long asset-or-nothing put option position.
 
     Args:
-        spot: Spot price.
-        strike: Strike price.
+        spot: Current price.
+        strike: Strike price at expiry.
 
     Returns:
         Payoff.
@@ -34,8 +34,8 @@ def binary_cash_call(spot: (float, np.ndarray),
     """Long cash-or-nothing call option position.
 
     Args:
-        spot: Spot price.
-        strike: Strike price.
+        spot: Current price.
+        strike: Strike price at expiry.
 
     Returns:
         Payoff.
@@ -48,8 +48,8 @@ def binary_cash_put(spot: (float, np.ndarray),
     """Long cash-or-nothing put option position.
 
     Args:
-        spot: Spot price.
-        strike: Strike price.
+        spot: Current price.
+        strike: Strike price at expiry.
 
     Returns:
         Payoff.
@@ -62,8 +62,8 @@ def call(spot: (float, np.ndarray),
     """Long call option position.
 
     Args:
-        spot: Spot price.
-        strike: Strike price.
+        spot: Current price.
+        strike: Strike price at expiry.
 
     Returns:
         Payoff.
@@ -76,8 +76,8 @@ def put(spot: (float, np.ndarray),
     """Long put option position.
 
     Args:
-        spot: Spot price.
-        strike: Strike price.
+        spot: Current price.
+        strike: Strike price at expiry.
 
     Returns:
         Payoff.
@@ -89,7 +89,7 @@ def zero_coupon_bond(spot: (float, np.ndarray)) -> (float, np.ndarray):
     """Long zero-coupon bond position.
 
     Args:
-        spot: Spot rate.
+        spot: Current rate.
 
     Returns:
         Payoff.
