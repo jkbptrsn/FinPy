@@ -11,7 +11,7 @@ class VanillaOption(metaclass=abc.ABCMeta):
         """Payoff function.
 
         Args:
-            spot: Spot rate.
+            spot: Current value of underlying.
 
         Returns:
             Option payoff.
@@ -25,7 +25,7 @@ class VanillaOption(metaclass=abc.ABCMeta):
         """Payoff function.
 
         Args:
-            spot: Spot rate.
+            spot: Current value of underlying.
             event_idx: Index of event.
 
         Returns:
@@ -37,10 +37,10 @@ class VanillaOption(metaclass=abc.ABCMeta):
     def delta(self,
               spot: (float, np.ndarray),
               event_idx: int) -> (float, np.ndarray):
-        """1st order price sensitivity wrt the underlying state.
+        """1st order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Spot rate.
+            spot: Current value of underlying.
             event_idx: Index of event.
 
         Returns:
@@ -52,10 +52,10 @@ class VanillaOption(metaclass=abc.ABCMeta):
     def gamma(self,
               spot: (float, np.ndarray),
               event_idx: int) -> (float, np.ndarray):
-        """2nd order price sensitivity wrt the underlying state.
+        """2nd order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Spot rate.
+            spot: Current value of underlying.
             event_idx: Index of event.
 
         Returns:
@@ -70,7 +70,7 @@ class VanillaOption(metaclass=abc.ABCMeta):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Spot rate.
+            spot: Current value of underlying.
             event_idx: Index of event.
 
         Returns:
