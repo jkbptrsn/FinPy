@@ -14,7 +14,7 @@ class VanillaBond(metaclass=abc.ABCMeta):
             spot: Current rate.
 
         Returns:
-            Bond payoff.
+            Payoff.
         """
         pass
 
@@ -26,9 +26,9 @@ class VanillaBond(metaclass=abc.ABCMeta):
 
         Args:
             spot: Current rate.
-            event_idx: Index of event.
+            event_idx: Index on event grid.
 
         Returns:
-            Bond price.
+            Price.
         """
         pass

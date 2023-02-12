@@ -2,6 +2,24 @@ import abc
 import numpy as np
 
 
+class VanillaOptionNew(metaclass=abc.ABCMeta):
+    """Abstract vanilla option class."""
+
+    @abc.abstractmethod
+    def payoff(self,
+               spot: (float, np.ndarray)) -> (float, np.ndarray):
+        """Payoff function.
+
+        Args:
+            spot: Current value of underlying.
+
+        Returns:
+            Payoff.
+        """
+        pass
+
+
+# Could rename this to VanillaOptionAnalytical
 class VanillaOption(metaclass=abc.ABCMeta):
     """Abstract vanilla option class."""
 
@@ -14,7 +32,7 @@ class VanillaOption(metaclass=abc.ABCMeta):
             spot: Current value of underlying.
 
         Returns:
-            Option payoff.
+            Payoff.
         """
         pass
 
@@ -22,14 +40,14 @@ class VanillaOption(metaclass=abc.ABCMeta):
     def price(self,
               spot: (float, np.ndarray),
               event_idx: int) -> (float, np.ndarray):
-        """Payoff function.
+        """Price function.
 
         Args:
             spot: Current value of underlying.
-            event_idx: Index of event.
+            event_idx: Index on event grid.
 
         Returns:
-            Option price.
+            Price.
         """
         pass
 
@@ -41,10 +59,10 @@ class VanillaOption(metaclass=abc.ABCMeta):
 
         Args:
             spot: Current value of underlying.
-            event_idx: Index of event.
+            event_idx: Index on event grid.
 
         Returns:
-            Option delta.
+            Delta.
         """
         pass
 
@@ -56,10 +74,10 @@ class VanillaOption(metaclass=abc.ABCMeta):
 
         Args:
             spot: Current value of underlying.
-            event_idx: Index of event.
+            event_idx: Index on event grid.
 
         Returns:
-            Option gamma.
+            Gamma.
         """
         pass
 
@@ -71,9 +89,9 @@ class VanillaOption(metaclass=abc.ABCMeta):
 
         Args:
             spot: Current value of underlying.
-            event_idx: Index of event.
+            event_idx: Index on event grid.
 
         Returns:
-            Option theta.
+            Theta.
         """
         pass
