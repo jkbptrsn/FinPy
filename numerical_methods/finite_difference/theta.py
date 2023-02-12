@@ -3,6 +3,8 @@ import numpy as np
 from scipy.linalg import solve_banded
 
 from utils import timing
+import utils.global_types as global_types
+from utils import payoffs
 
 
 class Theta:
@@ -480,6 +482,35 @@ def setup_vasicek(xmin: float,
     solver.set_drift(kappa * (mean_rate - solver.grid()))
     solver.set_diffusion(vol + 0 * solver.grid())
     solver.set_rate(solver.grid())
+    return solver
+
+
+def setup_solver(xmin: float,
+                 xmax: float,
+                 nstates: int,
+                 instrument,
+                 theta_value: float = 0.5,
+                 method: str = "Andersen") \
+        -> (AndersenPiterbarg1D, Andreasen1D):
+    # Set up PDE solver.
+    dt = instrument.event_grid[-1] - instrument.event_grid[-2]
+    if method == "Andersen":
+        solver = AndersenPiterbarg1D(xmin, xmax, nstates, dt, theta_value)
+    elif method == "Andreasen":
+        solver = Andreasen1D(xmin, xmax, nstates, dt, theta_value)
+    else:
+        raise ValueError("Method is not recognized.")
+    if instrument.model_name == global_types.ModelName.BLACK_SCHOLES:
+        solver.set_drift(instrument.rate * solver.grid())
+        solver.set_diffusion(instrument.vol * solver.grid())
+        solver.set_rate(instrument.rate + 0 * solver.grid())
+    else:
+        raise ValueError("Model is not recognized.")
+    # Terminal solution to PDE.
+    if instrument.instrument_type == global_types.InstrumentType.EUROPEAN_CALL:
+        solver.solution = payoffs.call(solver.grid(), instrument.strike)
+    else:
+        raise ValueError("Instrument is not recognized.")
     return solver
 
 
