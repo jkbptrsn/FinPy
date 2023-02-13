@@ -30,8 +30,8 @@ model = "Black-Scholes"
 # model = "Extended Vasicek"
 # model = "CIR"
 
-instrument = "Call"
-# instrument = "Put"
+# instrument = "Call"
+instrument = "Put"
 # instrument = "ZCBond"
 
 bc_type = "Linearity"

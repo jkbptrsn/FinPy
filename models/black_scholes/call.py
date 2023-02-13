@@ -6,7 +6,7 @@ import models.options as options
 import models.black_scholes.misc as misc
 import models.black_scholes.sde as sde
 
-from numerical_methods.finite_difference import theta
+from numerical_methods.finite_difference import theta as fd_theta
 
 import utils.global_types as global_types
 import utils.payoffs as payoffs
@@ -43,10 +43,8 @@ class CallNew(options.VanillaOptionNew):
         self.event_grid = event_grid
         self.dividend = dividend
 
-        self.model_name = global_types.ModelName.BLACK_SCHOLES
         self.instrument_type = global_types.InstrumentType.EUROPEAN_CALL
-        # TODO: Add fd method attribute...
-
+        self.model_name = global_types.ModelName.BLACK_SCHOLES
         self.fd = None
         self.mc = None
 
@@ -198,13 +196,28 @@ class CallNew(options.VanillaOptionNew):
                  nstates: int,
                  theta_value: float = 0.5,
                  method: str = "Andersen"):
-        self.fd = \
-            theta.setup_solver(xmin, xmax, nstates, self, theta_value, method)
+        """Setting up finite difference solver.
+
+        Args:
+            xmin: Minimum of stock price range.
+            xmax: Maximum of stock price range.
+            nstates: Number of states.
+            theta_value: ...
+            method: "Andersen" og "Andreasen"
+
+        Returns:
+            Finite difference solver.
+        """
+        self.fd = fd_theta.setup_solver(xmin, xmax, nstates,
+                                        self, theta_value, method)
         self.fd.initialization()
 
     def fd_solve(self):
+        """Run solver on event_grid..."""
         for dt in np.flip(np.diff(self.event_grid)):
             # TODO: Use dt in propagation, with non-equidistant event grid...
+            # Will this work for both theta-method implementations?
+            self.fd.set_propagator()
             self.fd.propagation()
 
 

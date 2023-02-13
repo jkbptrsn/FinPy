@@ -485,35 +485,6 @@ def setup_vasicek(xmin: float,
     return solver
 
 
-def setup_solver(xmin: float,
-                 xmax: float,
-                 nstates: int,
-                 instrument,
-                 theta_value: float = 0.5,
-                 method: str = "Andersen") \
-        -> (AndersenPiterbarg1D, Andreasen1D):
-    # Set up PDE solver.
-    dt = instrument.event_grid[-1] - instrument.event_grid[-2]
-    if method == "Andersen":
-        solver = AndersenPiterbarg1D(xmin, xmax, nstates, dt, theta_value)
-    elif method == "Andreasen":
-        solver = Andreasen1D(xmin, xmax, nstates, dt, theta_value)
-    else:
-        raise ValueError("Method is not recognized.")
-    if instrument.model_name == global_types.ModelName.BLACK_SCHOLES:
-        solver.set_drift(instrument.rate * solver.grid())
-        solver.set_diffusion(instrument.vol * solver.grid())
-        solver.set_rate(instrument.rate + 0 * solver.grid())
-    else:
-        raise ValueError("Model is not recognized.")
-    # Terminal solution to PDE.
-    if instrument.instrument_type == global_types.InstrumentType.EUROPEAN_CALL:
-        solver.solution = payoffs.call(solver.grid(), instrument.strike)
-    else:
-        raise ValueError("Instrument is not recognized.")
-    return solver
-
-
 def norm_diff_1d(vec1: np.ndarray,
                  vec2: np.ndarray,
                  step_size1: float,
@@ -534,3 +505,47 @@ def norm_diff_1d(vec1: np.ndarray,
     norm_l2 = np.sqrt(np.sum(np.square(diff)) * step_size1)
 
     return norm_center, norm_max, norm_l2
+
+
+def setup_solver(xmin: float,
+                 xmax: float,
+                 nstates: int,
+                 instrument,
+                 theta_value: float = 0.5,
+                 method: str = "Andersen") \
+        -> (AndersenPiterbarg1D, Andreasen1D):
+    """Setting up finite difference solver.
+
+    Args:
+        xmin: Minimum of stock price range.
+        xmax: Maximum of stock price range.
+        nstates: Number of states.
+        instrument: Instrument object.
+        theta_value: ...
+        method: "Andersen" og "Andreasen"
+
+    Returns:
+        Finite difference solver.
+    """
+    # Set up PDE solver.
+    dt = instrument.event_grid[-1] - instrument.event_grid[-2]
+    if method == "Andersen":
+        solver = AndersenPiterbarg1D(xmin, xmax, nstates, dt, theta_value)
+    elif method == "Andreasen":
+        solver = Andreasen1D(xmin, xmax, nstates, dt, theta_value)
+    else:
+        raise ValueError("Method is not recognized.")
+    if instrument.model_name == global_types.ModelName.BLACK_SCHOLES:
+        solver.set_drift(instrument.rate * solver.grid())
+        solver.set_diffusion(instrument.vol * solver.grid())
+        solver.set_rate(instrument.rate + 0 * solver.grid())
+    else:
+        raise ValueError("Model is not recognized.")
+    # Terminal solution to PDE.
+    if instrument.instrument_type == global_types.InstrumentType.EUROPEAN_CALL:
+        solver.solution = payoffs.call(solver.grid(), instrument.strike)
+    elif instrument.instrument_type == global_types.InstrumentType.EUROPEAN_PUT:
+        solver.solution = payoffs.put(solver.grid(), instrument.strike)
+    else:
+        raise ValueError("Instrument is not recognized.")
+    return solver

@@ -1,10 +1,8 @@
 from datetime import datetime
 import numpy as np
-import time
 
 from models.black_scholes import call as bs_call
-from numerical_methods.finite_difference import theta
-from utils import payoffs
+from models.black_scholes import put as bs_put
 from utils import plots
 
 
@@ -30,14 +28,22 @@ dt = (t_max - t_min) / (t_steps - 1)
 expiry_idx = t_steps - 1
 event_grid = dt * np.arange(t_steps) - t_min
 
-call = bs_call.CallNew(rate, vol, strike, expiry_idx, event_grid)
-call.fd_setup(x_min, x_max, x_steps)
+# instrument = "Call"
+instrument = "Put"
 
-payoff = call.fd.solution.copy()
-
-call.fd_solve()
-
-instru = bs_call.Call(rate, vol, np.array([0, expiry]), strike, 1)
-
-plots.plot_price_and_greeks(call.fd, payoff, call.fd.solution,
-                            instrument=instru, show=True)
+if instrument == "Call":
+    call = bs_call.CallNew(rate, vol, strike, expiry_idx, event_grid)
+    call.fd_setup(x_min, x_max, x_steps)
+    payoff = call.fd.solution.copy()
+    call.fd_solve()
+    instru = bs_call.Call(rate, vol, np.array([0, expiry]), strike, 1)
+    plots.plot_price_and_greeks(call.fd, payoff, call.fd.solution,
+                                instrument=instru, show=True)
+elif instrument == "Put":
+    put = bs_put.PutNew(rate, vol, strike, expiry_idx, event_grid)
+    put.fd_setup(x_min, x_max, x_steps)
+    payoff = put.fd.solution.copy()
+    put.fd_solve()
+    instru = bs_put.Put(rate, vol, np.array([0, expiry]), strike, 1)
+    plots.plot_price_and_greeks(put.fd, payoff, put.fd.solution,
+                                instrument=instru, show=True)
