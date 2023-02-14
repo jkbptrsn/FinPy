@@ -9,6 +9,7 @@ from utils import payoffs
 
 class Theta:
     """Theta method for solving a parabolic 1-factor PDE (base class).
+    TODO: Change class name to Theta1D
 
     The general structure of the PDE is
         dV/dt + drift * dV/dx + 1/2 * diffusion^2 * dV^2/dx^2 = rate * V,
@@ -16,6 +17,7 @@ class Theta:
     where the underlying 1-dimensional Markov process reads
         dx_t = drift(t, x_t) * dt + diffusion(t, x_t) * dW_t.
 
+    TODO: theta -> theta_parameter
     The numerical solution is determined using
         - theta = 0   : Explicit method
         - theta = 1/2 : Crank-Nicolson method (default)
@@ -29,7 +31,7 @@ class Theta:
         - 3rd row: Sub-diagonal (not including last element)
 
     TODO: Remove 2 extra grid points -- need for convergence tests?
-    TODO: Add non-equidistant grid
+    TODO: Add non-equidistant grid. Instead of xmin, xmax, nstates, use state_grid as parameter
     TODO: Smoothing of payoff functions -- not necessary according to Andreasen
     TODO: Rannacher time stepping with fully implicit method -- not necessary according to Andreasen
     TODO: Upwinding -- rarely used by Andreasen
@@ -99,6 +101,7 @@ class Theta:
     def delta_fd(self) -> np.ndarray:
         """Delta calculated by second order finite differences. Assuming
         equidistant and ascending grid.
+        TODO: Change name to delta
         """
         delta = np.zeros(self.nstates)
         # Central finite difference.
@@ -117,6 +120,7 @@ class Theta:
     def gamma_fd(self) -> np.ndarray:
         """Gamma calculated by second order finite differences. Assuming
         equidistant and ascending grid.
+        TODO: Change name to gamma
         """
         dx_sq = self.dx ** 2
         gamma = np.zeros(self.nstates)
@@ -139,7 +143,9 @@ class Theta:
     def theta_fd(self) -> np.ndarray:
         """Theta calculated by central finite difference.
 
+        TODO: Change name to theta
         TODO: Check AndersenPiterbarg1D with boundary = "PDE"?
+        TODO: Optional dt parameter, otherwise use first time step of event_grid
         """
         self.set_propagator()
         # Save current solution
@@ -267,6 +273,8 @@ class Andreasen1D(Theta):
 class AndersenPiterbarg1D(Theta):
     """The theta method implemented as shown in
     L.B.G. Andersen & V.V. Piterbarg 2010.
+
+    TODO: Change class name to Andersen1D
 
     TODO: "PDE" boundary conditions requires a very small initial time step,
         and the convergence order differs from "Linearity". Hence, use
@@ -517,8 +525,8 @@ def setup_solver(xmin: float,
     """Setting up finite difference solver.
 
     Args:
-        xmin: Minimum of stock price range.
-        xmax: Maximum of stock price range.
+        xmin: Minimum value of underlying.
+        xmax: Maximum value of underlying.
         nstates: Number of states.
         instrument: Instrument object.
         theta_value: ...

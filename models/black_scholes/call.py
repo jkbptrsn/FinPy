@@ -26,7 +26,7 @@ class CallNew(options.VanillaOptionNew):
             fractions from the as-of date.
         dividend: Stock dividend. Default value is 0.
 
-        TODO: Add basic unit tests of class.
+        # TODO: Add basic unit tests of class.
     """
 
     def __init__(self,

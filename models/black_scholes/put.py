@@ -12,7 +12,7 @@ import utils.global_types as global_types
 import utils.payoffs as payoffs
 
 
-class PutNew(options.VanillaOption):
+class PutNew(options.VanillaOptionNew):
     """European put option in Black-Scholes model.
 
     European put option written on stock price.
@@ -26,7 +26,7 @@ class PutNew(options.VanillaOption):
         expiry_idx: Expiry index on event_grid.
         dividend: Stock dividend.
 
-        TODO: Add basic unit tests of class.
+        # TODO: Add basic unit tests of class.
     """
 
     def __init__(self,
