@@ -3,6 +3,7 @@ import numpy as np
 
 from models.black_scholes import call as bs_call
 from models.black_scholes import put as bs_put
+from models.bachelier import call as ba_call
 from models.vasicek import zero_coupon_bond as va_bond
 from utils import plots
 
@@ -31,14 +32,14 @@ event_grid = dt * np.arange(t_steps) - t_min
 maturity_idx = t_steps - 1
 
 # model_name = "Black-Scholes"
-# model_name = "Bachelier"
-model_name = "Vasicek"
+model_name = "Bachelier"
+# model_name = "Vasicek"
 # model_name = "Extended Vasicek"
 # model_name = "CIR"
 
-# instrument = "Call"
+instrument = "Call"
 # instrument = "Put"
-instrument = "ZCBond"
+# instrument = "ZCBond"
 
 if model_name in ("Vasicek", "Extended Vasicek"):
     strike = 0.5
@@ -53,6 +54,9 @@ if model_name == "Black-Scholes":
         instru = bs_call.CallNew(rate, vol, strike, expiry_idx, event_grid)
     elif instrument == "Put":
         instru = bs_put.PutNew(rate, vol, strike, expiry_idx, event_grid)
+elif model_name == "Bachelier":
+    if instrument == "Call":
+        instru = ba_call.CallNew(rate, vol, strike, expiry_idx, event_grid)
 elif model_name == "Vasicek":
     if instrument == "ZCBond":
         instru = va_bond.ZCBondNew(kappa, mean_rate, vol, event_grid, maturity_idx)

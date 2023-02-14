@@ -548,6 +548,14 @@ def setup_solver(xmin: float,
         drift = instrument.rate * solver.grid()
         diffusion = instrument.vol * solver.grid()
         rate = instrument.rate + 0 * solver.grid()
+    elif instrument.model == global_types.ModelName.BACHELIER:
+        drift = 0 * solver.grid()
+        diffusion = instrument.vol + 0 * solver.grid()
+        rate = instrument.rate + 0 * solver.grid()
+    elif instrument.model == global_types.ModelName.CIR:
+        drift = instrument.kappa * (instrument.mean_rate - solver.grid())
+        diffusion = instrument.vol * np.sqrt(solver.grid())
+        rate = solver.grid()
     elif instrument.model == global_types.ModelName.VASICEK:
         drift = instrument.kappa * (instrument.mean_rate - solver.grid())
         diffusion = instrument.vol + 0 * solver.grid()
