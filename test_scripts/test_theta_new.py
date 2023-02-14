@@ -3,6 +3,7 @@ import numpy as np
 
 from models.black_scholes import call as bs_call
 from models.black_scholes import put as bs_put
+from models.vasicek import zero_coupon_bond as va_bond
 from utils import plots
 
 
@@ -27,23 +28,36 @@ dt = (t_max - t_min) / (t_steps - 1)
 
 expiry_idx = t_steps - 1
 event_grid = dt * np.arange(t_steps) - t_min
+maturity_idx = t_steps - 1
+
+# model_name = "Black-Scholes"
+# model_name = "Bachelier"
+model_name = "Vasicek"
+# model_name = "Extended Vasicek"
+# model_name = "CIR"
 
 # instrument = "Call"
-instrument = "Put"
+# instrument = "Put"
+instrument = "ZCBond"
 
-if instrument == "Call":
-    call = bs_call.CallNew(rate, vol, strike, expiry_idx, event_grid)
-    call.fd_setup(x_min, x_max, x_steps)
-    payoff = call.fd.solution.copy()
-    call.fd_solve()
-    instru = bs_call.Call(rate, vol, np.array([0, expiry]), strike, 1)
-    plots.plot_price_and_greeks(call.fd, payoff, call.fd.solution,
-                                instrument=instru, show=True)
-elif instrument == "Put":
-    put = bs_put.PutNew(rate, vol, strike, expiry_idx, event_grid)
-    put.fd_setup(x_min, x_max, x_steps)
-    payoff = put.fd.solution.copy()
-    put.fd_solve()
-    instru = bs_put.Put(rate, vol, np.array([0, expiry]), strike, 1)
-    plots.plot_price_and_greeks(put.fd, payoff, put.fd.solution,
-                                instrument=instru, show=True)
+if model_name in ("Vasicek", "Extended Vasicek"):
+    strike = 0.5
+    vol = 0.05
+    expiry = 10
+    x_min = -0.5  # -1.1
+    x_max = 0.5   # 1.1
+    x_steps = 201
+
+if model_name == "Black-Scholes":
+    if instrument == "Call":
+        instru = bs_call.CallNew(rate, vol, strike, expiry_idx, event_grid)
+    elif instrument == "Put":
+        instru = bs_put.PutNew(rate, vol, strike, expiry_idx, event_grid)
+elif model_name == "Vasicek":
+    if instrument == "ZCBond":
+        instru = va_bond.ZCBondNew(kappa, mean_rate, vol, event_grid, maturity_idx)
+
+instru.fd_setup(x_min, x_max, x_steps)
+payoff = instru.fd.solution.copy()
+instru.fd_solve()
+plots.plot_price_and_greeks(instru, payoff, instru.fd.solution, show=True)

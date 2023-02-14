@@ -3,25 +3,25 @@ import numpy as np
 from scipy.stats import norm
 
 
-def plot_price_and_greeks(solver, payoff, price, instrument=None, show=True):
+def plot_price_and_greeks(instrument, payoff, price, show=True):
     """..."""
 
     plt.rcParams.update({"font.size": 10})
+
+    grid = instrument.fd.grid()
 
     # Figure 1
     f1, ax1 = plt.subplots(4, 1, sharex=True)
     f1.suptitle("Price and greeks of instrument")
 
     # Plot of instrument payoff and price.
-    ax1[0].plot(solver.grid(), payoff, '-.k', label="Payoff")
-    ax1[0].plot(solver.grid(), price, '-r', label="Numerical result")
-    if instrument:
-        try:
-            ax1[0].plot(solver.grid(),
-                        instrument.price(solver.grid(), 0),
-                        'ob', markersize=2, label="Analytical result")
-        except (AttributeError, TypeError, ValueError):
-            print("Error in plots.py: Fig 1, price")
+    ax1[0].plot(grid, payoff, '-.k', label="Payoff")
+    ax1[0].plot(grid, price, '-r', label="Numerical result")
+    try:
+        ax1[0].plot(grid, instrument.price(grid, 0),
+                    'ob', markersize=2, label="Analytical result")
+    except (AttributeError, TypeError, ValueError):
+        print("Error in plots.py: Fig 1, price")
     ax1[0].set_ylabel("Price")
     ax1[0].grid(True)
     ax1[0].ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
@@ -30,40 +30,31 @@ def plot_price_and_greeks(solver, payoff, price, instrument=None, show=True):
                   mode="expand", borderaxespad=0, ncol=3)
 
     # Plot of instrument delta.
-    ax1[1].plot(solver.grid(), solver.delta_fd(), '-r')
-    if instrument:
-        try:
-            ax1[1].plot(solver.grid(),
-                        instrument.delta(solver.grid(), 0),
-                        'ob', markersize=2)
-        except (AttributeError, TypeError, ValueError):
-            print("Error in plots.py: Fig 1, delta")
+    ax1[1].plot(grid, instrument.fd.delta_fd(), '-r')
+    try:
+        ax1[1].plot(grid, instrument.delta(grid, 0), 'ob', markersize=2)
+    except (AttributeError, TypeError, ValueError):
+        print("Error in plots.py: Fig 1, delta")
     ax1[1].set_ylabel("Delta")
     ax1[1].grid(True)
     ax1[1].ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
 
     # Plot of instrument gamma.
-    ax1[2].plot(solver.grid(), solver.gamma_fd(), '-r')
-    if instrument:
-        try:
-            ax1[2].plot(solver.grid(),
-                        instrument.gamma(solver.grid(), 0),
-                        'ob', markersize=2)
-        except (AttributeError, TypeError, ValueError):
-            print("Error in plots.py: Fig 1, gamma")
+    ax1[2].plot(grid, instrument.fd.gamma_fd(), '-r')
+    try:
+        ax1[2].plot(grid, instrument.gamma(grid, 0), 'ob', markersize=2)
+    except (AttributeError, TypeError, ValueError):
+        print("Error in plots.py: Fig 1, gamma")
     ax1[2].set_ylabel("Gamma")
     ax1[2].grid(True)
     ax1[2].ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
 
     # Plot of instrument theta.
-    ax1[3].plot(solver.grid(), solver.theta_fd(), '-r')
-    if instrument:
-        try:
-            ax1[3].plot(solver.grid(),
-                        instrument.theta(solver.grid(), 0),
-                        'ob', markersize=2)
-        except (AttributeError, TypeError, ValueError):
-            print("Error in plots.py: Fig 1, theta")
+    ax1[3].plot(grid, instrument.fd.theta_fd(), '-r')
+    try:
+        ax1[3].plot(grid, instrument.theta(grid, 0), 'ob', markersize=2)
+    except (AttributeError, TypeError, ValueError):
+        print("Error in plots.py: Fig 1, theta")
     ax1[3].set_ylabel("Theta")
     ax1[3].set_xlabel("\"Value\" of underlying")
     ax1[3].grid(True)
@@ -74,49 +65,41 @@ def plot_price_and_greeks(solver, payoff, price, instrument=None, show=True):
     f2.suptitle("Analytical result minus numerical result")
 
     # Plot of instrument price.
-    if instrument:
-        try:
-            ax2[0].plot(solver.grid(),
-                        instrument.price(solver.grid(), 0) - price,
-                        'ob', markersize=2)
-        except (AttributeError, TypeError, ValueError):
-            print("Error in plots.py: Fig 2, price")
+    try:
+        ax2[0].plot(grid, instrument.price(grid, 0) - price,
+                    'ob', markersize=2)
+    except (AttributeError, TypeError, ValueError):
+        print("Error in plots.py: Fig 2, price")
     ax2[0].set_ylabel("Price")
     ax2[0].grid(True)
     ax2[0].ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
 
     # Plot of instrument delta.
-    if instrument:
-        try:
-            ax2[1].plot(solver.grid(),
-                        instrument.delta(solver.grid(), 0) - solver.delta_fd(),
-                        'ob', markersize=2)
-        except (AttributeError, TypeError, ValueError):
-            print("Error in plots.py: Fig 2, delta")
+    try:
+        ax2[1].plot(grid, instrument.delta(grid, 0) - instrument.fd.delta_fd(),
+                    'ob', markersize=2)
+    except (AttributeError, TypeError, ValueError):
+        print("Error in plots.py: Fig 2, delta")
     ax2[1].set_ylabel("Delta")
     ax2[1].grid(True)
     ax2[1].ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
 
     # Plot of instrument gamma.
-    if instrument:
-        try:
-            ax2[2].plot(solver.grid(),
-                        instrument.gamma(solver.grid(), 0) - solver.gamma_fd(),
-                        'ob', markersize=2)
-        except (AttributeError, TypeError, ValueError):
-            print("Error in plots.py: Fig 2, gamma")
+    try:
+        ax2[2].plot(grid, instrument.gamma(grid, 0) - instrument.fd.gamma_fd(),
+                    'ob', markersize=2)
+    except (AttributeError, TypeError, ValueError):
+        print("Error in plots.py: Fig 2, gamma")
     ax2[2].set_ylabel("Gamma")
     ax2[2].grid(True)
     ax2[2].ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
 
     # Plot of instrument theta.
-    if instrument:
-        try:
-            ax2[3].plot(solver.grid(),
-                        instrument.theta(solver.grid(), 0) - solver.theta_fd(),
-                        'ob', markersize=2)
-        except (AttributeError, TypeError, ValueError):
-            print("Error in plots.py: Fig 2, theta")
+    try:
+        ax2[3].plot(grid, instrument.theta(grid, 0) - instrument.fd.theta_fd(),
+                    'ob', markersize=2)
+    except (AttributeError, TypeError, ValueError):
+        print("Error in plots.py: Fig 2, theta")
     ax2[3].set_ylabel("Theta")
     ax2[3].set_xlabel("\"Value\" of underlying")
     ax2[3].grid(True)

@@ -44,8 +44,8 @@ class PutNew(options.VanillaOptionNew):
         self.event_grid = event_grid
         self.dividend = dividend
 
-        self.instrument_type = global_types.InstrumentType.EUROPEAN_PUT
-        self.model_name = global_types.ModelName.BLACK_SCHOLES
+        self.type = global_types.InstrumentType.EUROPEAN_PUT
+        self.model = global_types.ModelName.BLACK_SCHOLES
         self.fd = None
         self.mc = None
 

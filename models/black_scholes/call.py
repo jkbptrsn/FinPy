@@ -43,8 +43,8 @@ class CallNew(options.VanillaOptionNew):
         self.event_grid = event_grid
         self.dividend = dividend
 
-        self.instrument_type = global_types.InstrumentType.EUROPEAN_CALL
-        self.model_name = global_types.ModelName.BLACK_SCHOLES
+        self.type = global_types.InstrumentType.EUROPEAN_CALL
+        self.model = global_types.ModelName.BLACK_SCHOLES
         self.fd = None
         self.mc = None
 
@@ -197,7 +197,7 @@ class CallNew(options.VanillaOptionNew):
                  theta_value: float = 0.5,
                  method: str = "Andersen"):
         """Setting up finite difference solver.
-
+        TODO: Add non-equidistant grid. Instead of xmin, xmax, nstates, use state_grid as parameter
         Args:
             xmin: Minimum of stock price range.
             xmax: Maximum of stock price range.

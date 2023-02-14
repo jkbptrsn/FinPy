@@ -203,6 +203,7 @@ class Andreasen1D(Theta):
     The propagator is defined by
         dV/dt = - Propagator * V.
 
+    TODO: Remove dt as argument, give dt as argument in propagation function
     TODO: Check convergence -- should match AndersenPiterbarg1D using bc_type = "Linearity"
     TODO: Move ddx and d2dx2 to separate file, generalize for penta...
     """
@@ -523,7 +524,7 @@ def setup_solver(xmin: float,
                  method: str = "Andersen") \
         -> (AndersenPiterbarg1D, Andreasen1D):
     """Setting up finite difference solver.
-
+    TODO: Add non-equidistant grid. Instead of xmin, xmax, nstates, use state_grid as parameter
     Args:
         xmin: Minimum value of underlying.
         xmax: Maximum value of underlying.
@@ -543,17 +544,27 @@ def setup_solver(xmin: float,
         solver = Andreasen1D(xmin, xmax, nstates, dt, theta_value)
     else:
         raise ValueError("Method is not recognized.")
-    if instrument.model_name == global_types.ModelName.BLACK_SCHOLES:
-        solver.set_drift(instrument.rate * solver.grid())
-        solver.set_diffusion(instrument.vol * solver.grid())
-        solver.set_rate(instrument.rate + 0 * solver.grid())
+    if instrument.model == global_types.ModelName.BLACK_SCHOLES:
+        drift = instrument.rate * solver.grid()
+        diffusion = instrument.vol * solver.grid()
+        rate = instrument.rate + 0 * solver.grid()
+    elif instrument.model == global_types.ModelName.VASICEK:
+        drift = instrument.kappa * (instrument.mean_rate - solver.grid())
+        diffusion = instrument.vol + 0 * solver.grid()
+        rate = solver.grid()
     else:
         raise ValueError("Model is not recognized.")
+    solver.set_drift(drift)
+    solver.set_diffusion(diffusion)
+    solver.set_rate(rate)
+
     # Terminal solution to PDE.
-    if instrument.instrument_type == global_types.InstrumentType.EUROPEAN_CALL:
+    if instrument.type == global_types.InstrumentType.EUROPEAN_CALL:
         solver.solution = payoffs.call(solver.grid(), instrument.strike)
-    elif instrument.instrument_type == global_types.InstrumentType.EUROPEAN_PUT:
+    elif instrument.type == global_types.InstrumentType.EUROPEAN_PUT:
         solver.solution = payoffs.put(solver.grid(), instrument.strike)
+    elif instrument.type == global_types.InstrumentType.ZERO_COUPON_BOND:
+        solver.solution = payoffs.zero_coupon_bond(solver.grid())
     else:
         raise ValueError("Instrument is not recognized.")
     return solver

@@ -2,6 +2,23 @@ import abc
 import numpy as np
 
 
+class VanillaBondNew(metaclass=abc.ABCMeta):
+    """Abstract vanilla bond class."""
+
+    @abc.abstractmethod
+    def payoff(self,
+               spot: (float, np.ndarray)) -> (float, np.ndarray):
+        """Payoff function.
+
+        Args:
+            spot: Current rate.
+
+        Returns:
+            Payoff.
+        """
+        pass
+
+
 class VanillaBond(metaclass=abc.ABCMeta):
     """Abstract vanilla bond class."""
 
