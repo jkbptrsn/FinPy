@@ -544,19 +544,19 @@ def setup_solver(xmin: float,
         solver = Andreasen1D(xmin, xmax, nstates, dt, theta_value)
     else:
         raise ValueError("Method is not recognized.")
-    if instrument.model == global_types.ModelName.BLACK_SCHOLES:
+    if instrument.model == global_types.Model.BLACK_SCHOLES:
         drift = instrument.rate * solver.grid()
         diffusion = instrument.vol * solver.grid()
         rate = instrument.rate + 0 * solver.grid()
-    elif instrument.model == global_types.ModelName.BACHELIER:
+    elif instrument.model == global_types.Model.BACHELIER:
         drift = 0 * solver.grid()
         diffusion = instrument.vol + 0 * solver.grid()
         rate = instrument.rate + 0 * solver.grid()
-    elif instrument.model == global_types.ModelName.CIR:
+    elif instrument.model == global_types.Model.CIR:
         drift = instrument.kappa * (instrument.mean_rate - solver.grid())
         diffusion = instrument.vol * np.sqrt(solver.grid())
         rate = solver.grid()
-    elif instrument.model == global_types.ModelName.VASICEK:
+    elif instrument.model == global_types.Model.VASICEK:
         drift = instrument.kappa * (instrument.mean_rate - solver.grid())
         diffusion = instrument.vol + 0 * solver.grid()
         rate = solver.grid()
@@ -567,11 +567,11 @@ def setup_solver(xmin: float,
     solver.set_rate(rate)
 
     # Terminal solution to PDE.
-    if instrument.type == global_types.InstrumentType.EUROPEAN_CALL:
+    if instrument.type == global_types.Instrument.EUROPEAN_CALL:
         solver.solution = payoffs.call(solver.grid(), instrument.strike)
-    elif instrument.type == global_types.InstrumentType.EUROPEAN_PUT:
+    elif instrument.type == global_types.Instrument.EUROPEAN_PUT:
         solver.solution = payoffs.put(solver.grid(), instrument.strike)
-    elif instrument.type == global_types.InstrumentType.ZERO_COUPON_BOND:
+    elif instrument.type == global_types.Instrument.ZERO_COUPON_BOND:
         solver.solution = payoffs.zero_coupon_bond(solver.grid())
     else:
         raise ValueError("Instrument is not recognized.")

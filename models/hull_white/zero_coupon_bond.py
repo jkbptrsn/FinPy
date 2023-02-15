@@ -34,7 +34,7 @@ class ZCBond(sde.SDE, bonds.VanillaBond):
         self.discount_curve = discount_curve
         self.maturity_idx = maturity_idx
 
-        self.bond_type = global_types.InstrumentType.ZERO_COUPON_BOND
+        self.bond_type = global_types.Instrument.ZERO_COUPON_BOND
 
     @property
     def maturity(self) -> float:

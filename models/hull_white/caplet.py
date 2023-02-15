@@ -40,7 +40,7 @@ class Caplet(sde.SDE):
         self.maturity_idx = maturity_idx
         self.fixed_rate = fixed_rate
 
-        self.instrument_type = global_types.InstrumentType.CAPLET
+        self.instrument_type = global_types.Instrument.CAPLET
 
         # Zero-coupon bond.
         self.zcbond = \

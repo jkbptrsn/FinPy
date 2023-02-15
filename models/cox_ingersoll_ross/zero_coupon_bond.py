@@ -34,8 +34,8 @@ class ZCBondNew(bonds.VanillaBondNew):
         self.event_grid = event_grid
         self.maturity_idx = maturity_idx
 
-        self.type = global_types.InstrumentType.ZERO_COUPON_BOND
-        self.model = global_types.ModelName.VASICEK
+        self.type = global_types.Instrument.ZERO_COUPON_BOND
+        self.model = global_types.Model.VASICEK
         self.fd = None
         self.mc = None
 
@@ -147,7 +147,7 @@ class ZCBond(sde.SDE, bonds.VanillaBond):
         super().__init__(kappa, mean_rate, vol, event_grid)
         self.maturity_idx = maturity_idx
 
-        self.bond_type = global_types.InstrumentType.ZERO_COUPON_BOND
+        self.bond_type = global_types.Instrument.ZERO_COUPON_BOND
 
     @property
     def maturity(self) -> float:

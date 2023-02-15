@@ -30,7 +30,7 @@ class Swap(sde.SDE):
         super().__init__(kappa, vol, event_grid, int_step_size)
         self.fixed_rate = fixed_rate
 
-        self.instrument_type = global_types.InstrumentType.SWAP
+        self.instrument_type = global_types.Instrument.SWAP
 
         # Zero-coupon bond object with maturity at last event.
         self.zcbond = \

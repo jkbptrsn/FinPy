@@ -38,8 +38,8 @@ class CallNew(options.VanillaOptionNew):
         self.expiry_idx = expiry_idx
         self.event_grid = event_grid
 
-        self.type = global_types.InstrumentType.EUROPEAN_CALL
-        self.model = global_types.ModelName.BACHELIER
+        self.type = global_types.Instrument.EUROPEAN_CALL
+        self.model = global_types.Model.BACHELIER
         self.fd = None
         self.mc = None
 
@@ -155,7 +155,7 @@ class Call(sde.SDE):
         self.strike = strike
         self.expiry_idx = expiry_idx
 
-        self.option_type = global_types.InstrumentType.EUROPEAN_CALL
+        self.option_type = global_types.Instrument.EUROPEAN_CALL
 
     @property
     def expiry(self) -> float:

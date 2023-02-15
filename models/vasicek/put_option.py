@@ -36,7 +36,7 @@ class Put(sde.SDE, options.VanillaOption):
         self.expiry_idx = expiry_idx
         self.maturity_idx = maturity_idx
 
-        self.option_type = global_types.InstrumentType.EUROPEAN_PUT
+        self.option_type = global_types.Instrument.EUROPEAN_PUT
 
     @property
     def expiry(self) -> float:

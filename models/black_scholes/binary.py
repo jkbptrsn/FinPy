@@ -28,7 +28,7 @@ class BinaryCashCall(sde.SDE, options.VanillaOption):
         self.strike = strike
         self.expiry_idx = expiry_idx
 
-        self.option_type = global_types.InstrumentType.BINARY_CASH_CALL
+        self.option_type = global_types.Instrument.BINARY_CASH_CALL
 
     @property
     def expiry(self) -> float:
@@ -88,7 +88,7 @@ class BinaryAssetCall(sde.SDE, options.VanillaOption):
         self.strike = strike
         self.expiry_idx = expiry_idx
 
-        self.option_type = global_types.InstrumentType.BINARY_ASSET_CALL
+        self.option_type = global_types.Instrument.BINARY_ASSET_CALL
 
     @property
     def expiry(self) -> float:
@@ -147,7 +147,7 @@ class BinaryCashPut(sde.SDE, options.VanillaOption):
         self.strike = strike
         self.expiry_idx = expiry_idx
 
-        self.option_type = global_types.InstrumentType.BINARY_CASH_PUT
+        self.option_type = global_types.Instrument.BINARY_CASH_PUT
 
     @property
     def expiry(self) -> float:
@@ -207,7 +207,7 @@ class BinaryAssetPut(sde.SDE, options.VanillaOption):
         self.strike = strike
         self.expiry_idx = expiry_idx
 
-        self.option_type = global_types.InstrumentType.BINARY_ASSET_PUT
+        self.option_type = global_types.Instrument.BINARY_ASSET_PUT
 
     @property
     def expiry(self) -> float:

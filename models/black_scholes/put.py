@@ -44,8 +44,8 @@ class PutNew(options.VanillaOptionNew):
         self.event_grid = event_grid
         self.dividend = dividend
 
-        self.type = global_types.InstrumentType.EUROPEAN_PUT
-        self.model = global_types.ModelName.BLACK_SCHOLES
+        self.type = global_types.Instrument.EUROPEAN_PUT
+        self.model = global_types.Model.BLACK_SCHOLES
         self.fd = None
         self.mc = None
 
@@ -248,7 +248,7 @@ class Put(sde.SDE, options.VanillaOption):
         self.strike = strike
         self.expiry_idx = expiry_idx
 
-        self.option_type = global_types.InstrumentType.EUROPEAN_PUT
+        self.option_type = global_types.Instrument.EUROPEAN_PUT
 
     @property
     def expiry(self) -> float:

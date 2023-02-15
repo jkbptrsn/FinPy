@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class InstrumentType(Enum):
+class Instrument(Enum):
     AMERICAN_CALL = 1
     AMERICAN_PUT = 2
     BINARY_ASSET_CALL = 3
@@ -17,7 +17,7 @@ class InstrumentType(Enum):
     ZERO_COUPON_BOND = 13
 
 
-class ModelName(Enum):
+class Model(Enum):
     BACHELIER = 1
     BLACK_SCHOLES = 2
     CIR = 3
@@ -27,4 +27,5 @@ class ModelName(Enum):
 
 class OptionExerciseType(Enum):
     AMERICAN = 1
-    EUROPEAN = 2
+    BERMUDAN = 2
+    EUROPEAN = 3

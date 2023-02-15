@@ -27,7 +27,7 @@ class SDE(sde.SDE):
         self.event_grid = event_grid
         self.dividend = dividend
 
-        self.model_name = global_types.ModelName.BLACK_SCHOLES
+        self.model_name = global_types.Model.BLACK_SCHOLES
 
         self.price_mean = np.zeros(self.event_grid.size)
         self.price_variance = np.zeros(self.event_grid.size)

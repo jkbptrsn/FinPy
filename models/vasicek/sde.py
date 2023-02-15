@@ -33,7 +33,7 @@ class SDE(sde.SDE):
         self.vol = vol
         self.event_grid = event_grid
 
-        self.model_name = global_types.ModelName.VASICEK
+        self.model_name = global_types.Model.VASICEK
 
         # Arrays used for exact discretization.
         self.rate_mean = np.zeros((self.event_grid.size, 2))
