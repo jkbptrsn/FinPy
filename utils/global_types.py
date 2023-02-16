@@ -1,6 +1,7 @@
-from enum import Enum
+from enum import Enum, unique
 
 
+@unique
 class Instrument(Enum):
     AMERICAN_CALL = 1
     AMERICAN_PUT = 2
@@ -17,6 +18,7 @@ class Instrument(Enum):
     ZERO_COUPON_BOND = 13
 
 
+@unique
 class Model(Enum):
     BACHELIER = 1
     BLACK_SCHOLES = 2
@@ -25,6 +27,7 @@ class Model(Enum):
     VASICEK = 5
 
 
+@unique
 class OptionExerciseType(Enum):
     AMERICAN = 1
     BERMUDAN = 2
