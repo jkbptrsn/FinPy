@@ -26,7 +26,10 @@ class CallNew(options.VanillaOptionNew):
         dividend: Stock dividend. Default value is 0.
 
     Methods:
-        TODO: List methods
+    TODO: List methods
+    TODO: Understand relative imports
+    TODO: Check PEP8 + Google style for docstrings of both classes and functions
+    TODO:
     """
 
     def __init__(self,

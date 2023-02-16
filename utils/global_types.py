@@ -3,6 +3,7 @@ from enum import Enum, unique
 
 @unique
 class Instrument(Enum):
+    """Type of financial instrument."""
     AMERICAN_CALL = 1
     AMERICAN_PUT = 2
     BINARY_ASSET_CALL = 3
@@ -20,6 +21,7 @@ class Instrument(Enum):
 
 @unique
 class Model(Enum):
+    """Underlying stochastic model."""
     BACHELIER = 1
     BLACK_SCHOLES = 2
     CIR = 3
@@ -28,7 +30,8 @@ class Model(Enum):
 
 
 @unique
-class OptionExerciseType(Enum):
+class OptionExercise(Enum):
+    """Type of option exercise."""
     AMERICAN = 1
     BERMUDAN = 2
     EUROPEAN = 3
