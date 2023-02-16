@@ -22,7 +22,6 @@ The library covers the following models
 Development guidelines and coding standards
 - PEP 8 and Google Python Style Guide are followed rigorously (unless...)
 - Type annotations and docstrings in Google format are mandatory
-- Unit tests...
 
 Miscellaneous
 - Good resources for learning Python
