@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from scipy.stats import norm
+from typing import Union
 
 from models import options
 from models.black_scholes import misc
@@ -56,7 +57,7 @@ class CallNew(options.VanillaOptionNew):
         return self.event_grid[self.expiry_idx]
 
     def payoff(self,
-               spot: (float, np.ndarray)) -> (float, np.ndarray):
+               spot: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
         """Payoff function.
 
         Args:
@@ -68,7 +69,7 @@ class CallNew(options.VanillaOptionNew):
         return payoffs.call(spot, self.strike)
 
     def payoff_dds(self,
-                   spot: (float, np.ndarray)) -> (float, np.ndarray):
+                   spot: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
         """1st order partial derivative of payoff function wrt the
         underlying state.
 
@@ -81,8 +82,8 @@ class CallNew(options.VanillaOptionNew):
         return payoffs.binary_cash_call(spot, self.strike)
 
     def price(self,
-              spot: (float, np.ndarray),
-              event_idx: int) -> (float, np.ndarray):
+              spot: Union[float, np.ndarray],
+              event_idx: int) -> Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -101,8 +102,8 @@ class CallNew(options.VanillaOptionNew):
             * math.exp(-self.rate * (self.expiry - time))
 
     def delta(self,
-              spot: (float, np.ndarray),
-              event_idx: int) -> (float, np.ndarray):
+              spot: Union[float, np.ndarray],
+              event_idx: int) -> Union[float, np.ndarray]:
         """1st order price sensitivity wrt stock price.
 
         Args:
@@ -118,8 +119,8 @@ class CallNew(options.VanillaOptionNew):
         return np.exp(-self.dividend * (self.expiry - time)) * norm.cdf(d1)
 
     def gamma(self,
-              spot: (float, np.ndarray),
-              event_idx: int) -> (float, np.ndarray):
+              spot: Union[float, np.ndarray],
+              event_idx: int) -> Union[float, np.ndarray]:
         """2nd order price sensitivity wrt stock price.
 
         Args:
@@ -136,8 +137,8 @@ class CallNew(options.VanillaOptionNew):
             / (spot * self.vol * math.sqrt(self.expiry - time))
 
     def rho(self,
-            spot: (float, np.ndarray),
-            event_idx: int) -> (float, np.ndarray):
+            spot: Union[float, np.ndarray],
+            event_idx: int) -> Union[float, np.ndarray]:
         """1st order price sensitivity wrt rate.
 
         Args:
@@ -154,8 +155,8 @@ class CallNew(options.VanillaOptionNew):
             * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2)
 
     def theta(self,
-              spot: (float, np.ndarray),
-              event_idx: int) -> (float, np.ndarray):
+              spot: Union[float, np.ndarray],
+              event_idx: int) -> Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -176,8 +177,8 @@ class CallNew(options.VanillaOptionNew):
             + self.dividend * spot * norm.cdf(d1)
 
     def vega(self,
-             spot: (float, np.ndarray),
-             event_idx: int) -> (float, np.ndarray):
+             spot: Union[float, np.ndarray],
+             event_idx: int) -> Union[float, np.ndarray]:
         """1st order price sensitivity wrt volatility.
 
         Args:

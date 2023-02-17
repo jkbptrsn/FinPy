@@ -1,37 +1,34 @@
-from enum import Enum, unique
+from enum import Enum, auto
 
 
-@unique
 class Instrument(Enum):
     """Type of financial instrument."""
-    AMERICAN_CALL = 1
-    AMERICAN_PUT = 2
-    BINARY_ASSET_CALL = 3
-    BINARY_CASH_CALL = 4
-    BINARY_ASSET_PUT = 5
-    BINARY_CASH_PUT = 6
-    CAPLET = 7
-    EUROPEAN_CALL = 8
-    EUROPEAN_PUT = 9
-    FLOORLET = 10
-    SWAP = 11
-    SWAPTION = 12
-    ZERO_COUPON_BOND = 13
+    AMERICAN_CALL = auto()
+    AMERICAN_PUT = auto()
+    BINARY_ASSET_CALL = auto()
+    BINARY_CASH_CALL = auto()
+    BINARY_ASSET_PUT = auto()
+    BINARY_CASH_PUT = auto()
+    CAPLET = auto()
+    EUROPEAN_CALL = auto()
+    EUROPEAN_PUT = auto()
+    FLOORLET = auto()
+    SWAP = auto()
+    SWAPTION = auto()
+    ZERO_COUPON_BOND = auto()
 
 
-@unique
 class Model(Enum):
-    """Underlying stochastic model."""
-    BACHELIER = 1
-    BLACK_SCHOLES = 2
-    CIR = 3
-    HULL_WHITE_1F = 4
-    VASICEK = 5
+    """Type of underlying stochastic model."""
+    BACHELIER = auto()
+    BLACK_SCHOLES = auto()
+    CIR = auto()
+    HULL_WHITE_1F = auto()
+    VASICEK = auto()
 
 
-@unique
 class OptionExercise(Enum):
     """Type of option exercise."""
-    AMERICAN = 1
-    BERMUDAN = 2
-    EUROPEAN = 3
+    AMERICAN = auto()
+    BERMUDAN = auto()
+    EUROPEAN = auto()

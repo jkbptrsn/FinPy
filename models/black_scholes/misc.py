@@ -1,15 +1,15 @@
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Union
 
 
-def d1d2(spot: (float, np.ndarray),
+def d1d2(spot: Union[float, np.ndarray],
          time: float,
          rate,
          vol,
          expiry,
          strike,
          dividend) \
-        -> (Tuple[float, float], Tuple[np.ndarray, np.ndarray]):
+        -> Union[Tuple[float, float], Tuple[np.ndarray, np.ndarray]]:
     """Factors in Black-Scholes formula.
     - Returns Tuple[float, float] if spot is a float
     - Returns Tuple[np.ndarray, np.ndarray] otherwise
