@@ -3,14 +3,12 @@ import numpy as np
 from scipy.stats import norm
 from typing import Union
 
-import models.options as options
-import models.black_scholes.misc as misc
-import models.black_scholes.sde as sde
-
+from models import options
+from models.black_scholes import misc
+from models.black_scholes import sde
 from numerical_methods.finite_difference import theta as fd_theta
-
-import utils.global_types as global_types
-import utils.payoffs as payoffs
+from utils import global_types
+from utils import payoffs
 
 
 class PutNew(options.VanillaOptionNew):
@@ -26,8 +24,6 @@ class PutNew(options.VanillaOptionNew):
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
         dividend: Stock dividend.
-
-        # TODO: Add basic unit tests of class.
     """
 
     def __init__(self,

@@ -3,19 +3,27 @@ import numpy as np
 from scipy.stats import norm
 from typing import Union
 
-import models.options as options
-import models.black_scholes.misc as misc
-import models.black_scholes.sde as sde
-import utils.global_types as global_types
-import utils.payoffs as payoffs
-
-# TODO: Add continuously compounded dividend yield
+from models import options
+from models.black_scholes import misc
+from models.black_scholes import sde
+from utils import global_types
+from utils import payoffs
 
 
 class BinaryCashCall(sde.SDE, options.VanillaOption):
     """European cash-or-nothing call option in Black-Scholes model.
-    Pays out one unit of cash if the spot is above the strike at
-    expiry.
+
+    European cash-or-nothing call option written on stock price. Pays
+    out one unit of cash if the spot is above the strike at expiry.
+
+    Attributes:
+        rate: Interest rate.
+        vol: Volatility.
+        event_grid: Event dates, e.g. payment dates, represented as year
+            fractions from the as-of date.
+        strike: Strike price of stock at expiry.
+        expiry_idx: Expiry index on event_grid.
+        dividend: Stock dividend.
     """
 
     def __init__(self,
@@ -113,8 +121,18 @@ class BinaryCashCall(sde.SDE, options.VanillaOption):
 
 class BinaryAssetCall(sde.SDE, options.VanillaOption):
     """European asset-or-nothing call option in Black-Scholes model.
-    Pays out one unit of the asset if the spot is above the strike at
-    expiry.
+
+    European asset-or-nothing call option written on stock price. Pays
+    out one unit of the asset if the spot is above the strike at expiry.
+
+    Attributes:
+        rate: Interest rate.
+        vol: Volatility.
+        event_grid: Event dates, e.g. payment dates, represented as year
+            fractions from the as-of date.
+        strike: Strike price of stock at expiry.
+        expiry_idx: Expiry index on event_grid.
+        dividend: Stock dividend.
     """
 
     def __init__(self,
@@ -211,8 +229,20 @@ class BinaryAssetCall(sde.SDE, options.VanillaOption):
 
 
 class BinaryCashPut(sde.SDE, options.VanillaOption):
-    """European cash-or-nothing put option in Black-Scholes model. Pays
-    out one unit of cash if the spot is below the strike at expiry.
+    """European cash-or-nothing put option in Black-Scholes model.
+
+    European cash-or-nothing put option written on stock price. Pays out
+    one unit of cash if the spot is below the strike at expiry.
+
+    Attributes:
+        rate: Interest rate.
+        vol: Volatility.
+        event_grid: Event dates, e.g. payment dates, represented as year
+            fractions from the as-of date.
+        strike: Strike price of stock at expiry.
+        expiry_idx: Expiry index on event_grid.
+        dividend: Stock dividend.
+
     """
 
     def __init__(self,
@@ -309,9 +339,19 @@ class BinaryCashPut(sde.SDE, options.VanillaOption):
 
 
 class BinaryAssetPut(sde.SDE, options.VanillaOption):
-    """European asset-or-nothing put option in Black-Scholes model. Pays
-    out one unit of the asset if the spot is below the strike at
-    expiry.
+    """European asset-or-nothing put option in Black-Scholes model.
+
+    European asset-or-nothing put option written on stock price. Pays
+    out one unit of the asset if the spot is below the strike at expiry.
+
+    Attributes:
+        rate: Interest rate.
+        vol: Volatility.
+        event_grid: Event dates, e.g. payment dates, represented as year
+            fractions from the as-of date.
+        strike: Strike price of stock at expiry.
+        expiry_idx: Expiry index on event_grid.
+        dividend: Stock dividend.
     """
 
     def __init__(self,
