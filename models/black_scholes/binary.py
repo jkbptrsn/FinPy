@@ -1,7 +1,8 @@
 import math
+from typing import Union
+
 import numpy as np
 from scipy.stats import norm
-from typing import Union
 
 from models import options
 from models.black_scholes import misc

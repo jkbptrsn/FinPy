@@ -1,6 +1,7 @@
 import math
-import numpy as np
 from typing import Tuple
+
+import numpy as np
 
 import models.sde as sde
 import utils.global_types as global_types
