@@ -1,5 +1,5 @@
 import math
-from typing import Union
+import typing
 
 import numpy as np
 from scipy.stats import norm
@@ -14,8 +14,9 @@ from utils import payoffs
 class BinaryCashCall(sde.SDE, options.VanillaOption):
     """European cash-or-nothing call option in Black-Scholes model.
 
-    European cash-or-nothing call option written on stock price. Pays
-    out one unit of cash if the spot is above the strike at expiry.
+    European cash-or-nothing call option written on stock price modelled
+    by Black-Scholes SDE. Pays out one unit of cash if the spot is above
+    the strike at expiry.
 
     Attributes:
         rate: Interest rate.
@@ -45,7 +46,8 @@ class BinaryCashCall(sde.SDE, options.VanillaOption):
         return self.event_grid[self.expiry_idx]
 
     def payoff(self,
-               spot: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+               spot: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
         Args:
@@ -57,8 +59,8 @@ class BinaryCashCall(sde.SDE, options.VanillaOption):
         return payoffs.binary_cash_call(spot, self.strike)
 
     def price(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -74,8 +76,8 @@ class BinaryCashCall(sde.SDE, options.VanillaOption):
         return math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2)
 
     def delta(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt stock price.
 
         Args:
@@ -92,8 +94,8 @@ class BinaryCashCall(sde.SDE, options.VanillaOption):
             / (spot * self.vol * math.sqrt(self.expiry - time))
 
     def gamma(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt stock price.
 
         Args:
@@ -106,8 +108,8 @@ class BinaryCashCall(sde.SDE, options.VanillaOption):
         pass
 
     def theta(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -123,8 +125,9 @@ class BinaryCashCall(sde.SDE, options.VanillaOption):
 class BinaryAssetCall(sde.SDE, options.VanillaOption):
     """European asset-or-nothing call option in Black-Scholes model.
 
-    European asset-or-nothing call option written on stock price. Pays
-    out one unit of the asset if the spot is above the strike at expiry.
+    European asset-or-nothing call option written on stock price
+    modelled by Black-Scholes SDE. Pays out one unit of the asset if the
+    spot is above the strike at expiry.
 
     Attributes:
         rate: Interest rate.
@@ -154,7 +157,8 @@ class BinaryAssetCall(sde.SDE, options.VanillaOption):
         return self.event_grid[self.expiry_idx]
 
     def payoff(self,
-               spot: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+               spot: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
         Args:
@@ -166,8 +170,8 @@ class BinaryAssetCall(sde.SDE, options.VanillaOption):
         return payoffs.binary_asset_call(spot, self.strike)
 
     def price(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -183,8 +187,8 @@ class BinaryAssetCall(sde.SDE, options.VanillaOption):
         return spot * norm.cdf(d1)
 
     def delta(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt stock price.
 
         Args:
@@ -201,8 +205,8 @@ class BinaryAssetCall(sde.SDE, options.VanillaOption):
             / (spot * self.vol * math.sqrt(self.expiry - time)) + norm.cdf(d1)
 
     def gamma(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt stock price.
 
         Args:
@@ -215,8 +219,8 @@ class BinaryAssetCall(sde.SDE, options.VanillaOption):
         pass
 
     def theta(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -232,8 +236,9 @@ class BinaryAssetCall(sde.SDE, options.VanillaOption):
 class BinaryCashPut(sde.SDE, options.VanillaOption):
     """European cash-or-nothing put option in Black-Scholes model.
 
-    European cash-or-nothing put option written on stock price. Pays out
-    one unit of cash if the spot is below the strike at expiry.
+    European cash-or-nothing put option written on stock price modelled
+    by Black-Scholes SDE. Pays out one unit of cash if the spot is below
+    the strike at expiry.
 
     Attributes:
         rate: Interest rate.
@@ -264,7 +269,8 @@ class BinaryCashPut(sde.SDE, options.VanillaOption):
         return self.event_grid[self.expiry_idx]
 
     def payoff(self,
-               spot: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+               spot: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
         Args:
@@ -276,8 +282,8 @@ class BinaryCashPut(sde.SDE, options.VanillaOption):
         return payoffs.binary_cash_put(spot, self.strike)
 
     def price(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -293,8 +299,8 @@ class BinaryCashPut(sde.SDE, options.VanillaOption):
         return math.exp(-self.rate * (self.expiry - time)) * norm.cdf(-d2)
 
     def delta(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt stock price.
 
         Args:
@@ -311,8 +317,8 @@ class BinaryCashPut(sde.SDE, options.VanillaOption):
             / (spot * self.vol * math.sqrt(self.expiry - time))
 
     def gamma(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt stock price.
 
         Args:
@@ -325,8 +331,8 @@ class BinaryCashPut(sde.SDE, options.VanillaOption):
         pass
 
     def theta(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -342,8 +348,9 @@ class BinaryCashPut(sde.SDE, options.VanillaOption):
 class BinaryAssetPut(sde.SDE, options.VanillaOption):
     """European asset-or-nothing put option in Black-Scholes model.
 
-    European asset-or-nothing put option written on stock price. Pays
-    out one unit of the asset if the spot is below the strike at expiry.
+    European asset-or-nothing put option written on stock price modelled
+    by Black-Scholes SDE. Pays out one unit of the asset if the spot is
+    below the strike at expiry.
 
     Attributes:
         rate: Interest rate.
@@ -373,7 +380,8 @@ class BinaryAssetPut(sde.SDE, options.VanillaOption):
         return self.event_grid[self.expiry_idx]
 
     def payoff(self,
-               spot: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+               spot: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
         Args:
@@ -385,8 +393,8 @@ class BinaryAssetPut(sde.SDE, options.VanillaOption):
         return payoffs.binary_asset_put(spot, self.strike)
 
     def price(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -402,8 +410,8 @@ class BinaryAssetPut(sde.SDE, options.VanillaOption):
         return spot * norm.cdf(-d1)
 
     def delta(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt stock price.
 
         Args:
@@ -420,8 +428,8 @@ class BinaryAssetPut(sde.SDE, options.VanillaOption):
             / (spot * self.vol * math.sqrt(self.expiry - time)) + norm.cdf(-d1)
 
     def gamma(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt stock price.
 
         Args:
@@ -434,8 +442,8 @@ class BinaryAssetPut(sde.SDE, options.VanillaOption):
         pass
 
     def theta(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:

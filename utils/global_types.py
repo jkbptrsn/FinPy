@@ -1,34 +1,34 @@
-from enum import Enum, auto
+import enum
 
 
-class Instrument(Enum):
+class Instrument(enum.Enum):
     """Type of financial instrument."""
-    AMERICAN_CALL = auto()
-    AMERICAN_PUT = auto()
-    BINARY_ASSET_CALL = auto()
-    BINARY_CASH_CALL = auto()
-    BINARY_ASSET_PUT = auto()
-    BINARY_CASH_PUT = auto()
-    CAPLET = auto()
-    EUROPEAN_CALL = auto()
-    EUROPEAN_PUT = auto()
-    FLOORLET = auto()
-    SWAP = auto()
-    SWAPTION = auto()
-    ZERO_COUPON_BOND = auto()
+    AMERICAN_CALL = enum.auto()
+    AMERICAN_PUT = enum.auto()
+    BINARY_ASSET_CALL = enum.auto()
+    BINARY_CASH_CALL = enum.auto()
+    BINARY_ASSET_PUT = enum.auto()
+    BINARY_CASH_PUT = enum.auto()
+    CAPLET = enum.auto()
+    EUROPEAN_CALL = enum.auto()
+    EUROPEAN_PUT = enum.auto()
+    FLOORLET = enum.auto()
+    SWAP = enum.auto()
+    SWAPTION = enum.auto()
+    ZERO_COUPON_BOND = enum.auto()
 
 
-class Model(Enum):
+class Model(enum.Enum):
     """Type of underlying stochastic model."""
-    BACHELIER = auto()
-    BLACK_SCHOLES = auto()
-    CIR = auto()
-    HULL_WHITE_1F = auto()
-    VASICEK = auto()
+    BACHELIER = enum.auto()
+    BLACK_SCHOLES = enum.auto()
+    CIR = enum.auto()
+    HULL_WHITE_1F = enum.auto()
+    VASICEK = enum.auto()
 
 
-class OptionExercise(Enum):
+class OptionExercise(enum.Enum):
     """Type of option exercise."""
-    AMERICAN = auto()
-    BERMUDAN = auto()
-    EUROPEAN = auto()
+    AMERICAN = enum.auto()
+    BERMUDAN = enum.auto()
+    EUROPEAN = enum.auto()

@@ -1,15 +1,17 @@
+import typing
+
 import numpy as np
-from typing import Tuple, Union
 
 
-def d1d2(spot: Union[float, np.ndarray],
+def d1d2(spot: typing.Union[float, np.ndarray],
          time: float,
          rate,
          vol,
          expiry,
          strike,
          dividend) \
-        -> Union[Tuple[float, float], Tuple[np.ndarray, np.ndarray]]:
+        -> typing.Union[
+            typing.Tuple[float, float], typing.Tuple[np.ndarray, np.ndarray]]:
     """Factors in Black-Scholes formula.
 
     Args:

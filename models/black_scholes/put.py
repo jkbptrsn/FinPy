@@ -1,5 +1,5 @@
 import math
-from typing import Union
+import typing
 
 import numpy as np
 from scipy.stats import norm
@@ -15,7 +15,8 @@ from utils import payoffs
 class PutNew(options.VanillaOptionNew):
     """European put option in Black-Scholes model.
 
-    European put option written on stock price.
+    European put option written on stock price modelled by
+    Black-Scholes SDE.
 
     Attributes:
         rate: Interest rate.
@@ -52,7 +53,8 @@ class PutNew(options.VanillaOptionNew):
         return self.event_grid[self.expiry_idx]
 
     def payoff(self,
-               spot: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+               spot: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
         Args:
@@ -64,8 +66,11 @@ class PutNew(options.VanillaOptionNew):
         return payoffs.put(spot, self.strike)
 
     def payoff_dds(self,
-                   spot: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
-        """1st order partial derivative of payoff function wrt the
+                   spot: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
+        """Derivative of payoff function wrt underlying state.
+
+        1st order partial derivative of payoff function wrt the
         underlying state.
 
         Args:
@@ -77,8 +82,8 @@ class PutNew(options.VanillaOptionNew):
         return - payoffs.binary_cash_put(spot, self.strike)
 
     def price(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -97,8 +102,8 @@ class PutNew(options.VanillaOptionNew):
             * math.exp(-self.rate * (self.expiry - time))
 
     def delta(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt stock price.
 
         Args:
@@ -115,8 +120,8 @@ class PutNew(options.VanillaOptionNew):
             * (norm.cdf(d1) - 1)
 
     def gamma(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt stock price.
 
         Args:
@@ -133,8 +138,8 @@ class PutNew(options.VanillaOptionNew):
             / (spot * self.vol * math.sqrt(self.expiry - time))
 
     def rho(self,
-            spot: Union[float, np.ndarray],
-            event_idx: int) -> Union[float, np.ndarray]:
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt rate.
 
         Args:
@@ -151,8 +156,8 @@ class PutNew(options.VanillaOptionNew):
             * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(-d2)
 
     def theta(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -173,8 +178,8 @@ class PutNew(options.VanillaOptionNew):
             - self.dividend * spot * norm.cdf(d1)
 
     def vega(self,
-             spot: Union[float, np.ndarray],
-             event_idx: int) -> Union[float, np.ndarray]:
+             spot: typing.Union[float, np.ndarray],
+             event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt volatility.
 
         Args:
@@ -202,10 +207,7 @@ class PutNew(options.VanillaOptionNew):
             xmax: Maximum of stock price range.
             nstates: Number of states.
             theta_value: ...
-            method: "Andersen" og "Andreasen"
-
-        Returns:
-            Finite difference solver.
+            method: "Andersen" or "Andreasen"
         """
         self.fd = fd_theta.setup_solver(xmin, xmax, nstates,
                                         self, theta_value, method)

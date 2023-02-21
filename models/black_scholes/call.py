@@ -1,5 +1,5 @@
 import math
-from typing import Union
+import typing
 
 import numpy as np
 from scipy.stats import norm
@@ -12,25 +12,21 @@ from utils import global_types
 from utils import payoffs
 
 
+# TODO: Delete Call class and rename to CallNew to Call...
 class CallNew(options.VanillaOptionNew):
     """European call option in Black-Scholes model.
-    TODO: Delete Call class and rename to CallNew to Call...
 
-    European call option written on stock price.
+    European call option written on stock price modelled by
+    Black-Scholes SDE.
 
     Attributes:
         rate: Interest rate.
         vol: Volatility.
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
-        event_grid: Event dates, e.g. payment dates, represented as year
-            fractions from the as-of date.
+        event_grid: Event dates represented as year fractions from the
+            as-of date.
         dividend: Stock dividend. Default value is 0.
-
-    Methods:
-    TODO: List methods
-    TODO: Understand relative imports
-    TODO: Check PEP8 + Google style for docstrings of both classes and functions
     """
 
     def __init__(self,
@@ -57,7 +53,8 @@ class CallNew(options.VanillaOptionNew):
         return self.event_grid[self.expiry_idx]
 
     def payoff(self,
-               spot: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+               spot: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
         Args:
@@ -69,8 +66,11 @@ class CallNew(options.VanillaOptionNew):
         return payoffs.call(spot, self.strike)
 
     def payoff_dds(self,
-                   spot: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
-        """1st order partial derivative of payoff function wrt the
+                   spot: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
+        """Derivative of payoff function wrt underlying state.
+
+        1st order partial derivative of payoff function wrt the
         underlying state.
 
         Args:
@@ -82,8 +82,8 @@ class CallNew(options.VanillaOptionNew):
         return payoffs.binary_cash_call(spot, self.strike)
 
     def price(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -102,8 +102,8 @@ class CallNew(options.VanillaOptionNew):
             * math.exp(-self.rate * (self.expiry - time))
 
     def delta(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt stock price.
 
         Args:
@@ -119,8 +119,8 @@ class CallNew(options.VanillaOptionNew):
         return np.exp(-self.dividend * (self.expiry - time)) * norm.cdf(d1)
 
     def gamma(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt stock price.
 
         Args:
@@ -137,8 +137,8 @@ class CallNew(options.VanillaOptionNew):
             / (spot * self.vol * math.sqrt(self.expiry - time))
 
     def rho(self,
-            spot: Union[float, np.ndarray],
-            event_idx: int) -> Union[float, np.ndarray]:
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt rate.
 
         Args:
@@ -155,8 +155,8 @@ class CallNew(options.VanillaOptionNew):
             * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2)
 
     def theta(self,
-              spot: Union[float, np.ndarray],
-              event_idx: int) -> Union[float, np.ndarray]:
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -177,8 +177,8 @@ class CallNew(options.VanillaOptionNew):
             + self.dividend * spot * norm.cdf(d1)
 
     def vega(self,
-             spot: Union[float, np.ndarray],
-             event_idx: int) -> Union[float, np.ndarray]:
+             spot: typing.Union[float, np.ndarray],
+             event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt volatility.
 
         Args:
@@ -201,16 +201,14 @@ class CallNew(options.VanillaOptionNew):
                  theta_value: float = 0.5,
                  method: str = "Andersen"):
         """Setting up finite difference solver.
+
         TODO: Add non-equidistant grid. Instead of xmin, xmax, nstates, use state_grid as parameter
         Args:
             xmin: Minimum of stock price range.
             xmax: Maximum of stock price range.
             nstates: Number of states.
             theta_value: ...
-            method: "Andersen" og "Andreasen"
-
-        Returns:
-            Finite difference solver.
+            method: "Andersen" or "Andreasen"
         """
         self.fd = fd_theta.setup_solver(xmin, xmax, nstates,
                                         self, theta_value, method)
