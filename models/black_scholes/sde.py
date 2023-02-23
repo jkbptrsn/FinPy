@@ -1,10 +1,11 @@
 import math
-import numpy as np
-from typing import Tuple
+import typing
 
-import models.sde as sde
-import utils.global_types as global_types
-import utils.misc as misc
+import numpy as np
+
+from models import sde
+from utils import global_types
+from utils import misc
 
 
 class SDE(sde.SDE):
@@ -95,7 +96,8 @@ class SDE(sde.SDE):
                   time: float,
                   n_paths: int,
                   greek: str = 'delta',
-                  antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+                  antithetic: bool = False) \
+            -> typing.Tuple[np.ndarray, np.ndarray]:
         """Generate paths, at t = time, of geometric Brownian motion
         using analytic expression. The paths are used for "path-wise"
         Monte-Carlo calculation of a 'greek'.
@@ -120,7 +122,7 @@ class SDE(sde.SDE):
                          n_paths: int,
                          greek: str = 'delta',
                          antithetic: bool = False) \
-            -> Tuple[np.ndarray, np.ndarray]:
+            -> typing.Tuple[np.ndarray, np.ndarray]:
         """Generate paths, at t = time, of geometric Brownian motion
         using analytic expression. The paths are used for
         'likelihood-ratio' Monte-Carlo calculation of a 'greek'.

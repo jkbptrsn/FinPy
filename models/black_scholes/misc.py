@@ -1,5 +1,6 @@
+import typing
+
 import numpy as np
-from typing import Tuple
 
 
 def d1d2(spot: (float, np.ndarray),
@@ -9,7 +10,7 @@ def d1d2(spot: (float, np.ndarray),
          expiry,
          strike,
          dividend) \
-        -> (Tuple[float, float], Tuple[np.ndarray, np.ndarray]):
+        -> (typing.Tuple[float, float], typing.Tuple[np.ndarray, np.ndarray]):
     """Factors in Black-Scholes formula.
     - Returns Tuple[float, float] if spot is a float
     - Returns Tuple[np.ndarray, np.ndarray] otherwise

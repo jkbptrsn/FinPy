@@ -1,15 +1,14 @@
 import math
+
 import numpy as np
 from scipy.stats import norm
 
-import models.options as options
-import models.black_scholes.misc as misc
-import models.black_scholes.sde as sde
-
+from models import options
+from models.black_scholes import misc
+from models.black_scholes import sde
 from numerical_methods.finite_difference import theta as fd_theta
-
-import utils.global_types as global_types
-import utils.payoffs as payoffs
+from utils import global_types
+from utils import payoffs
 
 
 class PutNew(options.VanillaOptionNew):

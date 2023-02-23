@@ -1,18 +1,17 @@
 import math
+
 import numpy as np
 from scipy.stats import norm
 
-import models.options as options
-import models.black_scholes.misc as misc
-import models.black_scholes.sde as sde
-
+from models import options
+from models.black_scholes import misc
+from models.black_scholes import sde
 from numerical_methods.finite_difference import theta as fd_theta
+from utils import global_types
+from utils import payoffs
 
-import utils.global_types as global_types
-import utils.payoffs as payoffs
 
-
-class CallNew(options.VanillaOptionNew):
+class CallNew(options.EuropeanOption):
     """European call option in Black-Scholes model.
 
     European call option written on stock price.

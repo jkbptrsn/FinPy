@@ -10,6 +10,20 @@ from models.black_scholes import binary
 class CallOption(unittest.TestCase):
     """Test European call option in Black-Scholes model."""
 
+    rate = 0.05
+    vol = 0.2
+    time = 0
+    time_idx = 0
+    expiry = 2
+    expiry_idx = 1
+    event_grid = np.array([time, expiry])
+    strike = 50
+    spot = np.arange(2, 100, 2) * 1.0
+
+#    def test_expiry(self):
+
+
+
     def test_binary_asset_and_cash_calls(self):
         """..."""
         rate = 0.05
@@ -62,5 +76,3 @@ if __name__ == '__main__':
     plt.ylabel("Call price")
     plt.legend()
     plt.show()
-
-    unittest.main()
