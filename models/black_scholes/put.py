@@ -24,8 +24,6 @@ class PutNew(options.VanillaOptionNew):
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
         dividend: Stock dividend.
-
-        # TODO: Add basic unit tests of class.
     """
 
     def __init__(self,

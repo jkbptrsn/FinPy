@@ -24,8 +24,6 @@ class CallNew(options.EuropeanOption):
         event_grid: Event dates, e.g. payment dates, represented as year
             fractions from the as-of date.
         dividend: Stock dividend. Default value is 0.
-
-        # TODO: Add basic unit tests of class.
     """
 
     def __init__(self,

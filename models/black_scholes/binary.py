@@ -13,8 +13,17 @@ from utils import payoffs
 
 class BinaryCashCall(sde.SDE, options.VanillaOption):
     """European cash-or-nothing call option in Black-Scholes model.
-    Pays out one unit of cash if the spot is above the strike at
-    expiry.
+
+    Pays out one unit of cash if the spot is above the strike at expiry.
+
+    Attributes:
+        rate: Interest rate.
+        vol: Volatility.
+        strike: Strike price of stock at expiry.
+        expiry_idx: Expiry index on event_grid.
+        event_grid: Event dates, e.g. payment dates, represented as year
+            fractions from the as-of date.
+        dividend: Stock dividend. Default value is 0.
     """
 
     def __init__(self,
