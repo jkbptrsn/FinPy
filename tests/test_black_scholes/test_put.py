@@ -1,12 +1,14 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import unittest
 
-import models.black_scholes.put as put
-import models.black_scholes.binary as binary
+from matplotlib import pyplot as plt
+import numpy as np
+
+from models.black_scholes import put
+from models.black_scholes import binary
 
 
 class PutOption(unittest.TestCase):
+    """Test European put option in Black-Scholes model."""
 
     def test_binary_asset_and_cash_puts(self):
         rate = 0.05

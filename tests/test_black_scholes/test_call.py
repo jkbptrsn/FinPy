@@ -1,14 +1,17 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import unittest
 
-import models.black_scholes.call as call
-import models.black_scholes.binary as binary
+from matplotlib import pyplot as plt
+import numpy as np
+
+from models.black_scholes import call
+from models.black_scholes import binary
 
 
 class CallOption(unittest.TestCase):
+    """Test European call option in Black-Scholes model."""
 
     def test_binary_asset_and_cash_calls(self):
+        """..."""
         rate = 0.05
         vol = 0.2
         time = 0
