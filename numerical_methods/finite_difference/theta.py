@@ -516,20 +516,16 @@ def norm_diff_1d(vec1: np.ndarray,
     return norm_center, norm_max, norm_l2
 
 
-def setup_solver(xmin: float,
-                 xmax: float,
-                 nstates: int,
-                 instrument,
+def setup_solver(instrument,
+                 x_grid: np.ndarray,
                  theta_value: float = 0.5,
                  method: str = "Andersen") \
         -> (AndersenPiterbarg1D, Andreasen1D):
     """Setting up finite difference solver.
     TODO: Add non-equidistant grid. Instead of xmin, xmax, nstates, use state_grid as parameter
     Args:
-        xmin: Minimum value of underlying.
-        xmax: Maximum value of underlying.
-        nstates: Number of states.
         instrument: Instrument object.
+        x_grid: Grid in spatial dimension.
         theta_value: ...
         method: "Andersen" og "Andreasen"
 
@@ -538,6 +534,9 @@ def setup_solver(xmin: float,
     """
     # Set up PDE solver.
     dt = instrument.event_grid[-1] - instrument.event_grid[-2]
+    xmin = x_grid[0]
+    xmax = x_grid[-1]
+    nstates = x_grid.size
     if method == "Andersen":
         solver = AndersenPiterbarg1D(xmin, xmax, nstates, dt, theta_value)
     elif method == "Andreasen":

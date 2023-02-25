@@ -205,23 +205,17 @@ class CallNew(options.EuropeanOptionAnalytical):
         return s * norm.pdf(d1) * math.sqrt(delta_t)
 
     def fd_setup(self,
-                 xmin: float,
-                 xmax: float,
-                 nstates: int,
+                 x_grid: np.ndarray,
                  theta_value: float = 0.5,
                  method: str = "Andersen"):
         """Setting up finite difference solver.
 
-        TODO: Add non-equidistant grid. Instead of xmin, xmax, nstates, use state_grid as parameter
         Args:
-            xmin: Minimum of stock price range.
-            xmax: Maximum of stock price range.
-            nstates: Number of states.
+            x_grid: Grid in spatial dimension.
             theta_value: ...
             method: "Andersen" or "Andreasen"
         """
-        self.fd = fd_theta.setup_solver(xmin, xmax, nstates,
-                                        self, theta_value, method)
+        self.fd = fd_theta.setup_solver(self, x_grid, theta_value, method)
         self.fd.initialization()
 
     def fd_solve(self):

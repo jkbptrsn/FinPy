@@ -112,25 +112,17 @@ class ZCBondNew(bonds.VanillaBondNew):
             * (self.dadt(event_idx) - self.dbdt(event_idx) * spot)
 
     def fd_setup(self,
-                 xmin: float,
-                 xmax: float,
-                 nstates: int,
+                 x_grid: np.ndarray,
                  theta_value: float = 0.5,
                  method: str = "Andersen"):
         """Setting up finite difference solver.
 
         Args:
-            xmin: Minimum of .
-            xmax: Maximum of .
-            nstates: Number of states.
+            x_grid: Grid in spatial dimension.
             theta_value: ...
-            method: "Andersen" og "Andreasen"
-
-        Returns:
-            Finite difference solver.
+            method: "Andersen" or "Andreasen"
         """
-        self.fd = fd_theta.setup_solver(xmin, xmax, nstates,
-                                        self, theta_value, method)
+        self.fd = fd_theta.setup_solver(self, x_grid, theta_value, method)
         self.fd.initialization()
 
     def fd_solve(self):
