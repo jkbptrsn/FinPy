@@ -8,7 +8,7 @@ from models.black_scholes import binary
 
 
 class CallOption(unittest.TestCase):
-    """Unit tests of European call option in Black-Scholes model."""
+    """European call options in Black-Scholes model."""
 
     def setUp(self) -> None:
         self.rate = 0.05
@@ -19,21 +19,26 @@ class CallOption(unittest.TestCase):
         self.expiry = 5
         self.expiry_idx = 2
         self.event_grid = np.array([self.time, self.expiry / 2, self.expiry])
-        self.spot = np.arange(2, 100, 2) * 1.0
+        self.spot = np.arange(1, 100)
 
     def test_expiry(self) -> None:
-        c = call.CallNew(self.rate, self.vol, self.strike,
-                         self.expiry_idx, self.event_grid)
+        """Test expiry property."""
+        c = call.CallNew(self.rate, self.vol, self.strike, self.expiry_idx,
+                         self.event_grid)
         self.assertTrue(c.expiry == self.expiry)
 
-    def test_binary_asset_and_cash_calls(self) -> None:
-        """..."""
-        c = call.Call(self.rate, self.vol, self.event_grid, self.strike, self.expiry_idx)
+    def test_decompose(self) -> None:
+        """Decompose call option price.
+
+        (S - K)^+ = S * I_{S > K} - K * I_{S > K}.
+        """
+        c = call.CallNew(self.rate, self.vol, self.strike, self.expiry_idx,
+                         self.event_grid)
         b1 = binary.BinaryAssetCall(self.rate, self.vol, self.event_grid, self.strike, self.expiry_idx)
         b2 = binary.BinaryCashCall(self.rate, self.vol, self.event_grid, self.strike, self.expiry_idx)
-        call_price_decomposed = \
-            b1.price(self.spot, self.time_idx) - self.strike * b2.price(self.spot, self.time_idx)
-        diff = np.abs(c.price(self.spot, self.time_idx) - call_price_decomposed)
+        call_decomposed = b1.price(self.spot, self.time_idx) \
+            - self.strike * b2.price(self.spot, self.time_idx)
+        diff = np.abs(c.price(self.spot, self.time_idx) - call_decomposed)
         self.assertTrue(np.max(diff) < 1.0e-12)
 
 
@@ -53,7 +58,7 @@ if __name__ == '__main__':
 
     spot = np.arange(2, 100, 2) * 1.0
 
-    c = call.Call(rate, vol, event_grid, strike, expiry_idx)
+    c = call.CallNew(rate, vol, strike, expiry_idx, event_grid)
     b1 = binary.BinaryAssetCall(rate, vol, event_grid, strike, expiry_idx)
     b2 = binary.BinaryCashCall(rate, vol, event_grid, strike, expiry_idx)
 

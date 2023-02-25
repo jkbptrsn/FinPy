@@ -11,21 +11,26 @@ from models.black_scholes import put
 class Parity(unittest.TestCase):
     """Test call-put parity in Black-Scholes model."""
 
+    def setUp(self) -> None:
+        self.rate = 0.05
+        self.vol = 0.2
+        self.strike = 50
+        self.time = 0
+        self.time_idx = 0
+        self.expiry = 5
+        self.expiry_idx = 2
+        self.event_grid = np.array([self.time, self.expiry / 2, self.expiry])
+        self.spot = np.arange(1, 100)
+
     def test_1(self):
-        rate = 0.05
-        vol = 0.2
-        time = 0
-        time_idx = 0
-        expiry = 2
-        expiry_idx = 1
-        event_grid = np.array([time, expiry])
-        strike = 50
-        spot = np.arange(2, 100, 2) * 1.0
-        c = call.Call(rate, vol, event_grid, strike, expiry_idx)
-        p = put.Put(rate, vol, event_grid, strike, expiry_idx)
-        discount = math.exp(-rate * (expiry - time))
-        lhs = c.price(spot, time_idx) - p.price(spot, time_idx)
-        rhs = spot - strike * discount
+        c = call.CallNew(self.rate, self.vol, self.strike, self.expiry_idx,
+                         self.event_grid)
+        p = put.PutNew(self.rate, self.vol, self.strike, self.expiry_idx,
+                       self.event_grid)
+        lhs = c.price(self.spot, self.time_idx) \
+            - p.price(self.spot, self.time_idx)
+        discount = math.exp(-self.rate * (self.expiry - self.time))
+        rhs = self.spot - self.strike * discount
         self.assertTrue(np.max(np.abs(lhs - rhs)) < 1.0e-12)
 
 

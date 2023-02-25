@@ -71,8 +71,9 @@ class BinaryCashCall(sde.SDE, options.VanillaOption):
             Price.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
+        s = spot * math.exp(-self.dividend * (self.expiry - time))
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
         return math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2)
 
     def delta(self,
@@ -88,10 +89,11 @@ class BinaryCashCall(sde.SDE, options.VanillaOption):
             Delta.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
+        s = spot * math.exp(-self.dividend * (self.expiry - time))
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
         return math.exp(-self.rate * (self.expiry - time)) * norm.pdf(d2) \
-            / (spot * self.vol * math.sqrt(self.expiry - time))
+            / (s * self.vol * math.sqrt(self.expiry - time))
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
@@ -182,8 +184,9 @@ class BinaryAssetCall(sde.SDE, options.VanillaOption):
             Price.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
+        s = spot * math.exp(-self.dividend * (self.expiry - time))
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
         return spot * norm.cdf(d1)
 
     def delta(self,
@@ -199,10 +202,11 @@ class BinaryAssetCall(sde.SDE, options.VanillaOption):
             Delta.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
-        return spot * norm.pdf(d1) \
-            / (spot * self.vol * math.sqrt(self.expiry - time)) + norm.cdf(d1)
+        s = spot * math.exp(-self.dividend * (self.expiry - time))
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
+        return s * norm.pdf(d1) \
+            / (s * self.vol * math.sqrt(self.expiry - time)) + norm.cdf(d1)
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
@@ -294,8 +298,9 @@ class BinaryCashPut(sde.SDE, options.VanillaOption):
             Price.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
+        s = spot * math.exp(-self.dividend * (self.expiry - time))
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
         return math.exp(-self.rate * (self.expiry - time)) * norm.cdf(-d2)
 
     def delta(self,
@@ -311,10 +316,11 @@ class BinaryCashPut(sde.SDE, options.VanillaOption):
             Delta.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
+        s = spot * math.exp(-self.dividend * (self.expiry - time))
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
         return - math.exp(-self.rate * (self.expiry - time)) * norm.pdf(-d2) \
-            / (spot * self.vol * math.sqrt(self.expiry - time))
+            / (s * self.vol * math.sqrt(self.expiry - time))
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
@@ -405,9 +411,10 @@ class BinaryAssetPut(sde.SDE, options.VanillaOption):
             Price.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
-        return spot * norm.cdf(-d1)
+        s = spot * math.exp(-self.dividend * (self.expiry - time))
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
+        return s * norm.cdf(-d1)
 
     def delta(self,
               spot: typing.Union[float, np.ndarray],
@@ -422,10 +429,11 @@ class BinaryAssetPut(sde.SDE, options.VanillaOption):
             Delta.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
-        return - spot * norm.pdf(-d1) \
-            / (spot * self.vol * math.sqrt(self.expiry - time)) + norm.cdf(-d1)
+        s = spot * math.exp(-self.dividend * (self.expiry - time))
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
+        return - s * norm.pdf(-d1) \
+            / (s * self.vol * math.sqrt(self.expiry - time)) + norm.cdf(-d1)
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],

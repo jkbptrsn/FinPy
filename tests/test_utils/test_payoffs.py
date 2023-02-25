@@ -15,7 +15,7 @@ class CallOptions(unittest.TestCase):
     def test_decompose(self):
         """Decompose call option payoff.
 
-        (S - K)^+ = S * I_{S > K} - K * I_{S > K}
+        (S - K)^+ = S * I_{S > K} - K * I_{S > K}.
         """
         call = payoffs.call(self.spot, self.strike)
         binary_asset = payoffs.binary_asset_call(self.spot, self.strike)
@@ -34,7 +34,7 @@ class PutOptions(unittest.TestCase):
     def test_decompose(self):
         """Decompose put option payoff.
 
-        (K - S)^+ = K * I_{S < K} - S * I_{S < K}
+        (K - S)^+ = K * I_{S < K} - S * I_{S < K}.
         """
         put = payoffs.put(self.spot, self.strike)
         binary_asset = payoffs.binary_asset_put(self.spot, self.strike)

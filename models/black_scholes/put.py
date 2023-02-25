@@ -15,17 +15,21 @@ from utils import payoffs
 class PutNew(options.VanillaOptionNew):
     """European put option in Black-Scholes model.
 
+    TODO: Delete old Put and rename...
+
     European put option written on stock price modelled by
     Black-Scholes SDE.
+
+    See J.C. Hull 2015, chapter 15 and 19.
 
     Attributes:
         rate: Interest rate.
         vol: Volatility.
-        event_grid: Event dates, e.g. payment dates, represented as year
-            fractions from the as-of date.
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
-        dividend: Stock dividend.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+        dividend: Continuous dividend yield. Default value is 0.
     """
 
     def __init__(self,
@@ -45,6 +49,7 @@ class PutNew(options.VanillaOptionNew):
 
         self.type = global_types.Instrument.EUROPEAN_PUT
         self.model = global_types.Model.BLACK_SCHOLES
+        # Solver objects.
         self.fd = None
         self.mc = None
 
@@ -68,16 +73,16 @@ class PutNew(options.VanillaOptionNew):
     def payoff_dds(self,
                    spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
-        """Derivative of payoff function wrt underlying state.
+        """Derivative of payoff function wrt value of underlying.
 
-        1st order partial derivative of payoff function wrt the
-        underlying state.
+        1st order partial derivative of payoff function wrt value of
+        underlying.
 
         Args:
             spot: Current stock price.
 
         Returns:
-            Payoff.
+            Derivative of payoff.
         """
         return - payoffs.binary_cash_put(spot, self.strike)
 
@@ -94,12 +99,12 @@ class PutNew(options.VanillaOptionNew):
             Price.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
-        spot *= np.exp(-self.dividend * (self.expiry - time))
-        return - spot * norm.cdf(-d1) \
-            + self.strike * norm.cdf(-d2) \
-            * math.exp(-self.rate * (self.expiry - time))
+        delta_t = self.expiry - time
+        s = spot * math.exp(-self.dividend * delta_t)
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
+        return - s * norm.cdf(-d1) \
+            + self.strike * norm.cdf(-d2) * math.exp(-self.rate * delta_t)
 
     def delta(self,
               spot: typing.Union[float, np.ndarray],
@@ -114,10 +119,11 @@ class PutNew(options.VanillaOptionNew):
             Delta.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
-        return np.exp(-self.dividend * (self.expiry - time)) \
-            * (norm.cdf(d1) - 1)
+        delta_t = self.expiry - time
+        s = spot * math.exp(-self.dividend * delta_t)
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
+        return math.exp(-self.dividend * delta_t) * (norm.cdf(d1) - 1)
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
@@ -132,10 +138,12 @@ class PutNew(options.VanillaOptionNew):
             Gamma.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
-        return math.exp(-self.dividend * (self.expiry - time)) * norm.pdf(d1) \
-            / (spot * self.vol * math.sqrt(self.expiry - time))
+        delta_t = self.expiry - time
+        s = spot * math.exp(-self.dividend * delta_t)
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
+        return math.exp(-self.dividend * delta_t) * norm.pdf(d1) \
+            / (spot * self.vol * math.sqrt(delta_t))
 
     def rho(self,
             spot: typing.Union[float, np.ndarray],
@@ -150,10 +158,12 @@ class PutNew(options.VanillaOptionNew):
             Rho.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
-        return - self.strike * (self.expiry - time) \
-            * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(-d2)
+        delta_t = self.expiry - time
+        s = spot * math.exp(-self.dividend * delta_t)
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
+        return - self.strike * delta_t * math.exp(-self.rate * delta_t) \
+            * norm.cdf(-d2)
 
     def theta(self,
               spot: typing.Union[float, np.ndarray],
@@ -168,14 +178,13 @@ class PutNew(options.VanillaOptionNew):
             Theta.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
-        spot *= math.exp(-self.dividend * (self.expiry - time))
-        return - spot * norm.pdf(d1) * self.vol \
-            / (2 * math.sqrt(self.expiry - time)) \
-            + self.rate * self.strike \
-            * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(-d2) \
-            - self.dividend * spot * norm.cdf(d1)
+        delta_t = self.expiry - time
+        s = spot * math.exp(-self.dividend * delta_t)
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
+        return - s * norm.pdf(d1) * self.vol / (2 * math.sqrt(delta_t)) \
+            + self.rate * self.strike * math.exp(-self.rate * delta_t) \
+            * norm.cdf(-d2) - self.dividend * s * norm.cdf(-d1)
 
     def vega(self,
              spot: typing.Union[float, np.ndarray],
@@ -190,9 +199,11 @@ class PutNew(options.VanillaOptionNew):
             Vega.
         """
         time = self.event_grid[event_idx]
-        d1, d2 = misc.d1d2(spot, time, self.rate, self.vol,
-                           self.expiry, self.strike, self.dividend)
-        return spot * norm.pdf(d1) * math.sqrt(self.expiry - time)
+        delta_t = self.expiry - time
+        s = spot * math.exp(-self.dividend * delta_t)
+        d1, d2 = \
+            misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
+        return s * norm.pdf(d1) * math.sqrt(delta_t)
 
     def fd_setup(self,
                  xmin: float,
