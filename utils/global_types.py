@@ -25,10 +25,3 @@ class Model(enum.Enum):
     CIR = enum.auto()
     HULL_WHITE_1F = enum.auto()
     VASICEK = enum.auto()
-
-
-class OptionExercise(enum.Enum):
-    """Type of option exercise."""
-    AMERICAN = enum.auto()
-    BERMUDAN = enum.auto()
-    EUROPEAN = enum.auto()
