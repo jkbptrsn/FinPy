@@ -1,13 +1,15 @@
 import math
-import matplotlib.pyplot as plt
-import numpy as np
 import unittest
 
-import models.black_scholes.call as call
-import models.black_scholes.put as put
+from matplotlib import pyplot as plt
+import numpy as np
+
+from models.black_scholes import call
+from models.black_scholes import put
 
 
 class Parity(unittest.TestCase):
+    """Test call-put parity in Black-Scholes model."""
 
     def test_1(self):
         rate = 0.05

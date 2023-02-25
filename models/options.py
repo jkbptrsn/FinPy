@@ -2,6 +2,23 @@ import abc
 import numpy as np
 
 
+class EuropeanOption(metaclass=abc.ABCMeta):
+    """Abstract European option class."""
+
+    @abc.abstractmethod
+    def payoff(self,
+               spot: (float, np.ndarray)) -> (float, np.ndarray):
+        """Payoff function.
+
+        Args:
+            spot: Current value of underlying.
+
+        Returns:
+            Payoff.
+        """
+        pass
+
+
 class VanillaOptionNew(metaclass=abc.ABCMeta):
     """Abstract vanilla option class."""
 
