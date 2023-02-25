@@ -7,12 +7,11 @@ from scipy.stats import norm
 from models import options
 from models.black_scholes import misc
 from models.black_scholes import sde
-from numerical_methods.finite_difference import theta as fd_theta
 from utils import global_types
 from utils import payoffs
 
 
-class PutNew(options.VanillaOptionNew):
+class PutNew(options.EuropeanOptionAnalytical):
     """European put option in Black-Scholes model.
 
     TODO: Delete old Put and rename...
@@ -39,6 +38,7 @@ class PutNew(options.VanillaOptionNew):
                  expiry_idx: int,
                  event_grid: np.ndarray,
                  dividend: float = 0):
+        super().__init__()
         self.rate = rate
         self.vol = vol
         self.strike = strike
@@ -49,9 +49,6 @@ class PutNew(options.VanillaOptionNew):
 
         self.type = global_types.Instrument.EUROPEAN_PUT
         self.model = global_types.Model.BLACK_SCHOLES
-        # Solver objects.
-        self.fd = None
-        self.mc = None
 
     @property
     def expiry(self) -> float:
@@ -204,20 +201,6 @@ class PutNew(options.VanillaOptionNew):
         d1, d2 = \
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
         return s * norm.pdf(d1) * math.sqrt(delta_t)
-
-    def fd_setup(self,
-                 x_grid: np.ndarray,
-                 theta_value: float = 0.5,
-                 method: str = "Andersen"):
-        """Setting up finite difference solver.
-
-        Args:
-            x_grid: Grid in spatial dimension.
-            theta_value: ...
-            method: "Andersen" or "Andreasen"
-        """
-        self.fd = fd_theta.setup_solver(self, x_grid, theta_value, method)
-        self.fd.initialization()
 
     def fd_solve(self):
         """Run solver on event_grid..."""

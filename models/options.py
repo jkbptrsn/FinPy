@@ -3,6 +3,8 @@ import typing
 
 import numpy as np
 
+from numerical_methods.finite_difference import theta as fd_theta
+
 
 class EuropeanOption(metaclass=abc.ABCMeta):
     """European option."""
@@ -29,6 +31,10 @@ class EuropeanOption(metaclass=abc.ABCMeta):
 
 class EuropeanOptionAnalytical(metaclass=abc.ABCMeta):
     """European option with closed-form solution."""
+
+    def __init__(self):
+        # Solver objects.
+        self.fd = None
 
     @property
     @abc.abstractmethod
@@ -107,6 +113,25 @@ class EuropeanOptionAnalytical(metaclass=abc.ABCMeta):
         Returns:
             Theta.
         """
+        pass
+
+    def fd_setup(self,
+                 x_grid: np.ndarray,
+                 theta_value: float = 0.5,
+                 method: str = "Andersen"):
+        """Setting up finite difference solver.
+
+        Args:
+            x_grid: Grid in spatial dimension.
+            theta_value: ...
+            method: "Andersen" or "Andreasen"
+        """
+        self.fd = fd_theta.setup_solver(self, x_grid, theta_value, method)
+        self.fd.initialization()
+
+    @abc.abstractmethod
+    def fd_solve(self):
+        """Run solver on event_grid..."""
         pass
 
 

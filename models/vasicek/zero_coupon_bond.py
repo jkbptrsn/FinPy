@@ -3,14 +3,11 @@ import numpy as np
 from models import bonds
 from models.vasicek import misc
 from models.vasicek import sde
-
-from numerical_methods.finite_difference import theta as fd_theta
-
 from utils import global_types
 from utils import payoffs
 
 
-class ZCBondNew(bonds.VanillaBondNew):
+class ZCBondNew(bonds.VanillaBondAnalytical):
     """Zero-coupon bond in the Vasicek model.
 
     Attributes:
@@ -28,6 +25,7 @@ class ZCBondNew(bonds.VanillaBondNew):
                  vol: float,
                  event_grid: np.ndarray,
                  maturity_idx: int):
+        super().__init__()
         self.kappa = kappa
         self.mean_rate = mean_rate
         self.vol = vol
@@ -36,8 +34,6 @@ class ZCBondNew(bonds.VanillaBondNew):
 
         self.type = global_types.Instrument.ZERO_COUPON_BOND
         self.model = global_types.Model.VASICEK
-        self.fd = None
-        self.mc = None
 
     def __repr__(self):
         return f"{self.type} bond object"
@@ -110,20 +106,6 @@ class ZCBondNew(bonds.VanillaBondNew):
         """
         return self.price(spot, event_idx) \
             * (self.dadt(event_idx) - self.dbdt(event_idx) * spot)
-
-    def fd_setup(self,
-                 x_grid: np.ndarray,
-                 theta_value: float = 0.5,
-                 method: str = "Andersen"):
-        """Setting up finite difference solver.
-
-        Args:
-            x_grid: Grid in spatial dimension.
-            theta_value: ...
-            method: "Andersen" or "Andreasen"
-        """
-        self.fd = fd_theta.setup_solver(self, x_grid, theta_value, method)
-        self.fd.initialization()
 
     def fd_solve(self):
         """Run solver on event_grid..."""

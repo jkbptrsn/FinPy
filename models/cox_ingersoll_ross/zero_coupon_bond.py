@@ -1,16 +1,14 @@
 import numpy as np
 
-import models.bonds as bonds
-import models.cox_ingersoll_ross.misc as misc
-import models.cox_ingersoll_ross.sde as sde
-
+from models import bonds
+from models.cox_ingersoll_ross import misc
+from models.cox_ingersoll_ross import sde
 from numerical_methods.finite_difference import theta as fd_theta
+from utils import global_types
+from utils import payoffs
 
-import utils.global_types as global_types
-import utils.payoffs as payoffs
 
-
-class ZCBondNew(bonds.VanillaBondNew):
+class ZCBondNew(bonds.VanillaBondAnalytical):
     """Zero-coupon bond in CIR model.
 
     Attributes:
@@ -28,6 +26,7 @@ class ZCBondNew(bonds.VanillaBondNew):
                  vol: float,
                  event_grid: np.ndarray,
                  maturity_idx: int):
+        super().__init__()
         self.kappa = kappa
         self.mean_rate = mean_rate
         self.vol = vol
@@ -36,8 +35,6 @@ class ZCBondNew(bonds.VanillaBondNew):
 
         self.type = global_types.Instrument.ZERO_COUPON_BOND
         self.model = global_types.Model.VASICEK
-        self.fd = None
-        self.mc = None
 
     @property
     def maturity(self) -> float:
@@ -94,20 +91,6 @@ class ZCBondNew(bonds.VanillaBondNew):
         """1st order price sensitivity wrt time."""
         return self.price(spot, time) \
             * (self.dadt(time) - self.dbdt(time) * spot)
-
-    def fd_setup(self,
-                 x_grid: np.ndarray,
-                 theta_value: float = 0.5,
-                 method: str = "Andersen"):
-        """Setting up finite difference solver.
-
-        Args:
-            x_grid: Grid in spatial dimension.
-            theta_value: ...
-            method: "Andersen" or "Andreasen"
-        """
-        self.fd = fd_theta.setup_solver(self, x_grid, theta_value, method)
-        self.fd.initialization()
 
     def fd_solve(self):
         """Run solver on event_grid..."""

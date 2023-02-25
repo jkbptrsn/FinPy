@@ -1,18 +1,16 @@
 import math
+
 import numpy as np
 from scipy.stats import norm
 
-import models.options as options
-import models.bachelier.misc as misc
-import models.bachelier.sde as sde
-
-from numerical_methods.finite_difference import theta as fd_theta
-
-import utils.global_types as global_types
-import utils.payoffs as payoffs
+from models import options
+from models.bachelier import misc
+from models.bachelier import sde
+from utils import global_types
+from utils import payoffs
 
 
-class CallNew(options.VanillaOptionNew):
+class CallNew(options.EuropeanOptionAnalytical):
     """European call option in Bachelier model.
 
     European call option written on stock price.
@@ -32,6 +30,7 @@ class CallNew(options.VanillaOptionNew):
                  strike: float,
                  expiry_idx: int,
                  event_grid: np.ndarray):
+        super().__init__()
         self.rate = rate
         self.vol = vol
         self.strike = strike
@@ -40,8 +39,6 @@ class CallNew(options.VanillaOptionNew):
 
         self.type = global_types.Instrument.EUROPEAN_CALL
         self.model = global_types.Model.BACHELIER
-        self.fd = None
-        self.mc = None
 
     @property
     def expiry(self) -> float:
@@ -99,20 +96,6 @@ class CallNew(options.VanillaOptionNew):
              time: float) -> (float, np.ndarray):
         """..."""
         pass
-
-    def fd_setup(self,
-                 x_grid: np.ndarray,
-                 theta_value: float = 0.5,
-                 method: str = "Andersen"):
-        """Setting up finite difference solver.
-
-        Args:
-            x_grid: Grid in spatial dimension.
-            theta_value: ...
-            method: "Andersen" or "Andreasen"
-        """
-        self.fd = fd_theta.setup_solver(self, x_grid, theta_value, method)
-        self.fd.initialization()
 
     def fd_solve(self):
         """Run solver on event_grid..."""
