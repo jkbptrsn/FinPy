@@ -30,7 +30,7 @@ def plot_price_and_greeks(instrument, payoff, price, show=True):
                   mode="expand", borderaxespad=0, ncol=3)
 
     # Plot of instrument delta.
-    ax1[1].plot(grid, instrument.fd.delta_fd(), '-r')
+    ax1[1].plot(grid, instrument.fd.delta(), '-r')
     try:
         ax1[1].plot(grid, instrument.delta(grid, 0), 'ob', markersize=2)
     except (AttributeError, TypeError, ValueError):
@@ -40,7 +40,7 @@ def plot_price_and_greeks(instrument, payoff, price, show=True):
     ax1[1].ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
 
     # Plot of instrument gamma.
-    ax1[2].plot(grid, instrument.fd.gamma_fd(), '-r')
+    ax1[2].plot(grid, instrument.fd.gamma(), '-r')
     try:
         ax1[2].plot(grid, instrument.gamma(grid, 0), 'ob', markersize=2)
     except (AttributeError, TypeError, ValueError):
@@ -50,7 +50,7 @@ def plot_price_and_greeks(instrument, payoff, price, show=True):
     ax1[2].ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
 
     # Plot of instrument theta.
-    ax1[3].plot(grid, instrument.fd.theta_fd(), '-r')
+    ax1[3].plot(grid, instrument.fd.theta(), '-r')
     try:
         ax1[3].plot(grid, instrument.theta(grid, 0), 'ob', markersize=2)
     except (AttributeError, TypeError, ValueError):
@@ -76,7 +76,7 @@ def plot_price_and_greeks(instrument, payoff, price, show=True):
 
     # Plot of instrument delta.
     try:
-        ax2[1].plot(grid, instrument.delta(grid, 0) - instrument.fd.delta_fd(),
+        ax2[1].plot(grid, instrument.delta(grid, 0) - instrument.fd.delta(),
                     'ob', markersize=2)
     except (AttributeError, TypeError, ValueError):
         print("Error in plots.py: Fig 2, delta")
@@ -86,7 +86,7 @@ def plot_price_and_greeks(instrument, payoff, price, show=True):
 
     # Plot of instrument gamma.
     try:
-        ax2[2].plot(grid, instrument.gamma(grid, 0) - instrument.fd.gamma_fd(),
+        ax2[2].plot(grid, instrument.gamma(grid, 0) - instrument.fd.gamma(),
                     'ob', markersize=2)
     except (AttributeError, TypeError, ValueError):
         print("Error in plots.py: Fig 2, gamma")
@@ -96,7 +96,7 @@ def plot_price_and_greeks(instrument, payoff, price, show=True):
 
     # Plot of instrument theta.
     try:
-        ax2[3].plot(grid, instrument.theta(grid, 0) - instrument.fd.theta_fd(),
+        ax2[3].plot(grid, instrument.theta(grid, 0) - instrument.fd.theta(),
                     'ob', markersize=2)
     except (AttributeError, TypeError, ValueError):
         print("Error in plots.py: Fig 2, theta")

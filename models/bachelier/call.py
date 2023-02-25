@@ -10,10 +10,8 @@ from utils import global_types
 from utils import payoffs
 
 
-class CallNew(options.EuropeanOptionAnalytical):
+class Call(options.EuropeanOptionAnalytical):
     """European call option in Bachelier model.
-
-    TODO: Rename...
 
     European call option written on stock price.
 

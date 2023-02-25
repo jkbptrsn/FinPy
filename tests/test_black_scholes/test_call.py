@@ -23,8 +23,8 @@ class CallOption(unittest.TestCase):
 
     def test_expiry(self) -> None:
         """Test expiry property."""
-        c = call.CallNew(self.rate, self.vol, self.strike, self.expiry_idx,
-                         self.event_grid)
+        c = call.Call(self.rate, self.vol, self.strike, self.expiry_idx,
+                      self.event_grid)
         self.assertTrue(c.expiry == self.expiry)
 
     def test_decompose(self) -> None:
@@ -32,8 +32,8 @@ class CallOption(unittest.TestCase):
 
         (S - K)^+ = S * I_{S > K} - K * I_{S > K}.
         """
-        c = call.CallNew(self.rate, self.vol, self.strike, self.expiry_idx,
-                         self.event_grid)
+        c = call.Call(self.rate, self.vol, self.strike, self.expiry_idx,
+                      self.event_grid)
         b1 = binary.BinaryAssetCall(self.rate, self.vol, self.event_grid, self.strike, self.expiry_idx)
         b2 = binary.BinaryCashCall(self.rate, self.vol, self.event_grid, self.strike, self.expiry_idx)
         call_decomposed = b1.price(self.spot, self.time_idx) \
@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
     spot = np.arange(2, 100, 2) * 1.0
 
-    c = call.CallNew(rate, vol, strike, expiry_idx, event_grid)
+    c = call.Call(rate, vol, strike, expiry_idx, event_grid)
     b1 = binary.BinaryAssetCall(rate, vol, event_grid, strike, expiry_idx)
     b2 = binary.BinaryCashCall(rate, vol, event_grid, strike, expiry_idx)
 

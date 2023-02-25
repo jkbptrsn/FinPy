@@ -1,27 +1,21 @@
 import abc
+
 import numpy as np
 from scipy.linalg import solve_banded
 
 from utils import timing
-import utils.global_types as global_types
+from utils import global_types
 from utils import payoffs
 
 
-class Theta:
-    """Theta method for solving a parabolic 1-factor PDE (base class).
-    TODO: Change class name to Theta1D
+class Theta1D:
+    """Theta method for solving parabolic 1-factor PDE (base class).
 
     The general structure of the PDE is
         dV/dt + drift * dV/dx + 1/2 * diffusion^2 * dV^2/dx^2 = rate * V,
     TODO: What about the RHS for Ornstein-Uhlenbeck processes?
     where the underlying 1-dimensional Markov process reads
         dx_t = drift(t, x_t) * dt + diffusion(t, x_t) * dW_t.
-
-    TODO: theta -> theta_parameter
-    The numerical solution is determined using
-        - theta = 0   : Explicit method
-        - theta = 1/2 : Crank-Nicolson method (default)
-        - theta = 1   : Fully implicit method
 
     The grid in the spatial dimension is assumed equidistant.
 
@@ -30,7 +24,7 @@ class Theta:
         - 2nd row: Diagonal
         - 3rd row: Sub-diagonal (not including last element)
 
-    TODO: Remove 2 extra grid points -- need for convergence tests?
+    TODO: Remove 2 extra grid points -- need for convergence tests? Go through Andersen & Piterbarg
     TODO: Add non-equidistant grid. Instead of xmin, xmax, nstates, use state_grid as parameter
     TODO: Smoothing of payoff functions -- not necessary according to Andreasen
     TODO: Rannacher time stepping with fully implicit method -- not necessary according to Andreasen
@@ -42,18 +36,13 @@ class Theta:
     def __init__(self,
                  xmin: float,
                  xmax: float,
-                 nstates: int,
-                 dt: float,
-                 theta: float = 0.5):
+                 nstates: int):
         self.xmin = xmin
         self.xmax = xmax
 
         # Adding boundary states.
         self.nstates = nstates + 2
         self.dx = (xmax - xmin) / (nstates - 1)
-
-        self.dt = dt
-        self.theta = theta
 
         self.vec_drift = None
         self.vec_diff_sq = None
@@ -98,10 +87,10 @@ class Theta:
     def propagation(self):
         pass
 
-    def delta_fd(self) -> np.ndarray:
-        """Delta calculated by second order finite differences. Assuming
-        equidistant and ascending grid.
-        TODO: Change name to delta
+    def delta(self) -> np.ndarray:
+        """Delta calculated by second order finite differences.
+
+        Assuming equidistant and ascending grid.
         """
         delta = np.zeros(self.nstates)
         # Central finite difference.
@@ -117,10 +106,10 @@ class Theta:
                      + 3 * self.vec_solution[-1] / 2) / self.dx
         return delta
 
-    def gamma_fd(self) -> np.ndarray:
-        """Gamma calculated by second order finite differences. Assuming
-        equidistant and ascending grid.
-        TODO: Change name to gamma
+    def gamma(self) -> np.ndarray:
+        """Gamma calculated by second order finite differences.
+
+        Assuming equidistant and ascending grid.
         """
         dx_sq = self.dx ** 2
         gamma = np.zeros(self.nstates)
@@ -140,28 +129,27 @@ class Theta:
                      + 2 * self.vec_solution[-1]) / dx_sq
         return gamma
 
-    def theta_fd(self) -> np.ndarray:
-        """Theta calculated by central finite difference.
+    @abc.abstractmethod
+    def theta(self, dt: float = None) -> np.ndarray:
+        pass
 
-        TODO: Change name to theta
-        TODO: Check AndersenPiterbarg1D with boundary = "PDE"?
-        TODO: Optional dt parameter, otherwise use first time step of event_grid
-        """
+    def theta_calc(self, dt: float) -> np.ndarray:
+        """Theta calculated by central first order finite difference."""
         self.set_propagator()
         # Save current solution
         solution_copy = self.solution.copy()
         # Forward propagation
-        self.dt = - self.dt
+        dt = - dt
         self.propagation()
         forward = self.solution.copy()
         # Backward propagation (two time steps)
-        self.dt = - self.dt
+        dt = - dt
         self.propagation()
         self.propagation()
         backward = self.solution.copy()
         # Restore current solution
         self.solution = solution_copy
-        return (forward - backward) / (2 * self.dt)
+        return (forward - backward) / (2 * dt)
 
     @staticmethod
     def identity_matrix(n_elements) -> np.ndarray:
@@ -196,15 +184,20 @@ class Theta:
         return product
 
 
-class Andreasen1D(Theta):
+class Andreasen1D(Theta1D):
     """The theta method implemented as shown in
     Jesper Andreasen's Finite Difference notes from 2011.
 
     The propagator is defined by
         dV/dt = - Propagator * V.
 
+    The numerical solution is determined using
+        - theta_parameter = 0   : Explicit method
+        - theta_parameter = 1/2 : Crank-Nicolson method (default)
+        - theta_parameter = 1   : Fully implicit method
+
     TODO: Remove dt as argument, give dt as argument in propagation function
-    TODO: Check convergence -- should match AndersenPiterbarg1D using bc_type = "Linearity"
+    TODO: Give x_grid as argument
     TODO: Move ddx and d2dx2 to separate file, generalize for penta...
     """
 
@@ -213,8 +206,10 @@ class Andreasen1D(Theta):
                  xmax: float,
                  nstates: int,
                  dt: float,
-                 theta: float = 0.5):
-        super().__init__(xmin, xmax, nstates, dt, theta)
+                 theta_parameter: float = 0.5):
+        super().__init__(xmin, xmax, nstates)
+        self.dt = dt
+        self.theta_parameter = theta_parameter
 
     def ddx(self) -> np.ndarray:
         """Central finite difference approximation of first order
@@ -260,23 +255,28 @@ class Andreasen1D(Theta):
     def propagation(self):
         """Propagation of solution vector for one time step dt."""
         rhs = self.mat_identity \
-            + (1 - self.theta) * self.dt * self.mat_propagator
+            + (1 - self.theta_parameter) * self.dt * self.mat_propagator
         rhs = self.matrix_col_prod(rhs, self.vec_solution)
 
         # Update propagator, if drift/diffusion are time-dependent.
         # But then one would also need to update vec_drift and vec_diff_sq...
 #        self.set_propagator()
 
-        lhs = self.mat_identity - self.theta * self.dt * self.mat_propagator
+        lhs = self.mat_identity \
+            - self.theta_parameter * self.dt * self.mat_propagator
         self.vec_solution = solve_banded((1, 1), lhs, rhs)
 
+    def theta(self, dt: float = None) -> np.ndarray:
+        if not dt:
+            dt = self.dt
+        return self.theta_calc(dt)
 
-class AndersenPiterbarg1D(Theta):
+
+class Andersen1D(Theta1D):
     """The theta method implemented as shown in
     L.B.G. Andersen & V.V. Piterbarg 2010.
 
-    TODO: Change class name to Andersen1D
-
+    TODO: Give x_grid as argument
     TODO: "PDE" boundary conditions requires a very small initial time step,
         and the convergence order differs from "Linearity". Hence, use
         "Linearity" boundary conditions in "production".
@@ -287,9 +287,11 @@ class AndersenPiterbarg1D(Theta):
                  xmax: float,
                  nstates: int,
                  dt: float,
-                 theta: float = 0.5,
+                 theta_parameter: float = 0.5,
                  bc_type: str = "Linearity"):
-        super().__init__(xmin, xmax, nstates, dt, theta=theta)
+        super().__init__(xmin, xmax, nstates)
+        self.dt = dt
+        self.theta_parameter = theta_parameter
         self.bc_type = bc_type
         self.vec_boundary = None
         self.bc = np.zeros(2)
@@ -339,16 +341,17 @@ class AndersenPiterbarg1D(Theta):
         """Propagation of solution vector for one time step dt."""
         # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010.
         rhs = self.mat_identity \
-            + (1 - self.theta) * self.dt * self.mat_propagator
+            + (1 - self.theta_parameter) * self.dt * self.mat_propagator
         rhs = self.matrix_col_prod(rhs, self.vec_solution[1:-1]) \
-            + (1 - self.theta) * self.dt * self.vec_boundary
+            + (1 - self.theta_parameter) * self.dt * self.vec_boundary
         # Save boundary conditions at previous time step.
         self.set_boundary_conditions_dt()
         # Update self.mat_propagator and self.vec_boundary at t - dt.
         self.set_propagator()
         # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010.
-        rhs += self.theta * self.dt * self.vec_boundary
-        lhs = self.mat_identity - self.theta * self.dt * self.mat_propagator
+        rhs += self.theta_parameter * self.dt * self.vec_boundary
+        lhs = self.mat_identity \
+            - self.theta_parameter * self.dt * self.mat_propagator
         # Solve Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010.
         self.vec_solution[1:-1] = solve_banded((1, 1), lhs, rhs)
         # Boundary conditions.
@@ -391,7 +394,7 @@ class AndersenPiterbarg1D(Theta):
         Also, section 10.1.5.2, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
         dx_sq = self.dx ** 2
-        theta_dt = self.theta * self.dt
+        theta_dt = self.theta_parameter * self.dt
         # Lower spatial boundary.
         a = 1 + theta_dt * self.vec_drift[0] / self.dx \
             - theta_dt * self.vec_diff_sq[0] / (2 * dx_sq) \
@@ -413,7 +416,7 @@ class AndersenPiterbarg1D(Theta):
         Also, section 10.1.5.2, L.B.G. Andersen & V.V. Piterbarg 2010.
         """
         dx_sq = self.dx ** 2
-        theta_dt = (1 - self.theta) * self.dt
+        theta_dt = (1 - self.theta_parameter) * self.dt
         # Lower spatial boundary.
         d = 1 - theta_dt * self.vec_drift[0] / self.dx \
             + theta_dt * self.vec_diff_sq[0] / (2 * dx_sq) \
@@ -446,6 +449,11 @@ class AndersenPiterbarg1D(Theta):
             + e_p * self.vec_solution[-2] \
             + f_p * self.vec_solution[-3]
 
+    def theta(self, dt: float = None) -> np.ndarray:
+        if not dt:
+            dt = self.dt
+        return self.theta_calc(dt)
+
 
 def setup_black_scholes(xmin: float,
                         xmax: float,
@@ -455,10 +463,13 @@ def setup_black_scholes(xmin: float,
                         vol: float,
                         theta: float = 0.5,
                         method: str = "Andreasen"):
-    """Set up Black-Scholes PDE..."""
+    """Set up Black-Scholes PDE...
+
+    TODO: Remove and replace by setup_solver
+    """
     # Set up PDE solver.
     if method == "Andersen":
-        solver = AndersenPiterbarg1D(xmin, xmax, nstates, dt, theta)
+        solver = Andersen1D(xmin, xmax, nstates, dt, theta)
     elif method == "Andreasen":
         solver = Andreasen1D(xmin, xmax, nstates, dt, theta)
     else:
@@ -479,10 +490,13 @@ def setup_vasicek(xmin: float,
                   vol: float,
                   theta: float = 0.5,
                   method: str = "Andreasen"):
-    """Set up Vasicek PDE..."""
+    """Set up Vasicek PDE...
+
+    TODO: Remove and replace by setup_solver
+    """
     # Set up PDE solver.
     if method == "Andersen":
-        solver = AndersenPiterbarg1D(xmin, xmax, nstates, dt, theta)
+        solver = Andersen1D(xmin, xmax, nstates, dt, theta)
     elif method == "Andreasen":
         solver = Andreasen1D(xmin, xmax, nstates, dt, theta)
     else:
@@ -520,9 +534,9 @@ def setup_solver(instrument,
                  x_grid: np.ndarray,
                  theta_value: float = 0.5,
                  method: str = "Andersen") \
-        -> (AndersenPiterbarg1D, Andreasen1D):
+        -> (Andersen1D, Andreasen1D):
     """Setting up finite difference solver.
-    TODO: Add non-equidistant grid. Instead of xmin, xmax, nstates, use state_grid as parameter
+
     Args:
         instrument: Instrument object.
         x_grid: Grid in spatial dimension.
@@ -538,7 +552,7 @@ def setup_solver(instrument,
     xmax = x_grid[-1]
     nstates = x_grid.size
     if method == "Andersen":
-        solver = AndersenPiterbarg1D(xmin, xmax, nstates, dt, theta_value)
+        solver = Andersen1D(xmin, xmax, nstates, dt, theta_value)
     elif method == "Andreasen":
         solver = Andreasen1D(xmin, xmax, nstates, dt, theta_value)
     else:

@@ -11,10 +11,8 @@ from utils import global_types
 from utils import payoffs
 
 
-class PutNew(options.EuropeanOptionAnalytical):
+class Put(options.EuropeanOptionAnalytical):
     """European put option in Black-Scholes model.
-
-    TODO: Rename...
 
     European put option written on stock price modelled by
     Black-Scholes SDE.

@@ -23,10 +23,10 @@ class Parity(unittest.TestCase):
         self.spot = np.arange(1, 100)
 
     def test_1(self):
-        c = call.CallNew(self.rate, self.vol, self.strike, self.expiry_idx,
-                         self.event_grid)
-        p = put.PutNew(self.rate, self.vol, self.strike, self.expiry_idx,
-                       self.event_grid)
+        c = call.Call(self.rate, self.vol, self.strike, self.expiry_idx,
+                      self.event_grid)
+        p = put.Put(self.rate, self.vol, self.strike, self.expiry_idx,
+                    self.event_grid)
         lhs = c.price(self.spot, self.time_idx) \
             - p.price(self.spot, self.time_idx)
         discount = math.exp(-self.rate * (self.expiry - self.time))

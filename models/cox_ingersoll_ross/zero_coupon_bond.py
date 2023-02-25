@@ -7,10 +7,8 @@ from utils import global_types
 from utils import payoffs
 
 
-class ZCBondNew(bonds.VanillaBondAnalytical):
+class ZCBond(bonds.VanillaBondAnalytical):
     """Zero-coupon bond in CIR model.
-
-    TODO: Rename...
 
     Attributes:
         kappa: Speed of mean-reversion.
