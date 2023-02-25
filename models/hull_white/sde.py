@@ -72,7 +72,7 @@ class SDEBasic(sde.SDE):
         self.event_grid = event_grid
         self.int_step_size = int_step_size
 
-        self.model_name = global_types.ModelName.HULL_WHITE_1F
+        self.model_name = global_types.Model.HULL_WHITE_1F
 
         # Arrays used for exact discretization.
         self.rate_mean = np.zeros((event_grid.size, 2))

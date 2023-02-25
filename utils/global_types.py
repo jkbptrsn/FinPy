@@ -1,30 +1,27 @@
-from enum import Enum
+import enum
 
 
-class InstrumentType(Enum):
-    AMERICAN_CALL = 1
-    AMERICAN_PUT = 2
-    BINARY_ASSET_CALL = 3
-    BINARY_CASH_CALL = 4
-    BINARY_ASSET_PUT = 5
-    BINARY_CASH_PUT = 6
-    CAPLET = 7
-    EUROPEAN_CALL = 8
-    EUROPEAN_PUT = 9
-    FLOORLET = 10
-    SWAP = 11
-    SWAPTION = 12
-    ZERO_COUPON_BOND = 13
+class Instrument(enum.Enum):
+    """Type of financial instrument."""
+    AMERICAN_CALL = enum.auto()
+    AMERICAN_PUT = enum.auto()
+    BINARY_ASSET_CALL = enum.auto()
+    BINARY_CASH_CALL = enum.auto()
+    BINARY_ASSET_PUT = enum.auto()
+    BINARY_CASH_PUT = enum.auto()
+    CAPLET = enum.auto()
+    EUROPEAN_CALL = enum.auto()
+    EUROPEAN_PUT = enum.auto()
+    FLOORLET = enum.auto()
+    SWAP = enum.auto()
+    SWAPTION = enum.auto()
+    ZERO_COUPON_BOND = enum.auto()
 
 
-class ModelName(Enum):
-    BACHELIER = 1
-    BLACK_SCHOLES = 2
-    CIR = 3
-    HULL_WHITE_1F = 4
-    VASICEK = 5
-
-
-class OptionExerciseType(Enum):
-    AMERICAN = 1
-    EUROPEAN = 2
+class Model(enum.Enum):
+    """Type of underlying stochastic model."""
+    BACHELIER = enum.auto()
+    BLACK_SCHOLES = enum.auto()
+    CIR = enum.auto()
+    HULL_WHITE_1F = enum.auto()
+    VASICEK = enum.auto()

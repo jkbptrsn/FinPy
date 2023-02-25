@@ -43,7 +43,7 @@ class Call(sde.SDE, options.VanillaOption):
         self.expiry_idx = expiry_idx
         self.maturity_idx = maturity_idx
 
-        self.option_type = global_types.InstrumentType.EUROPEAN_CALL
+        self.option_type = global_types.Instrument.EUROPEAN_CALL
 
         # Underlying zero-coupon bond
         self.zcbond = \

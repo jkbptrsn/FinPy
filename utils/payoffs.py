@@ -1,13 +1,14 @@
 import numpy as np
+import typing
 
 
-def binary_asset_call(spot: (float, np.ndarray),
-                      strike: float) -> (float, np.ndarray):
+def binary_asset_call(spot: typing.Union[float, np.ndarray],
+                      strike: float) -> typing.Union[float, np.ndarray]:
     """Long asset-or-nothing call option position.
 
     Args:
-        spot: Current price.
-        strike: Strike price at expiry.
+        spot: Current price of underlying asset.
+        strike: Strike price of underlying asset.
 
     Returns:
         Payoff.
@@ -15,13 +16,13 @@ def binary_asset_call(spot: (float, np.ndarray),
     return (spot > strike) * spot
 
 
-def binary_asset_put(spot: (float, np.ndarray),
-                     strike: float) -> (float, np.ndarray):
+def binary_asset_put(spot: typing.Union[float, np.ndarray],
+                     strike: float) -> typing.Union[float, np.ndarray]:
     """Long asset-or-nothing put option position.
 
     Args:
-        spot: Current price.
-        strike: Strike price at expiry.
+        spot: Current price of underlying asset.
+        strike: Strike price of underlying asset.
 
     Returns:
         Payoff.
@@ -29,13 +30,13 @@ def binary_asset_put(spot: (float, np.ndarray),
     return (spot < strike) * spot
 
 
-def binary_cash_call(spot: (float, np.ndarray),
-                     strike: float) -> (float, np.ndarray):
+def binary_cash_call(spot: typing.Union[float, np.ndarray],
+                     strike: float) -> typing.Union[float, np.ndarray]:
     """Long cash-or-nothing call option position.
 
     Args:
-        spot: Current price.
-        strike: Strike price at expiry.
+        spot: Current price of underlying asset.
+        strike: Strike price of underlying asset.
 
     Returns:
         Payoff.
@@ -43,13 +44,13 @@ def binary_cash_call(spot: (float, np.ndarray),
     return (spot > strike) * 1
 
 
-def binary_cash_put(spot: (float, np.ndarray),
-                    strike: float) -> (float, np.ndarray):
+def binary_cash_put(spot: typing.Union[float, np.ndarray],
+                    strike: float) -> typing.Union[float, np.ndarray]:
     """Long cash-or-nothing put option position.
 
     Args:
-        spot: Current price.
-        strike: Strike price at expiry.
+        spot: Current price of underlying asset.
+        strike: Strike price of underlying asset.
 
     Returns:
         Payoff.
@@ -57,13 +58,13 @@ def binary_cash_put(spot: (float, np.ndarray),
     return (spot < strike) * 1
 
 
-def call(spot: (float, np.ndarray),
-         strike: float) -> (float, np.ndarray):
+def call(spot: typing.Union[float, np.ndarray],
+         strike: float) -> typing.Union[float, np.ndarray]:
     """Long call option position.
 
     Args:
-        spot: Current price.
-        strike: Strike price at expiry.
+        spot: Current price of underlying asset.
+        strike: Strike price of underlying asset.
 
     Returns:
         Payoff.
@@ -71,13 +72,13 @@ def call(spot: (float, np.ndarray),
     return np.maximum(spot - strike, 0)
 
 
-def put(spot: (float, np.ndarray),
-        strike: float) -> (float, np.ndarray):
+def put(spot: typing.Union[float, np.ndarray],
+        strike: float) -> typing.Union[float, np.ndarray]:
     """Long put option position.
 
     Args:
-        spot: Current price.
-        strike: Strike price at expiry.
+        spot: Current price of underlying asset.
+        strike: Strike price of underlying asset.
 
     Returns:
         Payoff.
@@ -85,13 +86,14 @@ def put(spot: (float, np.ndarray),
     return np.maximum(strike - spot, 0)
 
 
-def zero_coupon_bond(spot: (float, np.ndarray)) -> (float, np.ndarray):
+def zero_coupon_bond(spot: typing.Union[float, np.ndarray]) \
+        -> typing.Union[float, np.ndarray]:
     """Long zero-coupon bond position.
 
     Args:
-        spot: Current rate.
+        spot: Current short rate.
 
     Returns:
         Payoff.
     """
-    return 0 * spot + 1
+    return 1 + 0 * spot

@@ -32,15 +32,15 @@ expiry_idx = t_steps - 1
 event_grid = dt * np.arange(t_steps) - t_min
 maturity_idx = t_steps - 1
 
-# model_name = "Black-Scholes"
+model_name = "Black-Scholes"
 # model_name = "Bachelier"
 # model_name = "Vasicek"
 # model_name = "Extended Vasicek"
-model_name = "CIR"
+# model_name = "CIR"
 
-# instrument = "Call"
+instrument = "Call"
 # instrument = "Put"
-instrument = "ZCBond"
+# instrument = "ZCBond"
 
 if model_name in ("Vasicek", "Extended Vasicek"):
     strike = 0.5
@@ -58,6 +58,9 @@ if model_name == "CIR":
     x_max = 0.5
     x_steps = 201
 
+dx = (x_max - x_min) / (x_steps - 1)
+x_grid = dx * np.arange(x_steps) + x_min
+
 if model_name == "Black-Scholes":
     if instrument == "Call":
         instru = bs_call.CallNew(rate, vol, strike, expiry_idx, event_grid)
@@ -73,7 +76,9 @@ elif model_name == "CIR":
     if instrument == "ZCBond":
         instru = cir_bond.ZCBondNew(kappa, mean_rate, vol, event_grid, maturity_idx)
 
-instru.fd_setup(x_min, x_max, x_steps)
+# instru.fd_setup(x_min, x_max, x_steps)
+instru.fd_setup(x_grid)
+
 payoff = instru.fd.solution.copy()
 instru.fd_solve()
 plots.plot_price_and_greeks(instru, payoff, instru.fd.solution, show=True)

@@ -175,10 +175,10 @@ def european_option_price(spot: float,
     else:
         raise Exception(f"Option type is unknown: {option_type}")
     zc1 = \
-        zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid, expiry_idx)
+        zero_coupon_bond.ZCBondNew(kappa, mean_rate, vol, event_grid, expiry_idx)
     zc1_price = zc1.price(spot, event_idx)
-    zc2 = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid,
-                                  maturity_idx)
+    zc2 = zero_coupon_bond.ZCBondNew(kappa, mean_rate, vol, event_grid,
+                                     maturity_idx)
     zc2_price = zc2.price(spot, event_idx)
     expiry = event_grid[expiry_idx]
     maturity = event_grid[maturity_idx]
@@ -225,11 +225,11 @@ def european_option_delta(spot: float,
     else:
         raise Exception(f"Option type is unknown: {option_type}")
     zc1 = \
-        zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid, expiry_idx)
+        zero_coupon_bond.ZCBondNew(kappa, mean_rate, vol, event_grid, expiry_idx)
     zc1_price = zc1.price(spot, event_idx)
     zc1_delta = zc1.delta(spot, event_idx)
-    zc2 = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid,
-                                  maturity_idx)
+    zc2 = zero_coupon_bond.ZCBondNew(kappa, mean_rate, vol, event_grid,
+                                     maturity_idx)
     zc2_price = zc2.price(spot, event_idx)
     zc2_delta = zc2.delta(spot, event_idx)
     expiry = event_grid[expiry_idx]
@@ -282,12 +282,12 @@ def european_option_gamma(spot: float,
     else:
         raise Exception(f"Option type is unknown: {option_type}")
     zc1 = \
-        zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid, expiry_idx)
+        zero_coupon_bond.ZCBondNew(kappa, mean_rate, vol, event_grid, expiry_idx)
     zc1_price = zc1.price(spot, event_idx)
     zc1_delta = zc1.delta(spot, event_idx)
     zc1_gamma = zc1.gamma(spot, event_idx)
-    zc2 = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid,
-                                  maturity_idx)
+    zc2 = zero_coupon_bond.ZCBondNew(kappa, mean_rate, vol, event_grid,
+                                     maturity_idx)
     zc2_price = zc2.price(spot, event_idx)
     zc2_delta = zc2.delta(spot, event_idx)
     zc2_gamma = zc2.gamma(spot, event_idx)

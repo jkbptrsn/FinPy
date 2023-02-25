@@ -3,15 +3,14 @@ import numpy as np
 from models import bonds
 from models.vasicek import misc
 from models.vasicek import sde
-
-from numerical_methods.finite_difference import theta as fd_theta
-
 from utils import global_types
 from utils import payoffs
 
 
-class ZCBondNew(bonds.VanillaBondNew):
+class ZCBondNew(bonds.VanillaBondAnalytical):
     """Zero-coupon bond in the Vasicek model.
+
+    TODO: Rename...
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -28,16 +27,15 @@ class ZCBondNew(bonds.VanillaBondNew):
                  vol: float,
                  event_grid: np.ndarray,
                  maturity_idx: int):
+        super().__init__()
         self.kappa = kappa
         self.mean_rate = mean_rate
         self.vol = vol
         self.event_grid = event_grid
         self.maturity_idx = maturity_idx
 
-        self.type = global_types.InstrumentType.ZERO_COUPON_BOND
-        self.model = global_types.ModelName.VASICEK
-        self.fd = None
-        self.mc = None
+        self.type = global_types.Instrument.ZERO_COUPON_BOND
+        self.model = global_types.Model.VASICEK
 
     def __repr__(self):
         return f"{self.type} bond object"
@@ -111,28 +109,6 @@ class ZCBondNew(bonds.VanillaBondNew):
         return self.price(spot, event_idx) \
             * (self.dadt(event_idx) - self.dbdt(event_idx) * spot)
 
-    def fd_setup(self,
-                 xmin: float,
-                 xmax: float,
-                 nstates: int,
-                 theta_value: float = 0.5,
-                 method: str = "Andersen"):
-        """Setting up finite difference solver.
-
-        Args:
-            xmin: Minimum of .
-            xmax: Maximum of .
-            nstates: Number of states.
-            theta_value: ...
-            method: "Andersen" og "Andreasen"
-
-        Returns:
-            Finite difference solver.
-        """
-        self.fd = fd_theta.setup_solver(xmin, xmax, nstates,
-                                        self, theta_value, method)
-        self.fd.initialization()
-
     def fd_solve(self):
         """Run solver on event_grid..."""
         for dt in np.flip(np.diff(self.event_grid)):
@@ -163,7 +139,7 @@ class ZCBond(sde.SDE, bonds.VanillaBond):
         super().__init__(kappa, mean_rate, vol, event_grid)
         self.maturity_idx = maturity_idx
 
-        self.bond_type = global_types.InstrumentType.ZERO_COUPON_BOND
+        self.bond_type = global_types.Instrument.ZERO_COUPON_BOND
 
     def __repr__(self):
         return f"{self.bond_type} bond object"

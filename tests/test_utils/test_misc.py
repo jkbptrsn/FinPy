@@ -1,6 +1,7 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import unittest
+
+from matplotlib import pyplot as plt
+import numpy as np
 
 import utils.misc as misc
 

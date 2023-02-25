@@ -1,11 +1,11 @@
 import math
-import typing
+from typing import Tuple
 
 import numpy as np
 
-from models import sde
-from utils import global_types
-from utils import misc
+import models.sde as sde
+import utils.global_types as global_types
+import utils.misc as misc
 
 
 class SDE(sde.SDE):
@@ -28,7 +28,7 @@ class SDE(sde.SDE):
         self.event_grid = event_grid
         self.dividend = dividend
 
-        self.model_name = global_types.ModelName.BLACK_SCHOLES
+        self.model_name = global_types.Model.BLACK_SCHOLES
 
         self.price_mean = np.zeros(self.event_grid.size)
         self.price_variance = np.zeros(self.event_grid.size)
@@ -96,8 +96,7 @@ class SDE(sde.SDE):
                   time: float,
                   n_paths: int,
                   greek: str = 'delta',
-                  antithetic: bool = False) \
-            -> typing.Tuple[np.ndarray, np.ndarray]:
+                  antithetic: bool = False) -> Tuple[np.ndarray, np.ndarray]:
         """Generate paths, at t = time, of geometric Brownian motion
         using analytic expression. The paths are used for "path-wise"
         Monte-Carlo calculation of a 'greek'.
@@ -122,7 +121,7 @@ class SDE(sde.SDE):
                          n_paths: int,
                          greek: str = 'delta',
                          antithetic: bool = False) \
-            -> typing.Tuple[np.ndarray, np.ndarray]:
+            -> Tuple[np.ndarray, np.ndarray]:
         """Generate paths, at t = time, of geometric Brownian motion
         using analytic expression. The paths are used for
         'likelihood-ratio' Monte-Carlo calculation of a 'greek'.

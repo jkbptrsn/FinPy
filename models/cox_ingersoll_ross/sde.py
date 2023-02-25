@@ -29,7 +29,7 @@ class SDE(sde.SDE):
         self.vol = vol
         self.event_grid = event_grid
 
-        self.model_name = global_types.ModelName.CIR
+        self.model_name = global_types.Model.CIR
 
     def __repr__(self):
         return f"{self.model_name} SDE object"

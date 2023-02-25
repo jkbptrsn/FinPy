@@ -23,7 +23,7 @@ class SDE(sde.SDE):
         self.vol = vol
         self.event_grid = event_grid
 
-        self.model_name = global_types.ModelName.BACHELIER
+        self.model_name = global_types.Model.BACHELIER
 
         self._price_mean = np.zeros(self.event_grid.size)
         self._price_variance = np.zeros(self.event_grid.size)

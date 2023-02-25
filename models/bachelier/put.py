@@ -1,11 +1,12 @@
 import math
+
 import numpy as np
 from scipy.stats import norm
 
-import models.bachelier.misc as misc
-import models.bachelier.sde as sde
-import utils.global_types as global_types
-import utils.payoffs as payoffs
+from models.bachelier import misc
+from models.bachelier import sde
+from utils import global_types
+from utils import payoffs
 
 
 class Put(sde.SDE):
@@ -32,7 +33,7 @@ class Put(sde.SDE):
         self.strike = strike
         self.expiry_idx = expiry_idx
 
-        self.option_type = global_types.InstrumentType.EUROPEAN_PUT
+        self.option_type = global_types.Instrument.EUROPEAN_PUT
 
     @property
     def expiry(self) -> float:

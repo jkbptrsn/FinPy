@@ -41,7 +41,7 @@ class Payer(sde.SDE, options.VanillaOption):
         self.maturity_idx = maturity_idx
         self.fixed_rate = fixed_rate
 
-        self.option_type = global_types.InstrumentType.SWAPTION
+        self.option_type = global_types.Instrument.SWAPTION
 
         # Underlying swap
         # -- assuming swap maturity is equal to event_grid[-1]

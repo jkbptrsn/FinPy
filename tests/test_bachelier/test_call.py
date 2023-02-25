@@ -55,7 +55,8 @@ if __name__ == '__main__':
             = np.maximum(strike - paths[-1], 0) * math.exp(-rate * expiry)
         mc_put[idx] = np.sum(discounted_payoff) / n_paths
     # Call option
-    c = call.Call(rate, vol, event_grid, strike, expiry_idx)
+#    c = call.Call(rate, vol, event_grid, strike, expiry_idx)
+    c = call.CallNew(rate, vol, strike, expiry_idx, event_grid)
     plt.plot(spot, c.payoff(spot), "k", label="Payoff")
     plt.plot(spot, c.price(spot, 0), "r", label="Analytical")
     plt.plot(spot, mc_call, "ob", label="Monte-Carlo")
