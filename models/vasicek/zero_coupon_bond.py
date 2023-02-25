@@ -10,6 +10,8 @@ from utils import payoffs
 class ZCBondNew(bonds.VanillaBondAnalytical):
     """Zero-coupon bond in the Vasicek model.
 
+    TODO: Rename...
+
     Attributes:
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.

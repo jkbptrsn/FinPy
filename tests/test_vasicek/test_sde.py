@@ -29,8 +29,8 @@ class SDE(unittest.TestCase):
         # SDE object
         monte_carlo = sde.SDE(kappa, mean_rate, vol, event_grid)
         # Zero-coupon bond
-        bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid,
-                                       maturity_idx)
+        bond = zero_coupon_bond.ZCBondNew(kappa, mean_rate, vol, event_grid,
+                                          maturity_idx)
         # Initialize random number generator
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate
@@ -79,8 +79,7 @@ class SDE(unittest.TestCase):
         # SDE object
         monte_carlo = sde.SDE(kappa, mean_rate, vol, event_grid)
         # Zero-coupon bond
-        bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid,
-                                       maturity_idx)
+        bond = zero_coupon_bond.ZCBondNew(kappa, mean_rate, vol, event_grid, maturity_idx)
         # European call option written on zero-coupon bond
         call = call_option.Call(kappa, mean_rate, vol, event_grid, strike,
                                 expiry_idx, maturity_idx)
@@ -140,8 +139,8 @@ class SDE(unittest.TestCase):
         # SDE object
         monte_carlo = sde.SDE(kappa, mean_rate, vol, event_grid)
         # Zero-coupon bond
-        bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid,
-                                       maturity_idx)
+        bond = zero_coupon_bond.ZCBondNew(kappa, mean_rate, vol, event_grid,
+                                          maturity_idx)
         # European put option written on zero-coupon bond
         put = put_option.Put(kappa, mean_rate, vol, event_grid, strike,
                              expiry_idx, maturity_idx)
@@ -197,8 +196,8 @@ if __name__ == '__main__':
     # SDE object
     monte_carlo = sde.SDE(kappa_, mean_rate_, vol_, event_grid_)
     # Zero-coupon bond
-    bond = zero_coupon_bond.ZCBond(kappa_, mean_rate_, vol_, event_grid_,
-                                   maturity_idx_)
+    bond = zero_coupon_bond.ZCBondNew(kappa_, mean_rate_, vol_, event_grid_,
+                                      maturity_idx_)
     bond_price_a = spot_vector_ * 0
     bond_price_n = spot_vector_ * 0
     bond_price_n_error = spot_vector_ * 0

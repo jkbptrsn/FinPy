@@ -1,11 +1,12 @@
 import math
+
 import numpy as np
 from scipy.stats import norm
 
-import models.bachelier.misc as misc
-import models.bachelier.sde as sde
-import utils.global_types as global_types
-import utils.payoffs as payoffs
+from models.bachelier import misc
+from models.bachelier import sde
+from utils import global_types
+from utils import payoffs
 
 
 class Put(sde.SDE):
