@@ -41,7 +41,8 @@ class Theta1D:
         self.xmax = xmax
 
         # Adding boundary states.
-        self.nstates = nstates + 2
+#        self.nstates = nstates + 2
+        self.nstates = nstates
         self.dx = (xmax - xmin) / (nstates - 1)
 
         self.vec_drift = None
@@ -55,7 +56,8 @@ class Theta1D:
         """Equidistant grid between xmin and xmax including both points.
         Two boundary states are added at xmin - dx and xmax + dx.
         """
-        return self.dx * np.arange(-1, self.nstates - 1) + self.xmin
+#        return self.dx * np.arange(-1, self.nstates - 1) + self.xmin
+        return self.dx * np.arange(self.nstates) + self.xmin
 
     def set_drift(self, drift: np.ndarray):
         """Drift vector defined by the underlying stochastic process."""
@@ -514,7 +516,15 @@ def norm_diff_1d(vec1: np.ndarray,
                  slice_nr=2):
 
     # Absolute difference. Exclude boundary points?
-    diff = np.abs(vec1[1:-1] - vec2[1:-1][::slice_nr])
+
+#    diff = np.abs(vec1[1:-1] - vec2[1:-1][::slice_nr])
+
+#    if slice_nr == 1:
+#        diff = np.abs(vec1[1:-1] - vec2[1:-1][::slice_nr])
+#    elif slice_nr == 2:
+#        diff = np.abs(vec1[1:-1] - vec2[2:-2][::slice_nr])
+
+    diff = np.abs(vec1 - vec2[::slice_nr])
 
     # "Center" norm.
     n_states = diff.size

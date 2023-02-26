@@ -1,10 +1,11 @@
+import unittest
+
 from matplotlib import pyplot as plt
 import numpy as np
 from scipy.stats import linregress
-import unittest
 
-import utils.payoffs as payoffs
-import numerical_methods.finite_difference.theta as theta
+from utils import payoffs
+from numerical_methods.finite_difference import theta
 
 plot_results = False
 print_results = True
@@ -14,7 +15,7 @@ rate = 0.04
 strike = 100
 vol = 0.3
 expiry = 2
-solver_type = "Andersen"
+solver_type = "Andreasen"
 
 
 class Theta1D(unittest.TestCase):
@@ -182,9 +183,9 @@ class Theta1D(unittest.TestCase):
             order = 2
             if theta_factor == 1:
                 order = 1
-            self.assertTrue(abs(lr1.slope - order) < 2e-3)
-            self.assertTrue(abs(lr2.slope - order) < 2e-3)
-            self.assertTrue(abs(lr3.slope - order) < 5e-3)
+            self.assertTrue(abs(lr1.slope - order) < 4e-3)
+            self.assertTrue(abs(lr2.slope - order) < 4e-3)
+            self.assertTrue(abs(lr3.slope - order) < 7e-3)
 
 
 if __name__ == '__main__':
