@@ -3,9 +3,9 @@ import abc
 import numpy as np
 from scipy.linalg import solve_banded
 
-from utils import timing
 from utils import global_types
 from utils import payoffs
+from utils import timing
 
 
 class Theta1D:
@@ -24,13 +24,11 @@ class Theta1D:
         - 2nd row: Diagonal
         - 3rd row: Sub-diagonal (not including last element)
 
-    TODO: Remove 2 extra grid points -- need for convergence tests? Go through Andersen & Piterbarg
+    TODO: Aldready removed 2 extra grid points -- go through Andersen & Piterbarg
     TODO: Add non-equidistant grid. Instead of xmin, xmax, nstates, use state_grid as parameter
     TODO: Smoothing of payoff functions -- not necessary according to Andreasen
     TODO: Rannacher time stepping with fully implicit method -- not necessary according to Andreasen
     TODO: Upwinding -- rarely used by Andreasen
-    TODO: From tri to penta?
-    TODO: Static methods in separate file, with identity matrix and matrix products for both tri and penta
     """
 
     def __init__(self,
@@ -41,7 +39,6 @@ class Theta1D:
         self.xmax = xmax
 
         # Adding boundary states.
-#        self.nstates = nstates + 2
         self.nstates = nstates
         self.dx = (xmax - xmin) / (nstates - 1)
 
@@ -56,7 +53,6 @@ class Theta1D:
         """Equidistant grid between xmin and xmax including both points.
         Two boundary states are added at xmin - dx and xmax + dx.
         """
-#        return self.dx * np.arange(-1, self.nstates - 1) + self.xmin
         return self.dx * np.arange(self.nstates) + self.xmin
 
     def set_drift(self, drift: np.ndarray):
@@ -200,7 +196,10 @@ class Andreasen1D(Theta1D):
 
     TODO: Remove dt as argument, give dt as argument in propagation function
     TODO: Give x_grid as argument
+
+    TODO: Use down- or up-sided 2nd order finite difference approximation at boundaries
     TODO: Move ddx and d2dx2 to separate file, generalize for penta...
+
     """
 
     def __init__(self,
