@@ -205,3 +205,20 @@ def d2dx2_equidistant(n_elements: int,
     else:
         raise ValueError("Form of banded matrix is unknown: Use tri or penta.")
     return matrix / (dx ** 2)
+
+
+def delta(solution: np.ndarray,
+          dx: float,
+          form: str = "tri") -> np.ndarray:
+    """Delta calculated by second order finite differences.
+
+    Assuming equidistant and ascending grid.
+    """
+    delta = np.zeros(solution.shape)
+    # Central finite difference.
+    delta[1:-1] = (solution[2:] - solution[:-2]) / (2 * dx)
+    # Forward finite difference.
+    delta[0] = (- solution[2] / 2 + 2 * solution[1] - 3 * solution[0] / 2) / dx
+    # Backward finite difference.
+    delta[-1] = (solution[-3] / 2 - 2 * solution[-2] + 3 * solution[-1] / 2) / dx
+    return delta
