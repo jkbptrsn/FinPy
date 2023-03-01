@@ -95,7 +95,7 @@ class VanillaBondAnalytical(metaclass=abc.ABCMeta):
     def fd_setup(self,
                  x_grid: np.ndarray,
                  theta_value: float = 0.5,
-                 method: str = "Andersen"):
+                 method: str = "Andreasen"):
         """Setting up finite difference solver.
 
         Args:

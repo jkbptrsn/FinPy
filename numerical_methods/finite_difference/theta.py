@@ -3,6 +3,7 @@ import abc
 import numpy as np
 from scipy.linalg import solve_banded
 
+from numerical_methods.finite_difference import misc
 from utils import global_types
 from utils import payoffs
 from utils import timing
@@ -86,46 +87,12 @@ class Theta1D:
         pass
 
     def delta(self) -> np.ndarray:
-        """Delta calculated by second order finite differences.
-
-        Assuming equidistant and ascending grid.
-        """
-        delta = np.zeros(self.nstates)
-        # Central finite difference.
-        delta[1:-1] = (self.vec_solution[2:]
-                       - self.vec_solution[:-2]) / (2 * self.dx)
-        # Forward finite difference.
-        delta[0] = (- self.vec_solution[2] / 2
-                    + 2 * self.vec_solution[1]
-                    - 3 * self.vec_solution[0] / 2) / self.dx
-        # Backward finite difference.
-        delta[-1] = (self.vec_solution[-3] / 2
-                     - 2 * self.vec_solution[-2]
-                     + 3 * self.vec_solution[-1] / 2) / self.dx
-        return delta
+        """Finite difference calculation of delta."""
+        return misc.delta_equidistant(self.vec_solution, self.dx)
 
     def gamma(self) -> np.ndarray:
-        """Gamma calculated by second order finite differences.
-
-        Assuming equidistant and ascending grid.
-        """
-        dx_sq = self.dx ** 2
-        gamma = np.zeros(self.nstates)
-        # Central finite difference
-        gamma[1:-1] = (self.vec_solution[2:]
-                       + self.vec_solution[:-2]
-                       - 2 * self.vec_solution[1:-1]) / dx_sq
-        # Forward finite difference
-        gamma[0] = (- self.vec_solution[3]
-                    + 4 * self.vec_solution[2]
-                    - 5 * self.vec_solution[1]
-                    + 2 * self.vec_solution[0]) / dx_sq
-        # Backward finite difference
-        gamma[-1] = (- self.vec_solution[-4]
-                     + 4 * self.vec_solution[-3]
-                     - 5 * self.vec_solution[-2]
-                     + 2 * self.vec_solution[-1]) / dx_sq
-        return gamma
+        """Finite difference calculation of gamma."""
+        return misc.gamma_equidistant(self.vec_solution, self.dx)
 
     @abc.abstractmethod
     def theta(self, dt: float = None) -> np.ndarray:
@@ -150,13 +117,6 @@ class Theta1D:
         return (forward - backward) / (2 * dt)
 
     @staticmethod
-    def identity_matrix(n_elements) -> np.ndarray:
-        """Identity matrix on tri-diagonal form."""
-        mat = np.zeros((3, n_elements))
-        mat[1, :] = 1
-        return mat
-
-    @staticmethod
     def matrix_col_prod(matrix: np.ndarray,
                         vector: np.ndarray) -> np.ndarray:
         """Product of tri-diagonal matrix and column vector."""
@@ -166,19 +126,6 @@ class Theta1D:
         product[:-1] += matrix[0, 1:] * vector[1:]
         # Contribution from sub-diagonal.
         product[1:] += matrix[2, :-1] * vector[:-1]
-        return product
-
-    @staticmethod
-    def row_matrix_prod(vector: np.ndarray,
-                        matrix: np.ndarray) -> np.ndarray:
-        """Product of row vector and tri-diagonal matrix."""
-        product = np.zeros(matrix.shape)
-        # Contribution from super-diagonal.
-        product[0, 1:] = vector[:-1] * matrix[0, 1:]
-        # Contribution from diagonal.
-        product[1, :] = vector * matrix[1, :]
-        # Contribution from sub-diagonal.
-        product[2, :-1] = vector[1:] * matrix[2, :-1]
         return product
 
 
@@ -196,10 +143,6 @@ class Andreasen1D(Theta1D):
 
     TODO: Remove dt as argument, give dt as argument in propagation function
     TODO: Give x_grid as argument
-
-    TODO: Use down- or up-sided 2nd order finite difference approximation at boundaries
-    TODO: Move ddx and d2dx2 to separate file, generalize for penta...
-
     """
 
     def __init__(self,
@@ -212,52 +155,26 @@ class Andreasen1D(Theta1D):
         self.dt = dt
         self.theta_parameter = theta_parameter
 
-    def ddx(self) -> np.ndarray:
-        """Central finite difference approximation of first order
-        derivative operator. At the boundaries, first order
-        forward/backward difference is used.
-        """
-        matrix = np.zeros((3, self.nstates))
-        # Central difference.
-        matrix[0, 2:] = 1
-        matrix[2, :-2] = -1
-        # Forward difference at lower boundary.
-        matrix[0, 1] = 2
-        matrix[1, 0] = -2
-        # Backward difference at upper boundary.
-        matrix[1, -1] = 2
-        matrix[2, -2] = -2
-        return matrix / (2 * self.dx)
-
-    def d2dx2(self) -> np.ndarray:
-        """Central finite difference approximation of second order
-        derivative operator. At the boundaries, the operator is set
-        equal to zero.
-        """
-        matrix = np.zeros((3, self.nstates))
-        matrix[0, 2:] = 1
-        matrix[1, 1:-1] = -2
-        matrix[2, :-2] = 1
-        return matrix / (self.dx ** 2)
-
     def initialization(self):
         """Initialization of identity matrix and propagator matrix."""
-        self.mat_identity = self.identity_matrix(self.nstates)
+        self.mat_identity = misc.identity_matrix(self.nstates)
         self.set_propagator()
 
     def set_propagator(self):
         """Propagator on tri-diagonal form."""
+        ddx = misc.ddx_equidistant(self.nstates, self.dx)
+        d2dx2 = misc.d2dx2_equidistant(self.nstates, self.dx)
         self.mat_propagator = \
-            - self.row_matrix_prod(self.vec_rate, self.mat_identity) \
-            + self.row_matrix_prod(self.vec_drift, self.ddx()) \
-            + self.row_matrix_prod(self.vec_diff_sq, self.d2dx2()) / 2
+            - misc.dia_matrix_prod(self.vec_rate, self.mat_identity) \
+            + misc.dia_matrix_prod(self.vec_drift, ddx) \
+            + misc.dia_matrix_prod(self.vec_diff_sq, d2dx2) / 2
 
 #    @timing.execution_time
     def propagation(self):
         """Propagation of solution vector for one time step dt."""
         rhs = self.mat_identity \
             + (1 - self.theta_parameter) * self.dt * self.mat_propagator
-        rhs = self.matrix_col_prod(rhs, self.vec_solution)
+        rhs = misc.matrix_col_prod(rhs, self.vec_solution)
 
         # Update propagator, if drift/diffusion are time-dependent.
         # But then one would also need to update vec_drift and vec_diff_sq...
@@ -301,7 +218,7 @@ class Andersen1D(Theta1D):
         """Initialization of identity matrix, boundary conditions and
         propagator matrix.
         """
-        self.mat_identity = self.identity_matrix(self.nstates - 2)
+        self.mat_identity = misc.identity_matrix(self.nstates - 2)
         self.mat_propagator = np.zeros((3, self.nstates - 2))
         self.vec_boundary = np.zeros(self.nstates - 2)
         # Save boundary conditions at previous time step.
