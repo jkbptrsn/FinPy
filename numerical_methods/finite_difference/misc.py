@@ -1,18 +1,27 @@
 import numpy as np
 
 info = """
-    Tri-diagonal form:
-        - 1st row: Super-diagonal (not including first element)
-        - 2nd row: Diagonal
-        - 3rd row: Sub-diagonal (not including last element)
+    Use scipy to solve equation A x = b, where A is banded matrix.
+        1. scipy.linalg.solve_banded
+            Standard LU factorization of A.
+        2. scipy.linalg.solveh_banded
+            Uses Thomas' algorithm. Should only be used for Hermitian 
+            positive-definite matrices (in this case, real symmetric 
+            matrices with positive eigenvalues).
 
-    Penta-diagonal form:
-        - 1st row: 2nd super-diagonal (not including first two elements)
-        - 2nd row: 1st super-diagonal (not including first element)
+    Tridiagonal form:
+        - 1st row: Superdiagonal (exclude first element)
+        - 2nd row: Diagonal
+        - 3rd row: Subdiagonal (exclude last element)
+
+    Pentadiagonal form:
+        - 1st row: 2nd superdiagonal (exclude first two elements)
+        - 2nd row: 1st superdiagonal (exclude first element)
         - 3rd row: Diagonal
-        - 4th row: 1st sub-diagonal (not including last element)
-        - 5th row: 2nd sub-diagonal (not including last two elements)
+        - 4th row: 1st subdiagonal (exclude last element)
+        - 5th row: 2nd subdiagonal (exclude last two elements)
 """
+# TODO: Compare computation time for solve_banded and solveh_banded
 
 
 def identity_matrix(n_elements: int,
@@ -20,19 +29,21 @@ def identity_matrix(n_elements: int,
     """Identity matrix of banded form.
 
     Args:
-        n_elements: Number of elements along main diagonal.
-        form: Tri- og penta-diagonal form. Default is tri-diagonal.
+        n_elements: Number of elements along diagonal.
+        form: Tri- or pentadiagonal form. Default is tridiagonal.
 
     Returns:
         Identity matrix.
     """
     if form == "tri":
         matrix = np.zeros((3, n_elements))
+        matrix[1, :] = 1
     elif form == "penta":
         matrix = np.zeros((5, n_elements))
+        matrix[2, :] = 1
     else:
-        raise ValueError("Form of banded matrix is unknown: Use tri or penta.")
-    matrix[1, :] = 1
+        raise ValueError(
+            f"{form}: Unknown form of banded matrix. Use tri or penta.")
     return matrix
 
 
@@ -44,7 +55,7 @@ def matrix_col_prod(matrix: np.ndarray,
     Args:
         matrix: Banded matrix.
         vector: Column vector.
-        form: Tri- og penta-diagonal form. Default is tri-diagonal.
+        form: Tri- or pentadiagonal form. Default is tridiagonal.
 
     Returns:
         Matrix-column product as column vector.
@@ -52,26 +63,28 @@ def matrix_col_prod(matrix: np.ndarray,
     if form == "tri":
         # Contribution from diagonal.
         product = matrix[1, :] * vector
-        # Contribution from super-diagonal.
+        # Contribution from superdiagonal.
         product[:-1] += matrix[0, 1:] * vector[1:]
-        # Contribution from sub-diagonal.
+        # Contribution from subdiagonal.
         product[1:] += matrix[2, :-1] * vector[:-1]
     elif form == "penta":
         # Contribution from diagonal.
         product = matrix[2, :] * vector
-        # Contribution from 2nd super-diagonal.
+        # Contribution from 2nd superdiagonal.
         product[:-2] += matrix[0, 2:] * vector[2:]
-        # Contribution from 1st super-diagonal.
+        # Contribution from 1st superdiagonal.
         product[:-1] += matrix[1, 1:] * vector[1:]
-        # Contribution from 1st sub-diagonal.
+        # Contribution from 1st subdiagonal.
         product[1:] += matrix[3, :-1] * vector[:-1]
-        # Contribution from 2nd sub-diagonal.
+        # Contribution from 2nd subdiagonal.
         product[2:] += matrix[4, :-2] * vector[:-2]
     else:
-        raise ValueError("Form of banded matrix is unknown: Use tri or penta.")
+        raise ValueError(
+            f"{form}: Unknown form of banded matrix. Use tri or penta.")
     return product
 
 
+# TODO: CONTINUE...
 def row_matrix_prod(vector: np.ndarray,
                     matrix: np.ndarray,
                     form: str = "tri") -> np.ndarray:
@@ -80,7 +93,7 @@ def row_matrix_prod(vector: np.ndarray,
     Args:
         vector: Row vector.
         matrix: Banded matrix.
-        form: Tri- og penta-diagonal form. Default is tri-diagonal.
+        form: Tri- or pentadiagonal form. Default is tridiagonal.
 
     Returns:
         Row-matrix product as row vector.
@@ -94,9 +107,9 @@ def dia_matrix_prod(diagonal: np.ndarray,
     """Product of diagonal matrix and banded matrix.
 
     Args:
-        diagonal: Diagonal matrix.
+        diagonal: Diagonal matrix represented as vector.
         matrix: Banded matrix.
-        form: Tri- og penta-diagonal form. Default is tri-diagonal.
+        form: Tri- or pentadiagonal form. Default is tridiagonal.
 
     Returns:
         Product as banded matrix.
@@ -121,7 +134,8 @@ def dia_matrix_prod(diagonal: np.ndarray,
         # Contribution from 2nd sub-diagonal.
         product[4, :-2] = diagonal[2:] * matrix[4, :-2]
     else:
-        raise ValueError("Form of banded matrix is unknown: Use tri or penta.")
+        raise ValueError(
+            f"{form}: Unknown form of banded matrix. Use tri or penta.")
     return product
 
 
@@ -137,7 +151,7 @@ def ddx_equidistant(n_elements: int,
     Args:
         n_elements: Number of elements along main diagonal.
         dx: Equidistant spacing.
-        form: Tri- og penta-diagonal form. Default is tri-diagonal.
+        form: Tri- or pentadiagonal form. Default is tridiagonal.
 
     Returns:
         Discrete derivative operator.
@@ -165,7 +179,8 @@ def ddx_equidistant(n_elements: int,
         matrix[2, -1] = 2
         matrix[3, -2] = -2
     else:
-        raise ValueError("Form of banded matrix is unknown: Use tri or penta.")
+        raise ValueError(
+            f"{form}: Unknown form of banded matrix. Use tri or penta.")
     return matrix / (2 * dx)
 
 
@@ -181,7 +196,7 @@ def d2dx2_equidistant(n_elements: int,
     Args:
         n_elements: Number of elements along main diagonal.
         dx: Equidistant spacing.
-        form: Tri- og penta-diagonal form. Default is tri-diagonal.
+        form: Tri- or pentadiagonal form. Default is tridiagonal.
 
     Returns:
         Discrete derivative operator.
@@ -201,9 +216,9 @@ def d2dx2_equidistant(n_elements: int,
         # Forward difference at lower boundary.
 
         # Backward difference at upper boundary.
-
     else:
-        raise ValueError("Form of banded matrix is unknown: Use tri or penta.")
+        raise ValueError(
+            f"{form}: Unknown form of banded matrix. Use tri or penta.")
     return matrix / (dx ** 2)
 
 
