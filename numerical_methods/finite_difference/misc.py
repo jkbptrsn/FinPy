@@ -206,6 +206,45 @@ def ddx_equidistant(n_elements: int,
     return matrix / (2 * dx)
 
 
+def ddx(grid: np.ndarray,
+        form: str = "tri") -> np.ndarray:
+    """Finite difference approximation of 1st order derivative operator.
+
+    Finite difference approximation of 1st order derivative operator on
+    non-equidistant grid. At the boundaries, forward/backward difference
+    is used...
+    TODO: Assuming ascending grid! Problem or just a comment...?
+
+    Args:
+        grid: Grid in spatial dimension.
+        form: Tri- or pentadiagonal form. Default is tridiagonal.
+
+    Returns:
+        Discrete 1st order derivative operator.
+    """
+    if form == "tri":
+        matrix = np.zeros((3, grid.size))
+        # "Central" difference.
+        step_forward = grid[2:] - grid[1:-1]
+        step_backward = grid[1:-1] - grid[:-2]
+        factor = step_forward * (1 + step_forward / step_backward)
+        matrix[0, 2:] = 1 / factor
+        matrix[1, 1:-1] = (np.square(step_forward / step_backward) - 1) / factor
+        matrix[2, :-2] = - np.square(step_forward / step_backward) / factor
+        # Forward difference at lower boundary.
+        step = (grid[1] - grid[0])
+        matrix[0, 1] = 1 / step
+        matrix[1, 0] = -1 / step
+        # Backward difference at upper boundary.
+        step = (grid[-1] - grid[-2])
+        matrix[1, -1] = 1 / step
+        matrix[2, -2] = -1 / step
+    else:
+        raise ValueError(
+            f"{form}: Unknown form of banded matrix. Use tri.")
+    return matrix
+
+
 def d2dx2_equidistant(n_elements: int,
                       dx: float,
                       form: str = "tri") -> np.ndarray:
