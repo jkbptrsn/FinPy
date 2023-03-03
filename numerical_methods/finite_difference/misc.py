@@ -206,36 +206,63 @@ def ddx_equidistant(n_elements: int,
     return matrix / (2 * dx)
 
 
-def ddx(grid: np.ndarray) -> np.ndarray:
+def ddx(grid: np.ndarray,
+        form: str = "tri") -> np.ndarray:
     """Finite difference approximation of 1st order derivative operator.
 
     Finite difference approximation of 1st order derivative operator on
-    non-equidistant grid. At the boundaries, forward/backward difference
-    is used.
+    non-equidistant grid. At the boundaries, either 1st order (tri) or
+    2nd order (penta) forward/backward difference is used.
     TODO: Assuming ascending grid! Problem or just a comment...?
 
     Args:
         grid: Grid in spatial dimension.
+        form: Tri- or pentadiagonal form. Default is tridiagonal.
 
     Returns:
         Discrete 1st order derivative operator.
     """
-    matrix = np.zeros((3, grid.size))
-    # "Central" difference.
-    dx_plus = grid[2:] - grid[1:-1]
-    dx_minus = grid[1:-1] - grid[:-2]
-    factor = 1 / (dx_plus * (1 + dx_plus / dx_minus))
-    matrix[0, 2:] = factor
-    matrix[1, 1:-1] = (np.square(dx_plus / dx_minus) - 1) * factor
-    matrix[2, :-2] = - np.square(dx_plus / dx_minus) * factor
-    # Forward difference at lower boundary.
-    dx = (grid[1] - grid[0])
-    matrix[0, 1] = 1 / dx
-    matrix[1, 0] = -1 / dx
-    # Backward difference at upper boundary.
-    dx = (grid[-1] - grid[-2])
-    matrix[1, -1] = 1 / dx
-    matrix[2, -2] = -1 / dx
+    if form == "tri":
+        matrix = np.zeros((3, grid.size))
+        # "Central" difference.
+        dx_plus = grid[2:] - grid[1:-1]
+        dx_minus = grid[1:-1] - grid[:-2]
+        factor = 1 / (dx_plus * (1 + dx_plus / dx_minus))
+        matrix[0, 2:] = factor
+        matrix[1, 1:-1] = (np.square(dx_plus / dx_minus) - 1) * factor
+        matrix[2, :-2] = - np.square(dx_plus / dx_minus) * factor
+        # Forward difference at lower boundary.
+        dx = grid[1] - grid[0]
+        matrix[0, 1] = 1 / dx
+        matrix[1, 0] = -1 / dx
+        # Backward difference at upper boundary.
+        dx = grid[-1] - grid[-2]
+        matrix[1, -1] = 1 / dx
+        matrix[2, -2] = -1 / dx
+    elif form == "penta":
+        matrix = np.zeros((5, grid.size))
+        # "Central" difference.
+        dx_plus = grid[2:] - grid[1:-1]
+        dx_minus = grid[1:-1] - grid[:-2]
+        factor = 1 / (dx_plus * (1 + dx_plus / dx_minus))
+        matrix[1, 2:] = factor
+        matrix[2, 1:-1] = (np.square(dx_plus / dx_minus) - 1) * factor
+        matrix[3, :-2] = - np.square(dx_plus / dx_minus) * factor
+        # Forward difference at lower boundary.
+        dx_p1 = grid[1] - grid[0]
+        dx_p2 = grid[2] - grid[1]
+        matrix[0, 2] = - dx_p1 / (dx_p2 * (dx_p1 + dx_p2))
+        matrix[1, 1] = (dx_p1 + dx_p2) / (dx_p1 * dx_p2)
+        matrix[2, 0] = (-2 * dx_p1 - dx_p2) / (dx_p2 * (dx_p1 + dx_p2))
+        # Backward difference at upper boundary.
+        dx_m1 = grid[-1] - grid[-2]
+        dx_m2 = grid[-2] - grid[-3]
+        matrix[2, -1] = (dx_m2 + 2 * dx_m1) / (dx_m1 * (dx_m1 + dx_m2))
+        matrix[3, -2] = - (dx_m1 + dx_m2) / (dx_m1 * dx_m2)
+        matrix[4, -3] = dx_m1 / (dx_m2 * (dx_m1 + dx_m2))
+    else:
+        raise ValueError(
+            f"{form}: Unknown form of banded matrix. Use tri or penta.")
     return matrix
 
 
@@ -284,7 +311,8 @@ def d2dx2_equidistant(n_elements: int,
     return matrix / (dx ** 2)
 
 
-def d2dx2(grid: np.ndarray) -> np.ndarray:
+def d2dx2(grid: np.ndarray,
+          form: str = "tri") -> np.ndarray:
     """Finite difference approximation of 2nd order derivative operator.
 
     Finite difference approximation of 2nd order derivative operator on
@@ -294,18 +322,34 @@ def d2dx2(grid: np.ndarray) -> np.ndarray:
 
     Args:
         grid: Grid in spatial dimension.
+        form: Tri- or pentadiagonal form. Default is tridiagonal.
 
     Returns:
         Discrete 2nd order derivative operator.
     """
-    matrix = np.zeros((3, grid.size))
-    # "Central" difference.
-    dx_plus = grid[2:] - grid[1:-1]
-    dx_minus = grid[1:-1] - grid[:-2]
-    factor = 1 / (dx_plus * dx_minus * (1 + dx_plus / dx_minus))
-    matrix[0, 2:] = 2 * factor
-    matrix[1, 1:-1] = - 2 * (1 + dx_plus / dx_minus) * factor
-    matrix[2, :-2] = 2 * (dx_plus / dx_minus) * factor
+    if form == "tri":
+        matrix = np.zeros((3, grid.size))
+        # "Central" difference.
+        dx_plus = grid[2:] - grid[1:-1]
+        dx_minus = grid[1:-1] - grid[:-2]
+        factor = 1 / (dx_plus * dx_minus * (1 + dx_plus / dx_minus))
+        matrix[0, 2:] = 2 * factor
+        matrix[1, 1:-1] = - 2 * (1 + dx_plus / dx_minus) * factor
+        matrix[2, :-2] = 2 * (dx_plus / dx_minus) * factor
+    elif form == "penta":
+        matrix = np.zeros((5, grid.size))
+        # "Central" difference.
+        dx_plus = grid[2:] - grid[1:-1]
+        dx_minus = grid[1:-1] - grid[:-2]
+        factor = 1 / (dx_plus * dx_minus * (1 + dx_plus / dx_minus))
+        matrix[1, 2:] = 2 * factor
+        matrix[2, 1:-1] = - 2 * (1 + dx_plus / dx_minus) * factor
+        matrix[3, :-2] = 2 * (dx_plus / dx_minus) * factor
+        # Forward difference at lower boundary.
+        # Backward difference at upper boundary.
+    else:
+        raise ValueError(
+            f"{form}: Unknown form of banded matrix. Use tri or penta.")
     return matrix
 
 
@@ -329,7 +373,8 @@ def delta_equidistant(dx: float,
 
 
 def delta(grid: np.ndarray,
-          function: np.ndarray) -> np.ndarray:
+          function: np.ndarray,
+          form: str = "tri") -> np.ndarray:
     """Finite difference calculation of delta on non-equidistant grid.
 
     Assuming ascending grid.
@@ -337,11 +382,12 @@ def delta(grid: np.ndarray,
     Args:
         grid: ...
         function: ...
+        form: Tri- or pentadiagonal form. Default is tridiagonal.
 
     Returns:
         Delta
     """
-    operator = ddx(grid)
+    operator = ddx(grid, form)
     return matrix_col_prod(operator, function)
 
 
@@ -365,7 +411,8 @@ def gamma_equidistant(dx: float,
 
 
 def gamma(grid: np.ndarray,
-          function: np.ndarray) -> np.ndarray:
+          function: np.ndarray,
+          form: str = "tri") -> np.ndarray:
     """Finite difference calculation of gamma on non-equidistant grid.
 
     Assuming ascending grid.
@@ -373,9 +420,10 @@ def gamma(grid: np.ndarray,
     Args:
         grid: ...
         function: ...
+        form: Tri- or pentadiagonal form. Default is tridiagonal.
 
     Returns:
         Gamma
     """
-    operator = d2dx2(grid)
+    operator = d2dx2(grid, form)
     return matrix_col_prod(operator, function)

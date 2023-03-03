@@ -25,7 +25,7 @@ class Theta1D:
         - 2nd row: Diagonal
         - 3rd row: Sub-diagonal (not including last element)
 
-    TODO: Aldready removed 2 extra grid points -- go through Andersen & Piterbarg
+    TODO: Already removed 2 extra grid points -- go through Andersen & Piterbarg
     TODO: Add non-equidistant grid. Instead of xmin, xmax, nstates, use state_grid as parameter
     TODO: Smoothing of payoff functions -- not necessary according to Andreasen
     TODO: Rannacher time stepping with fully implicit method -- not necessary according to Andreasen
