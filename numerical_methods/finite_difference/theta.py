@@ -116,18 +116,6 @@ class Theta1D:
         self.solution = solution_copy
         return (forward - backward) / (2 * dt)
 
-    @staticmethod
-    def matrix_col_prod(matrix: np.ndarray,
-                        vector: np.ndarray) -> np.ndarray:
-        """Product of tri-diagonal matrix and column vector."""
-        # Contribution from diagonal.
-        product = matrix[1, :] * vector
-        # Contribution from super-diagonal.
-        product[:-1] += matrix[0, 1:] * vector[1:]
-        # Contribution from sub-diagonal.
-        product[1:] += matrix[2, :-1] * vector[:-1]
-        return product
-
 
 class Andreasen1D(Theta1D):
     """The theta method implemented as shown in
@@ -260,7 +248,7 @@ class Andersen1D(Theta1D):
         # Eq. (2.19), L.B.G. Andersen & V.V. Piterbarg 2010.
         rhs = self.mat_identity \
             + (1 - self.theta_parameter) * self.dt * self.mat_propagator
-        rhs = self.matrix_col_prod(rhs, self.vec_solution[1:-1]) \
+        rhs = misc.matrix_col_prod(rhs, self.vec_solution[1:-1]) \
             + (1 - self.theta_parameter) * self.dt * self.vec_boundary
         # Save boundary conditions at previous time step.
         self.set_boundary_conditions_dt()
