@@ -88,11 +88,11 @@ class Theta1D:
 
     def delta(self) -> np.ndarray:
         """Finite difference calculation of delta."""
-        return misc.delta_equidistant(self.vec_solution, self.dx)
+        return misc.delta_equidistant(self.dx, self.vec_solution)
 
     def gamma(self) -> np.ndarray:
         """Finite difference calculation of gamma."""
-        return misc.gamma_equidistant(self.vec_solution, self.dx)
+        return misc.gamma_equidistant(self.dx, self.vec_solution)
 
     @abc.abstractmethod
     def theta(self, dt: float = None) -> np.ndarray:
