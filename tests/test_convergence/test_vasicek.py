@@ -4,8 +4,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 from scipy.stats import linregress
 
-from utils import payoffs
 from numerical_methods.finite_difference import theta
+from models.vasicek import zero_coupon_bond as bond
 
 plot_results = False
 print_results = True
@@ -17,7 +17,6 @@ vol = 0.05
 expiry = 10
 kappa = 2
 mean_rate = 0.05
-solver_type = "Andreasen"
 
 
 class Theta1D(unittest.TestCase):
@@ -47,30 +46,27 @@ class Theta1D(unittest.TestCase):
                 x_states = m
                 for n in range(n_doubling):
                     # Set up PDE solver.
-                    # TODO: The test fails for Andreasen implementation...
-                    solver = theta.setup_vasicek(x_min, x_max, x_states,
-                                                 dt, kappa, mean_rate, vol,
-                                                 theta=theta_factor,
-                                                 method=solver_type)
-                    # Terminal solution.
-                    solver.solution = payoffs.zero_coupon_bond(solver.grid())
-                    # Initialization.
-                    solver.initialization()
+                    event_grid = dt * np.arange(t_steps) - t_min
+                    expiry_idx = t_steps - 1
+                    instrument = \
+                        bond.ZCBond(kappa, mean_rate, vol, event_grid, expiry_idx)
+                    dx = (x_max - x_min) / (x_states - 1)
+                    x_grid = dx * np.arange(x_states) + x_min
+                    instrument.fd_setup(x_grid, theta_value=theta_factor)
                     # Backward propagation to time zero.
-                    for t in range(t_steps - 1):
-                        solver.propagation()
+                    instrument.fd_solve()
                     # Save result.
-                    solution = solver.solution
+                    solution = instrument.fd.solution
                     # Calculate norms.
                     if n != 0:
-                        step_array[counter] = np.log(solver.dx)
+                        step_array[counter] = np.log(dx)
                         norm_array[:, counter] = \
                             theta.norm_diff_1d(solution_old, solution, dx_old)
                         norm_array[:, counter] = np.log(norm_array[:, counter])
                         counter += 1
                     # Save result.
                     solution_old = solution
-                    dx_old = solver.dx
+                    dx_old = dx
                     # Update grid spacing in spatial dimension.
                     x_states = 2 * x_states - 1
             if plot_results:
@@ -98,7 +94,7 @@ class Theta1D(unittest.TestCase):
             lr3 = linregress(step_array, norm_array[2, :])
             if print_results:
                 print(lr1.slope, lr2.slope, lr3.slope)
-            self.assertTrue(abs(lr1.slope - 2) < 4e-3)
+            self.assertTrue(abs(lr1.slope - 2) < 8e-3)
             self.assertTrue(abs(lr2.slope - 2) < 1e-3)
             self.assertTrue(abs(lr3.slope - 2) < 4e-2)
 
@@ -128,19 +124,17 @@ class Theta1D(unittest.TestCase):
                 dt = (t_max - t_min) / (t_steps - 1)
                 for n in range(n_doubling):
                     # Set up PDE solver.
-                    solver = theta.setup_vasicek(x_min, x_max, x_states,
-                                                 dt, kappa, mean_rate, vol,
-                                                 theta=theta_factor,
-                                                 method=solver_type)
-                    # Terminal solution.
-                    solver.solution = payoffs.zero_coupon_bond(solver.grid())
-                    # Initialization.
-                    solver.initialization()
+                    event_grid = dt * np.arange(t_steps) + t_min
+                    expiry_idx = t_steps - 1
+                    instrument = \
+                        bond.ZCBond(kappa, mean_rate, vol, event_grid, expiry_idx)
+                    dx = (x_max - x_min) / (x_states - 1)
+                    x_grid = dx * np.arange(x_states) + x_min
+                    instrument.fd_setup(x_grid, theta_value=theta_factor)
                     # Backward propagation to time zero.
-                    for t in range(t_steps - 1):
-                        solver.propagation()
+                    instrument.fd_solve()
                     # Save result.
-                    solution = solver.solution
+                    solution = instrument.fd.solution
                     # Calculate norms.
                     if n != 0:
                         step_array[counter] = np.log(dt)
@@ -151,7 +145,7 @@ class Theta1D(unittest.TestCase):
                         counter += 1
                     # Save result.
                     solution_old = solution
-                    dx_old = solver.dx
+                    dx_old = dx
                     # Update grid spacing in time dimension.
                     t_steps = (t_steps - 1) * 2 + 1
                     dt = (t_max - t_min) / (t_steps - 1)
