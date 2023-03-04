@@ -85,13 +85,19 @@ class ThetaBase:
 
     def delta(self) -> np.ndarray:
         """Finite difference calculation of delta."""
-        dx = self.grid[1] - self.grid[0]
-        return misc.delta_equidistant(dx, self.vec_solution)
+        if self.equidistant:
+            dx = self.grid[1] - self.grid[0]
+            return misc.delta_equidistant(dx, self.vec_solution, self.form)
+        else:
+            return misc.delta(self.grid, self.vec_solution, self.form)
 
     def gamma(self) -> np.ndarray:
         """Finite difference calculation of gamma."""
-        dx = self.grid[1] - self.grid[0]
-        return misc.gamma_equidistant(dx, self.vec_solution)
+        if self.equidistant:
+            dx = self.grid[1] - self.grid[0]
+            return misc.gamma_equidistant(dx, self.vec_solution, self.form)
+        else:
+            return misc.gamma(self.grid, self.vec_solution, self.form)
 
     @abc.abstractmethod
     def theta(self, dt: float = None) -> np.ndarray:
@@ -149,25 +155,30 @@ class Theta(ThetaBase):
 
     def initialization(self):
         """Initialization of identity matrix and propagator matrix."""
-        self.mat_identity = misc.identity_matrix(self.nstates)
+        self.mat_identity = misc.identity_matrix(self.nstates, self.form)
         self.set_propagator()
 
     def set_propagator(self):
-        """Propagator on tri-diagonal form."""
-        dx = self.grid[1] - self.grid[0]
-        ddx = misc.ddx_equidistant(self.nstates, dx)
-        d2dx2 = misc.d2dx2_equidistant(self.nstates, dx)
+        """Propagator as banded matrix."""
+        if self.equidistant:
+            dx = self.grid[1] - self.grid[0]
+            ddx = misc.ddx_equidistant(self.nstates, dx, self.form)
+            d2dx2 = misc.d2dx2_equidistant(self.nstates, dx, self.form)
+        else:
+            ddx = misc.ddx(self.grid, self.form)
+            d2dx2 = misc.d2dx2(self.grid, self.form)
+
         self.mat_propagator = \
-            - misc.dia_matrix_prod(self.vec_rate, self.mat_identity) \
-            + misc.dia_matrix_prod(self.vec_drift, ddx) \
-            + misc.dia_matrix_prod(self.vec_diff_sq, d2dx2) / 2
+            - misc.dia_matrix_prod(self.vec_rate, self.mat_identity, self.form) \
+            + misc.dia_matrix_prod(self.vec_drift, ddx, self.form) \
+            + misc.dia_matrix_prod(self.vec_diff_sq, d2dx2, self.form) / 2
 
 #    @timing.execution_time
     def propagation(self, dt: float):
         """Propagation of solution vector for one time step dt."""
         rhs = self.mat_identity \
             + (1 - self.theta_parameter) * dt * self.mat_propagator
-        rhs = misc.matrix_col_prod(rhs, self.vec_solution)
+        rhs = misc.matrix_col_prod(rhs, self.vec_solution, self.form)
 
         # Update propagator, if drift/diffusion are time-dependent.
         # But then one would also need to update vec_drift and vec_diff_sq...
@@ -175,7 +186,13 @@ class Theta(ThetaBase):
 
         lhs = self.mat_identity \
             - self.theta_parameter * dt * self.mat_propagator
-        self.vec_solution = solve_banded((1, 1), lhs, rhs)
+        if self.form == "tri":
+            self.vec_solution = solve_banded((1, 1), lhs, rhs)
+        elif self.form == "penta":
+            self.vec_solution = solve_banded((2, 2), lhs, rhs)
+        else:
+            raise ValueError("Form should be tri or penta...")
+
         self.dt_last = dt
 
     def theta(self, dt: float = None) -> np.ndarray:
@@ -227,23 +244,24 @@ def norm_diff_1d(vec1: np.ndarray,
 
 
 def setup_solver(instrument,
-                 x_grid: np.ndarray,
-                 theta: float = 0.5,
-                 method: str = "Andreasen") \
-        -> Theta:
+                 grid: np.ndarray,
+                 form: str = "tri",
+                 equidistant: bool = False,
+                 theta: float = 0.5) -> Theta:
     """Setting up finite difference solver.
 
     Args:
         instrument: Instrument object.
-        x_grid: Grid in spatial dimension.
+        grid: Grid in spatial dimension.
+        form:
+        equidistant:
         theta: Theta parameter.
-        method: "Andersen" og "Andreasen"
 
     Returns:
         Finite difference solver.
     """
     # Set up PDE solver.
-    solver = Theta(x_grid, theta_parameter=theta)
+    solver = Theta(grid, form, equidistant, theta)
 
     if instrument.model == global_types.Model.BLACK_SCHOLES:
         drift = instrument.rate * solver.grid

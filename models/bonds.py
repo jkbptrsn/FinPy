@@ -94,16 +94,18 @@ class VanillaBondAnalytical(metaclass=abc.ABCMeta):
 
     def fd_setup(self,
                  x_grid: np.ndarray,
-                 theta_value: float = 0.5,
-                 method: str = "Andreasen"):
+                 form: str = "tri",
+                 equidistant: bool = False,
+                 theta_value: float = 0.5):
         """Setting up finite difference solver.
 
         Args:
             x_grid: Grid in spatial dimension.
+            form:
+            equidistant:
             theta_value: ...
-            method: "Andersen" or "Andreasen"
         """
-        self.fd = fd_theta.setup_solver(self, x_grid, theta_value, method)
+        self.fd = fd_theta.setup_solver(self, x_grid, form, equidistant, theta_value)
         self.fd.initialization()
 
     @abc.abstractmethod

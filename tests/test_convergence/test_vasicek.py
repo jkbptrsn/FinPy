@@ -52,7 +52,7 @@ class Theta1D(unittest.TestCase):
                         bond.ZCBond(kappa, mean_rate, vol, event_grid, expiry_idx)
                     dx = (x_max - x_min) / (x_states - 1)
                     x_grid = dx * np.arange(x_states) + x_min
-                    instrument.fd_setup(x_grid, theta_factor)
+                    instrument.fd_setup(x_grid, equidistant=True, theta_value=theta_factor)
                     # Backward propagation to time zero.
                     instrument.fd_solve()
                     # Save result.
@@ -130,7 +130,7 @@ class Theta1D(unittest.TestCase):
                         bond.ZCBond(kappa, mean_rate, vol, event_grid, expiry_idx)
                     dx = (x_max - x_min) / (x_states - 1)
                     x_grid = dx * np.arange(x_states) + x_min
-                    instrument.fd_setup(x_grid, theta_factor)
+                    instrument.fd_setup(x_grid, equidistant=True, theta_value=theta_factor)
                     # Backward propagation to time zero.
                     instrument.fd_solve()
                     # Save result.
