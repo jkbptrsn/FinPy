@@ -117,16 +117,17 @@ class EuropeanOptionAnalytical(metaclass=abc.ABCMeta):
 
     def fd_setup(self,
                  x_grid: np.ndarray,
-                 theta_value: float = 0.5,
-                 method: str = "Andreasen"):
+                 theta: float = 0.5,
+                 form: str = "Andreasen"):
         """Setting up finite difference solver.
 
         Args:
             x_grid: Grid in spatial dimension.
-            theta_value: ...
-            method: "Andersen" or "Andreasen"
+            theta: Theta parameter.
+            form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+                is tridiagonal.
         """
-        self.fd = fd_theta.setup_solver(self, x_grid, theta_value, method)
+        self.fd = fd_theta.setup_solver(self, x_grid, theta, form)
         self.fd.initialization()
 
     @abc.abstractmethod

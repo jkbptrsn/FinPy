@@ -210,7 +210,7 @@ def norm_diff_1d(vec1: np.ndarray,
 
 def setup_solver(instrument,
                  x_grid: np.ndarray,
-                 theta_value: float = 0.5,
+                 theta: float = 0.5,
                  method: str = "Andreasen") \
         -> Andreasen1D:
     """Setting up finite difference solver.
@@ -218,7 +218,7 @@ def setup_solver(instrument,
     Args:
         instrument: Instrument object.
         x_grid: Grid in spatial dimension.
-        theta_value: ...
+        theta: Theta parameter.
         method: "Andersen" og "Andreasen"
 
     Returns:
@@ -229,10 +229,8 @@ def setup_solver(instrument,
     xmin = x_grid[0]
     xmax = x_grid[-1]
     nstates = x_grid.size
-#    if method == "Andersen":
-#        solver = Andersen1D(xmin, xmax, nstates, dt, theta_value)
     if method == "Andreasen":
-        solver = Andreasen1D(xmin, xmax, nstates, dt, theta_value)
+        solver = Andreasen1D(xmin, xmax, nstates, dt, theta)
     else:
         raise ValueError("Method is not recognized.")
     if instrument.model == global_types.Model.BLACK_SCHOLES:

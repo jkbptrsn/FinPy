@@ -29,7 +29,8 @@ def identity_matrix(n_elements: int,
 
     Args:
         n_elements: Number of elements along diagonal.
-        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+            is tridiagonal.
 
     Returns:
         Identity matrix.
@@ -54,7 +55,8 @@ def matrix_col_prod(matrix: np.ndarray,
     Args:
         matrix: Banded matrix.
         vector: Column vector.
-        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+            is tridiagonal.
 
     Returns:
         Matrix-column product as column vector.
@@ -91,7 +93,8 @@ def row_matrix_prod(vector: np.ndarray,
     Args:
         vector: Row vector.
         matrix: Banded matrix.
-        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+            is tridiagonal.
 
     Returns:
         Row-matrix product as row vector.
@@ -128,7 +131,8 @@ def dia_matrix_prod(diagonal: np.ndarray,
     Args:
         diagonal: Diagonal matrix represented as vector.
         matrix: Banded matrix.
-        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+            is tridiagonal.
 
     Returns:
         Banded matrix.
@@ -171,7 +175,8 @@ def ddx_equidistant(n_elements: int,
     Args:
         n_elements: Number of elements along main diagonal.
         dx: Equidistant spacing.
-        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+            is tridiagonal.
 
     Returns:
         Discrete 1st order derivative operator.
@@ -217,7 +222,8 @@ def ddx(grid: np.ndarray,
 
     Args:
         grid: Grid in spatial dimension.
-        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+            is tridiagonal.
 
     Returns:
         Discrete 1st order derivative operator.
@@ -280,7 +286,8 @@ def d2dx2_equidistant(n_elements: int,
     Args:
         n_elements: Number of elements along main diagonal.
         dx: Equidistant spacing.
-        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+            is tridiagonal.
 
     Returns:
         Discrete 2nd order derivative operator.
@@ -363,7 +370,8 @@ def delta_equidistant(dx: float,
     Args:
         dx: Equidistant spacing.
         function: ...
-        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+            is tridiagonal.
 
     Returns:
         Delta
@@ -382,7 +390,8 @@ def delta(grid: np.ndarray,
     Args:
         grid: ...
         function: ...
-        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+            is tridiagonal.
 
     Returns:
         Delta
@@ -401,7 +410,8 @@ def gamma_equidistant(dx: float,
     Args:
         dx: Equidistant spacing.
         vector: ...
-        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+            is tridiagonal.
 
     Returns:
         Gamma
@@ -420,7 +430,8 @@ def gamma(grid: np.ndarray,
     Args:
         grid: ...
         function: ...
-        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+            is tridiagonal.
 
     Returns:
         Gamma
