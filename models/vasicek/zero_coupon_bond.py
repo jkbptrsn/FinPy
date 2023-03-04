@@ -113,4 +113,4 @@ class ZCBond(bonds.VanillaBondAnalytical):
             # TODO: Use dt in propagation, with non-equidistant event grid...
             # Will this work for both theta-method implementations?
             self.fd.set_propagator()
-            self.fd.propagation()
+            self.fd.propagation(dt)

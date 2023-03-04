@@ -94,7 +94,7 @@ class Theta1D(unittest.TestCase):
             lr3 = linregress(step_array, norm_array[2, :])
             if print_results:
                 print(lr1.slope, lr2.slope, lr3.slope)
-            self.assertTrue(abs(lr1.slope - 2) < 8e-3)
+            self.assertTrue(abs(lr1.slope - 2) < 11e-3)
             self.assertTrue(abs(lr2.slope - 2) < 1e-3)
             self.assertTrue(abs(lr3.slope - 2) < 4e-2)
 

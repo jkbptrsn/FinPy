@@ -25,23 +25,18 @@ class Theta1D:
         - 2nd row: Diagonal
         - 3rd row: Sub-diagonal (not including last element)
 
-    TODO: Already removed 2 extra grid points -- go through Andersen & Piterbarg
-    TODO: Add non-equidistant grid. Instead of xmin, xmax, nstates, use state_grid as parameter
     TODO: Smoothing of payoff functions -- not necessary according to Andreasen
     TODO: Rannacher time stepping with fully implicit method -- not necessary according to Andreasen
     TODO: Upwinding -- rarely used by Andreasen
     """
 
     def __init__(self,
-                 xmin: float,
-                 xmax: float,
-                 nstates: int):
-        self.xmin = xmin
-        self.xmax = xmax
-
-        # Adding boundary states.
-        self.nstates = nstates
-        self.dx = (xmax - xmin) / (nstates - 1)
+                 grid: np.ndarray,
+                 form: str = "tri",
+                 equidistant: bool = False):
+        self.grid = grid
+        self.form = form
+        self.equidistant = equidistant
 
         self.vec_drift = None
         self.vec_diff_sq = None
@@ -50,24 +45,28 @@ class Theta1D:
         self.mat_identity = None
         self.mat_propagator = None
 
-    def grid(self) -> np.ndarray:
-        """Equidistant grid between xmin and xmax including both points.
-        Two boundary states are added at xmin - dx and xmax + dx.
-        """
-        return self.dx * np.arange(self.nstates) + self.xmin
+    @property
+    def xmin(self) -> float:
+        return self.grid[0]
+
+    @property
+    def xmax(self) -> float:
+        return self.grid[-1]
+
+    @property
+    def nstates(self) -> int:
+        return self.grid.size
 
     def set_drift(self, drift: np.ndarray):
-        """Drift vector defined by the underlying stochastic process."""
+        """Drift vector defined by underlying process."""
         self.vec_drift = drift
 
     def set_diffusion(self, diffusion: np.ndarray):
-        """Squared diffusion vector defined by the underlying stochastic
-        process.
-        """
+        """Squared diffusion vector defined by underlying process."""
         self.vec_diff_sq = np.square(diffusion)
 
     def set_rate(self, rate: np.ndarray):
-        """Rate vector defined by the underlying stochastic process."""
+        """Rate vector defined by underlying process."""
         self.vec_rate = rate
 
     @property
@@ -83,16 +82,18 @@ class Theta1D:
         pass
 
     @abc.abstractmethod
-    def propagation(self):
+    def propagation(self, dt: float):
         pass
 
     def delta(self) -> np.ndarray:
         """Finite difference calculation of delta."""
-        return misc.delta_equidistant(self.dx, self.vec_solution)
+        dx = self.grid[1] - self.grid[0]
+        return misc.delta_equidistant(dx, self.vec_solution)
 
     def gamma(self) -> np.ndarray:
         """Finite difference calculation of gamma."""
-        return misc.gamma_equidistant(self.dx, self.vec_solution)
+        dx = self.grid[1] - self.grid[0]
+        return misc.gamma_equidistant(dx, self.vec_solution)
 
     @abc.abstractmethod
     def theta(self, dt: float = None) -> np.ndarray:
@@ -105,12 +106,12 @@ class Theta1D:
         solution_copy = self.solution.copy()
         # Forward propagation
         dt = - dt
-        self.propagation()
+        self.propagation(dt)
         forward = self.solution.copy()
         # Backward propagation (two time steps)
         dt = - dt
-        self.propagation()
-        self.propagation()
+        self.propagation(dt)
+        self.propagation(dt)
         backward = self.solution.copy()
         # Restore current solution
         self.solution = solution_copy
@@ -128,20 +129,15 @@ class Andreasen1D(Theta1D):
         - theta_parameter = 0   : Explicit method
         - theta_parameter = 1/2 : Crank-Nicolson method (default)
         - theta_parameter = 1   : Fully implicit method
-
-    TODO: Remove dt as argument, give dt as argument in propagation function
-    TODO: Give x_grid as argument
     """
 
     def __init__(self,
-                 xmin: float,
-                 xmax: float,
-                 nstates: int,
-                 dt: float,
+                 grid: np.ndarray,
                  theta_parameter: float = 0.5):
-        super().__init__(xmin, xmax, nstates)
-        self.dt = dt
+        super().__init__(grid)
         self.theta_parameter = theta_parameter
+
+        self.dt_last = None
 
     def initialization(self):
         """Initialization of identity matrix and propagator matrix."""
@@ -150,18 +146,19 @@ class Andreasen1D(Theta1D):
 
     def set_propagator(self):
         """Propagator on tri-diagonal form."""
-        ddx = misc.ddx_equidistant(self.nstates, self.dx)
-        d2dx2 = misc.d2dx2_equidistant(self.nstates, self.dx)
+        dx = self.grid[1] - self.grid[0]
+        ddx = misc.ddx_equidistant(self.nstates, dx)
+        d2dx2 = misc.d2dx2_equidistant(self.nstates, dx)
         self.mat_propagator = \
             - misc.dia_matrix_prod(self.vec_rate, self.mat_identity) \
             + misc.dia_matrix_prod(self.vec_drift, ddx) \
             + misc.dia_matrix_prod(self.vec_diff_sq, d2dx2) / 2
 
 #    @timing.execution_time
-    def propagation(self):
+    def propagation(self, dt: float):
         """Propagation of solution vector for one time step dt."""
         rhs = self.mat_identity \
-            + (1 - self.theta_parameter) * self.dt * self.mat_propagator
+            + (1 - self.theta_parameter) * dt * self.mat_propagator
         rhs = misc.matrix_col_prod(rhs, self.vec_solution)
 
         # Update propagator, if drift/diffusion are time-dependent.
@@ -169,12 +166,15 @@ class Andreasen1D(Theta1D):
 #        self.set_propagator()
 
         lhs = self.mat_identity \
-            - self.theta_parameter * self.dt * self.mat_propagator
+            - self.theta_parameter * dt * self.mat_propagator
         self.vec_solution = solve_banded((1, 1), lhs, rhs)
+        self.dt_last = dt
 
     def theta(self, dt: float = None) -> np.ndarray:
         if not dt:
-            dt = self.dt
+            if not self.dt_last:
+                raise ValueError("dt should be set...")
+            dt = self.dt_last
         return self.theta_calc(dt)
 
 
@@ -182,7 +182,17 @@ def norm_diff_1d(vec1: np.ndarray,
                  vec2: np.ndarray,
                  step_size1: float,
                  slice_nr=2):
+    """
 
+    Args:
+        vec1:
+        vec2:
+        step_size1:
+        slice_nr:
+
+    Returns:
+
+    """
     # Absolute difference. Exclude boundary points?
 
 #    diff = np.abs(vec1[1:-1] - vec2[1:-1][::slice_nr])
@@ -225,30 +235,26 @@ def setup_solver(instrument,
         Finite difference solver.
     """
     # Set up PDE solver.
-    dt = instrument.event_grid[-1] - instrument.event_grid[-2]
-    xmin = x_grid[0]
-    xmax = x_grid[-1]
-    nstates = x_grid.size
     if method == "Andreasen":
-        solver = Andreasen1D(xmin, xmax, nstates, dt, theta)
+        solver = Andreasen1D(x_grid, theta)
     else:
         raise ValueError("Method is not recognized.")
     if instrument.model == global_types.Model.BLACK_SCHOLES:
-        drift = instrument.rate * solver.grid()
-        diffusion = instrument.vol * solver.grid()
-        rate = instrument.rate + 0 * solver.grid()
+        drift = instrument.rate * solver.grid
+        diffusion = instrument.vol * solver.grid
+        rate = instrument.rate + 0 * solver.grid
     elif instrument.model == global_types.Model.BACHELIER:
-        drift = 0 * solver.grid()
-        diffusion = instrument.vol + 0 * solver.grid()
-        rate = instrument.rate + 0 * solver.grid()
+        drift = 0 * solver.grid
+        diffusion = instrument.vol + 0 * solver.grid
+        rate = instrument.rate + 0 * solver.grid
     elif instrument.model == global_types.Model.CIR:
-        drift = instrument.kappa * (instrument.mean_rate - solver.grid())
-        diffusion = instrument.vol * np.sqrt(solver.grid())
-        rate = solver.grid()
+        drift = instrument.kappa * (instrument.mean_rate - solver.grid)
+        diffusion = instrument.vol * np.sqrt(solver.grid)
+        rate = solver.grid
     elif instrument.model == global_types.Model.VASICEK:
-        drift = instrument.kappa * (instrument.mean_rate - solver.grid())
-        diffusion = instrument.vol + 0 * solver.grid()
-        rate = solver.grid()
+        drift = instrument.kappa * (instrument.mean_rate - solver.grid)
+        diffusion = instrument.vol + 0 * solver.grid
+        rate = solver.grid
     else:
         raise ValueError("Model is not recognized.")
     solver.set_drift(drift)
@@ -257,11 +263,11 @@ def setup_solver(instrument,
 
     # Terminal solution to PDE.
     if instrument.type == global_types.Instrument.EUROPEAN_CALL:
-        solver.solution = payoffs.call(solver.grid(), instrument.strike)
+        solver.solution = payoffs.call(solver.grid, instrument.strike)
     elif instrument.type == global_types.Instrument.EUROPEAN_PUT:
-        solver.solution = payoffs.put(solver.grid(), instrument.strike)
+        solver.solution = payoffs.put(solver.grid, instrument.strike)
     elif instrument.type == global_types.Instrument.ZERO_COUPON_BOND:
-        solver.solution = payoffs.zero_coupon_bond(solver.grid())
+        solver.solution = payoffs.zero_coupon_bond(solver.grid)
     else:
         raise ValueError("Instrument is not recognized.")
     return solver
