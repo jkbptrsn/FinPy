@@ -4,7 +4,7 @@ import numpy as np
 from scipy.linalg import solve_banded
 
 from numerics.fd.theta import differential_operators as do
-from numerics.fd.theta import linear_algebra as lg
+from numerics.fd.theta import linear_algebra as la
 from numerics.fd.theta import misc
 from utils import global_types
 from utils import payoffs
@@ -155,7 +155,7 @@ class Theta(ThetaBase):
 
     def initialization(self):
         """Initialization of identity matrix and propagator matrix."""
-        self.mat_identity = lg.identity_matrix(self.nstates, self.band)
+        self.mat_identity = la.identity_matrix(self.nstates, self.band)
         self.set_propagator()
 
     def set_propagator(self):
@@ -168,15 +168,15 @@ class Theta(ThetaBase):
             ddx = do.ddx(self.grid, self.band)
             d2dx2 = do.d2dx2(self.grid, self.band)
         self.mat_propagator = \
-            - lg.dia_matrix_prod(self.vec_rate, self.mat_identity, self.band) \
-            + lg.dia_matrix_prod(self.vec_drift, ddx, self.band) \
-            + lg.dia_matrix_prod(self.vec_diff_sq, d2dx2, self.band) / 2
+            - la.dia_matrix_prod(self.vec_rate, self.mat_identity, self.band) \
+            + la.dia_matrix_prod(self.vec_drift, ddx, self.band) \
+            + la.dia_matrix_prod(self.vec_diff_sq, d2dx2, self.band) / 2
 
     def propagation(self, dt: float):
         """Propagation of solution vector for one time step dt."""
         rhs = self.mat_identity \
             + (1 - self.theta_parameter) * dt * self.mat_propagator
-        rhs = lg.matrix_col_prod(rhs, self.vec_solution, self.band)
+        rhs = la.matrix_col_prod(rhs, self.vec_solution, self.band)
 
         # TODO: Update propagator, if drift/diffusion is time-dependent.
         #  But then one would also need to update vec_drift and vec_diff_sq...

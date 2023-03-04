@@ -1,6 +1,6 @@
 import numpy as np
 
-from numerics.fd.theta import linear_algebra as linalg
+from numerics.fd.theta import linear_algebra as la
 from numerics.fd.theta import differential_operators as do
 
 info = """
@@ -35,7 +35,7 @@ def delta_equidistant(dx: float,
         Delta
     """
     operator = do.ddx_equidistant(function.size, dx, form)
-    return linalg.matrix_col_prod(operator, function, form)
+    return la.matrix_col_prod(operator, function, form)
 
 
 def delta(grid: np.ndarray,
@@ -55,7 +55,7 @@ def delta(grid: np.ndarray,
         Delta
     """
     operator = do.ddx(grid, form)
-    return linalg.matrix_col_prod(operator, function, form)
+    return la.matrix_col_prod(operator, function, form)
 
 
 def gamma_equidistant(dx: float,
@@ -75,7 +75,7 @@ def gamma_equidistant(dx: float,
         Gamma
     """
     operator = do.d2dx2_equidistant(vector.size, dx, form)
-    return linalg.matrix_col_prod(operator, vector, form)
+    return la.matrix_col_prod(operator, vector, form)
 
 
 def gamma(grid: np.ndarray,
@@ -95,7 +95,7 @@ def gamma(grid: np.ndarray,
         Gamma
     """
     operator = do.d2dx2(grid, form)
-    return linalg.matrix_col_prod(operator, function, form)
+    return la.matrix_col_prod(operator, function, form)
 
 
 def norms_1d(vector1: np.ndarray,
