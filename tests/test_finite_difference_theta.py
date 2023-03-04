@@ -9,7 +9,7 @@ class Theta(unittest.TestCase):
 
     def test_misc(self):
         grid = 10 * np.arange(11)
-        solver = theta.Theta1D(grid)
+        solver = theta.ThetaBase(grid)
         self.assertTrue(solver.xmin == 0)
         self.assertTrue(solver.xmax == 100)
         self.assertTrue(solver.nstates == 11)

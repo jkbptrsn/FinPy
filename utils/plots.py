@@ -8,7 +8,7 @@ def plot_price_and_greeks(instrument, payoff, price, show=True):
 
     plt.rcParams.update({"font.size": 10})
 
-    grid = instrument.fd.grid()
+    grid = instrument.fd.grid
 
     # Figure 1
     f1, ax1 = plt.subplots(4, 1, sharex=True)

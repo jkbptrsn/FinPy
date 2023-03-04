@@ -9,7 +9,7 @@ from utils import payoffs
 from utils import timing
 
 
-class Theta1D:
+class ThetaBase:
     """Theta method for solving parabolic 1-factor PDE (base class).
 
     The general structure of the PDE is
@@ -18,12 +18,10 @@ class Theta1D:
     where the underlying 1-dimensional Markov process reads
         dx_t = drift(t, x_t) * dt + diffusion(t, x_t) * dW_t.
 
-    The grid in the spatial dimension is assumed equidistant.
-
-    Tri-diagonal form:
-        - 1st row: Super-diagonal (not including first element)
-        - 2nd row: Diagonal
-        - 3rd row: Sub-diagonal (not including last element)
+    Attributes:
+        grid: Grid in spatial dimension.
+        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        equidistant: Is grid equidistant? Default is false.
 
     TODO: Smoothing of payoff functions -- not necessary according to Andreasen
     TODO: Rannacher time stepping with fully implicit method -- not necessary according to Andreasen
@@ -118,23 +116,33 @@ class Theta1D:
         return (forward - backward) / (2 * dt)
 
 
-class Andreasen1D(Theta1D):
-    """The theta method implemented as shown in
-    Jesper Andreasen's Finite Difference notes from 2011.
+class Theta(ThetaBase):
+    """Theta method for solving parabolic 1-factor PDE.
 
-    The propagator is defined by
+    The general structure of the PDE is
+        dV/dt + drift * dV/dx + 1/2 * diffusion^2 * dV^2/dx^2 = rate * V,
+    where the underlying 1-dimensional Markov process reads
+        dx_t = drift(t, x_t) * dt + diffusion(t, x_t) * dW_t.
+
+    The propagator is defined as
         dV/dt = - Propagator * V.
 
-    The numerical solution is determined using
-        - theta_parameter = 0   : Explicit method
-        - theta_parameter = 1/2 : Crank-Nicolson method (default)
-        - theta_parameter = 1   : Fully implicit method
+    Attributes:
+        grid: Grid in spatial dimension.
+        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        equidistant: Is grid equidistant? Default is false.
+        theta_parameter: Determines the specific method
+            0   : Explicit method
+            0.5 : Crank-Nicolson method (default)
+            1   : Fully implicit method
     """
 
     def __init__(self,
                  grid: np.ndarray,
+                 form: str = "tri",
+                 equidistant: bool = False,
                  theta_parameter: float = 0.5):
-        super().__init__(grid)
+        super().__init__(grid, form, equidistant)
         self.theta_parameter = theta_parameter
 
         self.dt_last = None
@@ -222,7 +230,7 @@ def setup_solver(instrument,
                  x_grid: np.ndarray,
                  theta: float = 0.5,
                  method: str = "Andreasen") \
-        -> Andreasen1D:
+        -> Theta:
     """Setting up finite difference solver.
 
     Args:
@@ -235,10 +243,8 @@ def setup_solver(instrument,
         Finite difference solver.
     """
     # Set up PDE solver.
-    if method == "Andreasen":
-        solver = Andreasen1D(x_grid, theta)
-    else:
-        raise ValueError("Method is not recognized.")
+    solver = Theta(x_grid, theta_parameter=theta)
+
     if instrument.model == global_types.Model.BLACK_SCHOLES:
         drift = instrument.rate * solver.grid
         diffusion = instrument.vol * solver.grid
