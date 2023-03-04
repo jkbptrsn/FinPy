@@ -5,8 +5,7 @@ import numpy as np
 from scipy.stats import linregress
 
 from models.black_scholes import call
-from numerical_methods.finite_difference import theta
-from utils import payoffs
+from numerical_methods.finite_difference.theta import theta
 
 plot_results = False
 print_results = True

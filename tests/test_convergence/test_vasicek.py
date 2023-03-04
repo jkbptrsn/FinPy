@@ -4,8 +4,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 from scipy.stats import linregress
 
-from numerical_methods.finite_difference import theta
 from models.vasicek import zero_coupon_bond as bond
+from numerical_methods.finite_difference.theta import theta
 
 plot_results = False
 print_results = True

@@ -3,10 +3,11 @@ import abc
 import numpy as np
 from scipy.linalg import solve_banded
 
-from numerical_methods.finite_difference import misc
+from numerical_methods.finite_difference.theta import misc
+from numerical_methods.finite_difference.theta import linear_algebra as linalg
+from numerical_methods.finite_difference.theta import differential_operators as do
 from utils import global_types
 from utils import payoffs
-from utils import timing
 
 
 class ThetaBase:
@@ -133,6 +134,9 @@ class Theta(ThetaBase):
     The propagator is defined as
         dV/dt = - Propagator * V.
 
+    scipy.linalg.solve_banded solves equation A x = b using standard LU
+    factorization of A.
+
     Attributes:
         grid: Grid in spatial dimension.
         form: Tri- or pentadiagonal form. Default is tridiagonal.
@@ -155,30 +159,32 @@ class Theta(ThetaBase):
 
     def initialization(self):
         """Initialization of identity matrix and propagator matrix."""
-        self.mat_identity = misc.identity_matrix(self.nstates, self.form)
+#        self.mat_identity = misc.identity_matrix(self.nstates, self.form)
+        self.mat_identity = linalg.identity_matrix(self.nstates, self.form)
         self.set_propagator()
 
     def set_propagator(self):
         """Propagator as banded matrix."""
         if self.equidistant:
             dx = self.grid[1] - self.grid[0]
-            ddx = misc.ddx_equidistant(self.nstates, dx, self.form)
-            d2dx2 = misc.d2dx2_equidistant(self.nstates, dx, self.form)
+            ddx = do.ddx_equidistant(self.nstates, dx, self.form)
+            d2dx2 = do.d2dx2_equidistant(self.nstates, dx, self.form)
         else:
-            ddx = misc.ddx(self.grid, self.form)
-            d2dx2 = misc.d2dx2(self.grid, self.form)
+            ddx = do.ddx(self.grid, self.form)
+            d2dx2 = do.d2dx2(self.grid, self.form)
 
         self.mat_propagator = \
-            - misc.dia_matrix_prod(self.vec_rate, self.mat_identity, self.form) \
-            + misc.dia_matrix_prod(self.vec_drift, ddx, self.form) \
-            + misc.dia_matrix_prod(self.vec_diff_sq, d2dx2, self.form) / 2
+            - linalg.dia_matrix_prod(self.vec_rate, self.mat_identity, self.form) \
+            + linalg.dia_matrix_prod(self.vec_drift, ddx, self.form) \
+            + linalg.dia_matrix_prod(self.vec_diff_sq, d2dx2, self.form) / 2
 
 #    @timing.execution_time
     def propagation(self, dt: float):
         """Propagation of solution vector for one time step dt."""
         rhs = self.mat_identity \
             + (1 - self.theta_parameter) * dt * self.mat_propagator
-        rhs = misc.matrix_col_prod(rhs, self.vec_solution, self.form)
+#        rhs = misc.matrix_col_prod(rhs, self.vec_solution, self.form)
+        rhs = linalg.matrix_col_prod(rhs, self.vec_solution, self.form)
 
         # Update propagator, if drift/diffusion are time-dependent.
         # But then one would also need to update vec_drift and vec_diff_sq...
@@ -219,14 +225,6 @@ def norm_diff_1d(vec1: np.ndarray,
 
     """
     # Absolute difference. Exclude boundary points?
-
-#    diff = np.abs(vec1[1:-1] - vec2[1:-1][::slice_nr])
-
-#    if slice_nr == 1:
-#        diff = np.abs(vec1[1:-1] - vec2[1:-1][::slice_nr])
-#    elif slice_nr == 2:
-#        diff = np.abs(vec1[1:-1] - vec2[2:-2][::slice_nr])
-
     diff = np.abs(vec1 - vec2[::slice_nr])
 
     # "Center" norm.
