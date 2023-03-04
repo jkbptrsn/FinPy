@@ -3,9 +3,9 @@ import abc
 import numpy as np
 from scipy.linalg import solve_banded
 
-from numerical_methods.finite_difference.theta import misc
-from numerical_methods.finite_difference.theta import linear_algebra as linalg
-from numerical_methods.finite_difference.theta import differential_operators as do
+from numerics.fd.theta import differential_operators as do
+from numerics.fd.theta import linear_algebra as lg
+from numerics.fd.theta import misc
 from utils import global_types
 from utils import payoffs
 
@@ -20,8 +20,9 @@ class ThetaBase:
         dx_t = drift(t, x_t) * dt + diffusion(t, x_t) * dW_t.
 
     Attributes:
-        grid: Grid in spatial dimension.
-        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        grid: Grid in spatial dimension. Assumed ascending.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
 
     TODO: Smoothing of payoff functions -- not necessary according to Andreasen
@@ -31,16 +32,16 @@ class ThetaBase:
 
     def __init__(self,
                  grid: np.ndarray,
-                 form: str = "tri",
+                 band: str = "tri",
                  equidistant: bool = False):
         self.grid = grid
-        self.form = form
+        self.band = band
         self.equidistant = equidistant
 
+        self.vec_solution = None
         self.vec_drift = None
         self.vec_diff_sq = None
         self.vec_rate = None
-        self.vec_solution = None
         self.mat_identity = None
         self.mat_propagator = None
 
@@ -56,6 +57,14 @@ class ThetaBase:
     def nstates(self) -> int:
         return self.grid.size
 
+    @property
+    def solution(self) -> np.ndarray:
+        return self.vec_solution
+
+    @solution.setter
+    def solution(self, val: np.ndarray):
+        self.vec_solution = val
+
     def set_drift(self, drift: np.ndarray):
         """Drift vector defined by underlying process."""
         self.vec_drift = drift
@@ -67,14 +76,6 @@ class ThetaBase:
     def set_rate(self, rate: np.ndarray):
         """Rate vector defined by underlying process."""
         self.vec_rate = rate
-
-    @property
-    def solution(self) -> np.ndarray:
-        return self.vec_solution
-
-    @solution.setter
-    def solution(self, val: np.ndarray):
-        self.vec_solution = val
 
     @abc.abstractmethod
     def set_propagator(self):
@@ -88,39 +89,33 @@ class ThetaBase:
         """Finite difference calculation of delta."""
         if self.equidistant:
             dx = self.grid[1] - self.grid[0]
-            return misc.delta_equidistant(dx, self.vec_solution, self.form)
+            return misc.delta_equidistant(dx, self.vec_solution, self.band)
         else:
-            return misc.delta(self.grid, self.vec_solution, self.form)
+            return misc.delta(self.grid, self.vec_solution, self.band)
 
     def gamma(self) -> np.ndarray:
         """Finite difference calculation of gamma."""
         if self.equidistant:
             dx = self.grid[1] - self.grid[0]
-            return misc.gamma_equidistant(dx, self.vec_solution, self.form)
+            return misc.gamma_equidistant(dx, self.vec_solution, self.band)
         else:
-            return misc.gamma(self.grid, self.vec_solution, self.form)
+            return misc.gamma(self.grid, self.vec_solution, self.band)
 
     @abc.abstractmethod
     def theta(self, dt: float = None) -> np.ndarray:
         pass
 
     def theta_calc(self, dt: float) -> np.ndarray:
-        """Theta calculated by central first order finite difference."""
+        """Theta calculated by first order forward finite difference."""
         self.set_propagator()
         # Save current solution
         solution_copy = self.solution.copy()
         # Forward propagation
-        dt = - dt
-        self.propagation(dt)
+        self.propagation(-dt)
         forward = self.solution.copy()
-        # Backward propagation (two time steps)
-        dt = - dt
-        self.propagation(dt)
-        self.propagation(dt)
-        backward = self.solution.copy()
         # Restore current solution
         self.solution = solution_copy
-        return (forward - backward) / (2 * dt)
+        return (forward - self.solution) / dt
 
 
 class Theta(ThetaBase):
@@ -139,7 +134,8 @@ class Theta(ThetaBase):
 
     Attributes:
         grid: Grid in spatial dimension.
-        form: Tri- or pentadiagonal form. Default is tridiagonal.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
         theta_parameter: Determines the specific method
             0   : Explicit method
@@ -149,125 +145,92 @@ class Theta(ThetaBase):
 
     def __init__(self,
                  grid: np.ndarray,
-                 form: str = "tri",
+                 band: str = "tri",
                  equidistant: bool = False,
                  theta_parameter: float = 0.5):
-        super().__init__(grid, form, equidistant)
+        super().__init__(grid, band, equidistant)
         self.theta_parameter = theta_parameter
 
         self.dt_last = None
 
     def initialization(self):
         """Initialization of identity matrix and propagator matrix."""
-#        self.mat_identity = misc.identity_matrix(self.nstates, self.form)
-        self.mat_identity = linalg.identity_matrix(self.nstates, self.form)
+        self.mat_identity = lg.identity_matrix(self.nstates, self.band)
         self.set_propagator()
 
     def set_propagator(self):
         """Propagator as banded matrix."""
         if self.equidistant:
             dx = self.grid[1] - self.grid[0]
-            ddx = do.ddx_equidistant(self.nstates, dx, self.form)
-            d2dx2 = do.d2dx2_equidistant(self.nstates, dx, self.form)
+            ddx = do.ddx_equidistant(self.nstates, dx, self.band)
+            d2dx2 = do.d2dx2_equidistant(self.nstates, dx, self.band)
         else:
-            ddx = do.ddx(self.grid, self.form)
-            d2dx2 = do.d2dx2(self.grid, self.form)
-
+            ddx = do.ddx(self.grid, self.band)
+            d2dx2 = do.d2dx2(self.grid, self.band)
         self.mat_propagator = \
-            - linalg.dia_matrix_prod(self.vec_rate, self.mat_identity, self.form) \
-            + linalg.dia_matrix_prod(self.vec_drift, ddx, self.form) \
-            + linalg.dia_matrix_prod(self.vec_diff_sq, d2dx2, self.form) / 2
+            - lg.dia_matrix_prod(self.vec_rate, self.mat_identity, self.band) \
+            + lg.dia_matrix_prod(self.vec_drift, ddx, self.band) \
+            + lg.dia_matrix_prod(self.vec_diff_sq, d2dx2, self.band) / 2
 
-#    @timing.execution_time
     def propagation(self, dt: float):
         """Propagation of solution vector for one time step dt."""
         rhs = self.mat_identity \
             + (1 - self.theta_parameter) * dt * self.mat_propagator
-#        rhs = misc.matrix_col_prod(rhs, self.vec_solution, self.form)
-        rhs = linalg.matrix_col_prod(rhs, self.vec_solution, self.form)
+        rhs = lg.matrix_col_prod(rhs, self.vec_solution, self.band)
 
-        # Update propagator, if drift/diffusion are time-dependent.
-        # But then one would also need to update vec_drift and vec_diff_sq...
-#        self.set_propagator()
+        # TODO: Update propagator, if drift/diffusion is time-dependent.
+        #  But then one would also need to update vec_drift and vec_diff_sq...
 
         lhs = self.mat_identity \
             - self.theta_parameter * dt * self.mat_propagator
-        if self.form == "tri":
+        if self.band == "tri":
             self.vec_solution = solve_banded((1, 1), lhs, rhs)
-        elif self.form == "penta":
+        elif self.band == "penta":
             self.vec_solution = solve_banded((2, 2), lhs, rhs)
         else:
             raise ValueError("Form should be tri or penta...")
-
+        # Last used time step.
         self.dt_last = dt
 
     def theta(self, dt: float = None) -> np.ndarray:
+        """Finite difference calculation of theta."""
         if not dt:
             if not self.dt_last:
-                raise ValueError("dt should be set...")
+                raise ValueError("Specify dt.")
             dt = self.dt_last
         return self.theta_calc(dt)
 
 
-def norm_diff_1d(vec1: np.ndarray,
-                 vec2: np.ndarray,
-                 step_size1: float,
-                 slice_nr=2):
-    """
-
-    Args:
-        vec1:
-        vec2:
-        step_size1:
-        slice_nr:
-
-    Returns:
-
-    """
-    # Absolute difference. Exclude boundary points?
-    diff = np.abs(vec1 - vec2[::slice_nr])
-
-    # "Center" norm.
-    n_states = diff.size
-    idx_center = (n_states - 1) // 2
-    norm_center = diff[idx_center]
-
-    # Max norm.
-    norm_max = np.amax(diff)
-
-    # L2 norm.
-    norm_l2 = np.sqrt(np.sum(np.square(diff)) * step_size1)
-
-    return norm_center, norm_max, norm_l2
-
-
 def setup_solver(instrument,
                  grid: np.ndarray,
-                 form: str = "tri",
+                 band: str = "tri",
                  equidistant: bool = False,
-                 theta: float = 0.5) -> Theta:
+                 theta_parameter: float = 0.5) -> Theta:
     """Setting up finite difference solver.
 
     Args:
         instrument: Instrument object.
         grid: Grid in spatial dimension.
-        form:
-        equidistant:
-        theta: Theta parameter.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
+        equidistant: Is grid equidistant? Default is false.
+        theta_parameter: Determines the specific method
+            0   : Explicit method
+            0.5 : Crank-Nicolson method (default)
+            1   : Fully implicit method
 
     Returns:
         Finite difference solver.
     """
-    # Set up PDE solver.
-    solver = Theta(grid, form, equidistant, theta)
-
-    if instrument.model == global_types.Model.BLACK_SCHOLES:
-        drift = instrument.rate * solver.grid
-        diffusion = instrument.vol * solver.grid
-        rate = instrument.rate + 0 * solver.grid
-    elif instrument.model == global_types.Model.BACHELIER:
+    solver = Theta(grid, band, equidistant, theta_parameter)
+    # Model specifications.
+    if instrument.model == global_types.Model.BACHELIER:
         drift = 0 * solver.grid
         diffusion = instrument.vol + 0 * solver.grid
+        rate = instrument.rate + 0 * solver.grid
+    elif instrument.model == global_types.Model.BLACK_SCHOLES:
+        drift = instrument.rate * solver.grid
+        diffusion = instrument.vol * solver.grid
         rate = instrument.rate + 0 * solver.grid
     elif instrument.model == global_types.Model.CIR:
         drift = instrument.kappa * (instrument.mean_rate - solver.grid)
@@ -282,7 +245,6 @@ def setup_solver(instrument,
     solver.set_drift(drift)
     solver.set_diffusion(diffusion)
     solver.set_rate(rate)
-
     # Terminal solution to PDE.
     if instrument.type == global_types.Instrument.EUROPEAN_CALL:
         solver.solution = payoffs.call(solver.grid, instrument.strike)

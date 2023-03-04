@@ -3,7 +3,7 @@ import typing
 
 import numpy as np
 
-from numerical_methods.finite_difference.theta import theta as fd_theta
+from numerics.fd.theta import theta as fd_theta
 
 
 class EuropeanOption(metaclass=abc.ABCMeta):

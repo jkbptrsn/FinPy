@@ -5,7 +5,7 @@ import numpy as np
 from scipy.stats import linregress
 
 from models.vasicek import zero_coupon_bond as bond
-from numerical_methods.finite_difference.theta import theta
+from numerics.fd.theta import misc
 
 plot_results = False
 print_results = True
@@ -61,7 +61,7 @@ class Theta1D(unittest.TestCase):
                     if n != 0:
                         step_array[counter] = np.log(dx)
                         norm_array[:, counter] = \
-                            theta.norm_diff_1d(solution_old, solution, dx_old)
+                            misc.norms_1d(solution_old, solution, dx_old)
                         norm_array[:, counter] = np.log(norm_array[:, counter])
                         counter += 1
                     # Save result.
@@ -139,8 +139,8 @@ class Theta1D(unittest.TestCase):
                     if n != 0:
                         step_array[counter] = np.log(dt)
                         norm_array[:, counter] = \
-                            theta.norm_diff_1d(solution_old, solution,
-                                               dx_old, slice_nr=1)
+                            misc.norms_1d(solution_old, solution,
+                                           dx_old, slice_nr=1)
                         norm_array[:, counter] = np.log(norm_array[:, counter])
                         counter += 1
                     # Save result.

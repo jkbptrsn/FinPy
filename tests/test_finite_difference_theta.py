@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-import numerical_methods.finite_difference.theta.theta as theta
+import numerics.fd.theta.theta as theta
 
 
 class Theta(unittest.TestCase):
