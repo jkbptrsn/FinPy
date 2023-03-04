@@ -203,7 +203,5 @@ class Put(options.EuropeanOptionAnalytical):
     def fd_solve(self):
         """Run solver on event_grid..."""
         for dt in np.flip(np.diff(self.event_grid)):
-            # TODO: Use dt in propagation, with non-equidistant event grid...
-            # Will this work for both theta-method implementations?
             self.fd.set_propagator()
             self.fd.propagation(dt)
