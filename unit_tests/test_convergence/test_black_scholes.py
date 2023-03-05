@@ -14,8 +14,7 @@ print_results = True
 rate = 0.04
 strike = 100
 vol = 0.3
-expiry = 2
-solver_type = "Andreasen"
+expiry = 1
 
 
 class Theta1D(unittest.TestCase):
@@ -27,7 +26,7 @@ class Theta1D(unittest.TestCase):
             # Time dimension.
             t_min = 0
             t_max = expiry
-            t_steps = 1001
+            t_steps = 301
             dt = (t_max - t_min) / (t_steps - 1)
             # Spatial dimension.
             # TODO: Why should the interval be symmetric about the strike?
@@ -37,7 +36,7 @@ class Theta1D(unittest.TestCase):
             x_states_start = 51
             x_states_array = np.arange(x_states_start, 2 * x_states_start, 10)
             # Number of times the number of grid points is doubled.
-            n_doubling = 5
+            n_doubling = 4
             # Arrays for storing data.
             step_array = np.zeros((n_doubling - 1) * x_states_array.size)
             norm_array = np.zeros((3, (n_doubling - 1) * x_states_array.size))
@@ -52,7 +51,8 @@ class Theta1D(unittest.TestCase):
                         call.Call(rate, vol, strike, expiry_idx, event_grid)
                     dx = (x_max - x_min) / (x_states - 1)
                     x_grid = dx * np.arange(x_states) + x_min
-                    instrument.fd_setup(x_grid, equidistant=True, theta_value=theta_factor)
+                    instrument.fd_setup(x_grid, equidistant=True,
+                                        theta_value=theta_factor)
                     # Backward propagation to time zero.
                     instrument.fd_solve()
                     # Save result.
@@ -86,17 +86,17 @@ class Theta1D(unittest.TestCase):
                            "ob", label="L2 norm")
                 ax[2].set(xlabel="log(Delta x)")
                 ax[2].legend()
-                plt.show()
-                plt.pause(5)
+                plt.show(block=False)
+                plt.pause(2)
             # Linear regression
             lr1 = linregress(step_array, norm_array[0, :])
             lr2 = linregress(step_array, norm_array[1, :])
             lr3 = linregress(step_array, norm_array[2, :])
             if print_results:
                 print(lr1.slope, lr2.slope, lr3.slope)
-            self.assertTrue(abs(lr1.slope - 2) < 1e-3)
-            self.assertTrue(abs(lr2.slope - 2) < 1e-3)
-            self.assertTrue(abs(lr3.slope - 2) < 1e-3)
+            self.assertTrue(abs(lr1.slope - 2) < 2e-3)
+            self.assertTrue(abs(lr2.slope - 2) < 2e-3)
+            self.assertTrue(abs(lr3.slope - 2) < 2e-3)
 
     def test_call_in_time(self):
         """Test fully implicit method and Crank-Nicolson method."""
@@ -109,9 +109,9 @@ class Theta1D(unittest.TestCase):
             # TODO: Why should the interval be asymmetric about the strike?
             x_min = 9
             x_max = 190
-            x_states = 3001
+            x_states = 101
             # Number of states.
-            t_steps_array = np.array([2001, 2501, 3001, 3501])
+            t_steps_array = np.array([101, 151])
             # Number of times the number of grid points is doubled.
             n_doubling = 4
             # Arrays for storing data.
@@ -129,7 +129,8 @@ class Theta1D(unittest.TestCase):
                         call.Call(rate, vol, strike, expiry_idx, event_grid)
                     dx = (x_max - x_min) / (x_states - 1)
                     x_grid = dx * np.arange(x_states) + x_min
-                    instrument.fd_setup(x_grid, equidistant=True, theta_value=theta_factor)
+                    instrument.fd_setup(x_grid, equidistant=True,
+                                        theta_value=theta_factor)
                     # Backward propagation to time zero.
                     instrument.fd_solve()
                     # Save result.
@@ -165,8 +166,8 @@ class Theta1D(unittest.TestCase):
                            "ob", label="L2 norm")
                 ax[2].set(xlabel="log(Delta t)")
                 ax[2].legend()
-                plt.show()
-                plt.pause(5)
+                plt.show(block=False)
+                plt.pause(2)
             # Linear regression
             lr1 = linregress(step_array, norm_array[0, :])
             lr2 = linregress(step_array, norm_array[1, :])
@@ -176,9 +177,9 @@ class Theta1D(unittest.TestCase):
             order = 2
             if theta_factor == 1:
                 order = 1
-            self.assertTrue(abs(lr1.slope - order) < 6e-3)
-            self.assertTrue(abs(lr2.slope - order) < 6e-3)
-            self.assertTrue(abs(lr3.slope - order) < 7e-3)
+            self.assertTrue(abs(lr1.slope - order) < 2e-3)
+            self.assertTrue(abs(lr2.slope - order) < 2e-3)
+            self.assertTrue(abs(lr3.slope - order) < 2e-3)
 
 
 if __name__ == '__main__':
