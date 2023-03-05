@@ -14,7 +14,7 @@ class ThetaBase:
     """Theta method for solving parabolic 1-factor PDE (base class).
 
     The general structure of the PDE is
-        dV/dt + drift * dV/dx + 1/2 * diffusion^2 * dV^2/dx^2 = rate * V,
+        dV/dt + drift * dV/dx + 1/2 * diffusion^2 * d^2V/dx^2 = rate * V,
     TODO: What about the RHS for Ornstein-Uhlenbeck processes?
     where the underlying 1-dimensional Markov process reads
         dx_t = drift(t, x_t) * dt + diffusion(t, x_t) * dW_t.
@@ -122,7 +122,7 @@ class Theta(ThetaBase):
     """Theta method for solving parabolic 1-factor PDE.
 
     The general structure of the PDE is
-        dV/dt + drift * dV/dx + 1/2 * diffusion^2 * dV^2/dx^2 = rate * V,
+        dV/dt + drift * dV/dx + 1/2 * diffusion^2 * d^2V/dx^2 = rate * V,
     where the underlying 1-dimensional Markov process reads
         dx_t = drift(t, x_t) * dt + diffusion(t, x_t) * dW_t.
 
