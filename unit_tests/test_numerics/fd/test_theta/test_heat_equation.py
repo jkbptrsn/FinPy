@@ -3,8 +3,11 @@ import unittest
 
 from matplotlib import pyplot as plt
 import numpy as np
+from scipy.stats import linregress
 
-import numerics.fd.theta.theta as theta
+from numerics.fd.theta import theta
+from numerics.fd.theta import misc
+
 
 plot_function = False
 print_result = False
@@ -35,7 +38,7 @@ class HeatEquation1D(unittest.TestCase):
     def setUp(self) -> None:
         self.x_min = 0
         self.x_max = 5
-        self.x_steps = 1000
+        self.x_steps = 10000
         self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         self.band = "tri"
@@ -49,7 +52,7 @@ class HeatEquation1D(unittest.TestCase):
         self.solver.set_rate(0 * self.x_grid)
         self.solver.initialization()
 
-    def test_single_term(self):
+    def test_single(self):
         """Single sine function as initial condition.
 
         The initial condition reads
@@ -125,6 +128,54 @@ class HeatEquation1D(unittest.TestCase):
             if print_result:
                 print_to_screen(str(self), diff[idx_max], relative_diff)
             self.assertTrue(relative_diff < limit)
+
+    def test_single_convergence(self):
+        """..."""
+        t_min = 0
+        t_max = 0.5
+
+        t_steps_min = 100
+        t_steps_max = 1000
+        t_steps_int = 200
+        n_points = len(range(t_steps_min, t_steps_max, t_steps_int))
+
+        # Initial condition.
+        ic = 6 * np.sin(math.pi * self.x_grid / self.x_max)
+        # Analytical solution.
+        analytical_solution = ic * math.exp(-self.k * (math.pi / self.x_max) ** 2 * t_max)
+
+        dt_array = np.zeros(n_points)
+        norms_array = np.zeros((3, n_points))
+
+        count = 0
+        for t_steps in range(t_steps_min, t_steps_max, t_steps_int):
+            dt = (t_max - t_min) / (t_steps - 1)
+            t_grid = dt * np.arange(t_steps) + t_min
+            self.solver.solution = ic
+            # Propagation.
+            for time_step in np.diff(t_grid):
+                self.solver.propagation(time_step)
+            norms = misc.norms_1d(analytical_solution, self.solver.solution, self.dx, slice_nr=1)
+            dt_array[count] = dt
+            norms_array[:, count] = norms
+            count += 1
+
+        print(dt_array)
+
+        print(norms_array)
+
+        plt.plot(np.log(dt_array), np.log(norms_array[0, :]), "ob")
+        plt.plot(np.log(dt_array), np.log(norms_array[1, :]), "or")
+        plt.plot(np.log(dt_array), np.log(norms_array[2, :]), "ok")
+        plt.show()
+
+        lr1 = linregress(np.log(dt_array), np.log(norms_array[0, :]))
+        lr2 = linregress(np.log(dt_array), np.log(norms_array[1, :]))
+        lr3 = linregress(np.log(dt_array), np.log(norms_array[2, :]))
+        print(lr1.slope, lr2.slope, lr3.slope)
+
+    def test_superposition_convergence(self):
+        pass
 
 
 if __name__ == '__main__':
