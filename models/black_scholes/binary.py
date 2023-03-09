@@ -11,7 +11,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class BinaryCashCall(sde.SDE, options.VanillaOption):
+class BinaryCashCall(options.EuropeanOptionAnalytical1F):
     """European cash-or-nothing call option in Black-Scholes model.
 
     European cash-or-nothing call option written on stock price modelled
@@ -21,25 +21,30 @@ class BinaryCashCall(sde.SDE, options.VanillaOption):
     Attributes:
         rate: Interest rate.
         vol: Volatility.
-        event_grid: Event dates, e.g. payment dates, represented as year
-            fractions from the as-of date.
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
-        dividend: Stock dividend.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+        dividend: Continuous dividend yield. Default value is 0.
     """
 
     def __init__(self,
                  rate: float,
                  vol: float,
-                 event_grid: np.ndarray,
                  strike: float,
                  expiry_idx: int,
+                 event_grid: np.ndarray,
                  dividend: float = 0):
-        super().__init__(rate, vol, event_grid, dividend)
+        super().__init__()
+        self.rate = rate
+        self.vol = vol
         self.strike = strike
         self.expiry_idx = expiry_idx
+        self.event_grid = event_grid
+        self.dividend = dividend
 
-        self.option_type = global_types.Instrument.BINARY_CASH_CALL
+        self.type = global_types.Instrument.BINARY_CASH_CALL
+        self.model = global_types.Model.BLACK_SCHOLES
 
     @property
     def expiry(self) -> float:
@@ -123,8 +128,12 @@ class BinaryCashCall(sde.SDE, options.VanillaOption):
         """
         pass
 
+    def fd_solve(self):
+        """Run solver on event_grid..."""
+        pass
 
-class BinaryAssetCall(sde.SDE, options.VanillaOption):
+
+class BinaryAssetCall(options.EuropeanOptionAnalytical1F):
     """European asset-or-nothing call option in Black-Scholes model.
 
     European asset-or-nothing call option written on stock price
@@ -134,25 +143,30 @@ class BinaryAssetCall(sde.SDE, options.VanillaOption):
     Attributes:
         rate: Interest rate.
         vol: Volatility.
-        event_grid: Event dates, e.g. payment dates, represented as year
-            fractions from the as-of date.
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
-        dividend: Stock dividend.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+        dividend: Continuous dividend yield. Default value is 0.
     """
 
     def __init__(self,
                  rate: float,
                  vol: float,
-                 event_grid: np.ndarray,
                  strike: float,
                  expiry_idx: int,
+                 event_grid: np.ndarray,
                  dividend: float = 0):
-        super().__init__(rate, vol, event_grid, dividend)
+        super().__init__()
+        self.rate = rate
+        self.vol = vol
         self.strike = strike
         self.expiry_idx = expiry_idx
+        self.event_grid = event_grid
+        self.dividend = dividend
 
-        self.option_type = global_types.Instrument.BINARY_ASSET_CALL
+        self.type = global_types.Instrument.BINARY_ASSET_CALL
+        self.model = global_types.Model.BLACK_SCHOLES
 
     @property
     def expiry(self) -> float:
@@ -236,8 +250,12 @@ class BinaryAssetCall(sde.SDE, options.VanillaOption):
         """
         pass
 
+    def fd_solve(self):
+        """Run solver on event_grid..."""
+        pass
 
-class BinaryCashPut(sde.SDE, options.VanillaOption):
+
+class BinaryCashPut(options.EuropeanOptionAnalytical1F):
     """European cash-or-nothing put option in Black-Scholes model.
 
     European cash-or-nothing put option written on stock price modelled
@@ -247,26 +265,30 @@ class BinaryCashPut(sde.SDE, options.VanillaOption):
     Attributes:
         rate: Interest rate.
         vol: Volatility.
-        event_grid: Event dates, e.g. payment dates, represented as year
-            fractions from the as-of date.
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
-        dividend: Stock dividend.
-
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+        dividend: Continuous dividend yield. Default value is 0.
     """
 
     def __init__(self,
                  rate: float,
                  vol: float,
-                 event_grid: np.ndarray,
                  strike: float,
                  expiry_idx: int,
+                 event_grid: np.ndarray,
                  dividend: float = 0):
-        super().__init__(rate, vol, event_grid, dividend)
+        super().__init__()
+        self.rate = rate
+        self.vol = vol
         self.strike = strike
         self.expiry_idx = expiry_idx
+        self.event_grid = event_grid
+        self.dividend = dividend
 
-        self.option_type = global_types.Instrument.BINARY_CASH_PUT
+        self.type = global_types.Instrument.BINARY_CASH_PUT
+        self.model = global_types.Model.BLACK_SCHOLES
 
     @property
     def expiry(self) -> float:
@@ -350,8 +372,12 @@ class BinaryCashPut(sde.SDE, options.VanillaOption):
         """
         pass
 
+    def fd_solve(self):
+        """Run solver on event_grid..."""
+        pass
 
-class BinaryAssetPut(sde.SDE, options.VanillaOption):
+
+class BinaryAssetPut(options.EuropeanOptionAnalytical1F):
     """European asset-or-nothing put option in Black-Scholes model.
 
     European asset-or-nothing put option written on stock price modelled
@@ -361,25 +387,30 @@ class BinaryAssetPut(sde.SDE, options.VanillaOption):
     Attributes:
         rate: Interest rate.
         vol: Volatility.
-        event_grid: Event dates, e.g. payment dates, represented as year
-            fractions from the as-of date.
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
-        dividend: Stock dividend.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+        dividend: Continuous dividend yield. Default value is 0.
     """
 
     def __init__(self,
                  rate: float,
                  vol: float,
-                 event_grid: np.ndarray,
                  strike: float,
                  expiry_idx: int,
+                 event_grid: np.ndarray,
                  dividend: float = 0):
-        super().__init__(rate, vol, event_grid, dividend)
+        super().__init__()
+        self.rate = rate
+        self.vol = vol
         self.strike = strike
         self.expiry_idx = expiry_idx
+        self.event_grid = event_grid
+        self.dividend = dividend
 
-        self.option_type = global_types.Instrument.BINARY_ASSET_PUT
+        self.type = global_types.Instrument.BINARY_ASSET_PUT
+        self.model = global_types.Model.BLACK_SCHOLES
 
     @property
     def expiry(self) -> float:
@@ -461,4 +492,8 @@ class BinaryAssetPut(sde.SDE, options.VanillaOption):
         Returns:
             Theta.
         """
+        pass
+
+    def fd_solve(self):
+        """Run solver on event_grid..."""
         pass

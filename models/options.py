@@ -29,7 +29,7 @@ class EuropeanOption(metaclass=abc.ABCMeta):
         pass
 
 
-class EuropeanOptionAnalytical(metaclass=abc.ABCMeta):
+class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
     """European option with closed-form solution."""
 
     def __init__(self):
@@ -135,24 +135,6 @@ class EuropeanOptionAnalytical(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fd_solve(self):
         """Run solver on event_grid..."""
-        pass
-
-
-class VanillaOptionNew(metaclass=abc.ABCMeta):
-    """Abstract vanilla option class."""
-
-    @abc.abstractmethod
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
-            -> typing.Union[float, np.ndarray]:
-        """Payoff function.
-
-        Args:
-            spot: Current value of underlying.
-
-        Returns:
-            Payoff.
-        """
         pass
 
 

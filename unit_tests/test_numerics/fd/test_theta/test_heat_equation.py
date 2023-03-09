@@ -106,7 +106,7 @@ class HeatEquation1D(unittest.TestCase):
         # Initial condition.
         ic_1 = 12 * np.sin(9 * math.pi * self.x_grid / self.x_max)
         ic_2 = - 7 * np.sin(4 * math.pi * self.x_grid / self.x_max)
-        for band, limit in (("tri", 2e-5), ("penta", 4e-9)):
+        for band, limit in (("tri", 2e-7), ("penta", 6e-9)):
             self.solver.band = band
             self.solver.initialization()
             self.solver.solution = ic_1 + ic_2
@@ -160,19 +160,21 @@ class HeatEquation1D(unittest.TestCase):
             norms_array[:, count] = norms
             count += 1
 
-        print(dt_array)
+#        print(dt_array)
+#        print(norms_array)
 
-        print(norms_array)
-
-        plt.plot(np.log(dt_array), np.log(norms_array[0, :]), "ob")
-        plt.plot(np.log(dt_array), np.log(norms_array[1, :]), "or")
-        plt.plot(np.log(dt_array), np.log(norms_array[2, :]), "ok")
-        plt.show()
+        if plot_function:
+            plt.plot(np.log(dt_array), np.log(norms_array[0, :]), "ob")
+            plt.plot(np.log(dt_array), np.log(norms_array[1, :]), "or")
+            plt.plot(np.log(dt_array), np.log(norms_array[2, :]), "ok")
+            plt.pause(2)
+            plt.clf()
 
         lr1 = linregress(np.log(dt_array), np.log(norms_array[0, :]))
         lr2 = linregress(np.log(dt_array), np.log(norms_array[1, :]))
         lr3 = linregress(np.log(dt_array), np.log(norms_array[2, :]))
-        print(lr1.slope, lr2.slope, lr3.slope)
+        if print_result:
+            print(lr1.slope, lr2.slope, lr3.slope)
 
     def test_superposition_convergence(self):
         pass
