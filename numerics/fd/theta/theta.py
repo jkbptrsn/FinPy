@@ -250,6 +250,11 @@ def setup_solver(instrument,
         solver.solution = payoffs.call(solver.grid, instrument.strike)
     elif instrument.type == global_types.Instrument.EUROPEAN_PUT:
         solver.solution = payoffs.put(solver.grid, instrument.strike)
+
+    elif instrument.type == global_types.Instrument.BINARY_CASH_CALL:
+        solver.solution = \
+            payoffs.binary_cash_call(solver.grid, instrument.strike)
+
     elif instrument.type == global_types.Instrument.ZERO_COUPON_BOND:
         solver.solution = payoffs.zero_coupon_bond(solver.grid)
     else:
