@@ -77,7 +77,7 @@ elif model_name == "CIR":
         instru = cir_bond.ZCBond(kappa, mean_rate, vol, event_grid, maturity_idx)
 
 # instru.fd_setup(x_min, x_max, x_steps)
-instru.fd_setup(x_grid)
+instru.fd_setup(x_grid, equidistant=True)
 
 payoff = instru.fd.solution.copy()
 instru.fd_solve()

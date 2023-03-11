@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from tests.test_hull_white import input
+from unit_tests.test_hull_white import input
 from models.hull_white import call_option
 from models.hull_white import caplet
 from models.hull_white import put_option

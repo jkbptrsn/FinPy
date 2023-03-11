@@ -1,7 +1,6 @@
 import math
 import unittest
 
-from matplotlib import pyplot as plt
 import numpy as np
 
 from models.black_scholes import call
@@ -22,7 +21,7 @@ class Parity(unittest.TestCase):
         self.event_grid = np.array([self.time, self.expiry / 2, self.expiry])
         self.spot = np.arange(1, 100)
 
-    def test_1(self):
+    def test_call_put_parity(self):
         c = call.Call(self.rate, self.vol, self.strike, self.expiry_idx,
                       self.event_grid)
         p = put.Put(self.rate, self.vol, self.strike, self.expiry_idx,
@@ -31,9 +30,8 @@ class Parity(unittest.TestCase):
             - p.price(self.spot, self.time_idx)
         discount = math.exp(-self.rate * (self.expiry - self.time))
         rhs = self.spot - self.strike * discount
-        self.assertTrue(np.max(np.abs(lhs - rhs)) < 1.0e-12)
+        self.assertTrue(np.max(np.abs(lhs - rhs)) < 2.0e-14)
 
 
 if __name__ == '__main__':
-
     unittest.main()
