@@ -7,7 +7,7 @@ from models.black_scholes import call
 from models.black_scholes import binary
 from utils import plots
 
-plot_results = False
+plot_results = True
 print_results = False
 
 
@@ -136,6 +136,40 @@ class CallOption(unittest.TestCase):
         if print_results:
             print(np.max(np.abs(diff[idx_min:idx_max])))
         self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 2.0e-4)
+
+    def test_monte_carlo(self) -> None:
+        """Monte-Carlo simulation."""
+        t_steps = 100
+        expiry_idx = t_steps - 1
+        dt = (self.expiry - self.time) / (t_steps - 1)
+        integration_grid = dt * np.arange(t_steps) + self.time
+        c = call.Call(self.rate, self.vol, self.strike, expiry_idx,
+                      integration_grid)
+        c.mc_exact_setup()
+        n_paths = 100
+        mc_spot = np.arange(25, 200, 25)
+        price_array = np.zeros(mc_spot.size)
+        std_array = np.zeros(mc_spot.size)
+        mc_error = np.zeros(mc_spot.size)
+        for idx, s in enumerate(mc_spot):
+            c.mc_exact.initialization(s, n_paths, antithetic=True)
+            c.mc_exact_solve()
+            if plot_results:
+                plt.plot(c.event_grid, c.mc_exact.solution)
+                plt.xlabel("Time")
+                plt.ylabel("Stock price")
+                plt.pause(1)
+                plt.clf()
+            price_array[idx], std_array[idx], mc_error[idx] = \
+                c.mc_exact.price(c, expiry_idx)
+        if plot_results:
+            plt.plot(self.spot, c.payoff(self.spot), "-k")
+            plt.plot(self.spot, c.price(self.spot, 0), "-r")
+            plt.errorbar(mc_spot, price_array, yerr=mc_error,
+                         linestyle="none", marker="o", color="b", capsize=5)
+            plt.xlabel("Stock price")
+            plt.ylabel("Option price")
+            plt.pause(5)
 
 
 if __name__ == '__main__':

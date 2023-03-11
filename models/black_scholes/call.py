@@ -204,3 +204,12 @@ class Call(options.EuropeanOptionAnalytical1F):
         for dt in np.flip(np.diff(self.event_grid)):
             self.fd.set_propagator()
             self.fd.propagation(dt)
+
+    def mc_exact_setup(self):
+        """Setup exact Monte-Carlo solver."""
+        self.mc_exact = \
+            sde.SDE(self.rate, self.vol, self.event_grid, self.dividend)
+
+    def mc_exact_solve(self):
+        """Run solver on event_grid..."""
+        self.mc_exact.paths()

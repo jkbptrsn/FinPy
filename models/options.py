@@ -35,6 +35,8 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
     def __init__(self):
         # Solver objects.
         self.fd = None
+        self.mc = None
+        self.mc_exact = None
 
     @property
     @abc.abstractmethod
