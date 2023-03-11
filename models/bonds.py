@@ -3,7 +3,7 @@ import typing
 
 import numpy as np
 
-from numerical_methods.finite_difference import theta as fd_theta
+from numerics.fd.theta import theta as fd_theta
 
 
 class VanillaBondAnalytical(metaclass=abc.ABCMeta):
@@ -94,16 +94,18 @@ class VanillaBondAnalytical(metaclass=abc.ABCMeta):
 
     def fd_setup(self,
                  x_grid: np.ndarray,
-                 theta_value: float = 0.5,
-                 method: str = "Andersen"):
+                 form: str = "tri",
+                 equidistant: bool = False,
+                 theta_value: float = 0.5):
         """Setting up finite difference solver.
 
         Args:
             x_grid: Grid in spatial dimension.
+            form:
+            equidistant:
             theta_value: ...
-            method: "Andersen" or "Andreasen"
         """
-        self.fd = fd_theta.setup_solver(self, x_grid, theta_value, method)
+        self.fd = fd_theta.setup_solver(self, x_grid, form, equidistant, theta_value)
         self.fd.initialization()
 
     @abc.abstractmethod

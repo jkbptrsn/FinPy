@@ -11,7 +11,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class Call(options.EuropeanOptionAnalytical):
+class Call(options.EuropeanOptionAnalytical1F):
     """European call option in Black-Scholes model.
 
     European call option written on stock price modelled by
@@ -202,7 +202,14 @@ class Call(options.EuropeanOptionAnalytical):
     def fd_solve(self):
         """Run solver on event_grid..."""
         for dt in np.flip(np.diff(self.event_grid)):
-            # TODO: Use dt in propagation, with non-equidistant event grid...
-            # Will this work for both theta-method implementations?
             self.fd.set_propagator()
-            self.fd.propagation()
+            self.fd.propagation(dt)
+
+    def mc_exact_setup(self):
+        """Setup exact Monte-Carlo solver."""
+        self.mc_exact = \
+            sde.SDE(self.rate, self.vol, self.event_grid, self.dividend)
+
+    def mc_exact_solve(self):
+        """Run solver on event_grid..."""
+        self.mc_exact.paths()

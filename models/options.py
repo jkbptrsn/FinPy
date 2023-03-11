@@ -3,7 +3,7 @@ import typing
 
 import numpy as np
 
-from numerical_methods.finite_difference import theta as fd_theta
+from numerics.fd.theta import theta as fd_theta
 
 
 class EuropeanOption(metaclass=abc.ABCMeta):
@@ -29,12 +29,14 @@ class EuropeanOption(metaclass=abc.ABCMeta):
         pass
 
 
-class EuropeanOptionAnalytical(metaclass=abc.ABCMeta):
+class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
     """European option with closed-form solution."""
 
     def __init__(self):
         # Solver objects.
         self.fd = None
+        self.mc = None
+        self.mc_exact = None
 
     @property
     @abc.abstractmethod
@@ -117,39 +119,24 @@ class EuropeanOptionAnalytical(metaclass=abc.ABCMeta):
 
     def fd_setup(self,
                  x_grid: np.ndarray,
-                 theta_value: float = 0.5,
-                 method: str = "Andreasen"):
+                 form: str = "tri",
+                 equidistant: bool = False,
+                 theta_value: float = 0.5):
         """Setting up finite difference solver.
 
         Args:
             x_grid: Grid in spatial dimension.
-            theta_value: ...
-            method: "Andersen" or "Andreasen"
+            form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+                is tridiagonal.
+            equidistant:
+            theta_value: Theta parameter.
         """
-        self.fd = fd_theta.setup_solver(self, x_grid, theta_value, method)
+        self.fd = fd_theta.setup_solver(self, x_grid, form, equidistant, theta_value)
         self.fd.initialization()
 
     @abc.abstractmethod
     def fd_solve(self):
         """Run solver on event_grid..."""
-        pass
-
-
-class VanillaOptionNew(metaclass=abc.ABCMeta):
-    """Abstract vanilla option class."""
-
-    @abc.abstractmethod
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
-            -> typing.Union[float, np.ndarray]:
-        """Payoff function.
-
-        Args:
-            spot: Current value of underlying.
-
-        Returns:
-            Payoff.
-        """
         pass
 
 

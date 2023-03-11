@@ -5,7 +5,7 @@ import scipy
 import time
 import unittest
 
-from tests.test_hull_white import input
+from unit_tests.test_hull_white import input
 from models.hull_white import sde
 from models.hull_white import zero_coupon_bond
 from utils import mbb
