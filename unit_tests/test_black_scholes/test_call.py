@@ -7,7 +7,7 @@ from models.black_scholes import call
 from models.black_scholes import binary
 from utils import plots
 
-plot_results = True
+plot_results = False
 print_results = False
 
 
