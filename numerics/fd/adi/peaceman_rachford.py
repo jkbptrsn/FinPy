@@ -2,11 +2,8 @@ import numpy as np
 from scipy.linalg import solve_banded
 
 from numerics.fd.adi import base_class
-from numerics.fd.theta import differential_operators as do
-from numerics.fd.theta import linear_algebra as la
-from numerics.fd.theta import misc
-from utils import global_types
-from utils import payoffs
+from numerics.fd import differential_operators as do
+from numerics.fd import linear_algebra as la
 
 
 class PeachmanRachford2D(base_class.Base2D):
