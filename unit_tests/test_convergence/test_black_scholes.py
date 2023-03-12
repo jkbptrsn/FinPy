@@ -5,7 +5,7 @@ import numpy as np
 from scipy.stats import linregress
 
 from models.black_scholes import call
-from numerics.fd.theta import misc
+from numerics.fd import misc
 
 plot_results = False
 print_results = True
@@ -140,7 +140,7 @@ class Theta1D(unittest.TestCase):
                         step_array[counter] = np.log(dt)
                         norm_array[:, counter] = \
                             misc.norms_1d(solution_old, solution,
-                                           dx_old, slice_nr=1)
+                                          dx_old, slice_nr=1)
                         norm_array[:, counter] = np.log(norm_array[:, counter])
                         counter += 1
                     # Save result.

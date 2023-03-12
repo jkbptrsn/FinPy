@@ -6,8 +6,8 @@ import numpy as np
 
 from numerics.fd.adi import peaceman_rachford as pr
 
-plot_results = True
-print_result = True
+plot_results = False
+print_result = False
 
 
 def print_to_screen(obj, diff):

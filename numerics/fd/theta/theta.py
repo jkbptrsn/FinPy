@@ -3,9 +3,9 @@ import abc
 import numpy as np
 from scipy.linalg import solve_banded
 
-from numerics.fd.theta import differential_operators as do
-from numerics.fd.theta import linear_algebra as la
-from numerics.fd.theta import misc
+from numerics.fd import differential_operators as do
+from numerics.fd import linear_algebra as la
+from numerics.fd import greeks
 from utils import global_types
 from utils import payoffs
 
@@ -89,17 +89,17 @@ class ThetaBase:
         """Finite difference calculation of delta."""
         if self.equidistant:
             dx = self.grid[1] - self.grid[0]
-            return misc.delta_equidistant(dx, self.vec_solution, self.band)
+            return greeks.delta_equidistant(dx, self.vec_solution, self.band)
         else:
-            return misc.delta(self.grid, self.vec_solution, self.band)
+            return greeks.delta(self.grid, self.vec_solution, self.band)
 
     def gamma(self) -> np.ndarray:
         """Finite difference calculation of gamma."""
         if self.equidistant:
             dx = self.grid[1] - self.grid[0]
-            return misc.gamma_equidistant(dx, self.vec_solution, self.band)
+            return greeks.gamma_equidistant(dx, self.vec_solution, self.band)
         else:
-            return misc.gamma(self.grid, self.vec_solution, self.band)
+            return greeks.gamma(self.grid, self.vec_solution, self.band)
 
     @abc.abstractmethod
     def theta(self, dt: float = None) -> np.ndarray:
