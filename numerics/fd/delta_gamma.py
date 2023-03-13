@@ -24,79 +24,79 @@ info = """Banded matrix as 2-dimensional numpy array.
 
 def delta_equidistant(dx: float,
                       function: np.ndarray,
-                      form: str = "tri") -> np.ndarray:
-    """Finite difference calculation of delta on equidistant grid.
+                      band: str = "tri") -> np.ndarray:
+    """Finite difference approximation of delta on equidistant grid.
 
     Assuming ascending grid.
 
     Args:
-        dx: Equidistant spacing.
-        function: ...
-        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
-            is tridiagonal.
+        dx: Constant grid spacing.
+        function: Function values on grid.
+        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
+            tridiagonal.
 
     Returns:
-        Delta
+        Delta.
     """
-    operator = do.ddx_equidistant(function.size, dx, form)
-    return la.matrix_col_prod(operator, function, form)
+    operator = do.ddx_equidistant(function.size, dx, band)
+    return la.matrix_col_prod(operator, function, band)
 
 
 def delta(grid: np.ndarray,
           function: np.ndarray,
-          form: str = "tri") -> np.ndarray:
-    """Finite difference calculation of delta on non-equidistant grid.
+          band: str = "tri") -> np.ndarray:
+    """Finite difference approximation of delta on non-equidistant grid.
 
     Assuming ascending grid.
 
     Args:
-        grid: ...
-        function: ...
-        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
-            is tridiagonal.
+        grid: Non-equidistant grid.
+        function: Function values on grid.
+        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
+            tridiagonal.
 
     Returns:
-        Delta
+        Delta.
     """
-    operator = do.ddx(grid, form)
-    return la.matrix_col_prod(operator, function, form)
+    operator = do.ddx(grid, band)
+    return la.matrix_col_prod(operator, function, band)
 
 
 def gamma_equidistant(dx: float,
-                      vector: np.ndarray,
-                      form: str = "tri") -> np.ndarray:
-    """Finite difference calculation of gamma on equidistant grid.
+                      function: np.ndarray,
+                      band: str = "tri") -> np.ndarray:
+    """Finite difference approximation of gamma on equidistant grid.
 
     Assuming ascending grid.
 
     Args:
-        dx: Equidistant spacing.
-        vector: ...
-        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
-            is tridiagonal.
+        dx: Constant grid spacing.
+        function: Function values on grid.
+        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
+            tridiagonal.
 
     Returns:
-        Gamma
+        Gamma.
     """
-    operator = do.d2dx2_equidistant(vector.size, dx, form)
-    return la.matrix_col_prod(operator, vector, form)
+    operator = do.d2dx2_equidistant(function.size, dx, band)
+    return la.matrix_col_prod(operator, function, band)
 
 
 def gamma(grid: np.ndarray,
           function: np.ndarray,
-          form: str = "tri") -> np.ndarray:
-    """Finite difference calculation of gamma on non-equidistant grid.
+          band: str = "tri") -> np.ndarray:
+    """Finite difference approximation of gamma on non-equidistant grid.
 
     Assuming ascending grid.
 
     Args:
-        grid: ...
-        function: ...
-        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
-            is tridiagonal.
+        grid: Non-equidistant grid.
+        function: Function values on grid.
+        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
+            tridiagonal.
 
     Returns:
-        Gamma
+        Gamma.
     """
-    operator = do.d2dx2(grid, form)
-    return la.matrix_col_prod(operator, function, form)
+    operator = do.d2dx2(grid, band)
+    return la.matrix_col_prod(operator, function, band)
