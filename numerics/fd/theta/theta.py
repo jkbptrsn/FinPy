@@ -5,7 +5,7 @@ from scipy.linalg import solve_banded
 
 from numerics.fd import differential_operators as do
 from numerics.fd import linear_algebra as la
-from numerics.fd import greeks
+from numerics.fd import delta_gamma as greeks
 from utils import global_types
 from utils import payoffs
 
@@ -245,7 +245,7 @@ def setup_solver(instrument,
     solver.set_drift(drift)
     solver.set_diffusion(diffusion)
     solver.set_rate(rate)
-    # Terminal solution to PDE.
+    # Terminal solution to PDE. TODO: Use payoff method of instrument object...
     if instrument.type == global_types.Instrument.EUROPEAN_CALL:
         solver.solution = payoffs.call(solver.grid, instrument.strike)
     elif instrument.type == global_types.Instrument.EUROPEAN_PUT:

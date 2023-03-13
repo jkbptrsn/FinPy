@@ -1,23 +1,5 @@
 import numpy as np
 
-info = """Banded matrix as 2-dimensional numpy array.
-
-    Structure of numpy array consistent matrix diagonal ordered form 
-    used in scipy.linalg.solve_banded function.
-
-    Tridiagonal form:
-        - 1st row: Superdiagonal (exclude first element).
-        - 2nd row: Main diagonal.
-        - 3rd row: Subdiagonal (exclude last element).
-
-    Pentadiagonal form:
-        - 1st row: 2nd superdiagonal (exclude first two elements).
-        - 2nd row: 1st superdiagonal (exclude first element).
-        - 3rd row: Main diagonal.
-        - 4th row: 1st subdiagonal (exclude last element).
-        - 5th row: 2nd subdiagonal (exclude last two elements).
-"""
-
 
 def norms_1d(vector1: np.ndarray,
              vector2: np.ndarray,
