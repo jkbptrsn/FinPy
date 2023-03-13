@@ -19,134 +19,134 @@ info = """Banded matrix as 2-dimensional numpy array.
 """
 
 
-def identity_matrix(n_elements: int,
-                    form: str = "tri") -> np.ndarray:
+def identity_matrix(size: int,
+                    band: str = "tri") -> np.ndarray:
     """Identity matrix of banded form.
 
     Args:
-        n_elements: Number of elements along diagonal.
-        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
-            is tridiagonal.
+        size: Number of elements along main diagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
+            tridiagonal.
 
     Returns:
         Identity matrix.
     """
-    if form == "tri":
-        matrix = np.zeros((3, n_elements))
+    if band == "tri":
+        matrix = np.zeros((3, size))
         matrix[1, :] = 1
-    elif form == "penta":
-        matrix = np.zeros((5, n_elements))
+    elif band == "penta":
+        matrix = np.zeros((5, size))
         matrix[2, :] = 1
     else:
         raise ValueError(
-            f"{form}: Unknown form of banded matrix. Use tri or penta.")
+            f"{band}: Unknown form of banded matrix. Use tri or penta.")
     return matrix
 
 
 def matrix_col_prod(matrix: np.ndarray,
-                    vector: np.ndarray,
-                    form: str = "tri") -> np.ndarray:
+                    column: np.ndarray,
+                    band: str = "tri") -> np.ndarray:
     """Product of banded matrix and column vector.
 
     Args:
         matrix: Banded matrix.
-        vector: Column vector.
-        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
-            is tridiagonal.
+        column: Column vector.
+        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
+            tridiagonal.
 
     Returns:
         Matrix-column product as column vector.
     """
-    if form == "tri":
-        # Contribution from diagonal.
-        product = matrix[1, :] * vector
+    if band == "tri":
+        # Contribution from main diagonal.
+        product = matrix[1, :] * column
         # Contribution from superdiagonal.
-        product[:-1] += matrix[0, 1:] * vector[1:]
+        product[:-1] += matrix[0, 1:] * column[1:]
         # Contribution from subdiagonal.
-        product[1:] += matrix[2, :-1] * vector[:-1]
-    elif form == "penta":
+        product[1:] += matrix[2, :-1] * column[:-1]
+    elif band == "penta":
         # Contribution from diagonal.
-        product = matrix[2, :] * vector
+        product = matrix[2, :] * column
         # Contribution from 2nd superdiagonal.
-        product[:-2] += matrix[0, 2:] * vector[2:]
+        product[:-2] += matrix[0, 2:] * column[2:]
         # Contribution from 1st superdiagonal.
-        product[:-1] += matrix[1, 1:] * vector[1:]
+        product[:-1] += matrix[1, 1:] * column[1:]
         # Contribution from 1st subdiagonal.
-        product[1:] += matrix[3, :-1] * vector[:-1]
+        product[1:] += matrix[3, :-1] * column[:-1]
         # Contribution from 2nd subdiagonal.
-        product[2:] += matrix[4, :-2] * vector[:-2]
+        product[2:] += matrix[4, :-2] * column[:-2]
     else:
         raise ValueError(
-            f"{form}: Unknown form of banded matrix. Use tri or penta.")
+            f"{band}: Unknown form of banded matrix. Use tri or penta.")
     return product
 
 
-def row_matrix_prod(vector: np.ndarray,
+def row_matrix_prod(row: np.ndarray,
                     matrix: np.ndarray,
-                    form: str = "tri") -> np.ndarray:
+                    band: str = "tri") -> np.ndarray:
     """Product of row vector and banded matrix.
 
     Args:
-        vector: Row vector.
+        row: Row vector.
         matrix: Banded matrix.
-        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
-            is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
+            tridiagonal.
 
     Returns:
         Row-matrix product as row vector.
     """
-    if form == "tri":
-        # Contribution from diagonal.
-        product = vector * matrix[1, :]
+    if band == "tri":
+        # Contribution from main diagonal.
+        product = row * matrix[1, :]
         # Contribution from superdiagonal.
-        product[1:] += vector[:-1] * matrix[0, 1:]
+        product[1:] += row[:-1] * matrix[0, 1:]
         # Contribution from subdiagonal.
-        product[:-1] += vector[1:] * matrix[2, :-1]
-    elif form == "penta":
-        # Contribution from diagonal.
-        product = vector * matrix[2, :]
+        product[:-1] += row[1:] * matrix[2, :-1]
+    elif band == "penta":
+        # Contribution from main diagonal.
+        product = row * matrix[2, :]
         # Contribution from 2nd superdiagonal.
-        product[2:] += vector[:-2] * matrix[0, 2:]
+        product[2:] += row[:-2] * matrix[0, 2:]
         # Contribution from 1st superdiagonal.
-        product[1:] += vector[:-1] * matrix[1, 1:]
+        product[1:] += row[:-1] * matrix[1, 1:]
         # Contribution from 1st subdiagonal.
-        product[:-1] += vector[1:] * matrix[3, :-1]
+        product[:-1] += row[1:] * matrix[3, :-1]
         # Contribution from 2nd subdiagonal.
-        product[:-2] += vector[2:] * matrix[4, :-2]
+        product[:-2] += row[2:] * matrix[4, :-2]
     else:
         raise ValueError(
-            f"{form}: Unknown form of banded matrix. Use tri or penta.")
+            f"{band}: Unknown form of banded matrix. Use tri or penta.")
     return product
 
 
 def dia_matrix_prod(diagonal: np.ndarray,
                     matrix: np.ndarray,
-                    form: str = "tri") -> np.ndarray:
+                    band: str = "tri") -> np.ndarray:
     """Product of diagonal matrix and banded matrix.
 
     Args:
         diagonal: Diagonal matrix represented as vector.
         matrix: Banded matrix.
-        form: Tri- ("tri") or pentadiagonal ("penta") form. Default
-            is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
+            tridiagonal.
 
     Returns:
         Banded matrix.
     """
     product = np.zeros(matrix.shape)
-    if form == "tri":
+    if band == "tri":
         # Contribution from superdiagonal.
         product[0, 1:] = diagonal[:-1] * matrix[0, 1:]
-        # Contribution from diagonal.
+        # Contribution from main diagonal.
         product[1, :] = diagonal * matrix[1, :]
         # Contribution from subdiagonal.
         product[2, :-1] = diagonal[1:] * matrix[2, :-1]
-    elif form == "penta":
+    elif band == "penta":
         # Contribution from 2nd superdiagonal.
         product[0, 2:] = diagonal[:-2] * matrix[0, 2:]
         # Contribution from 1st superdiagonal.
         product[1, 1:] = diagonal[:-1] * matrix[1, 1:]
-        # Contribution from diagonal.
+        # Contribution from main diagonal.
         product[2, :] = diagonal * matrix[2, :]
         # Contribution from 1st subdiagonal.
         product[3, :-1] = diagonal[1:] * matrix[3, :-1]
@@ -154,5 +154,5 @@ def dia_matrix_prod(diagonal: np.ndarray,
         product[4, :-2] = diagonal[2:] * matrix[4, :-2]
     else:
         raise ValueError(
-            f"{form}: Unknown form of banded matrix. Use tri or penta.")
+            f"{band}: Unknown form of banded matrix. Use tri or penta.")
     return product

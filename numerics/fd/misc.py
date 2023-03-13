@@ -1,29 +1,11 @@
 import numpy as np
 
-info = """Banded matrix as 2-dimensional numpy array.
-
-    Structure of numpy array consistent matrix diagonal ordered form 
-    used in scipy.linalg.solve_banded function.
-
-    Tridiagonal form:
-        - 1st row: Superdiagonal (exclude first element).
-        - 2nd row: Main diagonal.
-        - 3rd row: Subdiagonal (exclude last element).
-
-    Pentadiagonal form:
-        - 1st row: 2nd superdiagonal (exclude first two elements).
-        - 2nd row: 1st superdiagonal (exclude first element).
-        - 3rd row: Main diagonal.
-        - 4th row: 1st subdiagonal (exclude last element).
-        - 5th row: 2nd subdiagonal (exclude last two elements).
-"""
-
 
 def norms_1d(vector1: np.ndarray,
              vector2: np.ndarray,
              step_size1: float,
-             slice_nr=2):
-    """...
+             slice_nr: int = 2) -> (float, float, float):
+    """Calculate norms of 1-dimensional vector.
 
     Args:
         vector1: Solution on grid1.
@@ -32,7 +14,7 @@ def norms_1d(vector1: np.ndarray,
         slice_nr: Ratio of number of steps of grid1 and grid2.
 
     Returns:
-        Center norm, max norm, L2 norm
+        Center norm, max norm, L2 norm.
     """
     # Absolute difference.
     diff = np.abs(vector1 - vector2[::slice_nr])
