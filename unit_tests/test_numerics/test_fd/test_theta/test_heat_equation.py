@@ -8,8 +8,8 @@ from scipy.stats import linregress
 from numerics.fd.theta import theta
 from numerics.fd import misc
 
-plot_function = False
-print_result = False
+plot_function = True
+print_result = True
 
 
 def print_to_screen(obj, diff, relative_diff):
