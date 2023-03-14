@@ -6,30 +6,33 @@ from numerics.fd import differential_operators as do
 from numerics.fd import linear_algebra as la
 
 
-class PeachmanRachford2D(base_class.Base2D):
-    """2D Peachman-Rachford alternating direction implicit scheme.
+class PeachmanRachford2D(base_class.ADI2D):
+    """Peachman-Rachford ADI method in 2 dimensions.
 
-    ...
+    The general structure of the PDE is
+        dV/dt + (L_x + L_y)V = 0,
+    where
+        L_x = drift_x * d/dx + 1/2 * diffusion_x^2 * d^2/dx^2
+            - 1/2 * rate,
+        L_y = drift_y * d/dy + 1/2 * diffusion_y^2 * d^2/dy^2
+            - 1/2 * rate.
 
     Attributes:
-        x_grid: Grid in 1st spatial dimension. Assumed ascending.
-        y_grid: Grid in 2nd spatial dimension. Assumed ascending.
+        grid_x: 1D grid for x-dimension. Assumed ascending.
+        grid_y: 1D grid for y-dimension. Assumed ascending.
         band: Tri- or pentadiagonal matrix representation of operators.
             Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
     """
 
     def __init__(self,
-                 x_grid: np.ndarray,
-                 y_grid: np.ndarray,
+                 grid_x: np.ndarray,
+                 grid_y: np.ndarray,
                  band: str = "tri",
                  equidistant: bool = False):
-        super().__init__(x_grid, y_grid, band, equidistant)
+        super().__init__(grid_x, grid_y, band, equidistant)
 
         self.solution = None
-        self.drift = None
-        self.diff_sq = None
-        self.rate = None
         self.identity_x = None
         self.identity_y = None
         self.ddx = None
@@ -39,79 +42,80 @@ class PeachmanRachford2D(base_class.Base2D):
         self.propagator_x = None
         self.propagator_y = None
 
-    def initialization(self):
-        """Initialization of identity matrix and propagator matrix."""
+    def initialization(self) -> None:
+        """Initialization of identity and propagator matrices."""
         self.identity_x = la.identity_matrix(self.nstates[0], self.band)
         self.identity_y = la.identity_matrix(self.nstates[1], self.band)
         self.set_propagator()
 
-    def set_propagator(self):
+    def set_propagator(self) -> None:
         """Propagator as banded matrix."""
         if self.equidistant:
-            dx = self.x_grid[1] - self.x_grid[0]
-            dy = self.y_grid[1] - self.y_grid[0]
+            dx = self.grid_x[1] - self.grid_x[0]
+            dy = self.grid_y[1] - self.grid_y[0]
             self.ddx = do.ddx_equidistant(self.nstates[0], dx, self.band)
             self.ddy = do.ddx_equidistant(self.nstates[1], dy, self.band)
             self.d2dx2 = do.d2dx2_equidistant(self.nstates[0], dx, self.band)
             self.d2dy2 = do.d2dx2_equidistant(self.nstates[1], dy, self.band)
         else:
-            self.ddx = do.ddx(self.x_grid, self.band)
-            self.ddy = do.ddx(self.y_grid, self.band)
-            self.d2dx2 = do.d2dx2(self.x_grid, self.band)
-            self.d2dy2 = do.d2dx2(self.y_grid, self.band)
+            self.ddx = do.ddx(self.grid_x, self.band)
+            self.ddy = do.ddx(self.grid_y, self.band)
+            self.d2dx2 = do.d2dx2(self.grid_x, self.band)
+            self.d2dy2 = do.d2dx2(self.grid_y, self.band)
 
-    def set_propagator_x(self,
-                         idx: int):
-        """..."""
-        self.propagator_x = \
-            - la.dia_matrix_prod(self.rate[:, idx], self.identity_x, self.band) \
-            + la.dia_matrix_prod(self.drift[:, idx], self.ddx, self.band) \
-            + la.dia_matrix_prod(self.diff_sq[:, idx], self.d2dx2, self.band) / 2
+    def set_propagator_x(self, idx: int) -> None:
+        """Propagator in x-dimension as banded matrix."""
+        term_1 = \
+            la.dia_matrix_prod(self.drift_x[:, idx], self.ddx, self.band)
+        term_2 = \
+            la.dia_matrix_prod(self.diff_x_sq[:, idx], self.d2dx2, self.band)
+        term_3 = \
+            la.dia_matrix_prod(self.rate[:, idx], self.identity_x, self.band)
+        self.propagator_x = term_1 + term_2 / 2 - term_3 / 2
 
-    def set_propagator_y(self,
-                         idx: int):
-        """..."""
-        self.propagator_y = \
-            - la.dia_matrix_prod(self.rate[idx, :], self.identity_y, self.band) \
-            + la.dia_matrix_prod(self.drift[idx, :], self.ddy, self.band) \
-            + la.dia_matrix_prod(self.diff_sq[idx, :], self.d2dy2, self.band) / 2
+    def set_propagator_y(self, idx: int) -> None:
+        """Propagator in y-dimension as banded matrix."""
+        term_1 = \
+            la.dia_matrix_prod(self.drift_y[idx, :], self.ddy, self.band)
+        term_2 = \
+            la.dia_matrix_prod(self.diff_y_sq[idx, :], self.d2dy2, self.band)
+        term_3 = \
+            la.dia_matrix_prod(self.rate[idx, :], self.identity_y, self.band)
+        self.propagator_y = term_1 + term_2 / 2 - term_3 / 2
 
-    def propagation(self, dt: float):
-        """Propagation of solution vector for one time step dt."""
+    def propagation(self, dt: float) -> None:
+        """Propagation of solution matrix for one time step dt."""
+        if self.band == "tri":
+            dimension = (1, 1)
+        elif self.band == "penta":
+            dimension = (2, 2)
+        else:
+            raise ValueError(
+                f"{self.band}: "
+                f"Unknown form of banded matrix. Use tri or penta.")
+        factor = dt / 2
         rhs = np.zeros(self.nstates)
-
-        # First split.
-        for idx in range(self.x_grid.size):
+        # First split; right-hand side.
+        for idx in range(self.nstates[0]):
             self.set_propagator_y(idx)
-            operator = self.identity_y + dt * self.propagator_y / 2
-            rhs[idx, :] = la.matrix_col_prod(operator,
-                                             self.solution[idx, :], self.band)
-        for idx in range(self.y_grid.size):
+            operator = self.identity_y + factor * self.propagator_y
+            rhs[idx, :] = \
+                la.matrix_col_prod(operator, self.solution[idx, :], self.band)
+        # First split; left-hand side.
+        for idx in range(self.nstates[1]):
             self.set_propagator_x(idx)
-            operator = self.identity_x - dt * self.propagator_x / 2
-            if self.band == "tri":
-                self.solution[:, idx] = \
-                    solve_banded((1, 1), operator, rhs[:, idx])
-            elif self.band == "penta":
-                self.solution[:, idx] = \
-                    solve_banded((2, 2), operator, rhs[:, idx])
-            else:
-                raise ValueError("Form should be tri or penta...")
-
-        # Second split.
-        for idx in range(self.y_grid.size):
+            operator = self.identity_x - factor * self.propagator_x
+            self.solution[:, idx] = \
+                solve_banded(dimension, operator, rhs[:, idx])
+        # Second split; right-hand side.
+        for idx in range(self.nstates[1]):
             self.set_propagator_x(idx)
-            operator = self.identity_x + dt * self.propagator_x / 2
-            rhs[:, idx] = la.matrix_col_prod(operator,
-                                             self.solution[:, idx], self.band)
-        for idx in range(self.x_grid.size):
+            operator = self.identity_x + factor * self.propagator_x
+            rhs[:, idx] = \
+                la.matrix_col_prod(operator, self.solution[:, idx], self.band)
+        # Second split; left-hand side.
+        for idx in range(self.nstates[0]):
             self.set_propagator_y(idx)
-            operator = self.identity_y - dt * self.propagator_y / 2
-            if self.band == "tri":
-                self.solution[idx, :] = \
-                    solve_banded((1, 1), operator, rhs[idx, :])
-            elif self.band == "penta":
-                self.solution[idx, :] = \
-                    solve_banded((2, 2), operator, rhs[idx, :])
-            else:
-                raise ValueError("Form should be tri or penta...")
+            operator = self.identity_y - factor * self.propagator_y
+            self.solution[idx, :] = \
+                solve_banded(dimension, operator, rhs[idx, :])

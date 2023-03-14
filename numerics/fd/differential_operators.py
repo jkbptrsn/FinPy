@@ -31,8 +31,8 @@ def ddx_equidistant(size: int,
     Args:
         size: Number of elements along main diagonal.
         dx: Constant grid spacing.
-        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
-            tridiagonal.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
 
     Returns:
         Discrete 1st order differential operator.
@@ -86,8 +86,8 @@ def ddx(grid: np.ndarray,
 
     Args:
         grid: Grid points.
-        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
-            tridiagonal.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
 
     Returns:
         Discrete 1st order differential operator.
@@ -144,8 +144,8 @@ def d2dx2_equidistant(size: int,
     Args:
         size: Number of elements along main diagonal.
         dx: Constant grid spacing.
-        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
-            tridiagonal.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
 
     Returns:
         Discrete 2nd order differential operator.
@@ -191,8 +191,8 @@ def d2dx2(grid: np.ndarray,
 
     Args:
         grid: Grid points.
-        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
-            tridiagonal.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
 
     Returns:
         Discrete 2nd order differential operator.

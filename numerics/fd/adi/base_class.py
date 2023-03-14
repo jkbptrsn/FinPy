@@ -3,79 +3,80 @@ import abc
 import numpy as np
 
 
-class Base2D:
-    """2D alternating direction implicit scheme.
+class ADI2D:
+    """Alternating Direction Implicit (ADI) method in 2 dimensions.
 
+    TODO: Review this doc-string.
     The general structure of the PDE is
-        dV/dt
-            + drift_x * dV/dx
-            + drift_y * dV/dy
-            + 1/2 * diffusion_x^2 * d^2V/dx^2
-            + 1/2 * diffusion_y^2 * d^2V/dy^2 = rate * V,
-    where the underlying 2-dimensional Markov process reads
-        dx(t) = drift_x(t, x(t), y(t)) * dt
-            + diffusion_x(t, x(t), y(t)) * dW_x(t),
-        dy(t) = drift_y(t, x(t), y(t)) * dt
-            + diffusion_y(t, x(t), y(t)) * dW_y(t),
-    and rate = rate(t, x(t), y(t)).
+        dV/dt + (L_x + L_y + L_xy)V = 0,
+    where
+        L_x = drift_x * d/dx + 1/2 * diffusion_x^2 * d^2/dx^2
+            - 1/2 * rate,
+        L_y = drift_y * d/dy + 1/2 * diffusion_y^2 * d^2/dy^2
+            - 1/2 * rate,
+        L_xy = coupling * diffusion_x * diffusion_y * d^2/(dx dy).
 
     Attributes:
-        x_grid: Grid in 1st spatial dimension. Assumed ascending.
-        y_grid: Grid in 2nd spatial dimension. Assumed ascending.
+        grid_x: 1D grid for x-dimension. Assumed ascending.
+        grid_y: 1D grid for y-dimension. Assumed ascending.
         band: Tri- or pentadiagonal matrix representation of operators.
             Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
     """
 
     def __init__(self,
-                 x_grid: np.ndarray,
-                 y_grid: np.ndarray,
+                 grid_x: np.ndarray,
+                 grid_y: np.ndarray,
                  band: str = "tri",
                  equidistant: bool = False):
-        self.x_grid = x_grid
-        self.y_grid = y_grid
+        self.grid_x = grid_x
+        self.grid_y = grid_y
         self.band = band
         self.equidistant = equidistant
 
-        self.solution = None
-        self.drift = None
-        self.diff_sq = None
+        self.drift_x = None
+        self.drift_y = None
+        self.diff_x_sq = None
+        self.diff_y_sq = None
         self.rate = None
-        self.identity_x = None
-        self.identity_y = None
-        self.propagator_x = None
-        self.propagator_y = None
 
     @property
-    def xmin(self) -> (float, float):
-        return self.x_grid[0], self.y_grid[0]
+    def grid_min(self) -> (float, float):
+        return self.grid_x[0], self.grid_y[0]
 
     @property
-    def xmax(self) -> (float, float):
-        return self.x_grid[-1], self.y_grid[-1]
+    def grid_max(self) -> (float, float):
+        return self.grid_x[-1], self.grid_y[-1]
 
     @property
     def nstates(self) -> (int, int):
-        return self.x_grid.size, self.y_grid.size
+        return self.grid_x.size, self.grid_y.size
 
-    def set_drift(self, drift: np.ndarray):
-        """Drift matrix defined by underlying process."""
-        self.drift = drift
+    def set_drift(self,
+                  drift_x: np.ndarray,
+                  drift_y: np.ndarray) -> None:
+        """Drift matrices defined by underlying process."""
+        self.drift_x = drift_x
+        self.drift_y = drift_y
 
-    def set_diffusion(self, diffusion: np.ndarray):
-        """Squared diffusion matrix defined by underlying process."""
-        self.diff_sq = np.square(diffusion)
+    def set_diffusion(self,
+                      diffusion_x: np.ndarray,
+                      diffusion_y: np.ndarray) -> None:
+        """Squared diffusion matrices defined by underlying process."""
+        self.diff_x_sq = np.square(diffusion_x)
+        self.diff_y_sq = np.square(diffusion_y)
 
-    def set_rate(self, rate: np.ndarray):
-        """Rate vector defined by underlying process."""
+    def set_rate(self, rate: np.ndarray) -> None:
+        """Rate matrix defined by underlying process."""
         self.rate = rate
 
+    # TODO: Need this one? What about initialization instead?
     @abc.abstractmethod
-    def set_propagator(self):
+    def set_propagator(self) -> None:
         pass
 
     @abc.abstractmethod
-    def propagation(self, dt: float):
+    def propagation(self, dt: float) -> None:
         pass
 
     def delta(self) -> np.ndarray:
