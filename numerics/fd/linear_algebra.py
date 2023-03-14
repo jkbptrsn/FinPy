@@ -25,8 +25,8 @@ def identity_matrix(size: int,
 
     Args:
         size: Number of elements along main diagonal.
-        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
-            tridiagonal.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
 
     Returns:
         Identity matrix.
@@ -51,8 +51,8 @@ def matrix_col_prod(matrix: np.ndarray,
     Args:
         matrix: Banded matrix.
         column: Column vector.
-        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
-            tridiagonal.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
 
     Returns:
         Matrix-column product as column vector.
@@ -89,8 +89,8 @@ def row_matrix_prod(row: np.ndarray,
     Args:
         row: Row vector.
         matrix: Banded matrix.
-        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
-            tridiagonal.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
 
     Returns:
         Row-matrix product as row vector.
@@ -127,8 +127,8 @@ def dia_matrix_prod(diagonal: np.ndarray,
     Args:
         diagonal: Diagonal matrix represented as vector.
         matrix: Banded matrix.
-        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
-            tridiagonal.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
 
     Returns:
         Banded matrix.

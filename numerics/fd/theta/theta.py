@@ -154,7 +154,7 @@ class Theta(ThetaBase):
         self.dt_last = None
 
     def initialization(self):
-        """Initialization of identity matrix and propagator matrix."""
+        """Initialization of identity and propagator matrices."""
         self.mat_identity = la.identity_matrix(self.nstates, self.band)
         self.set_propagator()
 

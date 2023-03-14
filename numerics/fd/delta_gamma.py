@@ -32,8 +32,8 @@ def delta_equidistant(dx: float,
     Args:
         dx: Constant grid spacing.
         function: Function values on grid.
-        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
-            tridiagonal.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
 
     Returns:
         Delta.
@@ -52,8 +52,8 @@ def delta(grid: np.ndarray,
     Args:
         grid: Non-equidistant grid.
         function: Function values on grid.
-        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
-            tridiagonal.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
 
     Returns:
         Delta.
@@ -72,8 +72,8 @@ def gamma_equidistant(dx: float,
     Args:
         dx: Constant grid spacing.
         function: Function values on grid.
-        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
-            tridiagonal.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
 
     Returns:
         Gamma.
@@ -92,8 +92,8 @@ def gamma(grid: np.ndarray,
     Args:
         grid: Non-equidistant grid.
         function: Function values on grid.
-        band: Tri- ("tri") or pentadiagonal ("penta") form. Default is
-            tridiagonal.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
 
     Returns:
         Gamma.
