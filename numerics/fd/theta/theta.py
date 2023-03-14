@@ -137,7 +137,7 @@ class Theta(ThetaBase):
         band: Tri- or pentadiagonal matrix representation of operators.
             Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
-        theta_parameter: Determines the specific method
+        theta_parameter: Determines the specific method.
             0   : Explicit method
             0.5 : Crank-Nicolson method (default)
             1   : Fully implicit method
