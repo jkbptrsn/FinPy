@@ -219,3 +219,41 @@ def d2dx2(grid: np.ndarray,
         raise ValueError(
             f"{band}: Unknown form of banded matrix. Use tri or penta.")
     return matrix
+
+
+def d2dxdy_equidistant(function: np.ndarray,
+                       dx: float,
+                       dy: float,
+                       band: str = "tri") -> np.ndarray:
+    """FD approximation of 2nd order mixed differential operator.
+
+    Finite difference approximation of 2nd order mixed differential
+    operator on equidistant grid. At the boundaries, 1st order
+    forward/backward difference is used. Assuming ascending grid.
+
+    Same approximation is used for tri- and pentadiagonal form, see
+    H. Sundqvist & G. Veronis, Tellus XXII (1970).
+
+    Args:
+        function: Function...
+        dx: Constant grid spacing in x-dimension.
+        dy: Constant grid spacing in y-dimension.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
+
+    Returns:
+        Discrete 2nd order mixed differential operator.
+    """
+    matrix = np.zeros(function.shape)
+    # Interior points...
+    for idx_y in range(1, function.shape[1] - 1):
+        for idx_x in range(1, function.shape[0] - 1):
+            matrix[idx_x, idx_y] = \
+                - function[idx_x - 1, idx_y + 1] \
+                + function[idx_x - 1, idx_y - 1] \
+                + function[idx_x + 1, idx_y + 1] \
+                - function[idx_x + 1, idx_y - 1]
+    matrix /= 4 * dx * dy
+    # Boundary points...
+
+    return matrix
