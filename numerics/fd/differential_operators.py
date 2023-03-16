@@ -221,39 +221,77 @@ def d2dx2(grid: np.ndarray,
     return matrix
 
 
-def d2dxdy_equidistant(function: np.ndarray,
+def d2dxdy_equidistant(func: np.ndarray,
                        dx: float,
-                       dy: float,
-                       band: str = "tri") -> np.ndarray:
+                       dy: float) -> np.ndarray:
     """FD approximation of 2nd order mixed differential operator.
 
-    Finite difference approximation of 2nd order mixed differential
-    operator on equidistant grid. At the boundaries, 1st order
-    forward/backward difference is used. Assuming ascending grid.
-
-    Same approximation is used for tri- and pentadiagonal form, see
-    H. Sundqvist & G. Veronis, Tellus XXII (1970).
+    Central finite difference approximation of 2nd order mixed
+    differential operator on equidistant grid. At the boundaries, 1st
+    order forward/backward difference is used. Assuming ascending grid.
 
     Args:
-        function: Function...
+        func: Function values on 2-dimensional grid.
         dx: Constant grid spacing in x-dimension.
         dy: Constant grid spacing in y-dimension.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
 
     Returns:
         Discrete 2nd order mixed differential operator.
     """
-    matrix = np.zeros(function.shape)
-    # Interior points...
-    for idx_y in range(1, function.shape[1] - 1):
-        for idx_x in range(1, function.shape[0] - 1):
-            matrix[idx_x, idx_y] = \
-                - function[idx_x - 1, idx_y + 1] \
-                + function[idx_x - 1, idx_y - 1] \
-                + function[idx_x + 1, idx_y + 1] \
-                - function[idx_x + 1, idx_y - 1]
-    matrix /= 4 * dx * dy
-    # Boundary points...
+    matrix = np.zeros(func.shape)
+    # Interior points.
+    for idx_y in range(1, func.shape[1] - 1):
+        # (jxpjyp - jxmjyp - (jxpjym - jxmjym)) / (4 * dx * dy).
+        matrix[1:-1, idx_y] = \
+            (func[2:, idx_y + 1] - func[:-2, idx_y + 1]
+             - (func[2:, idx_y - 1] - func[:-2, idx_y - 1])) / 4
+    # Boundary points, jx = 0.
+    # (jxpjyp - jxjyp - (jxpjym - jxjym)) / (2 * dx * dy).
+    matrix[0, 1:-1] = \
+        (func[1, 2:] - func[0, 2:] - (func[1, :-2] - func[0, :-2])) / 2
+    # Boundary points, jx = -1.
+    # (jxjyp - jxmjyp - (jxjym - jxmjym)) / (2 * dx * dy).
+    matrix[-1, 1:-1] = \
+        (func[-1, 2:] - func[-2, 2:] - (func[-1, :-2] - func[-2, :-2])) / 2
+    # Boundary points, jy = 0.
+    # (jxpjyp - jxpjy - (jxmjyp - jxmjy)) / (2 * dx * dy).
+    matrix[1:-1, 0] = \
+        (func[2:, 1] - func[2:, 0] - (func[:-2, 1] - func[:-2, 0])) / 2
+    # Boundary points, jy = -1.
+    # (jxpjy - jxpjym - (jxmjy - jxmjym)) / (2 * dx * dy).
+    matrix[1:-1, -1] = \
+        (func[2:, -1] - func[2:, -2] - (func[:-2, -1] - func[:-2, -2])) / 2
+    # Corner points, jx = 0 and jy = 0.
+    # (jxpjyp - jxjyp - (jxpjy - jxjy)) / (dx * dy).
+    matrix[0, 0] = func[1, 1] - func[0, 1] - (func[1, 0] - func[0, 0])
+    # Corner points, jx = 0 and jy = -1.
+    # (jxpjy - jxjy - (jxpjym - jxjym)) / (dx * dy).
+    matrix[0, -1] = func[1, -1] - func[0, -1] - (func[1, -2] - func[0, -2])
+    # Corner points, jx = -1 and jy = 0.
+    # (jxjyp - jxjy - (jxmjyp - jxmjy)) / (dx * dy).
+    matrix[-1, 0] = func[-1, 1] - func[-1, 0] - (func[-2, 1] - func[-2, 0])
+    # Corner points, jx = -1 and jy = -1.
+    # (jxjy - jxjym - (jxmjy - jxmjym)) / (dx * dy).
+    matrix[-1, -1] = \
+        func[-1, -1] - func[-1, -2] - (func[-2, -1] - func[-2, -2])
+    return matrix / (dx * dy)
 
+
+def d2dxdy(func: np.ndarray,
+           grid: np.ndarray) -> np.ndarray:
+    """FD approximation of 2nd order mixed differential operator.
+
+    Finite difference approximation of 2nd order mixed differential
+    operator on non-equidistant grid. At the boundaries, 1st order
+    forward/backward difference is used. Assuming ascending grid.
+
+    Args:
+        func: Function values on 2-dimensional grid.
+        grid: Grid points.
+
+    Returns:
+        Discrete 2nd order mixed differential operator.
+    """
+    matrix = np.zeros(func.shape)
+    # Interior points...
     return matrix

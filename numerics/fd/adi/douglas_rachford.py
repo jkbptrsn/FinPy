@@ -23,7 +23,7 @@ class DouglasRachford2D(base_class.ADI2D):
         band: Tri- or pentadiagonal matrix representation of operators.
             Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
-        theta_parameter: Determines the specific method.
+        theta_parameter: Determines the form of the time derivative.
     """
 
     def __init__(self,
