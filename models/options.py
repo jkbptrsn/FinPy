@@ -4,10 +4,15 @@ import typing
 import numpy as np
 
 from numerics.fd.theta import theta as fd_theta
+from numerics.fd.adi import craig_sneyd as fd_craig
 
 
-class EuropeanOption(metaclass=abc.ABCMeta):
+class EuropeanOption2D(metaclass=abc.ABCMeta):
     """European option."""
+
+    def __init__(self):
+        # Solver objects.
+        self.fd = None
 
     @property
     @abc.abstractmethod
@@ -26,6 +31,30 @@ class EuropeanOption(metaclass=abc.ABCMeta):
         Returns:
             Payoff.
         """
+        pass
+
+    def fd_setup(self,
+                 x_grid: np.ndarray,
+                 y_grid: np.ndarray,
+                 form: str = "tri",
+                 equidistant: bool = False,
+                 theta_value: float = 0.5):
+        """Setting up finite difference solver.
+
+        Args:
+            x_grid: Grid in x dimension.
+            y_grid: Grid in y dimension.
+            form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+                is tridiagonal.
+            equidistant:
+            theta_value: Theta parameter.
+        """
+        self.fd = fd_craig.setup_solver(self, x_grid, form, equidistant, theta_value)
+        self.fd.initialization()
+
+    @abc.abstractmethod
+    def fd_solve(self):
+        """Run solver on event_grid..."""
         pass
 
 

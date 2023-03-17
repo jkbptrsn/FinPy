@@ -23,5 +23,6 @@ class Model(enum.Enum):
     BACHELIER = enum.auto()
     BLACK_SCHOLES = enum.auto()
     CIR = enum.auto()
+    HESTON = enum.auto()
     HULL_WHITE_1F = enum.auto()
     VASICEK = enum.auto()

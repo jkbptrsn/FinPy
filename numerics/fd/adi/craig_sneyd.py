@@ -4,6 +4,8 @@ from scipy.linalg import solve_banded
 from numerics.fd.adi import base_class
 from numerics.fd import differential_operators as do
 from numerics.fd import linear_algebra as la
+from utils import global_types
+from utils import payoffs
 
 
 class CraigSneyd2D(base_class.ADI2D):
@@ -104,7 +106,7 @@ class CraigSneyd2D(base_class.ADI2D):
         term_2 = \
             la.dia_matrix_prod(self.diff_x_sq[:, idx], self.d2dx2, self.band)
         term_3 = \
-            la.dia_matrix_prod(self.rate[:, idx], self.identity_x, self.band)
+            la.dia_matrix_prod(self.rate_x[:, idx], self.identity_x, self.band)
         self.propagator_x = term_1 + term_2 / 2 - term_3 / 2
 
     # TODO: Save as numpy array of arrays...
@@ -115,7 +117,7 @@ class CraigSneyd2D(base_class.ADI2D):
         term_2 = \
             la.dia_matrix_prod(self.diff_y_sq[idx, :], self.d2dy2, self.band)
         term_3 = \
-            la.dia_matrix_prod(self.rate[idx, :], self.identity_y, self.band)
+            la.dia_matrix_prod(self.rate_y[idx, :], self.identity_y, self.band)
         self.propagator_y = term_1 + term_2 / 2 - term_3 / 2
 
     # TODO: What about correlation (and diffusion product)?
@@ -183,3 +185,48 @@ class CraigSneyd2D(base_class.ADI2D):
             tmp[idx, :] = solve_banded(dimension, operator, tmp[idx, :])
         # Update solution.
         self.solution = tmp
+
+
+def setup_solver(instrument,
+                 x_grid: np.ndarray,
+                 y_grid: np.ndarray,
+                 band: str = "tri",
+                 equidistant: bool = False,
+                 theta_parameter: float = 0.5) -> CraigSneyd2D:
+    """Setting up finite difference solver.
+
+    Args:
+        instrument: Instrument object.
+        x_grid: Grid in x dimension.
+        y_grid: Grid in y dimension.
+        band: Tri- or pentadiagonal matrix representation of operators.
+            Default is tridiagonal.
+        equidistant: Is grid equidistant? Default is false.
+        theta_parameter: Determines the specific method
+
+    Returns:
+        Finite difference solver.
+    """
+    solver = CraigSneyd2D(x_grid, y_grid, band, equidistant, theta_parameter)
+    # Model specifications.
+    if instrument.model == global_types.Model.HESTON:
+        drift_x = instrument.rate * solver.grid_x
+        drift_y = instrument.kappa * (instrument.eta - solver.grid_y)
+        diffusion_x = np.sqrt(solver.grid_y) * solver.grid_x
+        diffusion_y = instrument.vol * np.sqrt(solver.grid_y)
+        rate_x = instrument.rate + 0 * solver.grid_x
+        rate_y = instrument.rate + 0 * solver.grid_y
+    else:
+        raise ValueError("Model is not recognized.")
+    solver.set_drift(drift_x, drift_y)
+    solver.set_diffusion(diffusion_x, diffusion_y)
+    solver.set_rate(rate_x, rate_y)
+    # Terminal solution to PDE. TODO: Use payoff method of instrument object...
+    if instrument.type == global_types.Instrument.EUROPEAN_CALL:
+
+        # For all y-values....
+        solver.solution = payoffs.call(solver.grid_x, instrument.strike)
+
+    else:
+        raise ValueError("Instrument is not recognized.")
+    return solver
