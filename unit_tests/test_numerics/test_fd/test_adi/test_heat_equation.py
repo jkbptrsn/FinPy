@@ -9,7 +9,7 @@ from numerics.fd.adi import douglas_rachford as dr
 from numerics.fd.adi import peaceman_rachford as pr
 
 plot_results = False
-print_result = False
+print_result = True
 
 
 def print_to_screen(obj, diff):
@@ -294,7 +294,7 @@ class HeatEquation2DCraigSneyd(unittest.TestCase):
         ic_y2 = - 7 * np.sin(4 * math.pi * self.y_grid / self.y_max)
         ic_y = ic_y1 + ic_y2
         ic = np.outer(ic_x, ic_y)
-        for band, limit in (("tri", 7e3), ("penta", 3e5)):
+        for band, limit in (("tri", 7e-3), ("penta", 3e-5)):
             self.solver.band = band
             self.solver.initialization()
             self.solver.solution = ic.copy()

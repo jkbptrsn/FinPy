@@ -84,8 +84,10 @@ class CraigSneyd2D(base_class.ADI2D):
             self.d2dx2 = do.d2dx2(self.grid_x, self.band)
             self.d2dy2 = do.d2dx2(self.grid_y, self.band)
 
-        self.propagator_x_tmp = np.zeros((self.nstates[1], n_diagonals, self.nstates[0]))
-        self.propagator_y_tmp = np.zeros((self.nstates[0], n_diagonals, self.nstates[1]))
+        self.propagator_x_tmp = \
+            np.zeros((self.nstates[1], n_diagonals, self.nstates[0]))
+        self.propagator_y_tmp = \
+            np.zeros((self.nstates[0], n_diagonals, self.nstates[1]))
 
         for idx in range(self.nstates[1]):
             self.set_propagator_x(idx)
@@ -122,7 +124,10 @@ class CraigSneyd2D(base_class.ADI2D):
         if self.equidistant:
             dx = self.grid_x[1] - self.grid_x[0]
             dy = self.grid_y[1] - self.grid_y[0]
-#            return do.d2dxdy_equidistant(function, dx, dy)
+            do.d2dxdy_equidistant(function, dx, dy)
+            return np.zeros(function.shape)
+        else:
+            do.d2dxdy(function, self.grid_x, self.grid_y)
             return np.zeros(function.shape)
 
     def propagation(self, dt: float) -> None:
