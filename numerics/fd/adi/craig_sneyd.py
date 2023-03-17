@@ -154,7 +154,13 @@ class CraigSneyd2D(base_class.ADI2D):
             operator = dt * self.propagator_y_tmp[idx]
             y_term[idx, :] = \
                 la.matrix_col_prod(operator, self.solution[idx, :], self.band)
-        xy_term = dt * self.d2dxdy(self.solution)
+
+        mixed_term = \
+            np.sqrt(self.diff_x_sq) * np.sqrt(self.diff_y_sq) \
+            * self.d2dxdy(self.solution)
+#        xy_term = dt * self.d2dxdy(self.solution)
+        xy_term = dt * mixed_term
+
         tmp = x_term + y_term + xy_term
         # Predictor step, first split; left-hand side.
         for idx in range(self.nstates[1]):
@@ -169,8 +175,15 @@ class CraigSneyd2D(base_class.ADI2D):
                 - self.theta_parameter * dt * self.propagator_y_tmp[idx]
             tmp[idx, :] = solve_banded(dimension, operator, tmp[idx, :])
         # Corrector step, first split; right-hand side.
+
+        mixed_term = \
+            np.sqrt(self.diff_x_sq) * np.sqrt(self.diff_y_sq) \
+            * self.d2dxdy(tmp)
+#        tmp = x_term + y_term + (1 - self.lambda_parameter) * xy_term \
+#            + self.lambda_parameter * dt * self.d2dxdy(tmp)
         tmp = x_term + y_term + (1 - self.lambda_parameter) * xy_term \
-            + self.lambda_parameter * dt * self.d2dxdy(tmp)
+            + self.lambda_parameter * dt * mixed_term
+
         # Corrector step, first split; left-hand side.
         for idx in range(self.nstates[1]):
             operator = self.identity_x \
@@ -210,12 +223,22 @@ def setup_solver(instrument,
     solver = CraigSneyd2D(x_grid, y_grid, band, equidistant, theta_parameter)
     # Model specifications.
     if instrument.model == global_types.Model.HESTON:
+
         drift_x = instrument.rate * solver.grid_x
+        drift_x = np.outer(drift_x, np.ones(solver.grid_y.size))
         drift_y = instrument.kappa * (instrument.eta - solver.grid_y)
-        diffusion_x = np.sqrt(solver.grid_y) * solver.grid_x
+        drift_y = np.outer(np.ones(solver.grid_x.size), drift_y)
+
+        diffusion_x = np.outer(solver.grid_x, np.sqrt(solver.grid_y))
         diffusion_y = instrument.vol * np.sqrt(solver.grid_y)
+        diffusion_y = np.outer(np.ones(solver.grid_x.size), diffusion_y)
+
+        # Should rate matrix every be x- or y-dependent?
         rate_x = instrument.rate + 0 * solver.grid_x
+        rate_x = np.outer(rate_x, np.ones(solver.grid_y.size))
         rate_y = instrument.rate + 0 * solver.grid_y
+        rate_y = np.outer(np.ones(solver.grid_x.size), rate_y)
+
     else:
         raise ValueError("Model is not recognized.")
     solver.set_drift(drift_x, drift_y)
@@ -223,10 +246,8 @@ def setup_solver(instrument,
     solver.set_rate(rate_x, rate_y)
     # Terminal solution to PDE. TODO: Use payoff method of instrument object...
     if instrument.type == global_types.Instrument.EUROPEAN_CALL:
-
-        # For all y-values....
-        solver.solution = payoffs.call(solver.grid_x, instrument.strike)
-
+        solution = payoffs.call(solver.grid_x, instrument.strike)
+        solver.solution = np.outer(solution, np.ones(solver.grid_y.size))
     else:
         raise ValueError("Instrument is not recognized.")
     return solver
