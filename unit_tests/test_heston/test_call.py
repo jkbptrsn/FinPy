@@ -6,7 +6,7 @@ import numpy as np
 
 from models.heston import call
 
-plot_result = True
+plot_result = False
 print_result = False
 
 
@@ -80,11 +80,9 @@ class CallOption(unittest.TestCase):
             ax.set_zlabel("Price difference")
             ax.set_xlim([self.y_min, self.y_max])
             ax.set_ylim([self.x_min, self.x_max])
-            plt.show()
+            plt.pause(10)
+            plt.clf()
 
 
 if __name__ == '__main__':
     unittest.main()
-
-
-
