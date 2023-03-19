@@ -1,3 +1,4 @@
+import math
 import numpy as np
 from scipy.linalg import solve_banded
 
@@ -231,6 +232,25 @@ def setup_solver(instrument,
 
         diffusion_x = np.outer(solver.grid_x, np.sqrt(solver.grid_y))
         diffusion_y = instrument.vol * np.sqrt(solver.grid_y)
+        diffusion_y = np.outer(np.ones(solver.grid_x.size), diffusion_y)
+
+        # Should rate matrix every be x- or y-dependent?
+        rate_x = instrument.rate + 0 * solver.grid_x
+        rate_x = np.outer(rate_x, np.ones(solver.grid_y.size))
+        rate_y = instrument.rate + 0 * solver.grid_y
+        rate_y = np.outer(np.ones(solver.grid_x.size), rate_y)
+
+    elif instrument.model == global_types.Model.SABR:
+
+        drift_x = instrument.rate * solver.grid_x
+        drift_x = np.outer(drift_x, np.ones(solver.grid_y.size))
+        drift_y = 0 * solver.grid_y
+        drift_y = np.outer(np.ones(solver.grid_x.size), drift_y)
+
+        # Remember discount factor, D^(1-beta)...
+        diffusion_x = np.power(solver.grid_x, instrument.beta)
+        diffusion_x = np.outer(diffusion_x, solver.grid_y)
+        diffusion_y = instrument.vol * solver.grid_y
         diffusion_y = np.outer(np.ones(solver.grid_x.size), diffusion_y)
 
         # Should rate matrix every be x- or y-dependent?
