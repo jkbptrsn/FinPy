@@ -73,7 +73,7 @@ class DouglasRachford2D(base_class.ADI2D):
         term_2 = \
             la.dia_matrix_prod(self.diff_x_sq[:, idx], self.d2dx2, self.band)
         term_3 = \
-            la.dia_matrix_prod(self.rate[:, idx], self.identity_x, self.band)
+            la.dia_matrix_prod(self.rate_x[:, idx], self.identity_x, self.band)
         self.propagator_x = term_1 + term_2 / 2 - term_3 / 2
 
     def set_propagator_y(self, idx: int) -> None:
@@ -83,7 +83,7 @@ class DouglasRachford2D(base_class.ADI2D):
         term_2 = \
             la.dia_matrix_prod(self.diff_y_sq[idx, :], self.d2dy2, self.band)
         term_3 = \
-            la.dia_matrix_prod(self.rate[idx, :], self.identity_y, self.band)
+            la.dia_matrix_prod(self.rate_y[idx, :], self.identity_y, self.band)
         self.propagator_y = term_1 + term_2 / 2 - term_3 / 2
 
     def propagation(self, dt: float) -> None:

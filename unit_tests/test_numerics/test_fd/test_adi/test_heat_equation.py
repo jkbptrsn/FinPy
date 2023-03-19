@@ -67,7 +67,7 @@ class HeatEquation2DPeacemanRachford(unittest.TestCase):
         diffusion_x = math.sqrt(2 * self.k) + self.zero_matrix
         diffusion_y = math.sqrt(2 * self.k) + self.zero_matrix
         self.solver.set_diffusion(diffusion_x, diffusion_y)
-        self.solver.set_rate(self.zero_matrix)
+        self.solver.set_rate(self.zero_matrix, self.zero_matrix)
         self.solver.initialization()
 
     def test_superposition(self):
@@ -168,7 +168,7 @@ class HeatEquation2DPeacemanRachford(unittest.TestCase):
                 diffusion_x = math.sqrt(2 * self.k) + self.zero_matrix
                 diffusion_y = math.sqrt(2 * self.k) + self.zero_matrix
                 self.solver.set_diffusion(diffusion_x, diffusion_y)
-                self.solver.set_rate(self.zero_matrix)
+                self.solver.set_rate(self.zero_matrix, self.zero_matrix)
                 self.solver.initialization()
 
                 # Initial condition.
@@ -356,7 +356,7 @@ class HeatEquation2DDouglasRachford(unittest.TestCase):
         diffusion_x = math.sqrt(2 * self.k) + self.zero_matrix
         diffusion_y = math.sqrt(2 * self.k) + self.zero_matrix
         self.solver.set_diffusion(diffusion_x, diffusion_y)
-        self.solver.set_rate(self.zero_matrix)
+        self.solver.set_rate(self.zero_matrix, self.zero_matrix)
         self.solver.initialization()
 
     def test_superposition(self):
@@ -461,7 +461,7 @@ class HeatEquation2DCraigSneyd(unittest.TestCase):
         diffusion_x = math.sqrt(2 * self.k) + self.zero_matrix
         diffusion_y = math.sqrt(2 * self.k) + self.zero_matrix
         self.solver.set_diffusion(diffusion_x, diffusion_y)
-        self.solver.set_rate(self.zero_matrix)
+        self.solver.set_rate(self.zero_matrix, self.zero_matrix)
         self.solver.initialization()
 
     def test_superposition(self):

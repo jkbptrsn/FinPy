@@ -38,7 +38,8 @@ class ADI2D:
         self.drift_y = None
         self.diff_x_sq = None
         self.diff_y_sq = None
-        self.rate = None
+        self.rate_x = None
+        self.rate_y = None
 
     @property
     def grid_min(self) -> (float, float):
@@ -66,9 +67,12 @@ class ADI2D:
         self.diff_x_sq = np.square(diffusion_x)
         self.diff_y_sq = np.square(diffusion_y)
 
-    def set_rate(self, rate: np.ndarray) -> None:
+    def set_rate(self,
+                 rate_x: np.ndarray,
+                 rate_y: np.ndarray) -> None:
         """Rate matrix defined by underlying process."""
-        self.rate = rate
+        self.rate_x = rate_x
+        self.rate_y = rate_y
 
     # TODO: Need this one? What about initialization instead?
     @abc.abstractmethod
