@@ -1,4 +1,5 @@
 import math
+
 import numpy as np
 from scipy.stats import norm
 
@@ -12,7 +13,7 @@ def a_function(time1: float,
                vol: float) -> float:
     """Calculate A-function.
 
-    See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
 
     Args:
         time1: Initial time.
@@ -36,7 +37,7 @@ def b_function(time1: float,
                kappa: float) -> float:
     """Calculate B-function.
 
-    See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
 
     Args:
         time1: Initial time.
@@ -54,9 +55,9 @@ def dadt(time1: float,
          kappa: float,
          mean_rate: float,
          vol: float) -> float:
-    """Calculate 1st order partial derivative of A-function wrt time.
+    """Calculate 1st order partial derivative of A-function wrt time1.
 
-    See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
 
     Args:
         time1: Initial time.
@@ -78,9 +79,9 @@ def dadt(time1: float,
 def dbdt(time1: float,
          time2: float,
          kappa: float) -> float:
-    """Calculate 1st order partial derivative of B-function wrt time.
+    """Calculate 1st order partial derivative of B-function wrt time1.
 
-    See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
 
     Args:
         time1: Initial time.
@@ -124,7 +125,7 @@ def h_function(zc1_price: (float, np.ndarray),
                strike: float) -> (float, np.ndarray):
     """Calculate h-function.
 
-    See Eq. (3.10), D. Brigo & F. Mercurio 2007.
+    See Eq. (3.10), D.  Brigo & F. Mercurio 2007.
 
     Args:
         zc1_price: Zero-coupon bond price at time of expiry.

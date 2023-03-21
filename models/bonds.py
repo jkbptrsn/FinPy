@@ -6,7 +6,7 @@ import numpy as np
 from numerics.fd.theta import theta as fd_theta
 
 
-class VanillaBondAnalytical(metaclass=abc.ABCMeta):
+class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
     """Vanilla bond with closed-form solution."""
 
     def __init__(self):

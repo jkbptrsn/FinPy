@@ -1,3 +1,5 @@
+import typing
+
 import numpy as np
 
 from models import bonds
@@ -7,15 +9,17 @@ from utils import global_types
 from utils import payoffs
 
 
-class ZCBond(bonds.VanillaBondAnalytical):
-    """Zero-coupon bond in the Vasicek model.
+class ZCBond(bonds.VanillaBondAnalytical1F):
+    """Zero-coupon bond in Vasicek model.
+
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
 
     Attributes:
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
-        event_grid: Event dates, e.g. payment dates, represented as year
-            fractions from the as-of date.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
         maturity_idx: Maturity index on event_grid.
     """
 
@@ -34,9 +38,6 @@ class ZCBond(bonds.VanillaBondAnalytical):
 
         self.type = global_types.Instrument.ZERO_COUPON_BOND
         self.model = global_types.Model.VASICEK
-
-    def __repr__(self):
-        return f"{self.type} bond object"
 
     @property
     def maturity(self) -> float:
@@ -65,44 +66,73 @@ class ZCBond(bonds.VanillaBondAnalytical):
         return misc.dbdt(event_time, self.maturity, self.kappa)
 
     def payoff(self,
-               spot: (float, np.ndarray)) -> (float, np.ndarray):
+               spot: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
+        """Payoff function.
+
+        Args:
+            spot: Current short rate.
+
+        Returns:
+            Payoff.
+        """
         return payoffs.zero_coupon_bond(spot)
 
     def price(self,
-              spot: (float, np.ndarray),
-              event_idx: int) -> (float, np.ndarray):
-        """Zero-coupon bond price.
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
+        """Price function.
 
-        See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+        Args:
+            spot: Current short rate.
+            event_idx: Index on event grid.
+
+        Returns:
+            Price.
         """
         return np.exp(self.a_function(event_idx)
                       - self.b_function(event_idx) * spot)
 
     def delta(self,
-              spot: (float, np.ndarray),
-              event_idx: int) -> (float, np.ndarray):
-        """1st order price sensitivity wrt the underlying state.
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
+        """1st order price sensitivity wrt short rate.
 
-        See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+        Args:
+            spot: Current short rate.
+            event_idx: Index on event grid.
+
+        Returns:
+            Delta.
         """
         return -self.b_function(event_idx) * self.price(spot, event_idx)
 
     def gamma(self,
-              spot: (float, np.ndarray),
-              event_idx: int) -> (float, np.ndarray):
-        """2nd order price sensitivity wrt the underlying state.
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
+        """2nd order price sensitivity wrt short rate.
 
-        See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+        Args:
+            spot: Current short rate.
+            event_idx: Index on event grid.
+
+        Returns:
+            Gamma.
         """
         return \
             self.b_function(event_idx) ** 2 * self.price(spot, event_idx)
 
     def theta(self,
-              spot: (float, np.ndarray),
-              event_idx: int) -> (float, np.ndarray):
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
-        See proposition 10.1.4, L.B.G. Andersen & V.V. Piterbarg 2010.
+        Args:
+            spot: Current short rate.
+            event_idx: Index on event grid.
+
+        Returns:
+            Theta.
         """
         return self.price(spot, event_idx) \
             * (self.dadt(event_idx) - self.dbdt(event_idx) * spot)
