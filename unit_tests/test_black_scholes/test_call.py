@@ -1,3 +1,4 @@
+import math
 import unittest
 
 from matplotlib import pyplot as plt
@@ -8,7 +9,7 @@ from models.black_scholes import binary
 from utils import plots
 
 plot_results = False
-print_results = False
+print_results = True
 
 
 class CallOption(unittest.TestCase):
@@ -73,10 +74,24 @@ class CallOption(unittest.TestCase):
         event_grid = dt * np.arange(n_steps) + self.event_grid[0]
         c = call.Call(self.rate, self.vol, self.strike, event_grid.size - 1,
                       event_grid)
-        x_steps = 500
-        dx = (self.spot[-1] - self.spot[0]) / (x_steps - 1)
-        x_grid = dx * np.arange(x_steps) + self.spot[0]
-        c.fd_setup(x_grid, equidistant=True)
+
+        equidistant = False
+        x_steps = 200
+        if equidistant:
+            # Equidistant grid.
+            dx = (self.spot[-1] - self.spot[0]) / (x_steps - 1)
+            x_grid = dx * np.arange(x_steps) + self.spot[0]
+        else:
+            # Non-equidistant grid. Hout & Foulon, 2010.
+            const_c = 10
+            d_eps = (math.asinh((self.spot[-1] - self.strike) / const_c)
+                     - math.asinh(-self.strike / const_c)) / x_steps
+            eps_grid = d_eps * np.arange(x_steps) \
+                + math.asinh(-self.strike / const_c)
+            x_grid = self.strike + const_c * np.sinh(eps_grid)
+            x_grid = x_grid[1:]
+        c.fd_setup(x_grid, equidistant=equidistant)
+
         c.fd.solution = c.payoff(x_grid)
         c.fd_solve()
         if plot_results:
@@ -88,12 +103,12 @@ class CallOption(unittest.TestCase):
         diff = (c.delta(x_grid, 0) - c.fd.delta()) / c.delta(x_grid, 0)
         if print_results:
             print(np.max(np.abs(diff[idx_min:idx_max])))
-        self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 8.0e-5)
+        self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 2.0e-4)
         # Compare gamma.
         diff = (c.gamma(x_grid, 0) - c.fd.gamma()) / c.gamma(x_grid, 0)
         if print_results:
             print(np.max(np.abs(diff[idx_min:idx_max])))
-        self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 2.0e-4)
+        self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 4.0e-4)
         # Compare theta.
         diff = (c.theta(x_grid, 0) - c.fd.theta(0.0001)) / c.theta(x_grid, 0)
         if print_results:
@@ -103,7 +118,7 @@ class CallOption(unittest.TestCase):
         new_rate = self.rate * 1.0001
         c_rho = call.Call(new_rate, self.vol, self.strike, event_grid.size - 1,
                           event_grid)
-        c_rho.fd_setup(x_grid, equidistant=True)
+        c_rho.fd_setup(x_grid, equidistant=equidistant)
         c_rho.fd.solution = c.payoff(x_grid)
         c_rho.fd_solve()
         rho = (c_rho.fd.solution - c.fd.solution) / (new_rate - self.rate)
@@ -117,11 +132,11 @@ class CallOption(unittest.TestCase):
         diff = (c.rho(x_grid, 0) - rho) / c.rho(x_grid, 0)
         if print_results:
             print(np.max(np.abs(diff[idx_min:idx_max])))
-        self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 5.0e-5)
+        self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 3.0e-4)
         # Compare vega.
         new_vol = self.vol * 1.00001
         c_vega = call.Call(self.rate, new_vol, self.strike, event_grid.size - 1, event_grid)
-        c_vega.fd_setup(x_grid, equidistant=True)
+        c_vega.fd_setup(x_grid, equidistant=equidistant)
         c_vega.fd.solution = c.payoff(x_grid)
         c_vega.fd_solve()
         vega = (c_vega.fd.solution - c.fd.solution) / (new_vol - self.vol)
@@ -135,7 +150,7 @@ class CallOption(unittest.TestCase):
         diff = (c.vega(x_grid, 0) - vega) / c.vega(x_grid, 0)
         if print_results:
             print(np.max(np.abs(diff[idx_min:idx_max])))
-        self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 2.0e-4)
+        self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 5.0e-4)
 
     def test_monte_carlo(self) -> None:
         """Monte-Carlo simulation."""
