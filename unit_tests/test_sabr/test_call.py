@@ -1,3 +1,4 @@
+import math
 import unittest
 
 from matplotlib import pyplot as plt
@@ -6,7 +7,7 @@ import numpy as np
 
 from models.sabr import call
 
-plot_result = True
+plot_result = False
 print_result = False
 
 
@@ -17,7 +18,7 @@ class CallOption(unittest.TestCase):
 
         self.x_min = 2
         self.x_max = 400
-        self.x_steps = 101
+        self.x_steps = 51
         self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
 
@@ -28,7 +29,7 @@ class CallOption(unittest.TestCase):
         self.y_grid = self.dy * np.arange(self.y_steps) + self.y_min
 
         self.band = "tri"
-        self.equidistant = True
+        self.equidistant = False
 
         # Include time-dependent discount factor in PDE...
 #        self.rate = 0.03
@@ -48,6 +49,21 @@ class CallOption(unittest.TestCase):
         self.instrument = call.Call(self.rate, self.beta, self.vol,
                                     self.correlation, self.strike,
                                     self.expiry_idx, self.event_grid)
+
+        if not self.equidistant:
+            const_c = 10
+            d_eps = (math.asinh((self.x_max - self.strike) / const_c)
+                     - math.asinh(-self.strike / const_c)) / self.x_steps
+            eps_grid = d_eps * np.arange(self.x_steps) \
+                + math.asinh(-self.strike / const_c)
+            x_grid = self.strike + const_c * np.sinh(eps_grid)
+            self.x_grid = x_grid[1:]
+
+            const_d = self.y_max / 500
+            d_eta = math.asinh(self.y_max / const_d) / (self.y_steps - 1)
+            eta_grid = d_eta * np.arange(self.y_steps)
+            y_grid = const_d * np.sinh(eta_grid)
+            self.y_grid = y_grid[1:]
 
         self.instrument.fd_setup(self.x_grid, self.y_grid)
 
