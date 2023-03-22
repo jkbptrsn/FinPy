@@ -7,7 +7,6 @@ from numerics.fd import differential_operators as do
 from numerics.fd import linear_algebra as la
 from numerics.fd import delta_gamma as greeks
 from utils import global_types
-from utils import payoffs
 
 
 class ThetaBase:
@@ -214,16 +213,15 @@ def setup_solver(instrument,
         band: Tri- or pentadiagonal matrix representation of operators.
             Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
-        theta_parameter: Determines the specific method
-            0   : Explicit method
-            0.5 : Crank-Nicolson method (default)
-            1   : Fully implicit method
+        theta_parameter: Determines the specific method:
+            0   : Explicit method.
+            0.5 : Crank-Nicolson method (default).
+            1   : Fully implicit method.
 
     Returns:
         Finite difference solver.
     """
     solver = Theta(grid, band, equidistant, theta_parameter)
-    # Model specifications.
     if instrument.model == global_types.Model.BACHELIER:
         drift = 0 * solver.grid
         diffusion = instrument.vol + 0 * solver.grid
@@ -245,18 +243,6 @@ def setup_solver(instrument,
     solver.set_drift(drift)
     solver.set_diffusion(diffusion)
     solver.set_rate(rate)
-    # Terminal solution to PDE. TODO: Use payoff method of instrument object...
-    if instrument.type == global_types.Instrument.EUROPEAN_CALL:
-        solver.solution = payoffs.call(solver.grid, instrument.strike)
-    elif instrument.type == global_types.Instrument.EUROPEAN_PUT:
-        solver.solution = payoffs.put(solver.grid, instrument.strike)
-
-    elif instrument.type == global_types.Instrument.BINARY_CASH_CALL:
-        solver.solution = \
-            payoffs.binary_cash_call(solver.grid, instrument.strike)
-
-    elif instrument.type == global_types.Instrument.ZERO_COUPON_BOND:
-        solver.solution = payoffs.zero_coupon_bond(solver.grid)
-    else:
-        raise ValueError(f"Instrument is not recognized: {instrument.type}")
+    # Terminal solution to PDE.
+    solver.solution = instrument.payoff(solver.grid)
     return solver

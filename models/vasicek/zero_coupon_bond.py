@@ -19,9 +19,9 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
+        maturity_idx: Maturity index on event_grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
-        maturity_idx: Maturity index on event_grid.
     """
 
     def __init__(self,
@@ -43,28 +43,6 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
     @property
     def maturity(self) -> float:
         return self.event_grid[self.maturity_idx]
-
-    def a_function(self,
-                   event_idx: int) -> float:
-        event_time = self.event_grid[event_idx]
-        return misc.a_function(event_time, self.maturity, self.kappa,
-                               self.mean_rate, self.vol)
-
-    def b_function(self,
-                   event_idx: int) -> float:
-        event_time = self.event_grid[event_idx]
-        return misc.b_function(event_time, self.maturity, self.kappa)
-
-    def dadt(self,
-             event_idx: int) -> float:
-        event_time = self.event_grid[event_idx]
-        return misc.dadt(event_time, self.maturity, self.kappa, self.mean_rate,
-                         self.vol)
-
-    def dbdt(self,
-             event_idx: int) -> float:
-        event_time = self.event_grid[event_idx]
-        return misc.dbdt(event_time, self.maturity, self.kappa)
 
     def payoff(self,
                spot: typing.Union[float, np.ndarray]) \
@@ -120,8 +98,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         Returns:
             Gamma.
         """
-        return \
-            self.b_function(event_idx) ** 2 * self.price(spot, event_idx)
+        return self.b_function(event_idx) ** 2 * self.price(spot, event_idx)
 
     def theta(self,
               spot: typing.Union[float, np.ndarray],
@@ -139,7 +116,58 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
             * (self.dadt(event_idx) - self.dbdt(event_idx) * spot)
 
     def fd_solve(self):
-        """Run solver on event_grid..."""
+        """Run finite difference solver on event_grid."""
+        self.fd.set_propagator()
         for dt in np.flip(np.diff(self.event_grid)):
-            self.fd.set_propagator()
+            # self.fd.set_propagator()
             self.fd.propagation(dt)
+
+    def mc_exact_setup(self):
+        """Setup exact Monte-Carlo solver."""
+        self.mc_exact = \
+            sde.SDE(self.kappa, self.mean_rate, self.vol, self.event_grid)
+
+    def mc_exact_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False) \
+            -> tuple[np.ndarray, np.ndarray]:
+        """Run Monte-Carlo solver on event_grid.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of short rate and discount processes
+            represented on event_grid.
+        """
+        return self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+
+    def a_function(self,
+                   event_idx: int) -> float:
+        event_time = self.event_grid[event_idx]
+        return misc.a_function(event_time, self.maturity, self.kappa,
+                               self.mean_rate, self.vol)
+
+    def b_function(self,
+                   event_idx: int) -> float:
+        event_time = self.event_grid[event_idx]
+        return misc.b_function(event_time, self.maturity, self.kappa)
+
+    def dadt(self,
+             event_idx: int) -> float:
+        event_time = self.event_grid[event_idx]
+        return misc.dadt(event_time, self.maturity, self.kappa, self.mean_rate,
+                         self.vol)
+
+    def dbdt(self,
+             event_idx: int) -> float:
+        event_time = self.event_grid[event_idx]
+        return misc.dbdt(event_time, self.maturity, self.kappa)

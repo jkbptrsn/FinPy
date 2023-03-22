@@ -187,6 +187,8 @@ class SDE(sde.SDE):
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
 
+        TODO: Don't return, keep as attributes...
+
         Returns:
             Realizations of short rate and discount processes
             represented on event_grid.

@@ -29,8 +29,7 @@ class SDE(unittest.TestCase):
         # SDE object
         monte_carlo = sde.SDE(kappa, mean_rate, vol, event_grid)
         # Zero-coupon bond
-        bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid,
-                                       maturity_idx)
+        bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx, event_grid)
         # Initialize random number generator
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate
@@ -79,7 +78,7 @@ class SDE(unittest.TestCase):
         # SDE object
         monte_carlo = sde.SDE(kappa, mean_rate, vol, event_grid)
         # Zero-coupon bond
-        bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid, maturity_idx)
+        bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx, event_grid)
         # European call option written on zero-coupon bond
         call = call_option.Call(kappa, mean_rate, vol, event_grid, strike,
                                 expiry_idx, maturity_idx)
@@ -139,8 +138,8 @@ class SDE(unittest.TestCase):
         # SDE object
         monte_carlo = sde.SDE(kappa, mean_rate, vol, event_grid)
         # Zero-coupon bond
-        bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid,
-                                       maturity_idx)
+        bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx,
+                                       event_grid)
         # European put option written on zero-coupon bond
         put = put_option.Put(kappa, mean_rate, vol, event_grid, strike,
                              expiry_idx, maturity_idx)

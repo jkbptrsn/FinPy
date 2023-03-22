@@ -200,7 +200,7 @@ class Call(options.EuropeanOptionAnalytical1F):
         return s * norm.pdf(d1) * math.sqrt(delta_t)
 
     def fd_solve(self):
-        """Run solver on event_grid..."""
+        """Run finite difference solver on event_grid."""
         for dt in np.flip(np.diff(self.event_grid)):
             self.fd.set_propagator()
             self.fd.propagation(dt)
@@ -211,5 +211,5 @@ class Call(options.EuropeanOptionAnalytical1F):
             sde.SDE(self.rate, self.vol, self.event_grid, self.dividend)
 
     def mc_exact_solve(self):
-        """Run solver on event_grid..."""
+        """Run Monte-Carlo solver on event_grid."""
         self.mc_exact.paths()

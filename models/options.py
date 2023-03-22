@@ -46,11 +46,11 @@ class EuropeanOption2D(metaclass=abc.ABCMeta):
             y_grid: Grid in y dimension.
             form: Tri- ("tri") or pentadiagonal ("penta") form. Default
                 is tridiagonal.
-            equidistant:
+            equidistant: Is grid equidistant? Default is false.
             theta_value: Theta parameter.
         """
-        self.fd = fd_craig.setup_solver(self, x_grid, y_grid,
-                                        form, equidistant, theta_value)
+        self.fd = fd_craig.setup_solver(self, x_grid, y_grid, form,
+                                        equidistant, theta_value)
         self.fd.initialization()
 
     @abc.abstractmethod
@@ -158,16 +158,30 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
             x_grid: Grid in spatial dimension.
             form: Tri- ("tri") or pentadiagonal ("penta") form. Default
                 is tridiagonal.
-            equidistant:
-            theta_value: Theta parameter.
+            equidistant: Is grid equidistant? Default is false.
+            theta_value: Determines the specific method:
+                0   : Explicit method.
+                0.5 : Crank-Nicolson method (default).
+                1   : Fully implicit method.
         """
-        self.fd = fd_theta.setup_solver(self, x_grid, form, equidistant, theta_value)
+        self.fd = fd_theta.setup_solver(self, x_grid, form, equidistant,
+                                        theta_value)
         self.fd.initialization()
 
     @abc.abstractmethod
     def fd_solve(self):
-        """Run solver on event_grid..."""
+        """Run finite difference solver on event_grid."""
         pass
+
+    # @abc.abstractmethod
+    # def mc_setup(self):
+    #     """Setup Monte-Carlo solver."""
+    #     pass
+    #
+    # @abc.abstractmethod
+    # def mc_solve(self):
+    #     """Run Monte-Carlo solver on event_grid."""
+    #     pass
 
 
 # Could rename this to VanillaOptionAnalytical

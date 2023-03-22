@@ -1,8 +1,9 @@
 import datetime
-import matplotlib.pyplot as plt
-import numpy as np
 import time
 import unittest
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 from unit_tests.test_hull_white import input
 from models.hull_white import call_option

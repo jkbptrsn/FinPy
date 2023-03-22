@@ -32,15 +32,15 @@ expiry_idx = t_steps - 1
 event_grid = dt * np.arange(t_steps) - t_min
 maturity_idx = t_steps - 1
 
-model_name = "Black-Scholes"
+# model_name = "Black-Scholes"
 # model_name = "Bachelier"
-# model_name = "Vasicek"
+model_name = "Vasicek"
 # model_name = "Extended Vasicek"
 # model_name = "CIR"
 
-instrument = "Call"
+# instrument = "Call"
 # instrument = "Put"
-# instrument = "ZCBond"
+instrument = "ZCBond"
 
 if model_name in ("Vasicek", "Extended Vasicek"):
     strike = 0.5

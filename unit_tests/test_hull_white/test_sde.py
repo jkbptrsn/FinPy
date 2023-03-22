@@ -1,6 +1,7 @@
+import unittest
+
 import matplotlib.pyplot as plt
 import numpy as np
-import unittest
 
 from unit_tests.test_hull_white import input
 from models.hull_white import call_option

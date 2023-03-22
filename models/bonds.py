@@ -4,6 +4,7 @@ import typing
 import numpy as np
 
 from numerics.fd.theta import theta as fd_theta
+from numerics.fd.adi import craig_sneyd as fd_craig
 
 
 class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
@@ -12,6 +13,8 @@ class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
     def __init__(self):
         # Solver objects.
         self.fd = None
+        self.mc = None
+        self.mc_exact = None
 
     @property
     @abc.abstractmethod
@@ -101,33 +104,21 @@ class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
 
         Args:
             x_grid: Grid in spatial dimension.
-            form:
-            equidistant:
-            theta_value: ...
+            form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+                is tridiagonal.
+            equidistant: Is grid equidistant? Default is false.
+            theta_value: Determines the specific method:
+                0   : Explicit method.
+                0.5 : Crank-Nicolson method (default).
+                1   : Fully implicit method.
         """
-        self.fd = fd_theta.setup_solver(self, x_grid, form, equidistant, theta_value)
+        self.fd = fd_theta.setup_solver(self, x_grid, form, equidistant,
+                                        theta_value)
         self.fd.initialization()
 
     @abc.abstractmethod
     def fd_solve(self):
-        """Run solver on event_grid..."""
-        pass
-
-
-class VanillaBondNew(metaclass=abc.ABCMeta):
-    """Abstract vanilla bond class."""
-
-    @abc.abstractmethod
-    def payoff(self,
-               spot: (float, np.ndarray)) -> (float, np.ndarray):
-        """Payoff function.
-
-        Args:
-            spot: Current rate.
-
-        Returns:
-            Payoff.
-        """
+        """Run finite difference solver on event_grid."""
         pass
 
 
