@@ -119,7 +119,6 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         """Run finite difference solver on event_grid."""
         self.fd.set_propagator()
         for dt in np.flip(np.diff(self.event_grid)):
-            # self.fd.set_propagator()
             self.fd.propagation(dt)
 
     def mc_exact_setup(self):
@@ -132,8 +131,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
                        n_paths: int,
                        rng: np.random.Generator = None,
                        seed: int = None,
-                       antithetic: bool = False) \
-            -> tuple[np.ndarray, np.ndarray]:
+                       antithetic: bool = False):
         """Run Monte-Carlo solver on event_grid.
 
         Args:
@@ -148,7 +146,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
             Realizations of short rate and discount processes
             represented on event_grid.
         """
-        return self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
 
     def a_function(self,
                    event_idx: int) -> float:

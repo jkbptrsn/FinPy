@@ -76,7 +76,10 @@ class ZeroCouponBond(unittest.TestCase):
             # Numerical result; no variance reduction
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                rates, discounts = monte_carlo.paths(s, n_paths, rng=rng)
+#                rates, discounts = monte_carlo.paths(s, n_paths, rng=rng)
+                monte_carlo.paths(s, n_paths, rng=rng)
+                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+
                 price_n = discounts[self.maturity_idx, :].mean()
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
@@ -85,8 +88,11 @@ class ZeroCouponBond(unittest.TestCase):
             # Numerical result; Antithetic sampling
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                rates, discounts = \
-                    monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
+#                rates, discounts = \
+#                    monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
+                monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
+                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+
                 price_n = discounts[self.maturity_idx, :].mean()
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:

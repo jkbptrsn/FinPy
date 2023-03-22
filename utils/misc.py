@@ -1,33 +1,35 @@
 import math
+
 import numpy as np
 import scipy
 from scipy.interpolate import interp1d
 from scipy.optimize import brentq
 
 
-def sobol_init(event_grid_size: int):
-    """Initialization of sobol sequence generator for two 1-dimensional
-    processes for event_grid_size time steps..."""
-    # Sobol sequence generator for seq_size = event_grid_size - 1.
-    seq_size = event_grid_size - 1
-    return scipy.stats.qmc.Sobol(2 * seq_size)
+def normal_realizations(n_realizations: int,
+                        rng: np.random.Generator,
+                        antithetic: bool = False) -> np.ndarray:
+    """Realizations of a standard normal random variable.
 
+    Args:
+        n_realizations: Number of realizations.
+        rng: Random number generator.
+        antithetic: Antithetic sampling for variance reduction.
+            Default is False.
 
-def cholesky_2d_sobol_test(correlation: float,
-                           sobol_norm,
-                           time_idx) -> tuple[np.ndarray, np.ndarray]:
-    """..."""
-    corr_matrix = np.array([[1, correlation], [correlation, 1]])
-    corr_matrix = np.linalg.cholesky(corr_matrix)
-    x1 = normal_realizations_sobol_test(sobol_norm[:, 2 * (time_idx - 1)])
-    x2 = normal_realizations_sobol_test(sobol_norm[:, 2 * (time_idx - 1) + 1])
-    return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
-        corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
-
-
-def normal_realizations_sobol_test(sobol_norm) -> np.ndarray:
-    """..."""
-    return sobol_norm
+    Returns:
+        Realizations.
+    """
+    if antithetic and n_realizations % 2 == 1:
+        raise ValueError("In antithetic sampling, the number of "
+                         "realizations should be even.")
+    anti = 1
+    if antithetic:
+        anti = 2
+    realizations = rng.standard_normal(size=n_realizations // anti)
+    if antithetic:
+        realizations = np.append(realizations, -realizations)
+    return realizations
 
 
 def cholesky_2d(correlation: float,
@@ -56,6 +58,9 @@ def cholesky_2d(correlation: float,
     x2 = normal_realizations(n_sets, rng, antithetic)
     return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
         corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
+
+
+###############################################################################
 
 
 class DiscreteFunc:
@@ -105,32 +110,6 @@ class DiscreteFunc:
         return f(interp_time_grid)
 
 
-def normal_realizations(n_realizations: int,
-                        rng: np.random.Generator,
-                        antithetic: bool = False) -> np.ndarray:
-    """Realizations of a standard normal random variable.
-
-    Args:
-        n_realizations: Number of realizations.
-        rng: Random number generator.
-        antithetic: Antithetic sampling for variance reduction.
-            Default is False.
-
-    Returns:
-        Realizations...
-    """
-    if antithetic and n_realizations % 2 == 1:
-        raise ValueError("In antithetic sampling, the number of "
-                         "realizations should be even.")
-    anti = 1
-    if antithetic:
-        anti = 2
-    realizations = rng.normal(size=n_realizations // anti)
-    if antithetic:
-        realizations = np.append(realizations, -realizations)
-    return realizations
-
-
 def trapz(grid: np.ndarray,
           function: np.ndarray) -> np.ndarray:
     """Trapezoidal integration.
@@ -144,9 +123,6 @@ def trapz(grid: np.ndarray,
     """
     dx = np.diff(grid)
     return dx * (function[1:] + function[:-1]) / 2
-
-
-###############################################################################
 
 
 def monte_carlo_error(realizations: np.ndarray) -> float:
@@ -177,3 +153,28 @@ def calc_refinancing_coupon(n_payments: int,
     """Calculate coupon of refinancing bond assuming par value."""
     arguments = (n_payments, sum_discount_factors)
     return brentq(price_refinancing_bond, -0.9, 0.9, args=arguments)
+
+
+def sobol_init(event_grid_size: int):
+    """Initialization of sobol sequence generator for two 1-dimensional
+    processes for event_grid_size time steps..."""
+    # Sobol sequence generator for seq_size = event_grid_size - 1.
+    seq_size = event_grid_size - 1
+    return scipy.stats.qmc.Sobol(2 * seq_size)
+
+
+def cholesky_2d_sobol_test(correlation: float,
+                           sobol_norm,
+                           time_idx) -> tuple[np.ndarray, np.ndarray]:
+    """..."""
+    corr_matrix = np.array([[1, correlation], [correlation, 1]])
+    corr_matrix = np.linalg.cholesky(corr_matrix)
+    x1 = normal_realizations_sobol_test(sobol_norm[:, 2 * (time_idx - 1)])
+    x2 = normal_realizations_sobol_test(sobol_norm[:, 2 * (time_idx - 1) + 1])
+    return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
+        corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
+
+
+def normal_realizations_sobol_test(sobol_norm) -> np.ndarray:
+    """..."""
+    return sobol_norm
