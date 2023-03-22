@@ -49,7 +49,7 @@ class Theta1D(unittest.TestCase):
                     event_grid = dt * np.arange(t_steps) - t_min
                     expiry_idx = t_steps - 1
                     instrument = \
-                        bond.ZCBond(kappa, mean_rate, vol, event_grid, expiry_idx)
+                        bond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
                     dx = (x_max - x_min) / (x_states - 1)
                     x_grid = dx * np.arange(x_states) + x_min
                     instrument.fd_setup(x_grid, equidistant=True, theta_value=theta_factor)
@@ -127,7 +127,7 @@ class Theta1D(unittest.TestCase):
                     event_grid = dt * np.arange(t_steps) + t_min
                     expiry_idx = t_steps - 1
                     instrument = \
-                        bond.ZCBond(kappa, mean_rate, vol, event_grid, expiry_idx)
+                        bond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
                     dx = (x_max - x_min) / (x_states - 1)
                     x_grid = dx * np.arange(x_states) + x_min
                     instrument.fd_setup(x_grid, equidistant=True, theta_value=theta_factor)

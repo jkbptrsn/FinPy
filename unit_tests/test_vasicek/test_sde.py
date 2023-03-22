@@ -196,8 +196,8 @@ if __name__ == '__main__':
     # SDE object
     monte_carlo = sde.SDE(kappa_, mean_rate_, vol_, event_grid_)
     # Zero-coupon bond
-    bond = zero_coupon_bond.ZCBond(kappa_, mean_rate_, vol_, event_grid_,
-                                   maturity_idx_)
+    bond = zero_coupon_bond.ZCBond(kappa_, mean_rate_, vol_, maturity_idx_,
+                                   event_grid_)
     bond_price_a = spot_vector_ * 0
     bond_price_n = spot_vector_ * 0
     bond_price_n_error = spot_vector_ * 0

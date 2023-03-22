@@ -12,6 +12,7 @@ from utils import payoffs
 class ZCBond(bonds.VanillaBondAnalytical1F):
     """Zero-coupon bond in Vasicek model.
 
+    Zero-coupon bond dependent on short rate modelled by Vasicek SDE.
     See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
 
     Attributes:
@@ -27,14 +28,14 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
                  kappa: float,
                  mean_rate: float,
                  vol: float,
-                 event_grid: np.ndarray,
-                 maturity_idx: int):
+                 maturity_idx: int,
+                 event_grid: np.ndarray):
         super().__init__()
         self.kappa = kappa
         self.mean_rate = mean_rate
         self.vol = vol
-        self.event_grid = event_grid
         self.maturity_idx = maturity_idx
+        self.event_grid = event_grid
 
         self.type = global_types.Instrument.ZERO_COUPON_BOND
         self.model = global_types.Model.VASICEK

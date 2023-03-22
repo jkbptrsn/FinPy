@@ -241,7 +241,7 @@ def setup_solver(instrument,
         diffusion = instrument.vol + 0 * solver.grid
         rate = solver.grid
     else:
-        raise ValueError("Model is not recognized.")
+        raise ValueError(f"Model is not recognized: {instrument.model}")
     solver.set_drift(drift)
     solver.set_diffusion(diffusion)
     solver.set_rate(rate)
@@ -258,5 +258,5 @@ def setup_solver(instrument,
     elif instrument.type == global_types.Instrument.ZERO_COUPON_BOND:
         solver.solution = payoffs.zero_coupon_bond(solver.grid)
     else:
-        raise ValueError("Instrument is not recognized.")
+        raise ValueError(f"Instrument is not recognized: {instrument.type}")
     return solver

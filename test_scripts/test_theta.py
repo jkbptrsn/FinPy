@@ -71,7 +71,7 @@ elif model_name == "Bachelier":
         instru = ba_call.Call(rate, vol, strike, expiry_idx, event_grid)
 elif model_name == "Vasicek":
     if instrument == "ZCBond":
-        instru = va_bond.ZCBond(kappa, mean_rate, vol, event_grid, maturity_idx)
+        instru = va_bond.ZCBond(kappa, mean_rate, vol, maturity_idx, event_grid)
 elif model_name == "CIR":
     if instrument == "ZCBond":
         instru = cir_bond.ZCBond(kappa, mean_rate, vol, event_grid, maturity_idx)

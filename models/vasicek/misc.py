@@ -99,19 +99,19 @@ def sigma_p(time1: float,
             time3: float,
             kappa: float,
             vol: float) -> float:
-    """Calculate sigma_p-function.
+    """Calculate sigma_p function.
 
-    See Eq. (3.10), D. Brigo & F. Mercurio 2007.
+    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
 
     Args:
         time1: Initial time.
-        time2: Time of expiry.
-        time3: Time of maturity.
+        time2: Time of option expiry.
+        time3: Time of bond maturity.
         kappa: Speed of mean reversion.
         vol: Volatility.
 
     Returns:
-        sigma_p-function.
+        sigma_p function.
     """
     two_kappa = 2 * kappa
     exp_kappa = math.exp(-two_kappa * (time2 - time1))
@@ -119,24 +119,26 @@ def sigma_p(time1: float,
     return vol * b * math.sqrt((1 - exp_kappa) / two_kappa)
 
 
-def h_function(zc1_price: (float, np.ndarray),
-               zc2_price: (float, np.ndarray),
+def h_function(zc1_price: float,
+               zc2_price: float,
                s_p: float,
-               strike: float) -> (float, np.ndarray):
-    """Calculate h-function.
+               strike: float) -> float:
+    """Calculate h function.
 
-    See Eq. (3.10), D.  Brigo & F. Mercurio 2007.
+    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
 
     Args:
-        zc1_price: Zero-coupon bond price at time of expiry.
-        zc2_price: Zero-coupon bond price at time of maturity.
-        s_p: sigma_p-function.
-        strike: Strike price of zero-coupon bond at expiry.
+        zc1_price: Price of zero-coupon bond with maturity at
+            "option expiry".
+        zc2_price: Price of zero-coupon bond with maturity at
+            "bond maturity".
+        s_p: sigma_p function.
+        strike: Strike price of zero-coupon bond.
 
     Returns:
-        h-function.
+        h function.
     """
-    return np.log(zc2_price / (zc1_price * strike)) / s_p + s_p / 2
+    return math.log(zc2_price / (zc1_price * strike)) / s_p + s_p / 2
 
 
 def european_option_price(spot: float,
@@ -148,23 +150,23 @@ def european_option_price(spot: float,
                           strike: float,
                           expiry_idx: int,
                           maturity_idx: int,
-                          option_type: str = "Call"):
+                          option_type: str = "Call") -> float:
     """Calculate European call/put option price.
 
-    See Eq. (3.10), D. Brigo & F. Mercurio 2007.
+    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
 
     Args:
-        spot: Spot rate.
+        spot: Spot short rate.
         event_idx: Index of current time on event_grid.
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
         event_grid: Event dates, e.g. payment dates, represented as year
             fractions from the as-of date.
-        strike: Strike price of zero-coupon bond at expiry.
+        strike: Strike price of zero-coupon bond.
         expiry_idx: Expiry index on event_grid.
         maturity_idx: Maturity index on event_grid.
-        option_type: European call or put option.
+        option_type: European call or put option. Default is call.
 
     Returns:
         European call/put option price.
@@ -174,12 +176,11 @@ def european_option_price(spot: float,
     elif option_type == "Put":
         omega = -1
     else:
-        raise Exception(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Option type is unknown: {option_type}")
     zc1 = \
-        zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid, expiry_idx)
+        zero_coupon_bond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
     zc1_price = zc1.price(spot, event_idx)
-    zc2 = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid,
-                                  maturity_idx)
+    zc2 = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx, event_grid)
     zc2_price = zc2.price(spot, event_idx)
     expiry = event_grid[expiry_idx]
     maturity = event_grid[maturity_idx]
@@ -198,10 +199,10 @@ def european_option_delta(spot: float,
                           strike: float,
                           expiry_idx: int,
                           maturity_idx: int,
-                          option_type: str = "Call"):
+                          option_type: str = "Call") -> float:
     """Calculate European call/put option delta.
 
-    See Eq. (3.10), D. Brigo & F. Mercurio 2007.
+    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
 
     Args:
         spot: Spot rate.
@@ -224,13 +225,12 @@ def european_option_delta(spot: float,
     elif option_type == "Put":
         omega = -1
     else:
-        raise Exception(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Option type is unknown: {option_type}")
     zc1 = \
-        zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid, expiry_idx)
+        zero_coupon_bond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
     zc1_price = zc1.price(spot, event_idx)
     zc1_delta = zc1.delta(spot, event_idx)
-    zc2 = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid,
-                                  maturity_idx)
+    zc2 = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx, event_grid)
     zc2_price = zc2.price(spot, event_idx)
     zc2_delta = zc2.delta(spot, event_idx)
     expiry = event_grid[expiry_idx]
@@ -255,10 +255,10 @@ def european_option_gamma(spot: float,
                           strike: float,
                           expiry_idx: int,
                           maturity_idx: int,
-                          option_type: str = "Call"):
+                          option_type: str = "Call") -> float:
     """Calculate European call/put option gamma.
 
-    See Eq. (3.10), D. Brigo & F. Mercurio 2007.
+    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
 
     Args:
         spot: Spot rate.
@@ -281,14 +281,13 @@ def european_option_gamma(spot: float,
     elif option_type == "Put":
         omega = -1
     else:
-        raise Exception(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Option type is unknown: {option_type}")
     zc1 = \
-        zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid, expiry_idx)
+        zero_coupon_bond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
     zc1_price = zc1.price(spot, event_idx)
     zc1_delta = zc1.delta(spot, event_idx)
     zc1_gamma = zc1.gamma(spot, event_idx)
-    zc2 = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, event_grid,
-                                  maturity_idx)
+    zc2 = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx, event_grid)
     zc2_price = zc2.price(spot, event_idx)
     zc2_delta = zc2.delta(spot, event_idx)
     zc2_gamma = zc2.gamma(spot, event_idx)
