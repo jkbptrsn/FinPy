@@ -37,8 +37,8 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         self.maturity_idx = maturity_idx
         self.event_grid = event_grid
 
-        self.type = global_types.Instrument.ZERO_COUPON_BOND
         self.model = global_types.Model.VASICEK
+        self.type = global_types.Instrument.ZERO_COUPON_BOND
 
     @property
     def maturity(self) -> float:
@@ -118,8 +118,9 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
     def fd_solve(self):
         """Run finite difference solver on event_grid."""
         self.fd.set_propagator()
+        # Set terminal condition.
+        self.fd.solution = self.payoff(self.fd.grid)
         for dt in np.flip(np.diff(self.event_grid)):
-            # self.fd.set_propagator()
             self.fd.propagation(dt)
 
     def mc_exact_setup(self):
@@ -132,8 +133,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
                        n_paths: int,
                        rng: np.random.Generator = None,
                        seed: int = None,
-                       antithetic: bool = False) \
-            -> tuple[np.ndarray, np.ndarray]:
+                       antithetic: bool = False):
         """Run Monte-Carlo solver on event_grid.
 
         Args:
@@ -148,7 +148,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
             Realizations of short rate and discount processes
             represented on event_grid.
         """
-        return self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
 
     def a_function(self,
                    event_idx: int) -> float:

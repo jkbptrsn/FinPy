@@ -1,4 +1,6 @@
 import math
+import typing
+
 import numpy as np
 
 from models import sde
@@ -7,7 +9,7 @@ from utils import misc
 
 
 class SDE(sde.SDE):
-    """SDE for the short rate in the Vasicek model.
+    """SDE for short rate process in Vasicek model.
 
     The short rate r_t is defined by
         dr_t = kappa * (mean_rate - r_t) * dt + vol * dW_t,
@@ -19,8 +21,8 @@ class SDE(sde.SDE):
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
-        event_grid: Event dates, e.g. payment dates, represented as year
-            fractions from the as-of date.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
     """
 
     def __init__(self,
@@ -33,26 +35,21 @@ class SDE(sde.SDE):
         self.vol = vol
         self.event_grid = event_grid
 
-        self.model_name = global_types.Model.VASICEK
+        self.model = global_types.Model.VASICEK
 
-        # Arrays used for exact discretization.
         self.rate_mean = np.zeros((self.event_grid.size, 2))
         self.rate_variance = np.zeros(self.event_grid.size)
         self.discount_mean = np.zeros((self.event_grid.size, 2))
         self.discount_variance = np.zeros(self.event_grid.size)
         self.covariance = np.zeros(self.event_grid.size)
 
+        self.rates = None
+        self.discounts = None
+
         self.initialization()
 
-    def __repr__(self):
-        return f"{self.model_name} SDE object"
-
     def initialization(self):
-        """Initialization of the Monte-Carlo engine.
-
-        Calculate time-dependent mean and variance of the short rate and
-        discount processes, respectively.
-        """
+        """Initialization of Monte-Carlo solver."""
         self._calc_rate_mean()
         self._calc_rate_variance()
         self._calc_discount_mean()
@@ -62,7 +59,7 @@ class SDE(sde.SDE):
     def _calc_rate_mean(self):
         """Conditional mean of short rate process.
 
-        See Eq. (10.12), L.B.G. Andersen & V.V. Piterbarg 2010.
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.12).
         """
         exp_kappa = np.exp(-self.kappa * np.diff(self.event_grid))
         self.rate_mean[0, 0] = 1
@@ -72,7 +69,7 @@ class SDE(sde.SDE):
     def _calc_rate_variance(self):
         """Conditional variance of short rate process.
 
-        See Eq. (10.13), L.B.G. Andersen & V.V. Piterbarg 2010.
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.13).
         """
         two_kappa = 2 * self.kappa
         exp_two_kappa = np.exp(-two_kappa * np.diff(self.event_grid))
@@ -80,17 +77,17 @@ class SDE(sde.SDE):
             self.vol ** 2 * (1 - exp_two_kappa) / two_kappa
 
     def _rate_increment(self,
-                        spot: (float, np.ndarray),
+                        spot: typing.Union[float, np.ndarray],
                         time_idx: int,
-                        normal_rand: (float, np.ndarray)) \
-            -> (float, np.ndarray):
+                        normal_rand: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
         """Increment short rate process one time step.
 
         The spot rate is subtracted to get the increment.
 
         Args:
-            spot: Short rate at time corresponding to time index.
-            time_idx: Time index.
+            spot: Short rate at time corresponding to time_index - 1.
+            time_idx: Time index on event_grid.
             normal_rand: Realizations of independent standard normal
                 random variables.
 
@@ -105,7 +102,7 @@ class SDE(sde.SDE):
         """Conditional mean of discount process.
 
         Here the discount process refers to -int_{t_1}^{t_2} r_t dt, see
-        Eq. (10.12+), L.B.G. Andersen & V.V. Piterbarg 2010.
+        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.12+).
         """
         dt = np.diff(self.event_grid)
         exp_kappa = np.exp(-self.kappa * dt)
@@ -117,43 +114,42 @@ class SDE(sde.SDE):
         """Conditional variance of discount process.
 
         Here the discount process refers to -int_{t_1}^{t_2} r_t dt, see
-        Eq. (10.13+), L.B.G. Andersen & V.V. Piterbarg 2010.
+        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.13+).
         """
         dt = np.diff(self.event_grid)
-        vol_sq = self.vol ** 2
         exp_kappa = np.exp(-self.kappa * dt)
         two_kappa = 2 * self.kappa
         exp_two_kappa = np.exp(-two_kappa * dt)
-        kappa_cubed = self.kappa ** 3
         self.discount_variance[1:] = \
-            vol_sq * (4 * exp_kappa - 3 + two_kappa * dt
-                      - exp_two_kappa) / (2 * kappa_cubed)
+            self.vol ** 2 * (4 * exp_kappa - 3 + two_kappa * dt
+                             - exp_two_kappa) / (2 * self.kappa ** 3)
 
     def _discount_increment(self,
-                            rate_spot: (float, np.ndarray),
+                            spot_rate: typing.Union[float, np.ndarray],
                             time_idx: int,
-                            normal_rand: (float, np.ndarray)) \
-            -> (float, np.ndarray):
+                            normal_rand: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
         """Increment discount process one time step.
 
         Args:
-            rate_spot: Short rate at time corresponding to time index.
-            time_idx: Time index.
+            spot_rate: Short rate at time corresponding to
+                time_index - 1.
+            time_idx: Time index on event_grid.
             normal_rand: Realizations of independent standard normal
                 random variables.
 
         Returns:
             Incremented discount process.
         """
-        mean = self.discount_mean[time_idx, 0] * rate_spot \
+        mean = self.discount_mean[time_idx, 0] * spot_rate \
             + self.discount_mean[time_idx, 1]
         variance = self.discount_variance[time_idx]
         return mean + math.sqrt(variance) * normal_rand
 
     def _calc_covariance(self):
-        """Covariance between between short rate and discount processes.
+        """Conditional covariance of short rate and discount processes.
 
-        See lemma 10.1.11, L.B.G. Andersen & V.V. Piterbarg 2010.
+        See L.B.G. Andersen & V.V. Piterbarg 2010, lemma 10.1.11.
         """
         dt = np.diff(self.event_grid)
         vol_sq = self.vol ** 2
@@ -165,7 +161,7 @@ class SDE(sde.SDE):
 
     def _correlation(self,
                      time_idx: int) -> float:
-        """Correlation between short rate and discount processes."""
+        """Conditional correlation of short rate and discount processes."""
         covariance = self.covariance[time_idx]
         rate_var = self.rate_variance[time_idx]
         discount_var = self.discount_variance[time_idx]
@@ -176,8 +172,8 @@ class SDE(sde.SDE):
               n_paths: int,
               rng: np.random.Generator = None,
               seed: int = None,
-              antithetic: bool = False) -> tuple[np.ndarray, np.ndarray]:
-        """Monte-Carlo paths using exact discretization.
+              antithetic: bool = False):
+        """Generation of Monte-Carlo paths using exact discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -187,14 +183,12 @@ class SDE(sde.SDE):
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
 
-        TODO: Don't return, keep as attributes...
-
         Returns:
             Realizations of short rate and discount processes
             represented on event_grid.
         """
         rate = np.zeros((self.event_grid.size, n_paths))
-        rate[0, :] = spot
+        rate[0] = spot
         discount = np.zeros((self.event_grid.size, n_paths))
         if rng is None:
             rng = np.random.default_rng(seed)
@@ -209,4 +203,6 @@ class SDE(sde.SDE):
                                            x_discount)
         # Get discount factors on event_grid.
         discount = np.exp(discount)
-        return rate, discount
+        # Update...
+        self.rates = rate
+        self.discounts = discount

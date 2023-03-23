@@ -42,7 +42,10 @@ class SDE(unittest.TestCase):
             # Numerical result; no variance reduction
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                rates, discounts = monte_carlo.paths(s, n_paths, rng=rng)
+#                rates, discounts = monte_carlo.paths(s, n_paths, rng=rng)
+                monte_carlo.paths(s, n_paths, rng=rng)
+                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+
                 price_n = discounts[maturity_idx, :].mean()
                 error[rep] += abs((price_n - price_a) / price_a)
             # print(s, price_a, error.mean(), error.std())
@@ -50,8 +53,11 @@ class SDE(unittest.TestCase):
             # Numerical result; Antithetic sampling
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                rates, discounts = \
-                    monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
+#                rates, discounts = \
+#                    monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
+                monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
+                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+
                 price_n = discounts[maturity_idx, :].mean()
                 error[rep] += abs((price_n - price_a) / price_a)
             # print(s, price_a, error.mean(), error.std())
@@ -80,8 +86,8 @@ class SDE(unittest.TestCase):
         # Zero-coupon bond
         bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx, event_grid)
         # European call option written on zero-coupon bond
-        call = call_option.Call(kappa, mean_rate, vol, event_grid, strike,
-                                expiry_idx, maturity_idx)
+        call = call_option.Call(kappa, mean_rate, vol, strike,
+                                expiry_idx, maturity_idx, event_grid)
         # Initialize random number generator
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate
@@ -94,7 +100,10 @@ class SDE(unittest.TestCase):
             # Numerical result; no variance reduction
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                rates, discounts = monte_carlo.paths(s, n_paths, rng=rng)
+#                rates, discounts = monte_carlo.paths(s, n_paths, rng=rng)
+                monte_carlo.paths(s, n_paths, rng=rng)
+                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+
                 price_n = \
                     np.maximum(bond.price(rates[expiry_idx, :], expiry_idx)
                                - strike, 0)
@@ -106,8 +115,11 @@ class SDE(unittest.TestCase):
             # Numerical result; Antithetic sampling
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                rates, discounts = \
-                    monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
+#                rates, discounts = \
+#                    monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
+                monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
+                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+
                 price_n = \
                     np.maximum(bond.price(rates[expiry_idx, :], expiry_idx)
                                - strike, 0)
@@ -141,8 +153,8 @@ class SDE(unittest.TestCase):
         bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx,
                                        event_grid)
         # European put option written on zero-coupon bond
-        put = put_option.Put(kappa, mean_rate, vol, event_grid, strike,
-                             expiry_idx, maturity_idx)
+        put = put_option.Put(kappa, mean_rate, vol, strike,
+                             expiry_idx, maturity_idx, event_grid)
         # Initialize random number generator
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate
@@ -155,7 +167,10 @@ class SDE(unittest.TestCase):
             # Numerical result; no variance reduction
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                rates, discounts = monte_carlo.paths(s, n_paths, rng=rng)
+#                rates, discounts = monte_carlo.paths(s, n_paths, rng=rng)
+                monte_carlo.paths(s, n_paths, rng=rng)
+                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+
                 price_n = np.maximum(strike - bond.price(rates[expiry_idx, :],
                                                          expiry_idx), 0)
                 price_n *= discounts[expiry_idx, :]
@@ -166,8 +181,11 @@ class SDE(unittest.TestCase):
             # Numerical result; Antithetic sampling
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                rates, discounts = \
-                    monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
+#                rates, discounts = \
+#                    monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
+                monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
+                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+
                 price_n = np.maximum(strike - bond.price(rates[expiry_idx, :],
                                                          expiry_idx), 0)
                 price_n *= discounts[expiry_idx, :]
@@ -201,14 +219,14 @@ if __name__ == '__main__':
     bond_price_n = spot_vector_ * 0
     bond_price_n_error = spot_vector_ * 0
     # Call option
-    call = call_option.Call(kappa_, mean_rate_, vol_, event_grid_, strike_,
-                            expiry_idx_, maturity_idx_)
+    call = call_option.Call(kappa_, mean_rate_, vol_, strike_,
+                            expiry_idx_, maturity_idx_, event_grid_)
     call_price_a = spot_vector_ * 0
     call_price_n = spot_vector_ * 0
     call_price_n_error = spot_vector_ * 0
     # Put option
-    put = put_option.Put(kappa_, mean_rate_, vol_, event_grid_, strike_,
-                         expiry_idx_, maturity_idx_)
+    put = put_option.Put(kappa_, mean_rate_, vol_, strike_,
+                         expiry_idx_, maturity_idx_, event_grid_)
     put_price_a = spot_vector_ * 0
     put_price_n = spot_vector_ * 0
     put_price_n_error = spot_vector_ * 0
@@ -218,13 +236,19 @@ if __name__ == '__main__':
     n_paths_ = 1000
     for idx, s in enumerate(spot_vector_):
         # Price of bond with maturity = maturity_
-        _, discounts = monte_carlo.paths(s, n_paths_, rng=rng_)
+#        _, discounts = monte_carlo.paths(s, n_paths_, rng=rng_)
+        monte_carlo.paths(s, n_paths_, rng=rng_)
+        discounts = monte_carlo.discounts
+
         bond_price_a[idx] = bond.price(s, 0)
         bond_price_n[idx] = discounts[maturity_idx_, :].mean()
         bond_price_n_error[idx] = \
             misc.monte_carlo_error(discounts[maturity_idx_, :])
         # Call option price with expiry = expiry_
-        rates, discounts = monte_carlo.paths(s, n_paths_, rng=rng_)
+#        rates, discounts = monte_carlo.paths(s, n_paths_, rng=rng_)
+        monte_carlo.paths(s, n_paths_, rng=rng_)
+        rates, discounts = monte_carlo.rates, monte_carlo.discounts
+
         call_price_a[idx] = call.price(s, 0)
         call_option_values = \
             np.maximum(bond.price(rates[expiry_idx_, :], expiry_idx_)
@@ -233,7 +257,10 @@ if __name__ == '__main__':
         call_price_n[idx] = call_option_values.mean()
         call_price_n_error[idx] = misc.monte_carlo_error(call_option_values)
         # Put option price with expiry = expiry_
-        rates, discounts = monte_carlo.paths(s, n_paths_, rng=rng_)
+#        rates, discounts = monte_carlo.paths(s, n_paths_, rng=rng_)
+        monte_carlo.paths(s, n_paths_, rng=rng_)
+        rates, discounts = monte_carlo.rates, monte_carlo.discounts
+
         put_price_a[idx] = put.price(s, 0)
         put_option_values = \
             np.maximum(strike_

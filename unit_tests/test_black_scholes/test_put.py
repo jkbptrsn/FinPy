@@ -80,7 +80,7 @@ class PutOption(unittest.TestCase):
         p.fd.solution = p.payoff(x_grid)
         p.fd_solve()
         if plot_results:
-            plots.plot_price_and_greeks(p, p.payoff(x_grid), p.price(x_grid, 0))
+            plots.plot_price_and_greeks(p)
         # Check convergence in reduced interval around strike.
         idx_min = np.argwhere(x_grid < self.strike - 25)[-1][0]
         idx_max = np.argwhere(x_grid < self.strike + 25)[-1][0]
