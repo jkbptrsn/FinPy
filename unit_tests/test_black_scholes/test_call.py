@@ -95,7 +95,7 @@ class CallOption(unittest.TestCase):
         c.fd.solution = c.payoff(x_grid)
         c.fd_solve()
         if plot_results:
-            plots.plot_price_and_greeks(c, c.payoff(x_grid), c.price(x_grid, 0))
+            plots.plot_price_and_greeks(c)
         # Check convergence in reduced interval around strike.
         idx_min = np.argwhere(x_grid < self.strike - 25)[-1][0]
         idx_max = np.argwhere(x_grid < self.strike + 25)[-1][0]

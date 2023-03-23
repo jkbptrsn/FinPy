@@ -39,7 +39,7 @@ class BinaryCashCall(unittest.TestCase):
         b.fd.solution = b.payoff(x_grid)
         b.fd_solve()
         if plot_results:
-            plots.plot_price_and_greeks(b, b.payoff(x_grid), b.price(x_grid, 0))
+            plots.plot_price_and_greeks(b)
         # Check convergence in reduced interval around strike.
         idx_min = np.argwhere(x_grid < self.strike - 25)[-1][0]
         idx_max = np.argwhere(x_grid < self.strike + 25)[-1][0]

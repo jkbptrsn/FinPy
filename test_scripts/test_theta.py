@@ -79,6 +79,5 @@ elif model_name == "CIR":
 # instru.fd_setup(x_min, x_max, x_steps)
 instru.fd_setup(x_grid, equidistant=True)
 
-payoff = instru.fd.solution.copy()
 instru.fd_solve()
-plots.plot_price_and_greeks(instru, payoff, instru.fd.solution, show=True)
+plots.plot_price_and_greeks(instru, show=True)

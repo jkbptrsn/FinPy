@@ -243,6 +243,7 @@ def setup_solver(instrument,
     solver.set_drift(drift)
     solver.set_diffusion(diffusion)
     solver.set_rate(rate)
-    # Terminal solution to PDE.
+
+    # Terminal solution to PDE. TODO: Move to each instrument. Cannot generalize...
     solver.solution = instrument.payoff(solver.grid)
     return solver

@@ -37,8 +37,8 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         self.maturity_idx = maturity_idx
         self.event_grid = event_grid
 
-        self.type = global_types.Instrument.ZERO_COUPON_BOND
         self.model = global_types.Model.VASICEK
+        self.type = global_types.Instrument.ZERO_COUPON_BOND
 
     @property
     def maturity(self) -> float:
@@ -118,6 +118,8 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
     def fd_solve(self):
         """Run finite difference solver on event_grid."""
         self.fd.set_propagator()
+        # Set terminal condition.
+        self.fd.solution = self.payoff(self.fd.grid)
         for dt in np.flip(np.diff(self.event_grid)):
             self.fd.propagation(dt)
 

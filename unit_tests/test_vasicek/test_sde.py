@@ -86,8 +86,8 @@ class SDE(unittest.TestCase):
         # Zero-coupon bond
         bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx, event_grid)
         # European call option written on zero-coupon bond
-        call = call_option.Call(kappa, mean_rate, vol, event_grid, strike,
-                                expiry_idx, maturity_idx)
+        call = call_option.Call(kappa, mean_rate, vol, strike,
+                                expiry_idx, maturity_idx, event_grid)
         # Initialize random number generator
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate
@@ -153,8 +153,8 @@ class SDE(unittest.TestCase):
         bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx,
                                        event_grid)
         # European put option written on zero-coupon bond
-        put = put_option.Put(kappa, mean_rate, vol, event_grid, strike,
-                             expiry_idx, maturity_idx)
+        put = put_option.Put(kappa, mean_rate, vol, strike,
+                             expiry_idx, maturity_idx, event_grid)
         # Initialize random number generator
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate
@@ -219,14 +219,14 @@ if __name__ == '__main__':
     bond_price_n = spot_vector_ * 0
     bond_price_n_error = spot_vector_ * 0
     # Call option
-    call = call_option.Call(kappa_, mean_rate_, vol_, event_grid_, strike_,
-                            expiry_idx_, maturity_idx_)
+    call = call_option.Call(kappa_, mean_rate_, vol_, strike_,
+                            expiry_idx_, maturity_idx_, event_grid_)
     call_price_a = spot_vector_ * 0
     call_price_n = spot_vector_ * 0
     call_price_n_error = spot_vector_ * 0
     # Put option
-    put = put_option.Put(kappa_, mean_rate_, vol_, event_grid_, strike_,
-                         expiry_idx_, maturity_idx_)
+    put = put_option.Put(kappa_, mean_rate_, vol_, strike_,
+                         expiry_idx_, maturity_idx_, event_grid_)
     put_price_a = spot_vector_ * 0
     put_price_n = spot_vector_ * 0
     put_price_n_error = spot_vector_ * 0

@@ -2,8 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import norm
 
+from utils import global_types
 
-def plot_price_and_greeks(instrument, payoff, price, show=True):
+
+def plot_price_and_greeks(instrument, show=True):
     """..."""
 
     plt.rcParams.update({"font.size": 10})
@@ -15,8 +17,15 @@ def plot_price_and_greeks(instrument, payoff, price, show=True):
     f1.suptitle("Price and greeks of instrument")
 
     # Plot of instrument payoff and price.
-    ax1[0].plot(grid, payoff, '-.k', label="Payoff")
-    ax1[0].plot(grid, price, '-r', label="Numerical result")
+    if instrument.model == global_types.Model.VASICEK and \
+            instrument.type == global_types.Instrument.EUROPEAN_CALL:
+        payoff = \
+            instrument.payoff(instrument.zcbond.price(grid,
+                                                      instrument.expiry_idx))
+        ax1[0].plot(grid, payoff, '-.k', label="Payoff")
+    else:
+        ax1[0].plot(grid, instrument.payoff(grid), '-.k', label="Payoff")
+    ax1[0].plot(grid, instrument.fd.solution, '-r', label="Numerical result")
     try:
         ax1[0].plot(grid, instrument.price(grid, 0),
                     'ob', markersize=2, label="Analytical result")
@@ -66,7 +75,7 @@ def plot_price_and_greeks(instrument, payoff, price, show=True):
 
     # Plot of instrument price.
     try:
-        ax2[0].plot(grid, instrument.price(grid, 0) - price,
+        ax2[0].plot(grid, instrument.price(grid, 0) - instrument.fd.solution,
                     'ob', markersize=2)
     except (AttributeError, TypeError, ValueError):
         print("Error in plots.py: Fig 2, price")
