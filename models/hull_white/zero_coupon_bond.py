@@ -8,17 +8,23 @@ from utils import payoffs
 
 
 class ZCBond(sde.SDE, bonds.VanillaBond):
-    """Zero-coupon bond class for the 1-factor Hull-White model.
+    """Zero-coupon bond in 1-factor Hull-White model.
+
+    Zero-coupon bond dependent on short rate modelled by 1-factor
+    Hull-White SDE. See L.B.G. Andersen & V.V. Piterbarg 2010,
+    proposition 10.1.4. TODO: Update
 
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
 
-        discount_curve: Discount curve represented on event-grid.
-        event_grid: Events, e.g. payment dates, represented as year
-            fractions from the as-of date.
+        discount_curve: Discount curve represented on event grid.
 
-        maturity_idx: Event-grid index corresponding to maturity.
+        maturity_idx: Maturity index on event grid.
+
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
         int_step_size: Integration/propagation step size represented as
             a year fraction. Default is 1 / 365.
     """

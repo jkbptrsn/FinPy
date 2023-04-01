@@ -20,8 +20,8 @@ class Call(options.EuropeanOptionAnalytical1F):
         mean_rate: Mean reversion level.
         vol: Volatility.
         strike: Strike price of zero-coupon bond at expiry.
-        expiry_idx: Expiry index on event_grid.
-        maturity_idx: Maturity index on event_grid.
+        expiry_idx: Expiry index on event grid.
+        maturity_idx: Maturity index on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
     """
@@ -137,7 +137,7 @@ class Call(options.EuropeanOptionAnalytical1F):
         pass
 
     def fd_solve(self):
-        """Run finite difference solver on event_grid."""
+        """Run finite difference solver on event grid."""
         self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = self.zcbond.payoff(self.fd.grid)
@@ -158,7 +158,7 @@ class Call(options.EuropeanOptionAnalytical1F):
                        rng: np.random.Generator = None,
                        seed: int = None,
                        antithetic: bool = False):
-        """Run Monte-Carlo solver on event_grid.
+        """Run Monte-Carlo solver on event grid.
 
         Args:
             spot: Short rate at as-of date.
@@ -170,6 +170,6 @@ class Call(options.EuropeanOptionAnalytical1F):
 
         Returns:
             Realizations of short rate and discount processes
-            represented on event_grid.
+            represented on event grid.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
