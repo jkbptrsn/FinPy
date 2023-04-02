@@ -171,14 +171,18 @@ class Theta(ThetaBase):
             + la.dia_matrix_prod(self.vec_drift, ddx, self.band) \
             + la.dia_matrix_prod(self.vec_diff_sq, d2dx2, self.band) / 2
 
-    def propagation(self, dt: float):
+    def propagation(self,
+                    dt: float,
+                    time_dependent: bool = False):
         """Propagation of solution vector for one time step dt."""
         rhs = self.mat_identity \
             + (1 - self.theta_parameter) * dt * self.mat_propagator
         rhs = la.matrix_col_prod(rhs, self.vec_solution, self.band)
 
-        # TODO: Update propagator, if drift/diffusion is time-dependent.
-        #  But then one would also need to update vec_drift and vec_diff_sq...
+        if time_dependent:
+            self.set_propagator()
+            # TODO: Update propagator, if drift/diffusion is time-dependent.
+            #  But then one would also need to update vec_drift and vec_diff_sq...
 
         lhs = self.mat_identity \
             - self.theta_parameter * dt * self.mat_propagator
@@ -234,6 +238,12 @@ def setup_solver(instrument,
         drift = instrument.kappa * (instrument.mean_rate - solver.grid)
         diffusion = instrument.vol * np.sqrt(solver.grid)
         rate = solver.grid
+
+    elif instrument.model == global_types.Model.HULL_WHITE_1F:
+        drift = instrument.y_eg[-1] - instrument.kappa_eg[-1] * solver.grid
+        diffusion = instrument.vol_eg[-1] + 0 * solver.grid
+        rate = solver.grid
+
     elif instrument.model == global_types.Model.VASICEK:
         drift = instrument.kappa * (instrument.mean_rate - solver.grid)
         diffusion = instrument.vol + 0 * solver.grid
@@ -245,5 +255,7 @@ def setup_solver(instrument,
     solver.set_rate(rate)
 
     # Terminal solution to PDE. TODO: Move to each instrument. Cannot generalize...
+    # TODO: What about call/put written on zero-coupon bond?
+    #  Terminal condition should depend on zero-coupon bond, not option payoff
     solver.solution = instrument.payoff(solver.grid)
     return solver
