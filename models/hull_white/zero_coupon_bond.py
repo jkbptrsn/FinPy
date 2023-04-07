@@ -252,25 +252,32 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         self.time_dependence = time_dependence
         self.int_step_size = int_step_size
 
-        # Functions on event grid.
+        # Speed of mean reversion on event grid.
         self.kappa_eg = None
+        # Volatility on event grid.
         self.vol_eg = None
+        # Discount curve on event grid.
         self.discount_curve_eg = None
+        # y-function on event grid.
         self.y_eg = None
 
         # Integration grid.
         self.int_grid = None
         # Indices of event dates on integration grid.
         self.int_event_idx = None
-        # y-function on integration grid.
-        self.y_int_grid = None
-
-        # Array only used in initialization of the SDE object.
+        # Speed of mean reversion on integration grid.
+        self.kappa_ig = None
+        # Step-wise integration of kappa on integration grid.
         self.int_kappa_step = None
+        # Volatility on integration grid.
+        self.vol_ig = None
+        # y-function on integration grid.
+        self.y_ig = None
 
         self.model = global_types.Model.HULL_WHITE_1F
         self.type = global_types.Instrument.ZERO_COUPON_BOND
 
+        # Initialization
         self._setup_int_grid()
         self._setup_model_parameters()
 
@@ -279,55 +286,48 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         return self.event_grid[self.maturity_idx]
 
     def _setup_int_grid(self):
-        """Construct time grid for numerical integration."""
-        # Assume that the first event is the initial time point on the
-        # integration grid.
-        self.int_grid = np.array(self.event_grid[0])
-        # The first event has index zero on the integration grid.
-        self.int_event_idx = np.array(0)
-        # Step size between two adjacent events.
-        step_size_grid = np.diff(self.event_grid)
-        for idx, step_size in enumerate(step_size_grid):
-            # Number of integration steps.
-            steps = math.floor(step_size / self.int_step_size)
-            initial_date = self.event_grid[idx]
-            if steps == 0:
-                grid = np.array(initial_date + step_size)
-            else:
-                grid = self.int_step_size * np.arange(1, steps + 1) \
-                    + initial_date
-                diff_step = step_size - steps * self.int_step_size
-                if diff_step > 1.0e-8:
-                    grid = np.append(grid, grid[-1] + diff_step)
-            self.int_grid = np.append(self.int_grid, grid)
-            self.int_event_idx = np.append(self.int_event_idx, grid.size)
-        self.int_event_idx = np.cumsum(self.int_event_idx)
+        """Set up time grid for numerical integration."""
+        self.int_grid, self.int_event_idx = \
+            misc_hw.setup_int_grid(self.event_grid, self.int_step_size)
 
     def _setup_model_parameters(self):
         """Set up model parameters on event grid."""
+        # Speed of mean reversion interpolated on event grid.
         self.kappa_eg = self.kappa.interpolation(self.event_grid)
+        # Volatility interpolated on event grid.
         self.vol_eg = self.vol.interpolation(self.event_grid)
+        # Discount curve interpolated on event grid.
         self.discount_curve_eg = \
             self.discount_curve.interpolation(self.event_grid)
         if self.time_dependence == "constant":
-            self.y_eg = y_constant(self.kappa_eg[0],
-                                   self.vol_eg[0],
-                                   self.event_grid)
+            # y-function on event grid.
+            self.y_eg = misc_hw.y_constant(self.kappa_eg[0],
+                                           self.vol_eg[0],
+                                           self.event_grid)
         elif self.time_dependence == "piecewise":
-            self.y_eg = y_piecewise(self.kappa_eg[0],
-                                    self.vol_eg,
-                                    self.event_grid)
+            # y-function on event grid.
+            self.y_eg = misc_hw.y_piecewise(self.kappa_eg[0],
+                                            self.vol_eg,
+                                            self.event_grid)
         elif self.time_dependence == "general":
-            self.y_eg = y_general(self.kappa,
-                                  self.vol,
-                                  self.event_grid,
-                                  self.int_grid,
-                                  self.int_event_idx,
-                                  self.int_kappa_step,
-                                  self.y_int_grid)
+            # Speed of mean reversion interpolated on integration grid.
+            self.kappa_ig = self.kappa.interpolation(self.int_grid)
+            # Volatility interpolated on integration grid.
+            self.vol_ig = self.vol.interpolation(self.int_grid)
+            # Integration of speed of mean reversion using trapezoidal rule.
+            self.int_kappa_step = \
+                np.append(0, misc.trapz(self.int_grid, self.kappa_ig))
+            # y-function on event and integration grid.
+            self.y_eg, self.y_ig = misc_hw.y_general(self.int_grid,
+                                                     self.int_event_idx,
+                                                     self.int_kappa_step,
+                                                     self.vol_ig,
+                                                     self.event_grid)
         else:
             raise ValueError(f"Time dependence unknown: "
                              f"{self.time_dependence}")
+
+###############################################################################
 
     def payoff(self,
                spot: typing.Union[float, np.ndarray]) -> \
@@ -488,102 +488,6 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
             represented on event grid.
         """
         pass
-
-
-def y_constant(kappa: float,
-               vol: float,
-               event_grid: np.ndarray) -> np.ndarray:
-    """Calculate y-function.
-
-    Constant kappa and vol.
-
-    Args:
-        kappa: Speed of mean reversion.
-        vol: Volatility.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-
-    Returns:
-        y-function.
-    """
-    two_kappa = 2 * kappa
-    return vol ** 2 * (1 - np.exp(-two_kappa * event_grid)) / two_kappa
-
-
-def y_piecewise(kappa: float,
-                vol: np.ndarray,
-                event_grid: np.ndarray) -> np.ndarray:
-    """Calculate y-function.
-
-    Constant kappa and piecewise constant vol.
-
-    Args:
-        kappa: Speed of mean reversion.
-        vol: Volatility.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-
-    Returns:
-        y-function.
-    """
-    y_return = np.zeros(event_grid.size)
-    two_kappa = 2 * kappa
-    for idx in range(1, event_grid.size):
-        vol_times = event_grid[event_grid <= event_grid[idx]]
-        vol_values = vol[event_grid <= event_grid[idx]]
-        delta_t = event_grid[idx] - vol_times
-        y = np.exp(-two_kappa * delta_t[1:]) \
-            - np.exp(-two_kappa * delta_t[:-1])
-        y *= vol_values[:-1] ** 2 / two_kappa
-        y_return[idx] = y.sum()
-    return y_return
-
-
-def y_general(kappa: misc.DiscreteFunc,
-              vol: misc.DiscreteFunc,
-              event_grid: np.ndarray,
-              int_grid: np.ndarray,
-              int_event_idx: np.ndarray,
-              int_kappa_step: np.ndarray,
-              y_int_grid: np.ndarray):
-    """Calculate y-function.
-
-    General time-dependence of kappa and vol.
-
-    Args:
-        kappa: Speed of mean reversion.
-        vol: Volatility.
-        event_grid: ...
-        int_grid: ...
-        int_event_idx: ...
-        int_kappa_step: ...
-        y_int_grid: ...
-
-    Returns:
-        y-function.
-    """
-    # Speed of mean reversion interpolated on integration grid.
-    kappa_int_grid = kappa.interpolation(int_grid)
-    # Volatility interpolated on integration grid.
-    vol_int_grid = vol.interpolation(int_grid)
-    # Integration of speed of mean reversion using trapezoidal rule.
-    int_kappa_step = np.append(0, misc.trapz(int_grid, kappa_int_grid))
-    # Calculation of y-function on integration grid.
-    y_int_grid = np.zeros(int_grid.size)
-    for idx in range(1, int_grid.size):
-        # int_u^t_{idx} kappa_s ds.
-        int_kappa = int_kappa_step[:idx + 1]
-        int_kappa = np.cumsum(int_kappa[::-1])[::-1]
-        int_kappa[:-1] = int_kappa[1:]
-        int_kappa[-1] = 0
-        # Integrand in expression for y.
-        integrand = np.exp(-2 * int_kappa) * vol_int_grid[:idx + 1] ** 2
-        y_int_grid[idx] = np.sum(misc.trapz(int_grid[:idx + 1], integrand))
-    # Save y-function on event grid.
-    y_return = np.zeros(event_grid.size)
-    for idx, event_idx in enumerate(int_event_idx):
-        y_return[idx] = y_int_grid[event_idx]
-    return y_return
 
 
 def zcbond_constant(spot: typing.Union[float, np.ndarray],
