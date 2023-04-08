@@ -257,4 +257,5 @@ def setup_solver(instrument,
     # TODO: What about call/put written on zero-coupon bond?
     #  Terminal condition should depend on zero-coupon bond, not option payoff
     solver.solution = instrument.payoff(solver.grid)
+
     return solver

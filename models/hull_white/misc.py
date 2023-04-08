@@ -1,4 +1,5 @@
 import math
+
 import numpy as np
 
 from utils import misc
@@ -63,7 +64,7 @@ def y_piecewise(kappa: float,
 
     Args:
         kappa: Speed of mean reversion.
-        vol: Volatility.
+        vol: Volatility on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
 
@@ -134,7 +135,7 @@ def g_constant(kappa: float,
 
     Args:
         kappa: Speed of mean reversion.
-        maturity_idx: Event grid index corresponding to maturity.
+        maturity_idx: Maturity index on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
 
@@ -161,7 +162,7 @@ def g_general(int_grid: np.ndarray,
         int_event_idx: Integration grid
         int_kappa_step: Step-wise integration of kappa on integration
             grid.
-        maturity_idx: Event grid index corresponding to maturity.
+        maturity_idx: Maturity index on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
 
@@ -185,3 +186,75 @@ def g_general(int_grid: np.ndarray,
     for event_idx, int_idx in enumerate(int_event_idx):
         g_eg[event_idx] = g_ig[int_idx]
     return g_eg, g_ig
+
+
+###############################################################################
+
+
+def v_constant(kappa: float,
+               vol: float,
+               expiry_idx: int,
+               maturity_idx: int,
+               event_grid: np.ndarray) -> np.ndarray:
+    """Calculate v-function on event grid until expiry.
+
+    Assuming that speed of mean reversion and volatility are constant.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+
+    Args:
+        kappa: Speed of mean reversion.
+        vol: Volatility.
+        expiry_idx: Expiry index on event grid.
+        maturity_idx: Maturity index on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        v-function.
+    """
+    expiry = event_grid[expiry_idx]
+    maturity = event_grid[maturity_idx]
+    factor1 = (1 - math.exp(-kappa * (maturity - expiry))) ** 2
+    factor2 = 1 - np.exp(-2 * kappa * (expiry - event_grid[:expiry_idx + 1]))
+    return vol ** 3 * factor1 * factor2 / (2 * kappa ** 3)
+
+
+def v_piecewise(kappa: float,
+                vol: np.ndarray,
+                expiry_idx: int,
+                maturity_idx: int,
+                event_grid: np.ndarray) -> np.ndarray:
+    """Calculate v-function on event grid until expiry.
+
+    Assuming that speed of mean reversion is constant and volatility is
+    piecewise constant. See L.B.G. Andersen & V.V. Piterbarg 2010,
+    proposition 4.5.1.
+
+    Args:
+        kappa: Speed of mean reversion.
+        vol: Volatility on event grid.
+        expiry_idx: Expiry index on event grid.
+        maturity_idx: Maturity index on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        v-function.
+    """
+    two_kappa = 2 * kappa
+    expiry = event_grid[expiry_idx]
+    maturity = event_grid[maturity_idx]
+    factor = math.exp(-kappa * expiry) - math.exp(-kappa * maturity)
+    factor /= kappa ** 2
+    event_grid_expiry = event_grid[event_grid <= expiry]
+    vol_expiry = vol[event_grid <= expiry]
+    v_return = np.zeros(expiry_idx)
+    for idx in range(expiry_idx):
+        event_filter = event_grid_expiry >= event_grid[idx]
+        vol_times = event_grid_expiry[event_filter]
+        vol_values = vol_expiry[event_filter]
+        v = np.exp(-two_kappa * vol_times[1:]) \
+            - np.exp(-two_kappa * vol_times[:-1])
+        v *= vol_values[:-1] ** 2 / two_kappa
+        v_return[idx] = factor * v.sum()
+    return v_return
