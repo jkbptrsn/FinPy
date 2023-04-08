@@ -118,7 +118,7 @@ class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def fd_solve(self):
-        """Run finite difference solver on event_grid."""
+        """Run finite difference solver on event grid."""
         pass
 
 

@@ -60,6 +60,21 @@ def cholesky_2d(correlation: float,
         corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
 
 
+def trapz(grid: np.ndarray,
+          function: np.ndarray) -> np.ndarray:
+    """Trapezoidal integration.
+
+    Args:
+        grid: Grid on which the function is represented.
+        function: Function value for each grid point.
+
+    Returns:
+        Trapezoidal integral for each step along the grid.
+    """
+    dx = np.diff(grid)
+    return dx * (function[1:] + function[:-1]) / 2
+
+
 ###############################################################################
 
 
@@ -108,21 +123,6 @@ class DiscreteFunc:
         f = interp1d(self.time_grid, self.values, kind=self.interp_scheme,
                      fill_value=extrap)
         return f(interp_time_grid)
-
-
-def trapz(grid: np.ndarray,
-          function: np.ndarray) -> np.ndarray:
-    """Trapezoidal integration.
-
-    Args:
-        grid: Grid on which the function is represented.
-        function: Function value for each grid point.
-
-    Returns:
-        Trapezoidal integral for each step along the grid.
-    """
-    dx = np.diff(grid)
-    return dx * (function[1:] + function[:-1]) / 2
 
 
 def monte_carlo_error(realizations: np.ndarray) -> float:

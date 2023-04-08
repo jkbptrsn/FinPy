@@ -87,7 +87,7 @@ class SDE(sde.SDE):
 
         Args:
             spot: Short rate at time corresponding to time_index - 1.
-            time_idx: Time index on event_grid.
+            time_idx: Time index on event grid.
             normal_rand: Realizations of independent standard normal
                 random variables.
 
@@ -134,7 +134,7 @@ class SDE(sde.SDE):
         Args:
             spot_rate: Short rate at time corresponding to
                 time_index - 1.
-            time_idx: Time index on event_grid.
+            time_idx: Time index on event grid.
             normal_rand: Realizations of independent standard normal
                 random variables.
 
@@ -185,7 +185,7 @@ class SDE(sde.SDE):
 
         Returns:
             Realizations of short rate and discount processes
-            represented on event_grid.
+            represented on event grid.
         """
         rate = np.zeros((self.event_grid.size, n_paths))
         rate[0] = spot

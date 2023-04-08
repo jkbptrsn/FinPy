@@ -159,13 +159,13 @@ def european_option_price(spot: typing.Union[float, np.ndarray],
 
     Args:
         spot: Spot short rate.
-        event_idx: Index of current time on event_grid.
+        event_idx: Index of current time on event grid.
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
         strike: Strike price of zero-coupon bond.
-        expiry_idx: Expiry index on event_grid.
-        maturity_idx: Maturity index on event_grid.
+        expiry_idx: Expiry index on event grid.
+        maturity_idx: Maturity index on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
         option_type: European call or put option. Default is call.
@@ -212,13 +212,13 @@ def european_option_delta(spot: typing.Union[float, np.ndarray],
 
     Args:
         spot: Spot short rate.
-        event_idx: Index of current time on event_grid.
+        event_idx: Index of current time on event grid.
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
         strike: Strike price of zero-coupon bond.
-        expiry_idx: Expiry index on event_grid.
-        maturity_idx: Maturity index on event_grid.
+        expiry_idx: Expiry index on event grid.
+        maturity_idx: Maturity index on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
         option_type: European call or put option. Default is call.
@@ -272,13 +272,13 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
 
     Args:
         spot: Spot short rate.
-        event_idx: Index of current time on event_grid.
+        event_idx: Index of current time on event grid.
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
         strike: Strike price of zero-coupon bond.
-        expiry_idx: Expiry index on event_grid.
-        maturity_idx: Maturity index on event_grid.
+        expiry_idx: Expiry index on event grid.
+        maturity_idx: Maturity index on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
         option_type: European call or put option. Default is call.

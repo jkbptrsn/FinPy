@@ -19,7 +19,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
-        maturity_idx: Maturity index on event_grid.
+        maturity_idx: Maturity index on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
     """
@@ -116,7 +116,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
             * (self.dadt(event_idx) - self.dbdt(event_idx) * spot)
 
     def fd_solve(self):
-        """Run finite difference solver on event_grid."""
+        """Run finite difference solver on event grid."""
         self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = self.payoff(self.fd.grid)
@@ -134,7 +134,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
                        rng: np.random.Generator = None,
                        seed: int = None,
                        antithetic: bool = False):
-        """Run Monte-Carlo solver on event_grid.
+        """Run Monte-Carlo solver on event grid.
 
         Args:
             spot: Short rate at as-of date.
@@ -146,7 +146,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
 
         Returns:
             Realizations of short rate and discount processes
-            represented on event_grid.
+            represented on event grid.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
 
