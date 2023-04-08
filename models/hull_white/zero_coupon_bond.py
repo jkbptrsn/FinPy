@@ -1,7 +1,7 @@
 import typing
 
-import math
 import numpy as np
+from scipy.interpolate import UnivariateSpline
 
 from models import bonds
 from models.hull_white import misc as misc_hw
@@ -213,8 +213,6 @@ class ZCBond(sde.SDE, bonds.VanillaBond):
 class ZCBondNew(bonds.VanillaBondAnalytical1F):
     """Zero-coupon bond in 1-factor Hull-White model.
 
-    TODO: Use rate or pseudo rate?
-
     Zero-coupon bond dependent on pseudo short rate modelled by 1-factor
     Hull-White SDE. See L.B.G. Andersen & V.V. Piterbarg 2010,
     proposition 10.1.7.
@@ -258,6 +256,8 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         self.vol_eg = None
         # Discount curve on event grid.
         self.discount_curve_eg = None
+        # Instantaneous forward rate on event grid.
+        self.forward_rate_eg = None
         # G-function on event grid.
         self.g_eg = None
         # y-function on event grid.
@@ -303,6 +303,16 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         # Discount curve interpolated on event grid.
         self.discount_curve_eg = \
             self.discount_curve.interpolation(self.event_grid)
+
+        # Instantaneous forward rate on event grid.
+        log_discount = np.log(self.discount_curve_eg)
+        smoothing = 0
+        log_discount_spline = \
+            UnivariateSpline(self.event_grid, log_discount, s=smoothing)
+        forward_rate = log_discount_spline.derivative()
+        self.forward_rate_eg = -forward_rate(self.event_grid)
+
+        # Kappa and vol are constant.
         if self.time_dependence == "constant":
             # G-function on event grid.
             self.g_eg = misc_hw.g_constant(self.kappa_eg[0],
@@ -312,6 +322,7 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
             self.y_eg = misc_hw.y_constant(self.kappa_eg[0],
                                            self.vol_eg[0],
                                            self.event_grid)
+        # Kappa is constant and vol is piecewise constant.
         elif self.time_dependence == "piecewise":
             # G-function on event grid.
             self.g_eg = misc_hw.g_constant(self.kappa_eg[0],
@@ -321,6 +332,7 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
             self.y_eg = misc_hw.y_piecewise(self.kappa_eg[0],
                                             self.vol_eg,
                                             self.event_grid)
+        # Kappa and vol have general time-dependence.
         elif self.time_dependence == "general":
             # Speed of mean reversion interpolated on integration grid.
             self.kappa_ig = self.kappa.interpolation(self.int_grid)
@@ -351,7 +363,7 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         """Payoff function.
 
         Args:
-            spot: Current short rate.
+            spot: Current pseudo short rate.
 
         Returns:
             Payoff.
@@ -451,24 +463,23 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         """
         pass
 
-###############################################################################
-
     def fd_solve(self):
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
-
-#        # Set terminal condition.
-#        self.fd.solution = self.payoff(self.fd.grid)
-
         for count, dt in enumerate(np.flip(np.diff(self.event_grid))):
-
+            # Time index at time "t", when moving from "t+1" to "t".
             idx = -2 - count
+            # Update drift, diffusion, and rate functions.
             drift = self.y_eg[idx] - self.kappa_eg[idx] * self.fd.grid
             diffusion = self.vol_eg[idx] + 0 * self.fd.grid
+            rate = self.fd.grid + self.forward_rate_eg[idx]
             self.fd.set_drift(drift)
             self.fd.set_diffusion(diffusion)
-
+            self.fd.set_rate(rate)
+            # Propagation for one time step.
             self.fd.propagation(dt, True)
+
+###############################################################################
 
     def mc_exact_setup(self):
         """Setup exact Monte-Carlo solver."""

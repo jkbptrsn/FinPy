@@ -1,20 +1,19 @@
 import unittest
 
-import matplotlib.pyplot as plt
 import numpy as np
 
-from models.hull_white import zero_coupon_bond as zcbond
 from models.hull_white import misc as misc_hw
+from models.hull_white import zero_coupon_bond as zcbond
 from unit_tests.test_hull_white import input
 from utils import misc
 from utils import plots
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 
 class YFunction(unittest.TestCase):
-    """Test calculation of y-function."""
+    """Calculation of y-function."""
 
     def setUp(self) -> None:
         # Speed of mean reversion strips.
@@ -60,7 +59,7 @@ class YFunction(unittest.TestCase):
                                                1 / 100)
 
     def test_constant(self):
-        """Test y-functions for constant vol."""
+        """Calculation of y-function with constant vol."""
         y_constant = misc_hw.y_constant(self.kappa_constant_eg[0],
                                         self.vol_constant_eg[0],
                                         self.event_grid)
@@ -76,7 +75,7 @@ class YFunction(unittest.TestCase):
         self.assertTrue(np.max(diff_general) < 2.e-6)
 
     def test_piecewise(self):
-        """Test y-functions for piecewise constant vol."""
+        """Calculation of y-function with piecewise constant vol."""
         y_piecewise = misc_hw.y_piecewise(self.kappa_constant_eg[0],
                                           self.vol_piecewise_eg,
                                           self.event_grid)
@@ -86,7 +85,7 @@ class YFunction(unittest.TestCase):
 
 
 class GFunction(unittest.TestCase):
-    """Test calculation of G-function."""
+    """Calculation of G-function."""
 
     def setUp(self) -> None:
         # Speed of mean reversion strips.
@@ -118,7 +117,7 @@ class GFunction(unittest.TestCase):
                                               1 / 100)
 
     def test_constant(self):
-        """Test y-functions for constant vol."""
+        """Calculation of y-function with constant vol."""
         g_constant = misc_hw.g_constant(self.kappa_constant_eg[0],
                                         self.maturity_idx,
                                         self.event_grid)
@@ -135,30 +134,23 @@ class ZeroCouponBond(unittest.TestCase):
         self.kappa = input.kappa_strip
         self.vol = input.vol_strip
         self.discount_curve = input.disc_curve
-
         # Bond maturity.
         self.maturity = 30
-
         # FD event grid.
-        self.fd_t_steps = 101
+        self.fd_t_steps = 361
         self.fd_dt = self.maturity / (self.fd_t_steps - 1)
         self.fd_event_grid = self.fd_dt * np.arange(self.fd_t_steps)
         self.fd_maturity_idx = self.fd_t_steps - 1
-
-#        self.time_dependence = "constant"
-        self.time_dependence = "piecewise"
-
         # FD spatial grid.
-        self.x_min = -0.1
-        self.x_max = 0.25
-        self.x_steps = 100
+        self.x_min = -0.15
+        self.x_max = 0.15
+        self.x_steps = 301
         self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
-
         self.int_step_factor = 3
         self.int_step_size = self.fd_dt / self.int_step_factor
-
         # Zero-coupon bond.
+        self.time_dependence = "piecewise"
         self.bond = zcbond.ZCBondNew(self.kappa,
                                      self.vol,
                                      self.discount_curve,
@@ -168,29 +160,26 @@ class ZeroCouponBond(unittest.TestCase):
                                      self.int_step_size)
 
     def test_int_grid(self):
-        """Test integration grid."""
+        """Number of integration grid points."""
         self.assertTrue(self.bond.int_grid.size
                         == (self.fd_t_steps - 1) * self.int_step_factor + 1)
 
-    def test_theta_method_constant(self):
+    def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""
         self.bond.fd_setup(self.x_grid, equidistant=True)
         self.bond.fd_solve()
         numerical = self.bond.fd.solution
-        numerical *= self.bond.discount_curve_eg[self.bond.maturity_idx]
         analytical = self.bond.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        print("max error: ", np.max(relative_error[10:40]))
         if plot_results:
-#            plt.plot(self.x_grid, relative_error, "-b")
-#            plt.plot(self.x_grid - 0.027, numerical, "-r")
-            plt.plot(self.x_grid, numerical, "-r")
-            plt.plot(self.x_grid, analytical, "-ok")
-#            plt.plot(self.x_grid, self.bond.delta(self.x_grid, 0), "-r")
-#            plt.plot(self.x_grid, self.bond.gamma(self.x_grid, 0), "-k")
-            plt.xlabel("Short rate")
-            plt.ylabel("Price/Delta/Gamma")
-            plt.pause(5)
+            plots.plot_price_and_greeks(self.bond)
+        # Maximum error in interval around pseudo short rate of 0.
+        idx_min = np.argwhere(self.x_grid < -0.05)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.05)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print("max error: ", max_error)
+        self.assertTrue(max_error < 2.e-3)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 import abc
 
+import math
 import numpy as np
 from scipy.linalg import solve_banded
 
@@ -238,12 +239,10 @@ def setup_solver(instrument,
         drift = instrument.kappa * (instrument.mean_rate - solver.grid)
         diffusion = instrument.vol * np.sqrt(solver.grid)
         rate = solver.grid
-
     elif instrument.model == global_types.Model.HULL_WHITE_1F:
         drift = instrument.y_eg[-1] - instrument.kappa_eg[-1] * solver.grid
         diffusion = instrument.vol_eg[-1] + 0 * solver.grid
-        rate = solver.grid
-
+        rate = solver.grid + instrument.forward_rate_eg[-1]
     elif instrument.model == global_types.Model.VASICEK:
         drift = instrument.kappa * (instrument.mean_rate - solver.grid)
         diffusion = instrument.vol + 0 * solver.grid
