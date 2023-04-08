@@ -57,7 +57,7 @@ class YFunction(unittest.TestCase):
                                                self.maturity_idx,
                                                self.event_grid,
                                                "general",
-                                               1 / 200)
+                                               1 / 100)
 
     def test_constant(self):
         """Test y-functions for constant vol."""
@@ -68,8 +68,12 @@ class YFunction(unittest.TestCase):
                                           self.vol_constant_eg,
                                           self.event_grid)
         y_general = self.bond_constant.y_eg
-        self.assertTrue(np.max(np.abs(y_constant - y_piecewise)) < 1.e-18)
-        self.assertTrue(np.max(np.abs(y_constant - y_general)) < 1.e-8)
+        diff_piecewise = \
+            np.abs((y_piecewise[1:] - y_constant[1:]) / y_constant[1:])
+        diff_general = \
+            np.abs((y_general[1:] - y_constant[1:]) / y_constant[1:])
+        self.assertTrue(np.max(diff_piecewise) < 3.e-16)
+        self.assertTrue(np.max(diff_general) < 2.e-6)
 
     def test_piecewise(self):
         """Test y-functions for piecewise constant vol."""
@@ -77,7 +81,50 @@ class YFunction(unittest.TestCase):
                                           self.vol_piecewise_eg,
                                           self.event_grid)
         y_general = self.bond_piecewise.y_eg
-        self.assertTrue(np.max(np.abs(y_piecewise[1:] - y_general[1:])) < 1.e6)
+        diff = np.abs((y_general[1:] - y_piecewise[1:]) / y_piecewise[1:])
+        self.assertTrue(np.max(diff) < 1.e-3)
+
+
+class GFunction(unittest.TestCase):
+    """Test calculation of G-function."""
+
+    def setUp(self) -> None:
+        # Speed of mean reversion strips.
+        time_grid = np.array([0, 2, 4, 6, 10, 20, 30])
+        kappa_grid = 0.023 * np.array([1] * 7)
+        self.kappa_constant = misc.DiscreteFunc("kappa", time_grid, kappa_grid)
+        # Volatility strips.
+        vol_grid = 0.0165 * np.array([1] * 7)
+        self.vol_constant = misc.DiscreteFunc("vol", time_grid, vol_grid)
+        # Discount curve.
+        self.discount_curve = input.disc_curve
+        # Bond maturity.
+        self.maturity = 25
+        # Event grid.
+        self.t_steps = 26
+        self.dt = self.maturity / (self.t_steps - 1)
+        self.event_grid = self.dt * np.arange(self.t_steps)
+        self.maturity_idx = self.t_steps - 1
+        # Function on event grid.
+        self.kappa_constant_eg = \
+            self.kappa_constant.interpolation(self.event_grid)
+        # Bond object.
+        self.bond_constant = zcbond.ZCBondNew(self.kappa_constant,
+                                              self.vol_constant,
+                                              self.discount_curve,
+                                              self.maturity_idx,
+                                              self.event_grid,
+                                              "general",
+                                              1 / 100)
+
+    def test_constant(self):
+        """Test y-functions for constant vol."""
+        g_constant = misc_hw.g_constant(self.kappa_constant_eg[0],
+                                        self.maturity_idx,
+                                        self.event_grid)
+        g_general = self.bond_constant.g_eg
+        print(np.max(np.abs(g_constant - g_general)))
+        self.assertTrue(np.max(np.abs(g_constant - g_general)) < 5.e-3)
 
 
 class ZeroCouponBond(unittest.TestCase):
@@ -90,10 +137,10 @@ class ZeroCouponBond(unittest.TestCase):
         self.discount_curve = input.disc_curve
 
         # Bond maturity.
-        self.maturity = 2.5
+        self.maturity = 30
 
         # FD event grid.
-        self.fd_t_steps = 201
+        self.fd_t_steps = 101
         self.fd_dt = self.maturity / (self.fd_t_steps - 1)
         self.fd_event_grid = self.fd_dt * np.arange(self.fd_t_steps)
         self.fd_maturity_idx = self.fd_t_steps - 1
@@ -104,7 +151,7 @@ class ZeroCouponBond(unittest.TestCase):
         # FD spatial grid.
         self.x_min = -0.1
         self.x_max = 0.25
-        self.x_steps = 200
+        self.x_steps = 100
         self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
 
@@ -130,22 +177,20 @@ class ZeroCouponBond(unittest.TestCase):
         self.bond.fd_setup(self.x_grid, equidistant=True)
         self.bond.fd_solve()
         numerical = self.bond.fd.solution
+        numerical *= self.bond.discount_curve_eg[self.bond.maturity_idx]
         analytical = self.bond.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
+        print("max error: ", np.max(relative_error[10:40]))
         if plot_results:
 #            plt.plot(self.x_grid, relative_error, "-b")
 #            plt.plot(self.x_grid - 0.027, numerical, "-r")
             plt.plot(self.x_grid, numerical, "-r")
-            plt.plot(self.x_grid, analytical, "-k")
+            plt.plot(self.x_grid, analytical, "-ok")
 #            plt.plot(self.x_grid, self.bond.delta(self.x_grid, 0), "-r")
 #            plt.plot(self.x_grid, self.bond.gamma(self.x_grid, 0), "-k")
             plt.xlabel("Short rate")
             plt.ylabel("Price/Delta/Gamma")
             plt.pause(5)
-
-        print(self.bond.price(-0.003, 0))
-        print(self.bond.delta(-0.003, 0))
-        print(self.bond.gamma(-0.003, 0))
 
 
 if __name__ == '__main__':

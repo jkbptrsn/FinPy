@@ -258,6 +258,8 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         self.vol_eg = None
         # Discount curve on event grid.
         self.discount_curve_eg = None
+        # G-function on event grid.
+        self.g_eg = None
         # y-function on event grid.
         self.y_eg = None
 
@@ -271,6 +273,8 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         self.int_kappa_step = None
         # Volatility on integration grid.
         self.vol_ig = None
+        # G-function on integration grid.
+        self.g_ig = None
         # y-function on integration grid.
         self.y_ig = None
 
@@ -300,11 +304,19 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         self.discount_curve_eg = \
             self.discount_curve.interpolation(self.event_grid)
         if self.time_dependence == "constant":
+            # G-function on event grid.
+            self.g_eg = misc_hw.g_constant(self.kappa_eg[0],
+                                           self.maturity_idx,
+                                           self.event_grid)
             # y-function on event grid.
             self.y_eg = misc_hw.y_constant(self.kappa_eg[0],
                                            self.vol_eg[0],
                                            self.event_grid)
         elif self.time_dependence == "piecewise":
+            # G-function on event grid.
+            self.g_eg = misc_hw.g_constant(self.kappa_eg[0],
+                                           self.maturity_idx,
+                                           self.event_grid)
             # y-function on event grid.
             self.y_eg = misc_hw.y_piecewise(self.kappa_eg[0],
                                             self.vol_eg,
@@ -317,6 +329,12 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
             # Integration of speed of mean reversion using trapezoidal rule.
             self.int_kappa_step = \
                 np.append(0, misc.trapz(self.int_grid, self.kappa_ig))
+            # G-function on event grid.
+            self.g_eg, self.g_ig = misc_hw.g_general(self.int_grid,
+                                                     self.int_event_idx,
+                                                     self.int_kappa_step,
+                                                     self.maturity_idx,
+                                                     self.event_grid)
             # y-function on event and integration grid.
             self.y_eg, self.y_ig = misc_hw.y_general(self.int_grid,
                                                      self.int_event_idx,
@@ -326,8 +344,6 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         else:
             raise ValueError(f"Time dependence unknown: "
                              f"{self.time_dependence}")
-
-###############################################################################
 
     def payoff(self,
                spot: typing.Union[float, np.ndarray]) -> \
@@ -400,39 +416,26 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         Returns:
             Zero-coupon bond price/delta/gamma.
         """
-        if self.time_dependence == "constant":
-            return zcbond_constant(spot,
-                                   self.kappa_eg[0],
-                                   self.vol_eg[0],
-                                   self.discount_curve_eg,
-                                   event_idx,
-                                   self.maturity_idx,
-                                   self.event_grid,
-                                   self.y_eg,
-                                   type_)
-        elif self.time_dependence == "piecewise":
-            return zcbond_piecewise(spot,
-                                    self.kappa_eg[0],
-                                    self.vol_eg,
-                                    self.discount_curve_eg,
-                                    event_idx,
-                                    self.maturity_idx,
-                                    self.event_grid,
-                                    self.y_eg,
-                                    type_)
-        elif self.time_dependence == "general":
-            return zcbond_general(spot,
-                                  self.discount_curve_eg,
-                                  event_idx,
-                                  self.maturity_idx,
-                                  self.int_event_idx,
-                                  self.int_grid,
-                                  self.int_kappa_step,
-                                  self.y_eg,
-                                  type_)
+        if event_idx > self.maturity_idx:
+            raise ValueError("event_idx > maturity_idx")
+        # P(0,t): Zero-coupon bond price at time zero with maturity t.
+        price1 = self.discount_curve_eg[event_idx]
+        # P(0,T): Zero-coupon bond price at time zero with maturity T.
+        price2 = self.discount_curve_eg[self.maturity_idx]
+        # G(t,T): G-function.
+        g = self.g_eg[event_idx]
+        # y(t): y-function.
+        y = self.y_eg[event_idx]
+        # P(t,T): Zero-coupon bond price at time t with maturity T.
+        bond_price = price2 * np.exp(-spot * g - y * g ** 2 / 2) / price1
+        if type_ == "price":
+            return bond_price
+        elif type_ == "delta":
+            return -g * bond_price
+        elif type_ == "gamma":
+            return g ** 2 * bond_price
         else:
-            raise ValueError(f"Time dependence unknown: "
-                             f"{self.time_dependence}")
+            raise ValueError(f"Calculation type is unknown: {type_}")
 
     def theta(self,
               spot: typing.Union[float, np.ndarray],
@@ -448,20 +451,24 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         """
         pass
 
+###############################################################################
+
     def fd_solve(self):
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
-        # Set terminal condition.
-        self.fd.solution = self.payoff(self.fd.grid)
+
+#        # Set terminal condition.
+#        self.fd.solution = self.payoff(self.fd.grid)
+
         for count, dt in enumerate(np.flip(np.diff(self.event_grid))):
 
-#            idx = -2 - count
-#            drift = self.y_eg[idx] - self.kappa_eg[idx] * self.fd.grid
-#            diffusion = self.vol_eg[idx] + 0 * self.fd.grid
-#            self.fd.set_drift(drift)
-#            self.fd.set_diffusion(diffusion)
+            idx = -2 - count
+            drift = self.y_eg[idx] - self.kappa_eg[idx] * self.fd.grid
+            diffusion = self.vol_eg[idx] + 0 * self.fd.grid
+            self.fd.set_drift(drift)
+            self.fd.set_diffusion(diffusion)
 
-            self.fd.propagation(dt)
+            self.fd.propagation(dt, True)
 
     def mc_exact_setup(self):
         """Setup exact Monte-Carlo solver."""
@@ -488,175 +495,3 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
             represented on event grid.
         """
         pass
-
-
-def zcbond_constant(spot: typing.Union[float, np.ndarray],
-                    kappa: float,
-                    vol: float,
-                    discount_curve: np.ndarray,
-                    event_idx: int,
-                    maturity_idx: int,
-                    event_grid: np.ndarray,
-                    y_eg: np.ndarray,
-                    type_: str = "price") -> typing.Union[float, np.ndarray]:
-    """Calculate zero-coupon bond price, delta or gamma.
-
-    Calculate price/delta/gamma of zero-coupon bond based at current
-    time (event_idx) for maturity at time T (maturity_idx).
-
-    Assuming that speed of mean reversion and volatility are constant.
-
-    Args:
-        spot: Current pseudo short rate.
-        kappa: Speed of mean reversion.
-        vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
-        event_idx: Event grid index corresponding to current time.
-        maturity_idx: Event grid index corresponding to maturity.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-        y_eg: ...
-        type_: Calculation type: "price", "delta" or "gamma".
-            Default is "price".
-
-    Returns:
-        Zero-coupon bond price/delta/gamma.
-    """
-    if event_idx > maturity_idx:
-        raise ValueError("event_idx > maturity_idx")
-    # P(0,t): Zero-coupon bond price at time zero with maturity t.
-    price1 = discount_curve[event_idx]
-    # P(0,T): Zero-coupon bond price at time zero with maturity T.
-    price2 = discount_curve[maturity_idx]
-    # G(t,T): G-function,
-    delta_t = event_grid[maturity_idx] - event_grid[event_idx]
-    g = (1 - math.exp(-kappa * delta_t)) / kappa
-    # y(t): y-function,
-    y = y_eg[event_idx]
-    # P(t,T): Zero-coupon bond price at time t with maturity T.
-    price = price2 * np.exp(-spot * g - y * g ** 2 / 2) / price1
-    if type_ == "price":
-        return price
-    elif type_ == "delta":
-        return -g * price
-    elif type_ == "gamma":
-        return g ** 2 * price
-    else:
-        raise ValueError(f"Calculation type is unknown: {type_}")
-
-
-def zcbond_piecewise(spot: typing.Union[float, np.ndarray],
-                     kappa: float,
-                     vol: np.ndarray,
-                     discount_curve: np.ndarray,
-                     event_idx: int,
-                     maturity_idx: int,
-                     event_grid: np.ndarray,
-                     y_eg: np.ndarray,
-                     type_: str = "price") -> typing.Union[float, np.ndarray]:
-    """Calculate zero-coupon bond price, delta or gamma.
-
-    Calculate price/delta/gamma of zero-coupon bond based at current
-    time (event_idx) for maturity at time T (maturity_idx). See
-    proposition 10.1.7, L.B.G. Andersen & V.V. Piterbarg 2010.
-
-    Assuming that speed of mean reversion is constant and volatility is
-    piecewise constant.
-
-    Args:
-        spot: Current pseudo short rate.
-        kappa: Speed of mean reversion.
-        vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
-        event_idx: Event grid index corresponding to current time.
-        maturity_idx: Event grid index corresponding to maturity.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-        y_eg: ...
-        type_: Calculation type: "price", "delta" or "gamma".
-            Default is "price".
-
-    Returns:
-        Zero-coupon bond price/delta/gamma.
-    """
-    if event_idx > maturity_idx:
-        raise ValueError("event_idx > maturity_idx")
-    # P(0,t): Zero-coupon bond price at time zero with maturity t.
-    price1 = discount_curve[event_idx]
-    # P(0,T): Zero-coupon bond price at time zero with maturity T.
-    price2 = discount_curve[maturity_idx]
-    # G(t,T): G-function.
-    delta_t = event_grid[maturity_idx] - event_grid[event_idx]
-    g = (1 - math.exp(-kappa * delta_t)) / kappa
-    # y(t): y-function.
-    y = y_eg[event_idx]
-    # P(t,T): Zero-coupon bond price at time t with maturity T.
-    price = price2 * np.exp(-spot * g - y * g ** 2 / 2) / price1
-    if type_ == "price":
-        return price
-    elif type_ == "delta":
-        return -g * price
-    elif type_ == "gamma":
-        return g ** 2 * price
-    else:
-        raise ValueError(f"Calculation type is unknown: {type_}")
-
-
-def zcbond_general(spot: typing.Union[float, np.ndarray],
-                   discount_curve: np.ndarray,
-                   event_idx: int,
-                   maturity_idx: int,
-                   int_event_idx: np.ndarray,
-                   int_grid: np.ndarray,
-                   int_kappa_step: np.ndarray,
-                   y_eg: np.ndarray,
-                   type_: str = "price") -> typing.Union[float, np.ndarray]:
-    """Calculate zero-coupon bond price, delta or gamma.
-
-    Calculate price/delta/gamma of zero-coupon bond based at current
-    time (event_idx) for maturity at time T (maturity_idx). See
-    proposition 10.1.7, L.B.G. Andersen & V.V. Piterbarg 2010.
-
-    Args:
-        spot: Current pseudo short rate.
-        discount_curve: Discount curve represented on event grid.
-        event_idx: Event grid index corresponding to current time.
-        maturity_idx: Event grid index corresponding to maturity.
-        int_event_idx: ...
-        int_grid: ...
-        int_kappa_step: ...
-        y_eg: ...
-        type_: Calculation type: "price", "delta" or "gamma".
-            Default is "price".
-
-    Returns:
-        Zero-coupon bond price/delta/gamma.
-    """
-    if event_idx > maturity_idx:
-        raise ValueError("event_idx > maturity_idx")
-    # P(0,t): Zero-coupon bond price at time zero with maturity t.
-    price1 = discount_curve[event_idx]
-    # P(0,T): Zero-coupon bond price at time zero with maturity T.
-    price2 = discount_curve[maturity_idx]
-    # Integration indices of the two relevant events.
-    int_idx1 = int_event_idx[event_idx]
-    int_idx2 = int_event_idx[maturity_idx] + 1
-    # Slice of integration grid.
-    int_grid = int_grid[int_idx1:int_idx2]
-    # Slice of time-integrated kappa for each integration step.
-    int_kappa = int_kappa_step[int_idx1:int_idx2]
-    # G(t,T): G-function.
-    integrand = np.exp(-np.cumsum(int_kappa))
-    g = np.sum(misc.trapz(int_grid, integrand))
-    # y(t): y-function.
-    y = y_eg[event_idx]
-    # P(t,T): Zero-coupon bond price at time t with maturity T.
-    price = price2 * np.exp(-spot * g - y * g ** 2 / 2) / price1
-    if type_ == "price":
-        return price
-    elif type_ == "delta":
-        return -g * price
-    elif type_ == "gamma":
-        return g ** 2 * price
-    else:
-        raise ValueError(f"Calculation type is unknown: {type_}")
