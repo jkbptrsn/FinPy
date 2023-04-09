@@ -191,6 +191,13 @@ def g_general(int_grid: np.ndarray,
 ###############################################################################
 
 
+# TODO: Unit tests of v-function.
+# TODO: Analytical price of call option in HW1F.
+# TODO: Numerical price of call option in HW1F using theta method.
+# TODO: Analytical formulas for delta and gamma of call option.
+# TODO: Same set up for put option.
+
+
 def v_constant(kappa: float,
                vol: float,
                expiry_idx: int,
@@ -216,7 +223,7 @@ def v_constant(kappa: float,
     maturity = event_grid[maturity_idx]
     factor1 = (1 - math.exp(-kappa * (maturity - expiry))) ** 2
     factor2 = 1 - np.exp(-2 * kappa * (expiry - event_grid[:expiry_idx + 1]))
-    return vol ** 3 * factor1 * factor2 / (2 * kappa ** 3)
+    return vol ** 2 * factor1 * factor2 / (2 * kappa ** 3)
 
 
 def v_piecewise(kappa: float,
@@ -244,17 +251,18 @@ def v_piecewise(kappa: float,
     two_kappa = 2 * kappa
     expiry = event_grid[expiry_idx]
     maturity = event_grid[maturity_idx]
-    factor = math.exp(-kappa * expiry) - math.exp(-kappa * maturity)
+    factor = (math.exp(-kappa * expiry) - math.exp(-kappa * maturity)) ** 2
     factor /= kappa ** 2
-    event_grid_expiry = event_grid[event_grid <= expiry]
-    vol_expiry = vol[event_grid <= expiry]
-    v_return = np.zeros(expiry_idx)
+    # Event grid until expiry.
+    event_grid_expiry = event_grid[:expiry_idx + 1]
+    # Vol strip until expiry.
+    vol_expiry = vol[:expiry_idx + 1]
+    v_return = np.zeros(expiry_idx + 1)
     for idx in range(expiry_idx):
-        event_filter = event_grid_expiry >= event_grid[idx]
-        vol_times = event_grid_expiry[event_filter]
-        vol_values = vol_expiry[event_filter]
-        v = np.exp(-two_kappa * vol_times[1:]) \
-            - np.exp(-two_kappa * vol_times[:-1])
+        vol_times = event_grid_expiry[idx:]
+        vol_values = vol_expiry[idx:]
+        v = np.exp(two_kappa * vol_times[1:]) \
+            - np.exp(two_kappa * vol_times[:-1])
         v *= vol_values[:-1] ** 2 / two_kappa
         v_return[idx] = factor * v.sum()
     return v_return

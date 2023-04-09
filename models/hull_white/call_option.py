@@ -246,6 +246,8 @@ class CallNew(options.EuropeanOptionAnalytical1F):
         """
         return payoffs.call(spot, self.strike)
 
+###############################################################################
+
     def price(self,
               spot: typing.Union[float, np.ndarray],
               event_idx: int) -> typing.Union[float, np.ndarray]:
@@ -270,11 +272,10 @@ class CallNew(options.EuropeanOptionAnalytical1F):
         v = self.v_eg[event_idx]
         # d-function.
         d = np.log(price2 / (self.strike * price1))
-#        d_plus = (d + v / 2) / np.sqrt(v)
-#        d_minus = (d - v / 2) / np.sqrt(v)
-#        return price2 * norm.cdf(d_plus) \
-#            - self.strike * price1 * norm.cdf(d_minus)
-        return np.zeros(spot.size)
+        d_plus = (d + v / 2) / np.sqrt(v)
+        d_minus = (d - v / 2) / np.sqrt(v)
+        return price2 * norm.cdf(d_plus) \
+            - self.strike * price1 * norm.cdf(d_minus)
 
     def delta(self,
               spot: typing.Union[float, np.ndarray],
@@ -336,11 +337,11 @@ class CallNew(options.EuropeanOptionAnalytical1F):
             self.fd.set_rate(rate)
 
             # Option payoff at expiry...
+            if -(idx + 1) == (self.maturity_idx - self.expiry_idx + 1):
+                self.fd.solution = self.payoff(self.fd.solution)
 
             # Propagation for one time step.
             self.fd.propagation(dt, True)
-
-###############################################################################
 
     def mc_exact_setup(self):
         """Setup exact Monte-Carlo solver."""
