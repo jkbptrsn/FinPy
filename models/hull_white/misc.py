@@ -188,16 +188,6 @@ def g_general(int_grid: np.ndarray,
     return g_eg, g_ig
 
 
-###############################################################################
-
-
-# TODO: Unit tests of v-function.
-# TODO: Analytical price of call option in HW1F.
-# TODO: Numerical price of call option in HW1F using theta method.
-# TODO: Analytical formulas for delta and gamma of call option.
-# TODO: Same set up for put option.
-
-
 def v_constant(kappa: float,
                vol: float,
                expiry_idx: int,

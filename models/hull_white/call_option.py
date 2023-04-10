@@ -246,15 +246,13 @@ class CallNew(options.EuropeanOptionAnalytical1F):
         """
         return payoffs.call(spot, self.strike)
 
-###############################################################################
-
     def price(self,
               spot: typing.Union[float, np.ndarray],
               event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
-            spot: Current value of underlying.
+            spot: Current value of pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -272,8 +270,8 @@ class CallNew(options.EuropeanOptionAnalytical1F):
         v = self.v_eg[event_idx]
         # d-function.
         d = np.log(price2 / (self.strike * price1))
-        d_plus = (d + v / 2) / np.sqrt(v)
-        d_minus = (d - v / 2) / np.sqrt(v)
+        d_plus = (d + v / 2) / math.sqrt(v)
+        d_minus = (d - v / 2) / math.sqrt(v)
         return price2 * norm.cdf(d_plus) \
             - self.strike * price1 * norm.cdf(d_minus)
 
@@ -283,13 +281,36 @@ class CallNew(options.EuropeanOptionAnalytical1F):
         """1st order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Current value of underlying.
+            spot: Current value of pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
             Delta.
         """
-        pass
+        # P(t,T): Zero-coupon bond price at time zero with maturity T.
+        self.zcbond.maturity_idx = self.expiry_idx
+        self.zcbond.initialization()
+        price1 = self.zcbond.price(spot, event_idx)
+        delta1 = self.zcbond.delta(spot, event_idx)
+        # P(t,T*): Zero-coupon bond price at time zero with maturity T*.
+        self.zcbond.maturity_idx = self.maturity_idx
+        self.zcbond.initialization()
+        price2 = self.zcbond.price(spot, event_idx)
+        delta2 = self.zcbond.delta(spot, event_idx)
+        # v-function.
+        v = self.v_eg[event_idx]
+        # d-function.
+        d = np.log(price2 / (self.strike * price1))
+        d_plus = (d + v / 2) / math.sqrt(v)
+        d_minus = (d - v / 2) / math.sqrt(v)
+        # Derivative of d-function.
+        d_delta = (delta2 / price2 - delta1 / price1) / math.sqrt(v)
+        first_terms = delta2 * norm.cdf(d_plus) \
+            - self.strike * delta1 * norm.cdf(d_minus)
+        last_terms = price2 * norm.pdf(d_plus) \
+            - self.strike * price1 * norm.pdf(d_minus)
+        last_terms *= d_delta
+        return first_terms + last_terms
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
@@ -297,7 +318,7 @@ class CallNew(options.EuropeanOptionAnalytical1F):
         """2nd order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Current value of underlying.
+            spot: Current value of pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -311,7 +332,7 @@ class CallNew(options.EuropeanOptionAnalytical1F):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Current value of underlying.
+            spot: Current value of pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
