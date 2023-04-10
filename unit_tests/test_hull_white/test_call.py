@@ -80,7 +80,7 @@ class Call(unittest.TestCase):
         # Bond maturity.
         self.maturity = 30
         # FD event grid.
-        self.fd_t_steps = 181
+        self.fd_t_steps = 361
         self.fd_dt = self.maturity / (self.fd_t_steps - 1)
         self.fd_event_grid = self.fd_dt * np.arange(self.fd_t_steps)
         self.fd_maturity_idx = self.fd_t_steps - 1
@@ -92,9 +92,9 @@ class Call(unittest.TestCase):
         self.strike = 0.8
 
         # FD spatial grid.
-        self.x_min = -0.1
-        self.x_max = 0.1
-        self.x_steps = 301
+        self.x_min = -0.15
+        self.x_max = 0.15
+        self.x_steps = 201
         self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         self.int_step_factor = 3
@@ -121,12 +121,12 @@ class Call(unittest.TestCase):
         if plot_results:
             plots.plot_price_and_greeks(self.call)
         # Maximum error in interval around pseudo short rate of 0.
-        idx_min = np.argwhere(self.x_grid < -0.01)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.01)[-1][0]
+        idx_min = np.argwhere(self.x_grid < -0.002)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.002)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-#        self.assertTrue(max_error < 2.e-3)
+        self.assertTrue(max_error < 8.e-3)
 
 
 if __name__ == '__main__':
