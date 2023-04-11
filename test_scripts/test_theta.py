@@ -1,9 +1,9 @@
 from datetime import datetime
 import numpy as np
 
-from models.bachelier import call as ba_call
-from models.black_scholes import call as bs_call
-from models.black_scholes import put as bs_put
+from models.bachelier import call_option as ba_call
+from models.black_scholes import call_option as bs_call
+from models.black_scholes import put_option as bs_put
 from models.cox_ingersoll_ross import zero_coupon_bond as cir_bond
 from models.vasicek import zero_coupon_bond as va_bond
 from utils import plots

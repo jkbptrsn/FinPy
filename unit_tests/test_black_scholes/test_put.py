@@ -3,8 +3,8 @@ import unittest
 from matplotlib import pyplot as plt
 import numpy as np
 
-from models.black_scholes import put
-from models.black_scholes import binary
+from models.black_scholes import put_option as put
+from models.black_scholes import binary_option as binary
 from utils import plots
 
 plot_results = False

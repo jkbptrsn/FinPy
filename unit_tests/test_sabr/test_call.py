@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from matplotlib import cm
 import numpy as np
 
-from models.sabr import call
+from models.sabr import call_option as call
 
 plot_result = False
 print_result = False

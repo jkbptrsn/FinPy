@@ -4,8 +4,8 @@ import numpy as np
 import unittest
 
 import models.bachelier.sde as sde
-import models.bachelier.call as call
-import models.bachelier.put as put
+import models.bachelier.call_option as call
+import models.bachelier.put_option as put
 
 
 class CallOption(unittest.TestCase):

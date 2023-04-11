@@ -4,11 +4,11 @@ from matplotlib import pyplot as plt
 import numpy as np
 from scipy.stats import linregress
 
-from models.black_scholes import call
+from models.black_scholes import call_option as call
 from numerics.fd import misc
 
 plot_results = False
-print_results = True
+print_results = False
 
 # Parameters.
 rate = 0.04
