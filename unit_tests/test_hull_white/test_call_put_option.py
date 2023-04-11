@@ -2,9 +2,9 @@ import unittest
 
 import numpy as np
 
-from models.hull_white import misc as misc_hw
 from models.hull_white import call_option as call
-from models.hull_white import zero_coupon_bond as zcbond
+from models.hull_white import put_option as put
+from models.hull_white import misc as misc_hw
 from unit_tests.test_hull_white import input
 from utils import misc
 from utils import plots
@@ -33,19 +33,16 @@ class VFunction(unittest.TestCase):
         self.dt = self.maturity / (self.t_steps - 1)
         self.event_grid = self.dt * np.arange(self.t_steps)
         self.maturity_idx = self.t_steps - 1
-
         # Option expiry.
         self.expiry_idx = (self.t_steps - 1) // 2 + 1
         self.expiry = self.event_grid[self.expiry_idx]
         # Option strike price.
         self.strike = 0.8
-
         # Functions on event grid.
         self.kappa_constant_eg = \
             self.kappa_constant.interpolation(self.event_grid)
         self.vol_constant_eg = \
             self.vol_constant.interpolation(self.event_grid)
-
         # Call object.
         self.call = call.CallNew(self.kappa_constant,
                                  self.vol_constant,
@@ -84,13 +81,11 @@ class Call(unittest.TestCase):
         self.fd_dt = self.maturity / (self.fd_t_steps - 1)
         self.fd_event_grid = self.fd_dt * np.arange(self.fd_t_steps)
         self.fd_maturity_idx = self.fd_t_steps - 1
-
         # Option expiry.
         self.fd_expiry_idx = (self.fd_t_steps - 1) // 2 + 1
         self.expiry = self.fd_event_grid[self.fd_expiry_idx]
         # Option strike price.
         self.strike = 0.8
-
         # FD spatial grid.
         self.x_min = -0.15
         self.x_max = 0.15
@@ -127,6 +122,64 @@ class Call(unittest.TestCase):
         if print_results:
             print("max error: ", max_error)
         self.assertTrue(max_error < 8.e-3)
+
+
+class Put(unittest.TestCase):
+    """European put option in 1-factor Hull-White model."""
+
+    def setUp(self) -> None:
+        # Model parameters.
+        self.kappa = input.kappa_strip
+        self.vol = input.vol_strip
+        self.discount_curve = input.disc_curve
+        # Bond maturity.
+        self.maturity = 30
+        # FD event grid.
+        self.fd_t_steps = 361
+        self.fd_dt = self.maturity / (self.fd_t_steps - 1)
+        self.fd_event_grid = self.fd_dt * np.arange(self.fd_t_steps)
+        self.fd_maturity_idx = self.fd_t_steps - 1
+        # Option expiry.
+        self.fd_expiry_idx = (self.fd_t_steps - 1) // 2 + 1
+        self.expiry = self.fd_event_grid[self.fd_expiry_idx]
+        # Option strike price.
+        self.strike = 0.8
+        # FD spatial grid.
+        self.x_min = -0.15
+        self.x_max = 0.15
+        self.x_steps = 201
+        self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
+        self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
+        self.int_step_factor = 3
+        self.int_step_size = self.fd_dt / self.int_step_factor
+        # Put option.
+        self.time_dependence = "piecewise"
+        self.put = put.PutNew(self.kappa,
+                              self.vol,
+                              self.discount_curve,
+                              self.strike,
+                              self.fd_expiry_idx,
+                              self.fd_maturity_idx,
+                              self.fd_event_grid,
+                              self.time_dependence,
+                              self.int_step_size)
+
+    def test_theta_method(self):
+        """Finite difference pricing of zero-coupon bond."""
+        self.put.fd_setup(self.x_grid, equidistant=True)
+        self.put.fd_solve()
+        numerical = self.put.fd.solution
+        analytical = self.put.price(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        if plot_results:
+            plots.plot_price_and_greeks(self.put)
+        # Maximum error in interval around pseudo short rate of 0.
+        idx_min = np.argwhere(self.x_grid < -0.002)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.002)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print("max error: ", max_error)
+        self.assertTrue(max_error < 6.e-4)
 
 
 if __name__ == '__main__':

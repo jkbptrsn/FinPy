@@ -505,8 +505,8 @@ if __name__ == '__main__':
     ######################
     # Number of repetitions of Monte-Carlo simulation.
     # 20 * 50_000, ~0.5 hours.
-    n_reps1 = 20
-    n_reps2 = 50_000
+    n_reps1 = 2
+    n_reps2 = 50_0
 
     plot_type_1(instrument, price_a, hw, bond, instru_obj,
                 discount_curve, rng,
@@ -516,8 +516,8 @@ if __name__ == '__main__':
     ######################
     # Number of repetitions of Monte-Carlo simulation.
     # 20 * 50_000, ~8 hours.
-    n_reps1 = 20
-    n_reps2 = 50_000
+    n_reps1 = 2
+    n_reps2 = 50_0
 
     plot_type_2(instrument, price_a, hw, bond, instru_obj,
                 discount_curve, rng,
@@ -527,8 +527,8 @@ if __name__ == '__main__':
     ######################
     # Number of repetitions of Monte-Carlo simulation.
     # 100 * 10_000, ~80 minutes.
-    n_reps1 = 10
-    n_reps2 = 10_000
+    n_reps1 = 1
+    n_reps2 = 10_0
 
     plot_type_3(instrument, price_a, hw, bond, instru_obj,
                 discount_curve, rng,
@@ -539,7 +539,7 @@ if __name__ == '__main__':
     ##########################
     # Number of repetitions of Monte-Carlo simulation.
     # 2000 + 8, ~60 minutes.
-    n_reps = 2000
+    n_reps = 2
     n_path_const = 8
 
     plot_type_4(instrument, price_a, hw, bond, instru_obj,

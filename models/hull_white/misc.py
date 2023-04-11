@@ -1,7 +1,10 @@
 import math
+import typing
 
 import numpy as np
+from scipy.stats import norm
 
+from models.hull_white import zero_coupon_bond
 from utils import misc
 
 
@@ -256,3 +259,113 @@ def v_piecewise(kappa: float,
         v *= vol_values[:-1] ** 2 / two_kappa
         v_return[idx] = factor * v.sum()
     return v_return
+
+
+def call_put_price(spot: typing.Union[float, np.ndarray],
+                   strike: float,
+                   event_idx: int,
+                   expiry_idx: int,
+                   maturity_idx: int,
+                   zcbond: zero_coupon_bond.ZCBondNew,
+                   v_eg: np.ndarray,
+                   type_: str) -> typing.Union[float, np.ndarray]:
+    """Price function wrt value of pseudo short rate.
+
+    Price of European call or put option written on zero-coupon bond.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
+    D. Brigo & F. Mercurio 2007, section 3.3.
+
+    Args:
+        spot: Current value of pseudo short rate.
+        strike: Strike value of underlying zero-coupon bond.
+        event_idx: Index on event grid.
+        expiry_idx: Expiry index on event grid.
+        maturity_idx: Maturity index on event grid.
+        zcbond: Zero-coupon bond object.
+        v_eg:
+        type_: Type of European option, call or put. Default is call.
+
+    Returns:
+        Price of call or put option.
+    """
+    # P(t,T): Zero-coupon bond price at time zero with maturity T.
+    zcbond.maturity_idx = expiry_idx
+    zcbond.initialization()
+    price1 = zcbond.price(spot, event_idx)
+    # P(t,T*): Zero-coupon bond price at time zero with maturity T*.
+    zcbond.maturity_idx = maturity_idx
+    zcbond.initialization()
+    price2 = zcbond.price(spot, event_idx)
+    # v-function.
+    v = v_eg[event_idx]
+    # d-function.
+    d = np.log(price2 / (strike * price1))
+    d_plus = (d + v / 2) / math.sqrt(v)
+    d_minus = (d - v / 2) / math.sqrt(v)
+    if type_ == "call":
+        sign = 1
+    elif type_ == "put":
+        sign = -1
+    else:
+        raise ValueError(f"Option type unknown: {type_}")
+    return sign * price2 * norm.cdf(sign * d_plus) \
+        - sign * strike * price1 * norm.cdf(sign * d_minus)
+
+
+def call_put_delta(spot: typing.Union[float, np.ndarray],
+                   strike: float,
+                   event_idx: int,
+                   expiry_idx: int,
+                   maturity_idx: int,
+                   zcbond: zero_coupon_bond.ZCBondNew,
+                   v_eg: np.ndarray,
+                   type_: str) -> typing.Union[float, np.ndarray]:
+    """1st order price sensitivity wrt value of pseudo short rate.
+
+    Delta of European call or put option written on zero-coupon bond.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
+    D. Brigo & F. Mercurio 2007, section 3.3.
+
+    Args:
+        spot: Current value of pseudo short rate.
+        strike: Strike value of underlying zero-coupon bond.
+        event_idx: Index on event grid.
+        expiry_idx: Expiry index on event grid.
+        maturity_idx: Maturity index on event grid.
+        zcbond: Zero-coupon bond object.
+        v_eg:
+        type_: Type of European option, call or put. Default is call.
+
+    Returns:
+        Delta of call or put option.
+    """
+    # P(t,T): Zero-coupon bond price at time zero with maturity T.
+    zcbond.maturity_idx = expiry_idx
+    zcbond.initialization()
+    price1 = zcbond.price(spot, event_idx)
+    delta1 = zcbond.delta(spot, event_idx)
+    # P(t,T*): Zero-coupon bond price at time zero with maturity T*.
+    zcbond.maturity_idx = maturity_idx
+    zcbond.initialization()
+    price2 = zcbond.price(spot, event_idx)
+    delta2 = zcbond.delta(spot, event_idx)
+    # v-function.
+    v = v_eg[event_idx]
+    # d-function.
+    d = np.log(price2 / (strike * price1))
+    d_plus = (d + v / 2) / math.sqrt(v)
+    d_minus = (d - v / 2) / math.sqrt(v)
+    # Derivative of d-function.
+    d_delta = (delta2 / price2 - delta1 / price1) / math.sqrt(v)
+    if type_ == "call":
+        sign = 1
+    elif type_ == "put":
+        sign = -1
+    else:
+        raise ValueError(f"Option type unknown: {type_}")
+    first_terms = sign * delta2 * norm.cdf(sign * d_plus) \
+        - sign * strike * delta1 * norm.cdf(sign * d_minus)
+    last_terms = sign * price2 * norm.pdf(sign * d_plus) \
+        - sign * strike * price1 * norm.pdf(sign * d_minus)
+    last_terms *= sign * d_delta
+    return first_terms + last_terms
