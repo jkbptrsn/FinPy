@@ -1,6 +1,10 @@
 import math
-import numpy as np
+import typing
 
+import numpy as np
+from scipy.stats import norm
+
+from models.hull_white import zero_coupon_bond
 from utils import misc
 
 
@@ -63,7 +67,7 @@ def y_piecewise(kappa: float,
 
     Args:
         kappa: Speed of mean reversion.
-        vol: Volatility.
+        vol: Volatility on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
 
@@ -134,7 +138,7 @@ def g_constant(kappa: float,
 
     Args:
         kappa: Speed of mean reversion.
-        maturity_idx: Event grid index corresponding to maturity.
+        maturity_idx: Maturity index on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
 
@@ -161,7 +165,7 @@ def g_general(int_grid: np.ndarray,
         int_event_idx: Integration grid
         int_kappa_step: Step-wise integration of kappa on integration
             grid.
-        maturity_idx: Event grid index corresponding to maturity.
+        maturity_idx: Maturity index on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
 
@@ -185,3 +189,183 @@ def g_general(int_grid: np.ndarray,
     for event_idx, int_idx in enumerate(int_event_idx):
         g_eg[event_idx] = g_ig[int_idx]
     return g_eg, g_ig
+
+
+def v_constant(kappa: float,
+               vol: float,
+               expiry_idx: int,
+               maturity_idx: int,
+               event_grid: np.ndarray) -> np.ndarray:
+    """Calculate v-function on event grid until expiry.
+
+    Assuming that speed of mean reversion and volatility are constant.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+
+    Args:
+        kappa: Speed of mean reversion.
+        vol: Volatility.
+        expiry_idx: Expiry index on event grid.
+        maturity_idx: Maturity index on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        v-function.
+    """
+    expiry = event_grid[expiry_idx]
+    maturity = event_grid[maturity_idx]
+    factor1 = (1 - math.exp(-kappa * (maturity - expiry))) ** 2
+    factor2 = 1 - np.exp(-2 * kappa * (expiry - event_grid[:expiry_idx + 1]))
+    return vol ** 2 * factor1 * factor2 / (2 * kappa ** 3)
+
+
+def v_piecewise(kappa: float,
+                vol: np.ndarray,
+                expiry_idx: int,
+                maturity_idx: int,
+                event_grid: np.ndarray) -> np.ndarray:
+    """Calculate v-function on event grid until expiry.
+
+    Assuming that speed of mean reversion is constant and volatility is
+    piecewise constant. See L.B.G. Andersen & V.V. Piterbarg 2010,
+    proposition 4.5.1.
+
+    Args:
+        kappa: Speed of mean reversion.
+        vol: Volatility on event grid.
+        expiry_idx: Expiry index on event grid.
+        maturity_idx: Maturity index on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        v-function.
+    """
+    two_kappa = 2 * kappa
+    expiry = event_grid[expiry_idx]
+    maturity = event_grid[maturity_idx]
+    factor = (math.exp(-kappa * expiry) - math.exp(-kappa * maturity)) ** 2
+    factor /= kappa ** 2
+    # Event grid until expiry.
+    event_grid_expiry = event_grid[:expiry_idx + 1]
+    # Vol strip until expiry.
+    vol_expiry = vol[:expiry_idx + 1]
+    v_return = np.zeros(expiry_idx + 1)
+    for idx in range(expiry_idx):
+        vol_times = event_grid_expiry[idx:]
+        vol_values = vol_expiry[idx:]
+        v = np.exp(two_kappa * vol_times[1:]) \
+            - np.exp(two_kappa * vol_times[:-1])
+        v *= vol_values[:-1] ** 2 / two_kappa
+        v_return[idx] = factor * v.sum()
+    return v_return
+
+
+def call_put_price(spot: typing.Union[float, np.ndarray],
+                   strike: float,
+                   event_idx: int,
+                   expiry_idx: int,
+                   maturity_idx: int,
+                   zcbond: zero_coupon_bond.ZCBondNew,
+                   v_eg: np.ndarray,
+                   type_: str) -> typing.Union[float, np.ndarray]:
+    """Price function wrt value of pseudo short rate.
+
+    Price of European call or put option written on zero-coupon bond.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
+    D. Brigo & F. Mercurio 2007, section 3.3.
+
+    Args:
+        spot: Current value of pseudo short rate.
+        strike: Strike value of underlying zero-coupon bond.
+        event_idx: Index on event grid.
+        expiry_idx: Expiry index on event grid.
+        maturity_idx: Maturity index on event grid.
+        zcbond: Zero-coupon bond object.
+        v_eg:
+        type_: Type of European option, call or put. Default is call.
+
+    Returns:
+        Price of call or put option.
+    """
+    # P(t,T): Zero-coupon bond price at time zero with maturity T.
+    zcbond.maturity_idx = expiry_idx
+    zcbond.initialization()
+    price1 = zcbond.price(spot, event_idx)
+    # P(t,T*): Zero-coupon bond price at time zero with maturity T*.
+    zcbond.maturity_idx = maturity_idx
+    zcbond.initialization()
+    price2 = zcbond.price(spot, event_idx)
+    # v-function.
+    v = v_eg[event_idx]
+    # d-function.
+    d = np.log(price2 / (strike * price1))
+    d_plus = (d + v / 2) / math.sqrt(v)
+    d_minus = (d - v / 2) / math.sqrt(v)
+    if type_ == "call":
+        sign = 1
+    elif type_ == "put":
+        sign = -1
+    else:
+        raise ValueError(f"Option type unknown: {type_}")
+    return sign * price2 * norm.cdf(sign * d_plus) \
+        - sign * strike * price1 * norm.cdf(sign * d_minus)
+
+
+def call_put_delta(spot: typing.Union[float, np.ndarray],
+                   strike: float,
+                   event_idx: int,
+                   expiry_idx: int,
+                   maturity_idx: int,
+                   zcbond: zero_coupon_bond.ZCBondNew,
+                   v_eg: np.ndarray,
+                   type_: str) -> typing.Union[float, np.ndarray]:
+    """1st order price sensitivity wrt value of pseudo short rate.
+
+    Delta of European call or put option written on zero-coupon bond.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
+    D. Brigo & F. Mercurio 2007, section 3.3.
+
+    Args:
+        spot: Current value of pseudo short rate.
+        strike: Strike value of underlying zero-coupon bond.
+        event_idx: Index on event grid.
+        expiry_idx: Expiry index on event grid.
+        maturity_idx: Maturity index on event grid.
+        zcbond: Zero-coupon bond object.
+        v_eg:
+        type_: Type of European option, call or put. Default is call.
+
+    Returns:
+        Delta of call or put option.
+    """
+    # P(t,T): Zero-coupon bond price at time zero with maturity T.
+    zcbond.maturity_idx = expiry_idx
+    zcbond.initialization()
+    price1 = zcbond.price(spot, event_idx)
+    delta1 = zcbond.delta(spot, event_idx)
+    # P(t,T*): Zero-coupon bond price at time zero with maturity T*.
+    zcbond.maturity_idx = maturity_idx
+    zcbond.initialization()
+    price2 = zcbond.price(spot, event_idx)
+    delta2 = zcbond.delta(spot, event_idx)
+    # v-function.
+    v = v_eg[event_idx]
+    # d-function.
+    d = np.log(price2 / (strike * price1))
+    d_plus = (d + v / 2) / math.sqrt(v)
+    d_minus = (d - v / 2) / math.sqrt(v)
+    # Derivative of d-function.
+    d_delta = (delta2 / price2 - delta1 / price1) / math.sqrt(v)
+    if type_ == "call":
+        sign = 1
+    elif type_ == "put":
+        sign = -1
+    else:
+        raise ValueError(f"Option type unknown: {type_}")
+    first_terms = sign * delta2 * norm.cdf(sign * d_plus) \
+        - sign * strike * delta1 * norm.cdf(sign * d_minus)
+    last_terms = sign * price2 * norm.pdf(sign * d_plus) \
+        - sign * strike * price1 * norm.pdf(sign * d_minus)
+    last_terms *= sign * d_delta
+    return first_terms + last_terms

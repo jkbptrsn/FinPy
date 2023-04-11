@@ -278,16 +278,19 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         # y-function on integration grid.
         self.y_ig = None
 
-        self.model = global_types.Model.HULL_WHITE_1F
-        self.type = global_types.Instrument.ZERO_COUPON_BOND
+        self.initialization()
 
-        # Initialization
-        self._setup_int_grid()
-        self._setup_model_parameters()
+        self.model = global_types.Model.HULL_WHITE_1F
+        self.type = global_types.Instrument.EUROPEAN_CALL
 
     @property
     def maturity(self) -> float:
         return self.event_grid[self.maturity_idx]
+
+    def initialization(self):
+        """Initialization of instrument object."""
+        self._setup_int_grid()
+        self._setup_model_parameters()
 
     def _setup_int_grid(self):
         """Set up time grid for numerical integration."""

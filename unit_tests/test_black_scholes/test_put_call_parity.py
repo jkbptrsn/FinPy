@@ -3,8 +3,8 @@ import unittest
 
 import numpy as np
 
-from models.black_scholes import call
-from models.black_scholes import put
+from models.black_scholes import call_option as call
+from models.black_scholes import put_option as put
 
 
 class Parity(unittest.TestCase):
