@@ -26,7 +26,8 @@ def hyperbolic(x_min: float,
                shape: float = None):
     """Non-equidistant grid in 1-dimension.
 
-    Hyperbolic transformation. See, K.J. In 'T Hout and S. Foulon, 2010.
+    Hyperbolic sine transformation. See,
+    K.J. In 'T Hout and S. Foulon, 2010.
 
     Args:
         x_min: Left boundary of domain.
