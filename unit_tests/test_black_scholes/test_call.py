@@ -9,8 +9,8 @@ from models.black_scholes import binary_option as binary
 from numerics.fd import grid_generation as grid
 from utils import plots
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 
 class CallOption(unittest.TestCase):
