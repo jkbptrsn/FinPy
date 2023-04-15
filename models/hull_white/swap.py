@@ -163,6 +163,11 @@ class SwapNew:
         Returns:
             Swap price.
         """
+
+        # TODO: Test pricing function -- keep this version (extending to delta and gamma is easy)
+        # TODO: Test annuity and forward_swap_rate functions
+        # TODO: Calculate par rate
+
         # Remaining fixings.
         fixing_remaining = \
             self.fixing_schedule[self.fixing_schedule >= event_idx]
