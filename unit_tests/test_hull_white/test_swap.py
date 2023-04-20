@@ -29,7 +29,7 @@ class Swap(unittest.TestCase):
         # FD spatial grid.
         self.x_min = -0.15
         self.x_max = 0.15
-        self.x_steps = 51
+        self.x_steps = 11
         self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
 
@@ -45,10 +45,13 @@ class Swap(unittest.TestCase):
                                  self.time_dependence)
 
     def test_int_grid(self):
-        print(self.fixing_schedule)
-        print(self.payment_schedule)
-        print(self.event_grid)
-        print(self.swap.price(self.x_grid, 0))
+
+        price = self.swap.price(self.x_grid, 0)
+        annuity = self.swap.annuity(self.x_grid, 0)
+        forward = self.swap.forward_swap_rate(self.x_grid, 0)
+        price_new = annuity * (forward - self.fixed_rate)
+        for p1, p2 in zip(price, price_new):
+            print(p1, p2, p1 - p2)
 
 
 if __name__ == '__main__':
