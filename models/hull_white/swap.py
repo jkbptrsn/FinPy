@@ -2,6 +2,7 @@ import typing
 
 import numpy as np
 
+from models import bonds
 from models.hull_white import sde
 from models.hull_white import zero_coupon_bond
 from models.hull_white import zero_coupon_bond as zcbond
@@ -66,7 +67,7 @@ class Swap(sde.SDE):
         return swap_price
 
 
-class SwapNew:
+class SwapNew(bonds.VanillaBondAnalytical1F):
     """Fixed-for-floating swap in 1-factor Hull-White model.
 
     Fixed-for-floating swap based on "simple rate" fixing. Priced from
@@ -96,6 +97,7 @@ class SwapNew:
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
                  int_step_size: float = 1 / 365):
+        super().__init__()
         self.kappa = kappa
         self.vol = vol
         self.discount_curve = discount_curve
@@ -129,6 +131,8 @@ class SwapNew:
             zcbond.ZCBondNew(kappa, vol, discount_curve, event_grid.size - 1,
                              event_grid, time_dependence, int_step_size)
 
+        self.initialization()
+
         self.model = global_types.Model.HULL_WHITE_1F
         self.type = global_types.Instrument.SWAP
 
@@ -140,18 +144,30 @@ class SwapNew:
         self.forward_rate_eg = self.zcbond.forward_rate_eg
         self.y_eg = self.zcbond.y_eg
 
+    def maturity(self) -> float:
+        return self.event_grid[self.payment_schedule[-1]]
+
     def payoff(self,
                spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
         Args:
-            spot: TODO...
+            spot: Current value of pseudo short rate.
 
         Returns:
             Payoff.
         """
-        pass
+        # Price, at last fixing date, of zero-coupon bond maturing at
+        # last payment date.
+        fix_idx = self.fixing_schedule[-1]
+        pay_idx = self.payment_schedule[-1]
+        self.zcbond.maturity_idx = pay_idx
+        bond_price = self.zcbond.price(spot, fix_idx)
+        # Tenor.
+        tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
+        simple_rate = self.simple_forward_rate(bond_price, tenor)
+        return tenor * (simple_rate - self.fixed_rate)
 
     def price(self,
               spot: (float, np.ndarray),
@@ -204,7 +220,32 @@ class SwapNew:
         Returns:
             Delta.
         """
-        pass
+        self.update_remaining(event_idx)
+        swap_delta = 0
+        # Check if first payment has been fixed.
+        if self.slice_start == 1:
+            pay_idx = self.payment_remaining[0]
+            # Delta of zero-coupon bond maturing at pay_idx.
+            self.zcbond.maturity_idx = pay_idx
+            bond_delta = self.zcbond.delta(spot, event_idx)
+            # Tenor.
+            tenor = self.event_grid[pay_idx] - self.event_grid[event_idx]
+            swap_delta = 1 - (1 + tenor * self.fixed_rate) * bond_delta
+        for fix_idx, pay_idx in zip(self.fixing_remaining,
+                                    self.payment_remaining[self.slice_start:]):
+            # Delta of zero-coupon bond maturing at fix_idx.
+            self.zcbond.maturity_idx = fix_idx
+            bond_delta = self.zcbond.delta(spot, event_idx)
+            swap_delta += bond_delta
+            # Delta of zero-coupon bond maturing at pay_idx.
+            self.zcbond.maturity_idx = pay_idx
+            bond_delta = self.zcbond.delta(spot, event_idx)
+            # Tenor.
+            tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
+            swap_delta -= (1 + tenor * self.fixed_rate) * bond_delta
+        # Reset maturity index.
+        self.zcbond.maturity_idx = self.event_grid.size - 1
+        return swap_delta
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
@@ -218,7 +259,32 @@ class SwapNew:
         Returns:
             Gamma.
         """
-        pass
+        self.update_remaining(event_idx)
+        swap_gamma = 0
+        # Check if first payment has been fixed.
+        if self.slice_start == 1:
+            pay_idx = self.payment_remaining[0]
+            # Gamma of zero-coupon bond maturing at pay_idx.
+            self.zcbond.maturity_idx = pay_idx
+            bond_gamma = self.zcbond.gamma(spot, event_idx)
+            # Tenor.
+            tenor = self.event_grid[pay_idx] - self.event_grid[event_idx]
+            swap_gamma = 1 - (1 + tenor * self.fixed_rate) * bond_gamma
+        for fix_idx, pay_idx in zip(self.fixing_remaining,
+                                    self.payment_remaining[self.slice_start:]):
+            # Gamma of zero-coupon bond maturing at fix_idx.
+            self.zcbond.maturity_idx = fix_idx
+            bond_gamma = self.zcbond.gamma(spot, event_idx)
+            swap_gamma += bond_gamma
+            # Gamma of zero-coupon bond maturing at pay_idx.
+            self.zcbond.maturity_idx = pay_idx
+            bond_gamma = self.zcbond.gamma(spot, event_idx)
+            # Tenor.
+            tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
+            swap_gamma -= (1 + tenor * self.fixed_rate) * bond_gamma
+        # Reset maturity index.
+        self.zcbond.maturity_idx = self.event_grid.size - 1
+        return swap_gamma
 
     def theta(self,
               spot: typing.Union[float, np.ndarray],
@@ -236,7 +302,43 @@ class SwapNew:
 
     def fd_solve(self):
         """Run finite difference solver on event grid."""
-        pass
+        self.fd.set_propagator()
+
+        print(self.event_grid)
+
+#        self.fd.solution = self.payoff(self.fd.grid)
+
+        for count, dt in enumerate(np.flip(np.diff(self.event_grid))):
+            # Time index at time "t", when moving from "t+1" to "t".
+            idx = -2 - count
+            # Update drift, diffusion, and rate functions.
+            drift = self.y_eg[idx] - self.kappa_eg[idx] * self.fd.grid
+            diffusion = self.vol_eg[idx] + 0 * self.fd.grid
+            rate = self.fd.grid + self.forward_rate_eg[idx]
+            self.fd.set_drift(drift)
+            self.fd.set_diffusion(diffusion)
+            self.fd.set_rate(rate)
+
+            # Payments.
+            pay_idx = self.event_grid.size - 1 - count
+            if pay_idx in self.payment_schedule:
+                fix_idx = \
+                    self.fixing_schedule[self.fixing_schedule < pay_idx][-1]
+                self.zcbond.maturity_idx = pay_idx
+                bond_price = self.zcbond.price(self.fd.grid, fix_idx)
+                # Tenor.
+                tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
+
+                print(count, fix_idx, pay_idx, tenor)
+
+                simple_rate = self.simple_forward_rate(bond_price, tenor)
+
+                print(simple_rate)
+
+                self.fd.solution += tenor * (simple_rate - self.fixed_rate)
+
+            # Propagation for one time step.
+            self.fd.propagation(dt, True)
 
     def mc_exact_setup(self):
         """Setup exact Monte-Carlo solver."""
@@ -314,6 +416,8 @@ class SwapNew:
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
             pvbp += tenor * bond_price
+        # Reset maturity index.
+        self.zcbond.maturity_idx = self.event_grid.size - 1
         return pvbp
 
     def par_rate(self,
@@ -356,6 +460,8 @@ class SwapNew:
             rate = \
                 self.simple_forward_rate(bond_price_pay, tenor, bond_price_fix)
             forward_rate += tenor * bond_price_pay * rate
+        # Reset maturity index.
+        self.zcbond.maturity_idx = self.event_grid.size - 1
         return forward_rate / self.annuity(spot, event_idx)
 
     @staticmethod
