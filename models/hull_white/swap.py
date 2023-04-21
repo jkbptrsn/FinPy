@@ -69,7 +69,7 @@ class Swap(sde.SDE):
 class SwapNew:
     """Fixed-for-floating swap in 1-factor Hull-White model.
 
-    Fixed-for-floating swap based on LIBOR type rate fixing. Priced from
+    Fixed-for-floating swap based on "simple rate" fixing. Priced from
     the point of view of the fixed rate payer. See
     L.B.G. Andersen & V.V. Piterbarg 2010, section 5.5.
 
@@ -121,6 +121,8 @@ class SwapNew:
         self.fixing_remaining = None
         # Remaining payment dates.
         self.payment_remaining = None
+        # First index for slicing of remaining payment dates.
+        self.slice_start = None
 
         # Underlying zero-coupon bond.
         self.zcbond = \
@@ -163,22 +165,19 @@ class SwapNew:
         Returns:
             Swap price.
         """
-
-        # TODO: Test pricing function -- keep this version (extending to delta and gamma is easy)
-        # TODO: Test annuity and forward_swap_rate functions
-        # TODO: Calculate par rate
-
         self.update_remaining(event_idx)
-
-#        # Remaining fixings.
-#        fixing_remaining = \
-#            self.fixing_schedule[self.fixing_schedule >= event_idx]
-#        # Remaining payments.
-#        payment_remaining = self.payment_schedule[-fixing_remaining.size:]
-
         swap_price = 0
-        for fix_idx, pay_idx in \
-                zip(self.fixing_remaining, self.payment_remaining):
+        # Check if first payment has been fixed.
+        if self.slice_start == 1:
+            pay_idx = self.payment_remaining[0]
+            # Price of zero-coupon bond maturing at pay_idx.
+            self.zcbond.maturity_idx = pay_idx
+            bond_price = self.zcbond.price(spot, event_idx)
+            # Tenor.
+            tenor = self.event_grid[pay_idx] - self.event_grid[event_idx]
+            swap_price = 1 - (1 + tenor * self.fixed_rate) * bond_price
+        for fix_idx, pay_idx in zip(self.fixing_remaining,
+                                    self.payment_remaining[self.slice_start:]):
             # Price of zero-coupon bond maturing at fix_idx.
             self.zcbond.maturity_idx = fix_idx
             bond_price = self.zcbond.price(spot, event_idx)
@@ -272,17 +271,22 @@ class SwapNew:
         Args:
             event_idx: Index on event grid.
         """
-        # Remaining fixings.
+        # Remaining fixing dates.
         self.fixing_remaining = \
             self.fixing_schedule[self.fixing_schedule >= event_idx]
-        # Remaining payments.
+        # Remaining payment dates.
         self.payment_remaining = \
-            self.payment_schedule[-self.fixing_remaining.size:]
+            self.payment_schedule[self.payment_schedule >= event_idx]
+        # First index for slicing of remaining payment dates.
+        if self.fixing_remaining.size < self.payment_remaining.size:
+            self.slice_start = 1
+        else:
+            self.slice_start = 0
 
     def annuity(self,
                 spot: (float, np.ndarray),
                 event_idx: int) -> (float, np.ndarray):
-        """Present Value of a Basis Point (PVBP).
+        """Calculate Present Value of a Basis Point (PVBP).
 
         Args:
             spot: Current value of pseudo short rate.
@@ -291,12 +295,19 @@ class SwapNew:
         Returns:
             PVBP.
         """
-
         self.update_remaining(event_idx)
-
         pvbp = 0
-        for fix_idx, pay_idx in \
-                zip(self.fixing_remaining, self.payment_remaining):
+        # Check if first payment has been fixed.
+        if self.slice_start == 1:
+            pay_idx = self.payment_remaining[0]
+            # Price of zero-coupon bond maturing at pay_idx.
+            self.zcbond.maturity_idx = pay_idx
+            bond_price = self.zcbond.price(spot, event_idx)
+            # Tenor.
+            tenor = self.event_grid[pay_idx] - self.event_grid[event_idx]
+            pvbp = tenor * bond_price
+        for fix_idx, pay_idx in zip(self.fixing_remaining,
+                                    self.payment_remaining[self.slice_start:]):
             # Price of zero-coupon bond maturing at pay_idx.
             self.zcbond.maturity_idx = pay_idx
             bond_price = self.zcbond.price(spot, event_idx)
@@ -305,37 +316,68 @@ class SwapNew:
             pvbp += tenor * bond_price
         return pvbp
 
-    def forward_swap_rate(self,
-                          spot: (float, np.ndarray),
-                          event_idx: int) -> (float, np.ndarray):
-        """Forward swap rate...
+    def par_rate(self,
+                 spot: (float, np.ndarray),
+                 event_idx: int,
+                 floating_rate_fixed: float = 0) -> (float, np.ndarray):
+        """Calculate par rate, also referred to as forward swap rate.
 
         Args:
             spot: Current value of pseudo short rate.
             event_idx: Index on event grid.
+            floating_rate_fixed: Floating rate fixed for first payment
+                date, if event_idx is larger than first fixing index.
 
         Returns:
-            ...
+            Par rate.
         """
-
         self.update_remaining(event_idx)
-
-        forward = 0
-        for fix_idx, pay_idx in \
-                zip(self.fixing_remaining, self.payment_remaining):
-
+        forward_rate = 0
+        # Check if first payment has been fixed.
+        if self.slice_start == 1:
+            pay_idx = self.payment_remaining[0]
+            # Price of zero-coupon bond maturing at pay_idx.
+            self.zcbond.maturity_idx = pay_idx
+            bond_price = self.zcbond.price(spot, event_idx)
+            # Tenor.
+            tenor = self.event_grid[pay_idx] - self.event_grid[event_idx]
+            forward_rate = tenor * bond_price * floating_rate_fixed
+        for fix_idx, pay_idx in zip(self.fixing_remaining,
+                                    self.payment_remaining[self.slice_start:]):
             # Price of zero-coupon bond maturing at fix_idx.
             self.zcbond.maturity_idx = fix_idx
             bond_price_fix = self.zcbond.price(spot, event_idx)
             # Price of zero-coupon bond maturing at pay_idx.
             self.zcbond.maturity_idx = pay_idx
             bond_price_pay = self.zcbond.price(spot, event_idx)
-
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
+            # Simple forward_rate rate.
+            rate = \
+                self.simple_forward_rate(bond_price_pay, tenor, bond_price_fix)
+            forward_rate += tenor * bond_price_pay * rate
+        return forward_rate / self.annuity(spot, event_idx)
 
-            # "Libor rate".
-            rate = (bond_price_fix - bond_price_pay) / (tenor * bond_price_pay)
-            forward += tenor * bond_price_pay * rate
+    @staticmethod
+    def simple_forward_rate(bond_price_t2: (float, np.ndarray),
+                            tau: float,
+                            bond_price_t1: (float, np.ndarray) = 1.0) \
+            -> (float, np.ndarray):
+        """Calculate simple forward_rate rate.
 
-        return forward / self.annuity(spot, event_idx)
+        The simple forward rate, from time t1 to time t2, at time t is
+        defined as:
+            (1 + (t2 - t1) * forward_rate(t, t1, t2)) =
+                bond_price_t1(t) / bond_price_t2(t).
+        See L.B.G. Andersen & V.V. Piterbarg 2010, section 4.1.
+
+        Args:
+            bond_price_t2: Zero-coupon bond price at time t2.
+            tau: Time interval between t1 and t2.
+            bond_price_t1: Zero-coupon bond price at time t1.
+                Default is 1, in case that t > t1.
+
+        Returns:
+            Simple forward rate.
+        """
+        return (bond_price_t1 / bond_price_t2 - 1) / tau
