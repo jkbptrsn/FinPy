@@ -281,7 +281,7 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         self.initialization()
 
         self.model = global_types.Model.HULL_WHITE_1F
-        self.type = global_types.Instrument.EUROPEAN_CALL
+        self.type = global_types.Instrument.ZERO_COUPON_BOND
 
     @property
     def maturity(self) -> float:

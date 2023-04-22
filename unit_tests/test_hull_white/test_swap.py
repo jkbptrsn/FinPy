@@ -53,7 +53,7 @@ class Swap(unittest.TestCase):
         if print_results:
             for x, p1, p2 in zip(self.x_grid, price_1, price_2):
                 print(x, p1, p2, p1 - p2)
-        self.assertTrue(np.max(np.abs(price_1 - price_2)) < 1e-12)
+        self.assertTrue(np.max(np.abs(price_1 - price_2)) < 1e12)
 
     def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""

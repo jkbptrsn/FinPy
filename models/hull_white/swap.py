@@ -131,6 +131,8 @@ class SwapNew(bonds.VanillaBondAnalytical1F):
             zcbond.ZCBondNew(kappa, vol, discount_curve, event_grid.size - 1,
                              event_grid, time_dependence, int_step_size)
 
+        # TODO: Necessary to rerun initialization, when maturity of zcbond is changed?
+
         self.initialization()
 
         self.model = global_types.Model.HULL_WHITE_1F
@@ -188,6 +190,7 @@ class SwapNew(bonds.VanillaBondAnalytical1F):
             pay_idx = self.payment_remaining[0]
             # Price of zero-coupon bond maturing at pay_idx.
             self.zcbond.maturity_idx = pay_idx
+            self.zcbond.initialization()
             bond_price = self.zcbond.price(spot, event_idx)
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[event_idx]
@@ -196,16 +199,19 @@ class SwapNew(bonds.VanillaBondAnalytical1F):
                                     self.payment_remaining[self.slice_start:]):
             # Price of zero-coupon bond maturing at fix_idx.
             self.zcbond.maturity_idx = fix_idx
+            self.zcbond.initialization()
             bond_price = self.zcbond.price(spot, event_idx)
             swap_price += bond_price
             # Price of zero-coupon bond maturing at pay_idx.
             self.zcbond.maturity_idx = pay_idx
+            self.zcbond.initialization()
             bond_price = self.zcbond.price(spot, event_idx)
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
             swap_price -= (1 + tenor * self.fixed_rate) * bond_price
         # Reset maturity index.
         self.zcbond.maturity_idx = self.event_grid.size - 1
+        self.zcbond.initialization()
         return swap_price
 
     def delta(self,
@@ -227,6 +233,7 @@ class SwapNew(bonds.VanillaBondAnalytical1F):
             pay_idx = self.payment_remaining[0]
             # Delta of zero-coupon bond maturing at pay_idx.
             self.zcbond.maturity_idx = pay_idx
+            self.zcbond.initialization()
             bond_delta = self.zcbond.delta(spot, event_idx)
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[event_idx]
@@ -235,16 +242,19 @@ class SwapNew(bonds.VanillaBondAnalytical1F):
                                     self.payment_remaining[self.slice_start:]):
             # Delta of zero-coupon bond maturing at fix_idx.
             self.zcbond.maturity_idx = fix_idx
+            self.zcbond.initialization()
             bond_delta = self.zcbond.delta(spot, event_idx)
             swap_delta += bond_delta
             # Delta of zero-coupon bond maturing at pay_idx.
             self.zcbond.maturity_idx = pay_idx
+            self.zcbond.initialization()
             bond_delta = self.zcbond.delta(spot, event_idx)
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
             swap_delta -= (1 + tenor * self.fixed_rate) * bond_delta
         # Reset maturity index.
         self.zcbond.maturity_idx = self.event_grid.size - 1
+        self.zcbond.initialization()
         return swap_delta
 
     def gamma(self,
@@ -266,6 +276,7 @@ class SwapNew(bonds.VanillaBondAnalytical1F):
             pay_idx = self.payment_remaining[0]
             # Gamma of zero-coupon bond maturing at pay_idx.
             self.zcbond.maturity_idx = pay_idx
+            self.zcbond.initialization()
             bond_gamma = self.zcbond.gamma(spot, event_idx)
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[event_idx]
@@ -274,16 +285,19 @@ class SwapNew(bonds.VanillaBondAnalytical1F):
                                     self.payment_remaining[self.slice_start:]):
             # Gamma of zero-coupon bond maturing at fix_idx.
             self.zcbond.maturity_idx = fix_idx
+            self.zcbond.initialization()
             bond_gamma = self.zcbond.gamma(spot, event_idx)
             swap_gamma += bond_gamma
             # Gamma of zero-coupon bond maturing at pay_idx.
             self.zcbond.maturity_idx = pay_idx
+            self.zcbond.initialization()
             bond_gamma = self.zcbond.gamma(spot, event_idx)
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
             swap_gamma -= (1 + tenor * self.fixed_rate) * bond_gamma
         # Reset maturity index.
         self.zcbond.maturity_idx = self.event_grid.size - 1
+        self.zcbond.initialization()
         return swap_gamma
 
     def theta(self,
@@ -306,7 +320,7 @@ class SwapNew(bonds.VanillaBondAnalytical1F):
 
         print(self.event_grid)
 
-#        self.fd.solution = self.payoff(self.fd.grid)
+        self.fd.solution = 0 * self.fd.grid
 
         for count, dt in enumerate(np.flip(np.diff(self.event_grid))):
             # Time index at time "t", when moving from "t+1" to "t".
@@ -320,11 +334,12 @@ class SwapNew(bonds.VanillaBondAnalytical1F):
             self.fd.set_rate(rate)
 
             # Payments.
-            pay_idx = self.event_grid.size - 1 - count
-            if pay_idx in self.payment_schedule:
-                fix_idx = \
-                    self.fixing_schedule[self.fixing_schedule < pay_idx][-1]
+            fix_idx = (self.event_grid.size - 1) - count
+            if fix_idx in self.fixing_schedule:
+                pay_idx = \
+                    self.payment_schedule[self.payment_schedule > fix_idx][0]
                 self.zcbond.maturity_idx = pay_idx
+                self.zcbond.initialization()
                 bond_price = self.zcbond.price(self.fd.grid, fix_idx)
                 # Tenor.
                 tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
@@ -333,9 +348,9 @@ class SwapNew(bonds.VanillaBondAnalytical1F):
 
                 simple_rate = self.simple_forward_rate(bond_price, tenor)
 
-                print(simple_rate)
+                discount = bond_price
 
-                self.fd.solution += tenor * (simple_rate - self.fixed_rate)
+                self.fd.solution += discount * tenor * (simple_rate - self.fixed_rate)
 
             # Propagation for one time step.
             self.fd.propagation(dt, True)
