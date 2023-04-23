@@ -108,7 +108,7 @@ class Caplet(sde.SDE):
 
 
 class CapletNew(options.EuropeanOptionAnalytical1F):
-    """Caplet in 1-factor Hull-White model.
+    """Caplet/floorlet in 1-factor Hull-White model.
 
     See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
     D. Brigo & F. Mercurio 2007, section 3.3.
@@ -119,9 +119,10 @@ class CapletNew(options.EuropeanOptionAnalytical1F):
         kappa: Speed of mean reversion.
         vol: Volatility.
         discount_curve: Discount curve represented on event grid.
-        cap_rate: Capped value of simple forward rate.
-        fixing_idx: Fixing index on event grid. Expiry of call option.
+        strike_rate: Cap or floor rate.
+        fixing_idx: Fixing index on event grid.
         payment_idx: Payment index on event grid.
+        cap_or_floor: Caplet or floorlet. Default is caplet.
         event_grid: Event dates represented as year fractions from as-of
             date.
         int_step_size: Integration/propagation step size represented as
@@ -132,20 +133,22 @@ class CapletNew(options.EuropeanOptionAnalytical1F):
                  kappa: misc.DiscreteFunc,
                  vol: misc.DiscreteFunc,
                  discount_curve: misc.DiscreteFunc,
-                 cap_rate: float,
+                 strike_rate: float,
                  fixing_idx: int,
                  payment_idx: int,
                  event_grid: np.ndarray,
+                 cap_or_floor: str = "caplet",
                  time_dependence: str = "piecewise",
                  int_step_size: float = 1 / 365):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
         self.discount_curve = discount_curve
-        self.cap_rate = cap_rate
+        self.strike_rate = strike_rate
         self.fixing_idx = fixing_idx
         self.payment_idx = payment_idx
         self.event_grid = event_grid
+        self.cap_or_floor = cap_or_floor
         self.time_dependence = time_dependence
         self.int_step_size = int_step_size
 
@@ -161,7 +164,6 @@ class CapletNew(options.EuropeanOptionAnalytical1F):
         self.y_eg = None
         # v-function on event grid.
         self.v_eg = None
-
         # Zero-coupon bond object used in analytical pricing.
         self.zcbond = \
             zcbond.ZCBondNew(kappa, vol, discount_curve, fixing_idx,
@@ -170,7 +172,12 @@ class CapletNew(options.EuropeanOptionAnalytical1F):
         self.initialization()
 
         self.model = global_types.Model.HULL_WHITE_1F
-        self.type = global_types.Instrument.CAPLET
+        if self.cap_or_floor == "caplet":
+            self.type = global_types.Instrument.CAPLET
+        elif self.cap_or_floor == "floorlet":
+            self.type = global_types.Instrument.FLOORLET
+        else:
+            raise ValueError(f"Unknown instrument type: {self.cap_or_floor}")
 
     # TODO: Expiry corresponds actually to the payment date.
     #  Maybe a new base call for options?
@@ -225,21 +232,26 @@ class CapletNew(options.EuropeanOptionAnalytical1F):
 
         Args:
             spot: Current value of pseudo short rate.
-            discounting: ...
+            discounting: Do analytical discounting from payment date to
+                fixing date. Default is false.
 
         Returns:
-            Payoff at payment date.
+            Payoff.
         """
-        # P(t_fixing, t_fixing). TODO: is one?
-        price1 = self.zcbond_price(spot, self.fixing_idx, self.fixing_idx)
         # P(t_fixing, t_payment).
-        price2 = self.zcbond_price(spot, self.fixing_idx, self.payment_idx)
+        price = self.zcbond_price(spot, self.fixing_idx, self.payment_idx)
         # Simple forward rate at t_fixing for (t_fixing, t_payment).
-        simple_rate = self.simple_forward_rate(price2, self.tenor, price1)
+        simple_rate = self.simple_forward_rate(price, self.tenor)
         # Payoff.
-        _payoff = self.tenor * np.maximum(simple_rate - self.cap_rate, 0)
+        if self.cap_or_floor == "caplet":
+            _payoff = \
+                self.tenor * np.maximum(simple_rate - self.strike_rate, 0)
+        else:
+            _payoff = \
+                self.tenor * np.maximum(self.strike_rate - simple_rate, 0)
+        # Do analytical discounting from payment date to fixing date.
         if discounting:
-            return _payoff * price2 / price1
+            return _payoff * price
         else:
             return _payoff
 
@@ -255,25 +267,23 @@ class CapletNew(options.EuropeanOptionAnalytical1F):
         Returns:
             Price.
         """
-        # P(t,T): Zero-coupon bond price at time t with maturity T.
-        self.zcbond.maturity_idx = self.fixing_idx
-        self.zcbond.initialization()
-        price1 = self.zcbond.price(spot, event_idx)
-        # P(t,T + tau): Zero-coupon bond price at time t with maturity
-        # T + tau.
-        self.zcbond.maturity_idx = self.payment_idx
-        self.zcbond.initialization()
-        price2 = self.zcbond.price(spot, event_idx)
-        # Tenor.
-        tenor = self.payment_event - self.fixing_event
+        # P(t, t_fixing).
+        price1 = self.zcbond_price(spot, event_idx, self.fixing_idx)
+        # P(t, t_payment).
+        price2 = self.zcbond_price(spot, event_idx, self.payment_idx)
         # v-function.
         v = self.v_eg[event_idx]
         # d-function.
-        d = np.log((1 + self.cap_rate * tenor) * price2 / price1)
+        d = np.log((1 + self.strike_rate * self.tenor) * price2 / price1)
         d_plus = (d + v / 2) / math.sqrt(v)
         d_minus = (d - v / 2) / math.sqrt(v)
-        return price1 * norm.cdf(-d_minus) \
-            - (1 + self.cap_rate * tenor) * price2 * norm.cdf(-d_plus)
+        if self.cap_or_floor == "caplet":
+            sign = 1
+        else:
+            sign = -1
+        factor = (1 + self.strike_rate * self.tenor)
+        return sign * price1 * norm.cdf(-sign * d_minus) \
+            - sign * factor * price2 * norm.cdf(-sign * d_plus)
 
     def delta(self,
               spot: typing.Union[float, np.ndarray],
@@ -287,7 +297,31 @@ class CapletNew(options.EuropeanOptionAnalytical1F):
         Returns:
             Delta.
         """
-        pass
+        # P(t, t_fixing).
+        price1 = self.zcbond_price(spot, event_idx, self.fixing_idx)
+        delta1 = self.zcbond_delta(spot, event_idx, self.fixing_idx)
+        # P(t, t_payment).
+        price2 = self.zcbond_price(spot, event_idx, self.payment_idx)
+        delta2 = self.zcbond_delta(spot, event_idx, self.payment_idx)
+        # v-function.
+        v = self.v_eg[event_idx]
+        # d-function.
+        d = np.log((1 + self.strike_rate * self.tenor) * price2 / price1)
+        d_plus = (d + v / 2) / math.sqrt(v)
+        d_minus = (d - v / 2) / math.sqrt(v)
+        # Derivative of d-function.
+        d_delta = (delta2 / price2 - delta1 / price1) / math.sqrt(v)
+        if self.cap_or_floor == "caplet":
+            sign = 1
+        else:
+            sign = -1
+        factor = (1 + self.strike_rate * self.tenor)
+        first_terms = sign * delta1 * norm.cdf(-sign * d_minus) \
+            - sign * factor * delta2 * norm.cdf(-sign * d_plus)
+        last_terms = sign * price1 * norm.pdf(-sign * d_minus) \
+            - sign * factor * price2 * norm.pdf(-sign * d_plus)
+        last_terms *= sign * d_delta
+        return first_terms + last_terms
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
@@ -320,9 +354,9 @@ class CapletNew(options.EuropeanOptionAnalytical1F):
     def fd_solve(self):
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
-
+        # Payoff at payment event, discount to fixing event.
         self.fd.solution = self.payoff(self.fd.grid, True)
-
+        # Numerical propagation from fixing event.
         time_steps = np.flip(np.diff(self.event_grid[:self.fixing_idx + 1]))
         for count, dt in enumerate(time_steps):
             # Update drift, diffusion, and rate functions.
@@ -364,9 +398,9 @@ class CapletNew(options.EuropeanOptionAnalytical1F):
         pass
 
     def zcbond_price(self,
-                     spot: (float, np.ndarray),
+                     spot: typing.Union[float, np.ndarray],
                      event_idx: int,
-                     maturity_idx: int) -> (float, np.ndarray):
+                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
         """Price of zero-coupon bond.
 
         Args:
@@ -382,23 +416,42 @@ class CapletNew(options.EuropeanOptionAnalytical1F):
             self.zcbond.initialization()
         return self.zcbond.price(spot, event_idx)
 
+    def zcbond_delta(self,
+                     spot: typing.Union[float, np.ndarray],
+                     event_idx: int,
+                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+        """Delta of zero-coupon bond.
+
+        Args:
+            spot: Current value of pseudo short rate.
+            event_idx: Index on event grid.
+            maturity_idx: Maturity index on event grid.
+
+        Returns:
+            Zero-coupon bond delta.
+        """
+        if self.zcbond.maturity_idx != maturity_idx:
+            self.zcbond.maturity_idx = maturity_idx
+            self.zcbond.initialization()
+        return self.zcbond.delta(spot, event_idx)
+
     @staticmethod
-    def simple_forward_rate(bond_price_t2: (float, np.ndarray),
+    def simple_forward_rate(bond_price_t2: typing.Union[float, np.ndarray],
                             tau: float,
-                            bond_price_t1: (float, np.ndarray) = 1.0) \
-            -> (float, np.ndarray):
+                            bond_price_t1:
+                            typing.Union[float, np.ndarray] = 1.0) \
+            -> typing.Union[float, np.ndarray]:
         """Calculate simple forward rate.
 
-        The simple forward rate, from time t1 to time t2, at time t is
-        defined as:
+        The simple forward rate at time t in (t1, t2) is defined as:
             (1 + (t2 - t1) * forward_rate(t, t1, t2)) =
                 bond_price_t1(t) / bond_price_t2(t).
         See L.B.G. Andersen & V.V. Piterbarg 2010, section 4.1.
 
         Args:
-            bond_price_t2: Zero-coupon bond price at time t2.
+            bond_price_t2: Price of zero-coupon bond with maturity t2.
             tau: Time interval between t1 and t2.
-            bond_price_t1: Zero-coupon bond price at time t1.
+            bond_price_t1: Price of zero-coupon bond with maturity t1.
                 Default is 1, in case that t > t1.
 
         Returns:
