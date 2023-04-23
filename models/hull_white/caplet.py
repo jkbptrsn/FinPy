@@ -361,8 +361,8 @@ class CapletNew(options.EuropeanOptionAnalytical1F):
         for count, dt in enumerate(time_steps):
             # Update drift, diffusion, and rate functions.
             event_idx = (self.fixing_idx - 1) - count
-            drift = self.y_eg[event_idx] \
-                - self.kappa_eg[event_idx] * self.fd.grid
+            drift = \
+                self.y_eg[event_idx] - self.kappa_eg[event_idx] * self.fd.grid
             diffusion = self.vol_eg[event_idx] + 0 * self.fd.grid
             rate = self.fd.grid + self.forward_rate_eg[event_idx]
             self.fd.set_drift(drift)
