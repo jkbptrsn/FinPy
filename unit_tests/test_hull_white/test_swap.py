@@ -8,7 +8,7 @@ from unit_tests.test_hull_white import input
 from utils import misc
 from utils import plots
 
-plot_results = True
+plot_results = False
 print_results = False
 
 
