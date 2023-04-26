@@ -107,8 +107,8 @@ class Caplet(sde.SDE):
                * norm.cdf(-d_plus))
 
 
-class CapletNew(options.EuropeanOptionAnalytical1F):
-    """Caplet/floorlet in 1-factor Hull-White model.
+class CapletFloorlet(options.EuropeanOptionAnalytical1F):
+    """Caplet or floorlet in 1-factor Hull-White model.
 
     See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
     D. Brigo & F. Mercurio 2007, section 3.3.

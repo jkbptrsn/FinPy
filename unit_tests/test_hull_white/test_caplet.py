@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from models.hull_white import misc as misc_hw
-from models.hull_white import caplet
+from models.hull_white import caplet_floorlet as cf_hw
 from unit_tests.test_hull_white import input
 from utils import misc
 from utils import plots
@@ -40,26 +40,26 @@ class CapletFloorlet(unittest.TestCase):
         self.time_dependence = "piecewise"
 
         # Caplet.
-        self.caplet = caplet.CapletNew(self.kappa,
-                                       self.vol,
-                                       self.discount_curve,
-                                       self.strike_rate,
-                                       self.fixing_idx,
-                                       self.payment_idx,
-                                       self.event_grid,
-                                       "caplet",
-                                       self.time_dependence)
+        self.caplet = cf_hw.CapletFloorlet(self.kappa,
+                                           self.vol,
+                                           self.discount_curve,
+                                           self.strike_rate,
+                                           self.fixing_idx,
+                                           self.payment_idx,
+                                           self.event_grid,
+                                           "caplet",
+                                           self.time_dependence)
 
         # Floorlet.
-        self.floorlet = caplet.CapletNew(self.kappa,
-                                         self.vol,
-                                         self.discount_curve,
-                                         self.strike_rate,
-                                         self.fixing_idx,
-                                         self.payment_idx,
-                                         self.event_grid,
-                                         "floorlet",
-                                         self.time_dependence)
+        self.floorlet = cf_hw.CapletFloorlet(self.kappa,
+                                             self.vol,
+                                             self.discount_curve,
+                                             self.strike_rate,
+                                             self.fixing_idx,
+                                             self.payment_idx,
+                                             self.event_grid,
+                                             "floorlet",
+                                             self.time_dependence)
 
     def test_theta_method_caplet(self):
         """Finite difference pricing of caplet."""
