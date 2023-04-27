@@ -5,6 +5,7 @@ import numpy as np
 
 from models import options
 from models.hull_white import misc as misc_hw
+from models.hull_white import caplet_floorlet as xlet
 from models.hull_white import zero_coupon_bond as zcbond
 from utils import global_types
 from utils import misc
@@ -68,17 +69,110 @@ class CapFloor(options.EuropeanOptionAnalytical1F):
         # v-function on event grid.
         self.v_eg = None
 
-        # Zero-coupon bond object used in analytical pricing.
-        self.zcbond = \
-            zcbond.ZCBondNew(kappa, vol, discount_curve, event_grid.size - 1,
-                             event_grid, time_dependence, int_step_size)
-
         # self.initialization()
 
         self.model = global_types.Model.HULL_WHITE_1F
         if self.cap_or_floor == "cap":
             self.type = global_types.Instrument.CAP
+            caplet_floorlet = "caplet"
         elif self.cap_or_floor == "floor":
             self.type = global_types.Instrument.FLOOR
+            caplet_floorlet = "floorlet"
         else:
             raise ValueError(f"Unknown instrument type: {self.cap_or_floor}")
+
+        # Caplet/floorlet object used in analytical pricing.
+        self.xlet = \
+            xlet.CapletFloorlet(kappa, vol, discount_curve, strike_rate,
+                                fixing_schedule[0], payment_schedule[0],
+                                event_grid, caplet_floorlet,
+                                time_dependence, int_step_size)
+
+    # TODO: Expiry corresponds actually to the payment date.
+    #  Maybe a new base call for options?
+    @property
+    def expiry(self) -> float:
+        return self.event_grid[self.fixing_schedule[0]]
+
+    def initialization(self):
+        """Initialization of instrument object."""
+        self.kappa_eg = self.xlet.kappa_eg
+        self.vol_eg = self.xlet.vol_eg
+        self.discount_curve_eg = self.xlet.discount_curve_eg
+        self.forward_rate_eg = self.xlet.forward_rate_eg
+        self.y_eg = self.xlet.y_eg
+        self.v_eg = self.xlet.v_eg
+
+    def payoff(self,
+               spot: typing.Union[float, np.ndarray],
+               discounting: bool = False) \
+            -> typing.Union[float, np.ndarray]:
+        """Payoff function.
+
+        Args:
+            spot: Current value of pseudo short rate.
+            discounting: Do analytical discounting from payment date to
+                fixing date. Default is false.
+
+        Returns:
+            Payoff.
+        """
+        pass
+
+    def price(self,
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
+        """Price function.
+
+        Args:
+            spot: Current value of pseudo short rate.
+            event_idx: Index on event grid.
+
+        Returns:
+            Price.
+        """
+        # Loop over caplets / floorlets
+        pass
+
+    def delta(self,
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
+        """1st order price sensitivity wrt value of underlying.
+
+        Args:
+            spot: Current value of pseudo short rate.
+            event_idx: Index on event grid.
+
+        Returns:
+            Delta.
+        """
+        # Loop over caplets / floorlets
+        pass
+
+    def gamma(self,
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
+        """2nd order price sensitivity wrt value of underlying.
+
+        Args:
+            spot: Current value of pseudo short rate.
+            event_idx: Index on event grid.
+
+        Returns:
+            Gamma.
+        """
+        pass
+
+    def theta(self,
+              spot: typing.Union[float, np.ndarray],
+              event_idx: int) -> typing.Union[float, np.ndarray]:
+        """1st order price sensitivity wrt time.
+
+        Args:
+            spot: Current value of pseudo short rate.
+            event_idx: Index on event grid.
+
+        Returns:
+            Theta.
+        """
+        pass
