@@ -14,8 +14,8 @@ from utils import misc
 class CapFloor(options.EuropeanOptionAnalytical1F):
     """Cap or floor in 1-factor Hull-White model.
 
-    TODO: See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
-     D. Brigo & F. Mercurio 2007, section 3.3.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
+    D. Brigo & F. Mercurio 2007, section 3.3.
 
     Note: The speed of mean reversion is assumed to be constant!
 
@@ -69,8 +69,6 @@ class CapFloor(options.EuropeanOptionAnalytical1F):
         # v-function on event grid.
         self.v_eg = None
 
-        # self.initialization()
-
         self.model = global_types.Model.HULL_WHITE_1F
         if self.cap_or_floor == "cap":
             self.type = global_types.Instrument.CAP
@@ -87,6 +85,8 @@ class CapFloor(options.EuropeanOptionAnalytical1F):
                                 fixing_schedule[0], payment_schedule[0],
                                 event_grid, caplet_floorlet,
                                 time_dependence, int_step_size)
+
+        self.initialization()
 
     # TODO: Expiry corresponds actually to the payment date.
     #  Maybe a new base call for options?
@@ -117,7 +117,17 @@ class CapFloor(options.EuropeanOptionAnalytical1F):
         Returns:
             Payoff.
         """
-        pass
+        return 0 * spot
+
+    def xlet_payoff(self,
+                    spot: typing.Union[float, np.ndarray],
+                    fixing_idx: int,
+                    payment_idx: int) -> typing.Union[float, np.ndarray]:
+        """..."""
+        self.xlet.fixing_idx = fixing_idx
+        self.xlet.payment_idx = payment_idx
+        self.xlet.initialization()
+        return self.xlet.payoff(spot, discounting=True)
 
     def price(self,
               spot: typing.Union[float, np.ndarray],
@@ -131,8 +141,14 @@ class CapFloor(options.EuropeanOptionAnalytical1F):
         Returns:
             Price.
         """
-        # Loop over caplets / floorlets
-        pass
+        _price = 0
+        # Assuming that event_idx <= self.fixing_schedule[0]
+        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
+            self.xlet.fixing_idx = idx_fix
+            self.xlet.payment_idx = idx_pay
+            self.xlet.initialization()
+            _price += self.xlet.price(spot, event_idx)
+        return _price
 
     def delta(self,
               spot: typing.Union[float, np.ndarray],
@@ -146,8 +162,14 @@ class CapFloor(options.EuropeanOptionAnalytical1F):
         Returns:
             Delta.
         """
-        # Loop over caplets / floorlets
-        pass
+        _delta = 0
+        # Assuming that event_idx <= self.fixing_schedule[0]
+        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
+            self.xlet.fixing_idx = idx_fix
+            self.xlet.payment_idx = idx_pay
+            self.xlet.initialization()
+            _delta += self.xlet.delta(spot, event_idx)
+        return _delta
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
@@ -174,5 +196,62 @@ class CapFloor(options.EuropeanOptionAnalytical1F):
 
         Returns:
             Theta.
+        """
+        pass
+
+    def fd_solve(self):
+        """Run finite difference solver on event grid."""
+        self.fd.set_propagator()
+        self.fd.solution = np.zeros(self.fd.grid.size)
+        # Numerical propagation.
+        time_steps = np.flip(np.diff(self.event_grid))
+        for count, dt in enumerate(time_steps):
+            # Event index before propagation over dt.
+            event_idx = (self.event_grid.size - 1) - count
+
+            # Update drift, diffusion, and rate functions.
+            drift = \
+                self.y_eg[event_idx] - self.kappa_eg[event_idx] * self.fd.grid
+            diffusion = self.vol_eg[event_idx] + 0 * self.fd.grid
+            rate = self.fd.grid + self.forward_rate_eg[event_idx]
+            self.fd.set_drift(drift)
+            self.fd.set_diffusion(diffusion)
+            self.fd.set_rate(rate)
+
+            # Caplet/floorlet payoff at payment event, discount to
+            # fixing event.
+            if event_idx in self.fixing_schedule:
+                idx_fix = event_idx
+                which_fix = np.where(self.fixing_schedule == idx_fix)
+                idx_pay = self.payment_schedule[which_fix]
+                self.fd.solution += \
+                    self.xlet_payoff(self.fd.grid, idx_fix, idx_pay)
+
+            # Propagation for one time step dt.
+            self.fd.propagation(dt, True)
+
+    def mc_exact_setup(self):
+        """Setup exact Monte-Carlo solver."""
+        pass
+
+    def mc_exact_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of short rate and discount processes
+            represented on event grid.
         """
         pass
