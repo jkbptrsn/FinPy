@@ -4,6 +4,9 @@ from matplotlib import pyplot as plt
 
 from utils import cash_flows
 
+plot_results = False
+print_results = False
+
 
 class CashFlows(unittest.TestCase):
 
@@ -31,14 +34,14 @@ class CashFlows(unittest.TestCase):
 
     def test_this(self):
         cash_flows.print_cash_flow(self.cash_flow)
-
-        plt.plot(self.payment_grid, self.cash_flow[0, :], "ob", label="Installment")
-        plt.plot(self.payment_grid, self.cash_flow[1, :], "or", label="Interest")
-        plt.plot(self.payment_grid, self.cash_flow.sum(axis=0), "ok", label="Total")
-        plt.xlabel("Time")
-        plt.ylabel("Payment")
-        plt.legend()
-        plt.show()
+        if plot_results:
+            plt.plot(self.payment_grid, self.cash_flow[0, :], "ob", label="Installment")
+            plt.plot(self.payment_grid, self.cash_flow[1, :], "or", label="Interest")
+            plt.plot(self.payment_grid, self.cash_flow.sum(axis=0), "ok", label="Total")
+            plt.xlabel("Time")
+            plt.ylabel("Payment")
+            plt.legend()
+            plt.show()
         self.assertEqual(2, 2)
 
 
