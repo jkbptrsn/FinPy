@@ -5,7 +5,7 @@ import numpy as np
 
 from unit_tests.test_hull_white import input
 from models.hull_white import call_option
-from models.hull_white import caplet
+from models.hull_white import caplet_floorlet
 from models.hull_white import put_option
 from models.hull_white import sde
 from models.hull_white import swap
@@ -546,7 +546,8 @@ class SDE(unittest.TestCase):
         # Maturity index.
         maturity_idx = event_grid.size - 1
         # Caplet object
-        caplet_obj = caplet.Caplet(kappa, vol, discount_curve, event_grid,
+        caplet_obj = \
+            caplet_floorlet.Caplet(kappa, vol, discount_curve, event_grid,
                                    expiry_idx, maturity_idx, fixed_rate,
                                    int_step_size=1 / 52)
         # Threshold
