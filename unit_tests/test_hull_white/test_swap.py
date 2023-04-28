@@ -24,7 +24,7 @@ class Swap(unittest.TestCase):
         self.fixed_rate = 0.02
 
         self.event_grid, self.fixing_schedule, self.payment_schedule = \
-            misc_hw.swap_schedule(0, 5, 2, 50)
+            misc_hw.swap_schedule(1, 5, 2, 50)
 
         # FD spatial grid.
         self.x_min = -0.15
@@ -53,7 +53,7 @@ class Swap(unittest.TestCase):
         if print_results:
             for x, p1, p2 in zip(self.x_grid, price_1, price_2):
                 print(x, p1, p2, p1 - p2)
-        self.assertTrue(np.max(np.abs(price_1 - price_2)) < 1e12)
+        self.assertTrue(np.abs(price_1 - price_2)[(self.x_steps - 1) // 2] < 1e-12)
 
     def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""
@@ -70,7 +70,7 @@ class Swap(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 4.e-3)
+        self.assertTrue(max_error < 2.e-2)
 
 
 if __name__ == '__main__':

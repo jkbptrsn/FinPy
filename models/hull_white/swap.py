@@ -294,14 +294,14 @@ class SwapNew(bonds.VanillaBondAnalytical1F):
     def fd_solve(self):
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
-        # Payoff at payment event, discount to fixing event.
-        self.fd.solution = self.payoff(self.fd.grid, True)
-        # Numerical propagation from last fixing event.
-        time_steps = \
-            np.flip(np.diff(self.event_grid[:self.fixing_schedule[-1] + 1]))
+        self.fd.solution = np.zeros(self.fd.grid.size)
+        # Numerical propagation.
+        time_steps = np.flip(np.diff(self.event_grid))
         for count, dt in enumerate(time_steps):
+            # Event index before propagation over dt.
+            event_idx = (self.event_grid.size - 1) - count
+
             # Update drift, diffusion, and rate functions.
-            event_idx = (self.fixing_schedule[-1] - 1) - count
             drift = \
                 self.y_eg[event_idx] - self.kappa_eg[event_idx] * self.fd.grid
             diffusion = self.vol_eg[event_idx] + 0 * self.fd.grid
@@ -309,15 +309,16 @@ class SwapNew(bonds.VanillaBondAnalytical1F):
             self.fd.set_drift(drift)
             self.fd.set_diffusion(diffusion)
             self.fd.set_rate(rate)
-            # Payments.
+
+            # Payments, discount to fixing event.
             if event_idx in self.fixing_schedule:
-                fix_idx = event_idx
-                pay_idx = \
-                    self.payment_schedule[self.payment_schedule > fix_idx][0]
+                idx_fix = event_idx
+                which_fix = np.where(self.fixing_schedule == idx_fix)
+                idx_pay = self.payment_schedule[which_fix][0]
                 # P(t_fixing, t_payment).
-                bond_price = self.zcbond_price(self.fd.grid, fix_idx, pay_idx)
+                bond_price = self.zcbond_price(self.fd.grid, idx_fix, idx_pay)
                 # Tenor.
-                tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
+                tenor = self.event_grid[idx_pay] - self.event_grid[idx_fix]
                 # Simple forward rate at t_fixing for (t_fixing, t_payment).
                 simple_rate = self.simple_forward_rate(bond_price, tenor)
                 # Payment.
@@ -325,8 +326,6 @@ class SwapNew(bonds.VanillaBondAnalytical1F):
                 # Analytical discounting from payment date to fixing date.
                 payment *= bond_price
                 self.fd.solution += payment
-
-                # print(count, fix_idx, pay_idx, tenor)
 
             # Propagation for one time step.
             self.fd.propagation(dt, True)
