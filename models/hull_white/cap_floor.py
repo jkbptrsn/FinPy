@@ -223,7 +223,7 @@ class CapFloor(options.EuropeanOptionAnalytical1F):
             if event_idx in self.fixing_schedule:
                 idx_fix = event_idx
                 which_fix = np.where(self.fixing_schedule == idx_fix)
-                idx_pay = self.payment_schedule[which_fix]
+                idx_pay = self.payment_schedule[which_fix][0]
                 self.fd.solution += \
                     self.xlet_payoff(self.fd.grid, idx_fix, idx_pay)
 

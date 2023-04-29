@@ -33,7 +33,8 @@ class CashFlows(unittest.TestCase):
                                        self.type)
 
     def test_this(self):
-        cash_flows.print_cash_flow(self.cash_flow)
+        if print_results:
+            cash_flows.print_cash_flow(self.cash_flow)
         if plot_results:
             plt.plot(self.payment_grid, self.cash_flow[0, :], "ob", label="Installment")
             plt.plot(self.payment_grid, self.cash_flow[1, :], "or", label="Interest")
