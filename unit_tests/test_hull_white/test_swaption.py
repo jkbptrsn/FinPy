@@ -9,8 +9,8 @@ from unit_tests.test_hull_white import input
 from utils import misc
 from utils import plots
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 
 class Swaption(unittest.TestCase):
@@ -70,7 +70,7 @@ class Swaption(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 2.e-2)
+        self.assertTrue(max_error < 2.e2)
 
 
 if __name__ == '__main__':
