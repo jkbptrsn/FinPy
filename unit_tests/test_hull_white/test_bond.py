@@ -30,31 +30,19 @@ class Bond(unittest.TestCase):
         self.frequency = 1
         self.cf_type = "annuity"
 
-        self.payment_times = \
-            cash_flows.set_payment_grid(self.t_initial, self.t_final,
-                                        self.frequency)
-        self.payments = \
+        self.cash_flow_grid = \
+            cash_flows.set_cash_flow_grid(self.t_initial, self.t_final,
+                                          self.frequency)
+        self.cash_flow = \
             cash_flows.cash_flow(self.coupon, self.frequency,
-                                 self.payment_times, self.principal,
+                                 self.cash_flow_grid, self.principal,
                                  self.cf_type)
-
-        cash_flows.print_cash_flow(self.payments)
-
-        # Payment schedule
-        self.payment_schedule = list()
+        cash_flows.print_cash_flow(self.cash_flow)
 
         # Event grid
         event_dt = 0.01
-        n_steps = math.floor(self.payment_times[0] / event_dt)
-        n_events = n_steps
-        self.payment_schedule.append(n_steps)
-        for count, dt in enumerate(np.diff(self.payment_times)):
-            n_steps = math.floor(dt / event_dt)
-            n_events += n_steps
-            self.payment_schedule.append(n_steps)
-        self.payment_schedule = np.array(self.payment_schedule)
-        self.payment_schedule = np.cumsum(self.payment_schedule)
-        self.event_grid = event_dt * np.arange(n_events + 1)
+        self.event_grid, self.cash_flow_schedule = \
+            cash_flows.set_event_grid(self.cash_flow_grid, event_dt)
 
         # FD spatial grid.
         self.x_min = -0.15
@@ -65,12 +53,11 @@ class Bond(unittest.TestCase):
 
         # Bond.
         self.time_dependence = "piecewise"
-
         self.bond = bond.Bond(self.kappa,
                               self.vol,
                               self.discount_curve,
-                              self.payment_schedule,
-                              self.payments,
+                              self.cash_flow_schedule,
+                              self.cash_flow,
                               self.event_grid,
                               self.time_dependence)
 
@@ -90,7 +77,7 @@ class Bond(unittest.TestCase):
         if print_results:
             print("max error: ", max_error)
             print("Price at zero = ", analytical[(self.x_steps - 1) // 2])
-        self.assertTrue(max_error < 2.e2)
+        self.assertTrue(max_error < 4.e-4)
 
 
 if __name__ == '__main__':
