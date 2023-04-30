@@ -26,7 +26,7 @@ class CashFlows(unittest.TestCase):
         self.type = "annuity"
 
         self.payment_grid = \
-            cash_flows.set_cf_schedule(self.t_i, self.t_f, self.frequency)
+            cash_flows.set_cash_flow_grid(self.t_i, self.t_f, self.frequency)
         self.cash_flow = \
             cash_flows.cash_flow_split(self.coupon, self.frequency,
                                        self.payment_grid, self.principal,

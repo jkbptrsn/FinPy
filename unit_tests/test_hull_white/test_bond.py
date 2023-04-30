@@ -10,8 +10,8 @@ from utils import cash_flows
 from utils import misc
 from utils import plots
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 
 class Bond(unittest.TestCase):
@@ -37,7 +37,6 @@ class Bond(unittest.TestCase):
             cash_flows.cash_flow(self.coupon, self.frequency,
                                  self.cash_flow_grid, self.principal,
                                  self.cf_type)
-        cash_flows.print_cash_flow(self.cash_flow)
 
         # Event grid
         event_dt = 0.01
@@ -75,6 +74,7 @@ class Bond(unittest.TestCase):
         idx_max = np.argwhere(self.x_grid < 0.05)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
+            cash_flows.print_cash_flow(self.cash_flow)
             print("max error: ", max_error)
             print("Price at zero = ", analytical[(self.x_steps - 1) // 2])
         self.assertTrue(max_error < 4.e-4)
