@@ -248,7 +248,7 @@ def print_cash_flow(cf: np.ndarray):
     if len(cf.shape) == 1:
         for idx, total in enumerate(cf):
             print(f"Term {idx + 1:4}:  "
-                  f"Total = {total}:10.5f")
+                  f"Total = {total:10.5f}")
         print(f"Summation:  "
               f"Total = {cf.sum():10.5f}")
     else:

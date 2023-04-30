@@ -1,0 +1,97 @@
+import math
+import unittest
+
+import numpy as np
+
+from models.hull_white import misc as misc_hw
+from models.hull_white import bond
+from unit_tests.test_hull_white import input
+from utils import cash_flows
+from utils import misc
+from utils import plots
+
+plot_results = True
+print_results = True
+
+
+class Bond(unittest.TestCase):
+    """Bond in 1-factor Hull-White model."""
+
+    def setUp(self) -> None:
+        # Model parameters.
+        self.kappa = input.kappa_strip
+        self.vol = input.vol_strip
+        self.discount_curve = input.disc_curve
+
+        self.t_initial = 0
+        self.t_final = 5
+        self.principal = 100
+        self.coupon = 0.05
+        self.frequency = 1
+        self.cf_type = "annuity"
+
+        self.payment_times = \
+            cash_flows.set_payment_grid(self.t_initial, self.t_final,
+                                        self.frequency)
+        self.payments = \
+            cash_flows.cash_flow(self.coupon, self.frequency,
+                                 self.payment_times, self.principal,
+                                 self.cf_type)
+
+        cash_flows.print_cash_flow(self.payments)
+
+        # Payment schedule
+        self.payment_schedule = list()
+
+        # Event grid
+        event_dt = 0.01
+        n_steps = math.floor(self.payment_times[0] / event_dt)
+        n_events = n_steps
+        self.payment_schedule.append(n_steps)
+        for count, dt in enumerate(np.diff(self.payment_times)):
+            n_steps = math.floor(dt / event_dt)
+            n_events += n_steps
+            self.payment_schedule.append(n_steps)
+        self.payment_schedule = np.array(self.payment_schedule)
+        self.payment_schedule = np.cumsum(self.payment_schedule)
+        self.event_grid = event_dt * np.arange(n_events + 1)
+
+        # FD spatial grid.
+        self.x_min = -0.15
+        self.x_max = 0.15
+        self.x_steps = 201
+        self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
+        self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
+
+        # Bond.
+        self.time_dependence = "piecewise"
+
+        self.bond = bond.Bond(self.kappa,
+                              self.vol,
+                              self.discount_curve,
+                              self.payment_schedule,
+                              self.payments,
+                              self.event_grid,
+                              self.time_dependence)
+
+    def test_theta_method(self):
+        """Finite difference pricing of bond."""
+        self.bond.fd_setup(self.x_grid, equidistant=True)
+        self.bond.fd_solve()
+        numerical = self.bond.fd.solution
+        analytical = self.bond.price(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        if plot_results:
+            plots.plot_price_and_greeks(self.bond)
+        # Maximum error in interval around pseudo short rate of 0.
+        idx_min = np.argwhere(self.x_grid < -0.05)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.05)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print("max error: ", max_error)
+            print("Price at zero = ", analytical[(self.x_steps - 1) // 2])
+        self.assertTrue(max_error < 2.e2)
+
+
+if __name__ == '__main__':
+    unittest.main()
