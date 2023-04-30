@@ -5,7 +5,7 @@ import numpy as np
 
 def cash_flow(coupon: float,
               frequency: int,
-              payment_grid: np.ndarray,
+              cash_flow_grid: np.ndarray,
               principal: float = 1,
               _type: str = "annuity") -> np.ndarray:
     """Cash flow.
@@ -13,7 +13,7 @@ def cash_flow(coupon: float,
     Args:
         coupon: Yearly coupon rate.
         frequency: Yearly payment frequency.
-        payment_grid: Grid of payment dates.
+        cash_flow_grid: Grid of cash flow events.
         principal: Loan principal.
         _type: Type of cash flow. annuity, standing or serial.
             Default is annuity.
@@ -21,13 +21,13 @@ def cash_flow(coupon: float,
     Returns:
         Cash flow.
     """
-    cf = cash_flow_split(coupon, frequency, payment_grid, principal, _type)
+    cf = cash_flow_split(coupon, frequency, cash_flow_grid, principal, _type)
     return cf.sum(axis=0)
 
 
 def cash_flow_split(coupon: float,
                     frequency: int,
-                    payment_grid: np.ndarray,
+                    cash_flow_grid: np.ndarray,
                     principal: float = 1,
                     _type: str = "annuity") -> np.ndarray:
     """Cash flows for both installment and interest payments.
@@ -35,7 +35,7 @@ def cash_flow_split(coupon: float,
     Args:
         coupon: Yearly coupon rate.
         frequency: Yearly payment frequency.
-        payment_grid: Grid of payment dates.
+        cash_flow_grid: Grid of cash flow events.
         principal: Loan principal.
         _type: Type of cash flow. annuity, standing or serial.
             Default is annuity.
@@ -44,19 +44,19 @@ def cash_flow_split(coupon: float,
         Cash flows.
     """
     if _type == "annuity":
-        return annuity(coupon, frequency, payment_grid, principal)
+        return annuity(coupon, frequency, cash_flow_grid, principal)
     elif _type == "standing":
-        return standing_loan(coupon, frequency, payment_grid, principal)
+        return standing_loan(coupon, frequency, cash_flow_grid, principal)
     elif _type == "serial":
-        return serial_loan(coupon, frequency, payment_grid, principal)
+        return serial_loan(coupon, frequency, cash_flow_grid, principal)
     else:
         raise ValueError(f"Cash flow type is unknown: {_type}")
 
 
-def set_payment_grid(t_initial: float,
-                     t_final: float,
-                     frequency: int) -> np.ndarray:
-    """Set up grid of payment dates.
+def set_cash_flow_grid(t_initial: float,
+                       t_final: float,
+                       frequency: int) -> np.ndarray:
+    """Set up grid cash flow events.
 
     Args:
         t_initial: Initial time of first payment period.
@@ -64,7 +64,7 @@ def set_payment_grid(t_initial: float,
         frequency: Yearly payment frequency.
 
     Returns:
-        Grid of payment dates.
+        Grid cash flow events.
     """
     # Year-faction between payment dates.
     dt = 1 / frequency
@@ -79,6 +79,32 @@ def set_payment_grid(t_initial: float,
         raise ValueError("Mismatch in total payment period and "
                          "payment frequency.")
     return dt * np.arange(1, n_payments + 1) + t_initial
+
+
+def set_event_grid(cash_flow_grid: np.ndarray,
+                   time_step: float = 0.01) -> (np.ndarray, np.ndarray):
+    """Set up event grid, and cash flow schedule.
+
+    Args:
+        cash_flow_grid: Grid of cash flow events.
+        time_step:
+
+    Returns:
+        Event grid.
+    """
+    event_grid = np.zeros(1)
+    cash_flow_schedule = np.zeros(cash_flow_grid.size, dtype=int)
+    cf_schedule_append = np.append(0, cash_flow_grid)
+    for idx, cf_time_step in enumerate(np.diff(cf_schedule_append)):
+        n_steps = math.floor(cf_time_step / time_step)
+        event_grid_tmp = event_grid[-1] + time_step * np.arange(1, n_steps + 1)
+        event_grid = np.append(event_grid, event_grid_tmp)
+        if cf_time_step - n_steps * time_step > 1.0e-12:
+            event_grid = np.append(event_grid, event_grid[-1] + cf_time_step)
+            cash_flow_schedule[idx] = n_steps + 1
+        else:
+            cash_flow_schedule[idx] = n_steps
+    return event_grid, np.cumsum(cash_flow_schedule)
 
 
 def annuity_factor(n_terms: int,
@@ -147,7 +173,7 @@ def annuity_installment(coupon: float,
 
 def annuity(coupon: float,
             frequency: int,
-            payment_grid: np.ndarray,
+            cash_flow_grid: np.ndarray,
             principal: float = 1) -> np.ndarray:
     """Cash flow of annuity.
 
@@ -156,14 +182,14 @@ def annuity(coupon: float,
     Args:
         coupon: Yearly coupon rate.
         frequency: Yearly payment frequency.
-        payment_grid: Grid of payment dates.
+        cash_flow_grid: Grid of cash flow events.
         principal: Loan principal.
 
     Returns:
         Cash flow.
     """
     # Number of payments.
-    n_payments = payment_grid.size
+    n_payments = cash_flow_grid.size
     cash_flows = np.zeros((2, n_payments))
     # Coupon rate per term.
     coupon_term = coupon / frequency
@@ -184,7 +210,7 @@ def annuity(coupon: float,
 
 def standing_loan(coupon: float,
                   frequency: int,
-                  payment_grid: np.ndarray,
+                  cash_flow_grid: np.ndarray,
                   principal: float = 1) -> np.ndarray:
     """Cash flow of standing loan.
 
@@ -193,14 +219,14 @@ def standing_loan(coupon: float,
     Args:
         coupon: Yearly coupon rate.
         frequency: Yearly payment frequency.
-        payment_grid: Grid of payment dates.
+        cash_flow_grid: Grid of payment dates.
         principal: Loan principal.
 
     Returns:
         Cash flow.
     """
     # Number of payments.
-    n_payments = payment_grid.size
+    n_payments = cash_flow_grid.size
     cash_flows = np.zeros((2, n_payments))
     # Constant interest payment per term.
     cash_flows[1, :] = coupon * principal / frequency
@@ -211,7 +237,7 @@ def standing_loan(coupon: float,
 
 def serial_loan(coupon: float,
                 frequency: int,
-                payment_grid: np.ndarray,
+                cash_flow_grid: np.ndarray,
                 principal: float = 1) -> np.ndarray:
     """Cash flow of serial loan.
 
@@ -220,14 +246,14 @@ def serial_loan(coupon: float,
     Args:
         coupon: Yearly coupon rate.
         frequency: Yearly payment frequency.
-        payment_grid: Grid of payment dates.
+        cash_flow_grid: Grid of cash flow events.
         principal: Loan principal.
 
     Returns:
         Cash flow.
     """
     # Number of payments.
-    n_payments = payment_grid.size
+    n_payments = cash_flow_grid.size
     cash_flows = np.zeros((2, n_payments))
     # Constant installment payment per term.
     cash_flows[0, :] = principal / n_payments
@@ -248,7 +274,7 @@ def print_cash_flow(cf: np.ndarray):
     if len(cf.shape) == 1:
         for idx, total in enumerate(cf):
             print(f"Term {idx + 1:4}:  "
-                  f"Total = {total}:10.5f")
+                  f"Total = {total:10.5f}")
         print(f"Summation:  "
               f"Total = {cf.sum():10.5f}")
     else:

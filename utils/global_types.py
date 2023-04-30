@@ -9,6 +9,7 @@ class Instrument(enum.Enum):
     BINARY_CASH_CALL = enum.auto()
     BINARY_ASSET_PUT = enum.auto()
     BINARY_CASH_PUT = enum.auto()
+    BOND = enum.auto()
     CAP = enum.auto()
     CAPLET = enum.auto()
     EUROPEAN_CALL = enum.auto()
