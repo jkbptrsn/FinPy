@@ -200,7 +200,7 @@ class SDEBasic(sde.SDE):
         return mean + math.sqrt(variance) * normal_rand
 
     def _calc_covariance(self):
-        """Covariance between between short rate and discount processes."""
+        """Covariance between short rate and discount processes."""
         pass
 
     def _correlation(self,
