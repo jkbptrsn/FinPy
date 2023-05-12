@@ -1,18 +1,31 @@
 import math
+import typing
+
 import numpy as np
+from scipy.interpolate import UnivariateSpline
+
+from models.hull_white import misc as misc_hw
 
 from utils import global_types
 from utils import misc
 
 
 class SDEBasic:
-    """Basic SDE class for the 1-factor Hull-White model.
+    """Basic SDE class for 1-factor Hull-White model.
+
+    See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
 
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        event_grid: Events, e.g. payment dates, represented as year
-            fractions from the as-of date.
+        discount_curve: Discount curve represented on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+        time_dependence: Time dependence of model parameters.
+            "constant": kappa and vol are constant.
+            "piecewise": kappa is constant and vol is piecewise constant.
+            "general": General time dependence.
+            Default is "piecewise".
         int_step_size: Integration/propagation step size represented as
             a year fraction. Default is 1 / 365.
     """
@@ -20,14 +33,16 @@ class SDEBasic:
     def __init__(self,
                  kappa: misc.DiscreteFunc,
                  vol: misc.DiscreteFunc,
+                 discount_curve: misc.DiscreteFunc,
                  event_grid: np.ndarray,
+                 time_dependence: str = "piecewise",
                  int_step_size: float = 1 / 365):
         self.kappa = kappa
         self.vol = vol
+        self.discount_curve = discount_curve
         self.event_grid = event_grid
+        self.time_dependence = time_dependence
         self.int_step_size = int_step_size
-
-        self.model_name = global_types.Model.HULL_WHITE_1F
 
         # Arrays used for exact discretization.
         self.rate_mean = np.zeros((event_grid.size, 2))
@@ -36,26 +51,48 @@ class SDEBasic:
         self.discount_variance = np.zeros(event_grid.size)
         self.covariance = np.zeros(event_grid.size)
 
+        # Speed of mean reversion on event grid.
+        self.kappa_eg = None
+        # Volatility on event grid.
+        self.vol_eg = None
+        # Discount curve on event grid.
+        self.discount_curve_eg = None
+
+        # Instantaneous forward rate on event grid.
+        self.forward_rate_eg = None
+
+        # G-function on event grid.
+        self.g_eg = None
+        # y-function on event grid.
+        self.y_eg = None
+
         # Integration grid.
         self.int_grid = None
         # Indices of event dates on integration grid.
         self.int_event_idx = None
-        # y-function on integration and event grids. See Eq. (10.17),
-        # L.B.G. Andersen & V.V. Piterbarg 2010.
-        self.y_int_grid = None
-        self.y_event_grid = np.zeros(event_grid.size)
 
-    def __repr__(self):
-        return f"{self.model_name} SDE object"
+        # Speed of mean reversion on integration grid.
+        self.kappa_ig = None
+        # Step-wise integration of kappa on integration grid.
+        self.int_kappa_step = None
+        # Volatility on integration grid.
+        self.vol_ig = None
+        # G-function on integration grid.
+        self.g_ig = None
+        # y-function on integration grid.
+        self.y_ig = None
+
+        self.model = global_types.Model.HULL_WHITE_1F
 
     def initialization(self):
-        """Initialization of the Monte-Carlo engine.
+        """Initialization of Monte-Carlo engine.
 
         Calculate time-dependent mean and variance of the pseudo short
         rate and pseudo discount processes, respectively.
         """
         self._setup_int_grid()
-        self._setup_kappa_vol_y()
+        self._setup_model_parameters()
+
         self._calc_rate_mean()
         self._calc_rate_variance()
         self._calc_discount_mean()
@@ -63,33 +100,27 @@ class SDEBasic:
         self._calc_covariance()
 
     def _setup_int_grid(self):
-        """Construct time grid for numerical integration."""
-        # Assume that the first event is the initial time point on the
-        # integration grid.
-        self.int_grid = np.array(self.event_grid[0])
-        # The first event has index zero on the integration grid.
-        self.int_event_idx = np.array(0)
-        # Step size between two adjacent events.
-        step_size_grid = np.diff(self.event_grid)
-        for idx, step_size in enumerate(step_size_grid):
-            # Number of integration steps.
-            steps = math.floor(step_size / self.int_step_size)
-            initial_date = self.event_grid[idx]
-            if steps == 0:
-                grid = np.array(initial_date + step_size)
-            else:
-                grid = self.int_step_size * np.arange(1, steps + 1) \
-                    + initial_date
-                diff_step = step_size - steps * self.int_step_size
-                if diff_step > 1.0e-8:
-                    grid = np.append(grid, grid[-1] + diff_step)
-            self.int_grid = np.append(self.int_grid, grid)
-            self.int_event_idx = np.append(self.int_event_idx, grid.size)
-        self.int_event_idx = np.cumsum(self.int_event_idx)
+        """Set up time grid for numerical integration."""
+        self.int_grid, self.int_event_idx = \
+            misc_hw.setup_int_grid(self.event_grid, self.int_step_size)
 
-    def _setup_kappa_vol_y(self):
-        """Set-up speed of mean reversion, volatility and y-function."""
-        pass
+    def _setup_model_parameters(self):
+        """Set up model parameters on event grid."""
+        # Speed of mean reversion interpolated on event grid.
+        self.kappa_eg = self.kappa.interpolation(self.event_grid)
+        # Volatility interpolated on event grid.
+        self.vol_eg = self.vol.interpolation(self.event_grid)
+        # Discount curve interpolated on event grid.
+        self.discount_curve_eg = \
+            self.discount_curve.interpolation(self.event_grid)
+
+        # Instantaneous forward rate on event grid.
+        log_discount = np.log(self.discount_curve_eg)
+        smoothing = 0
+        log_discount_spline = \
+            UnivariateSpline(self.event_grid, log_discount, s=smoothing)
+        forward_rate = log_discount_spline.derivative()
+        self.forward_rate_eg = -forward_rate(self.event_grid)
 
     def _calc_rate_mean(self):
         """Conditional mean of pseudo short rate process."""
@@ -100,25 +131,26 @@ class SDEBasic:
         pass
 
     def _rate_increment(self,
-                        spot: (float, np.ndarray),
-                        time_idx: int,
-                        normal_rand: (float, np.ndarray)) \
-            -> (float, np.ndarray):
+                        spot: typing.Union[float, np.ndarray],
+                        event_idx: int,
+                        normal_rand: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
         """Increment pseudo short rate process.
 
         The spot value is subtracted to get the increment.
 
         Args:
-            spot: Pseudo short rate at time corresponding to time index.
-            time_idx: Time index.
+            spot: Pseudo short rate at event event_idx - 1.
+            event_idx: Index on event grid.
             normal_rand: Realizations of independent standard normal
                 random variables.
 
         Returns:
             Incremented pseudo short rate process.
         """
-        mean = self.rate_mean[time_idx][0] * spot + self.rate_mean[time_idx][1]
-        variance = self.rate_variance[time_idx]
+        mean = \
+            self.rate_mean[event_idx][0] * spot + self.rate_mean[event_idx][1]
+        variance = self.rate_variance[event_idx]
         return mean + math.sqrt(variance) * normal_rand - spot
 
     def _calc_discount_mean(self):
@@ -130,28 +162,26 @@ class SDEBasic:
         pass
 
     def _discount_increment(self,
-                            rate_spot: (float, np.ndarray),
-                            time_idx: int,
-                            normal_rand: (float, np.ndarray)) \
-            -> (float, np.ndarray):
+                            rate_spot: typing.Union[float, np.ndarray],
+                            event_idx: int,
+                            normal_rand: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
         """Increment pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du.
 
         Args:
-            rate_spot: Pseudo short rate at time corresponding to time
-                index.
-            time_idx: Time index.
+            rate_spot: Pseudo short rate at event event_idx - 1.
+            event_idx: Index on event grid.
             normal_rand: Realizations of independent standard normal
                 random variables.
 
         Returns:
             Incremented pseudo discount process.
         """
-        mean = \
-            - rate_spot * self.discount_mean[time_idx][0] \
-            - self.discount_mean[time_idx][1]
-        variance = self.discount_variance[time_idx]
+        mean = - rate_spot * self.discount_mean[event_idx][0] \
+            - self.discount_mean[event_idx][1]
+        variance = self.discount_variance[event_idx]
         return mean + math.sqrt(variance) * normal_rand
 
     def _calc_covariance(self):
@@ -159,18 +189,18 @@ class SDEBasic:
         pass
 
     def _correlation(self,
-                     time_idx: int) -> float:
-        """Correlation between pseudo short rate and discount processes.
+                     event_idx: int) -> float:
+        """Correlation between short rate and discount processes.
 
         Args:
-            time_idx: Time index.
+            event_idx: Index on event grid.
 
         Returns:
-            Correlation at time corresponding to time index.
+            Correlation.
         """
-        covariance = self.covariance[time_idx]
-        rate_var = self.rate_variance[time_idx]
-        discount_var = self.discount_variance[time_idx]
+        covariance = self.covariance[event_idx]
+        rate_var = self.rate_variance[event_idx]
+        discount_var = self.discount_variance[event_idx]
         return covariance / math.sqrt(rate_var * discount_var)
 
     def paths(self,
@@ -182,7 +212,7 @@ class SDEBasic:
         """Monte-Carlo paths using exact discretization.
 
         Args:
-            spot: Pseudo short rate at as-of date.
+            spot: Pseudo short rate at first event date.
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
@@ -190,23 +220,27 @@ class SDEBasic:
                 Default is False.
 
         Returns:
-            Realizations of pseudo short rate and discount processes
-            represented on event_grid.
+            Realizations of pseudo short rate and pseudo discount
+            processes represented on event_grid.
         """
         rate = np.zeros((self.event_grid.size, n_paths))
         rate[0, :] = spot
         discount = np.zeros((self.event_grid.size, n_paths))
         if rng is None:
             rng = np.random.default_rng(seed)
-        for time_idx in range(1, self.event_grid.size):
-            correlation = self._correlation(time_idx)
-            x_rate, x_discount = \
+        for event_idx in range(1, self.event_grid.size):
+            correlation = self._correlation(event_idx)
+            # Realizations of correlated normal random variables.
+            rand_rate, rand_discount = \
                 misc.cholesky_2d(correlation, n_paths, rng, antithetic)
-            rate[time_idx] = rate[time_idx - 1] \
-                + self._rate_increment(rate[time_idx - 1], time_idx, x_rate)
-            discount[time_idx] = discount[time_idx - 1] \
-                + self._discount_increment(rate[time_idx - 1], time_idx,
-                                           x_discount)
+            # Increment pseudo short rate process.
+            rate[event_idx] = rate[event_idx - 1] \
+                + self._rate_increment(rate[event_idx - 1], event_idx,
+                                       rand_rate)
+            # Increment pseudo discount process.
+            discount[event_idx] = discount[event_idx - 1] \
+                + self._discount_increment(rate[event_idx - 1], event_idx,
+                                           rand_discount)
         # Get pseudo discount factors on event_grid.
         discount = np.exp(discount)
         return rate, discount
