@@ -25,7 +25,7 @@ class SDEBasic:
             "constant": kappa and vol are constant.
             "piecewise": kappa is constant and vol is piecewise constant.
             "general": General time dependence.
-            Default is "piecewise".
+            Default is "constant".
         int_step_size: Integration/propagation step size represented as
             a year fraction. Default is 1 / 365.
     """
@@ -35,7 +35,7 @@ class SDEBasic:
                  vol: misc.DiscreteFunc,
                  discount_curve: misc.DiscreteFunc,
                  event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
+                 time_dependence: str = "constant",
                  int_step_size: float = 1 / 365):
         self.kappa = kappa
         self.vol = vol
@@ -63,6 +63,7 @@ class SDEBasic:
 
         # G-function on event grid.
         self.g_eg = None
+
         # y-function on event grid.
         self.y_eg = None
 
@@ -92,7 +93,6 @@ class SDEBasic:
         """
         self._setup_int_grid()
         self._setup_model_parameters()
-
         self._calc_rate_mean()
         self._calc_rate_variance()
         self._calc_discount_mean()
@@ -121,6 +121,37 @@ class SDEBasic:
             UnivariateSpline(self.event_grid, log_discount, s=smoothing)
         forward_rate = log_discount_spline.derivative()
         self.forward_rate_eg = -forward_rate(self.event_grid)
+
+        # Kappa and vol are constant.
+        if self.time_dependence == "constant":
+            # y-function on event grid.
+            self.y_eg = misc_hw.y_constant(self.kappa_eg[0],
+                                           self.vol_eg[0],
+                                           self.event_grid)
+        # Kappa is constant and vol is piecewise constant.
+        elif self.time_dependence == "piecewise":
+            # y-function on event grid.
+            self.y_eg = misc_hw.y_piecewise(self.kappa_eg[0],
+                                            self.vol_eg,
+                                            self.event_grid)
+        # Kappa and vol have general time-dependence.
+        elif self.time_dependence == "general":
+            # Speed of mean reversion interpolated on integration grid.
+            self.kappa_ig = self.kappa.interpolation(self.int_grid)
+            # Volatility interpolated on integration grid.
+            self.vol_ig = self.vol.interpolation(self.int_grid)
+            # Integration of speed of mean reversion using trapezoidal rule.
+            self.int_kappa_step = \
+                np.append(0, misc.trapz(self.int_grid, self.kappa_ig))
+            # y-function on event and integration grid.
+            self.y_eg, self.y_ig = misc_hw.y_general(self.int_grid,
+                                                     self.int_event_idx,
+                                                     self.int_kappa_step,
+                                                     self.vol_ig,
+                                                     self.event_grid)
+        else:
+            raise ValueError(f"Time dependence unknown: "
+                             f"{self.time_dependence}")
 
     def _calc_rate_mean(self):
         """Conditional mean of pseudo short rate process."""
@@ -247,7 +278,112 @@ class SDEBasic:
 
 
 class SDEConstant(SDEBasic):
-    pass
+    """SDE class for 1-factor Hull-White model.
+
+    The pseudo short rate is given by
+        dx_t = (y_t - kappa * x_t) * dt + vol * dW_t,
+    where
+        x_t = r_t - f(0,t) (f is the instantaneous forward rate).
+
+    The speed of mean reversion and the volatility are assumed constant.
+
+    Attributes:
+        kappa: Speed of mean reversion.
+        vol: Volatility.
+        discount_curve: Discount curve represented on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+        int_step_size: Integration/propagation step size represented as
+            a year fraction. Default is 1 / 365.
+    """
+
+    def __init__(self,
+                 kappa: misc.DiscreteFunc,
+                 vol: misc.DiscreteFunc,
+                 discount_curve: misc.DiscreteFunc,
+                 event_grid: np.ndarray,
+                 int_step_size: float = 1 / 365):
+        super().__init__(kappa, vol, discount_curve, event_grid,
+                         "constant", int_step_size)
+
+        self.initialization()
+
+    def _calc_rate_mean(self):
+        """Conditional mean of pseudo short rate process.
+
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+        """
+        kappa = self.kappa_eg[0]
+        vol = self.vol_eg[0]
+        # Values at initial event.
+        self.rate_mean[0] = np.array([1, 0])
+        # First term in Eq. (10.40).
+        self.rate_mean[1:, 0] = np.exp(-kappa * np.diff(self.event_grid))
+        # Second term in Eq. (10.40).
+        exp_kappa_1 = np.exp(-2 * kappa * self.event_grid[1:])
+        exp_kappa_2 = np.exp(-kappa * np.diff(self.event_grid))
+        event_grid_sum = self.event_grid[1:] + self.event_grid[:-1]
+        exp_kappa_3 = np.exp(-kappa * event_grid_sum)
+        self.rate_mean[1:, 1] = \
+            vol ** 2 * (1 + exp_kappa_1 - exp_kappa_2 - exp_kappa_3) \
+            / (2 * kappa ** 2)
+
+    def _calc_rate_variance(self):
+        """Conditional variance of pseudo short rate process.
+
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+        """
+        kappa = self.kappa_eg[0]
+        vol = self.vol_eg[0]
+        self.rate_variance[1:] = \
+            vol ** 2 * (1 - np.exp(-2 * kappa * np.diff(self.event_grid))) \
+            / (2 * kappa)
+
+    def _calc_discount_mean(self):
+        """Conditional mean of pseudo discount process.
+
+        The pseudo discount process is really -int_t^{t+dt} x_u du. See
+        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        """
+        kappa = self.kappa_eg[0]
+        vol = self.vol_eg[0]
+        # First term in Eq. (10.42).
+        self.discount_mean[1:, 0] = \
+            (1 - np.exp(-kappa * np.diff(self.event_grid))) / kappa
+        # First term in Eq. (10.42).
+        exp_kappa_1 = \
+            (np.exp(-2 * kappa * self.event_grid[:-1])
+             - np.exp(-2 * kappa * self.event_grid[1:])) / 2
+        exp_kappa_2 = np.exp(-kappa * np.diff(self.event_grid)) - 1
+        event_grid_sum = self.event_grid[1:] + self.event_grid[:-1]
+        exp_kappa_3 = \
+            np.exp(-kappa * event_grid_sum) \
+            - np.exp(-2 * kappa * self.event_grid[:-1])
+        self.discount_mean[1:, 1] = \
+            vol ** 2 * (kappa * np.diff(self.event_grid) + exp_kappa_1
+                        + exp_kappa_2 + exp_kappa_3) / (2 * kappa ** 3)
+
+    def _calc_discount_variance(self):
+        """Conditional variance of pseudo discount process.
+
+        The pseudo discount process is really -int_t^{t+dt} x_u du. See
+        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        """
+        self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
+            - self.y_eg[:-1] * self.discount_mean[1:, 0] ** 2
+
+    def _calc_covariance(self):
+        """Covariance between short rate and discount processes.
+
+        See L.B.G. Andersen & V.V. Piterbarg 2010, lemma 10.1.11.
+        """
+        kappa = self.kappa_eg[0]
+        vol = self.vol_eg[0]
+
+        exp_kappa_1 = np.exp(-2 * kappa * np.diff(self.event_grid))
+        exp_kappa_2 = np.exp(-kappa * np.diff(self.event_grid))
+        self.covariance[1:] = \
+            -vol ** 2 * (1 + exp_kappa_1 - 2 * exp_kappa_2) / (2 * kappa ** 2)
 
 
 class SDEPiecewise(SDEBasic):

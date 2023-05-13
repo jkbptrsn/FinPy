@@ -21,7 +21,7 @@ where
 y_t = \int_0^t \e^{-2\int_u^t \kappa_v dv} \sigma_u^2 du,
 \end{equation}
 thus, the initial yield curve is not used explicitly in the simulation of the pseudo 
-short rate, and any numerical issues with yield curve interpolation are avoided.
+short rate, and any numerical issues associated with differentiation of the yield curve are avoided.
 
 The SDE in Eq.~(\ref{eq:HullWhiteSDEx}) can be solved analytically by introducing the function
 \begin{equation}
@@ -64,7 +64,7 @@ I_t &=& -\int_0^t x_u du \\
 \end{eqnarray}
 where the order of integration has been changed in the last term.
 
-The discount factor process is likewise Gaussian with conditional mean
+The ``integral'' process is likewise Gaussian with conditional mean
 \begin{equation}
 \E_{t_1}\! \left[ I_{t_{2}} \right] = I_{t_1} - x_{t_1} \int_{t_1}^{t_2} \e^{-\int_{t_1}^{u} \kappa_v dv} du - \int_{t_1}^{t_2} \int_{t_1}^{u} y_v \e^{-\int_v^{u} \kappa_s ds} dv du,
 \end{equation}
