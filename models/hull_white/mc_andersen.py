@@ -17,7 +17,7 @@ class SDEBasic:
 
     Attributes:
         kappa: Speed of mean reversion.
-        vol: Volatility.
+        vol: Volatility strip.
         discount_curve: Discount curve represented on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
@@ -285,11 +285,107 @@ class SDEConstant(SDEBasic):
     where
         x_t = r_t - f(0,t) (f is the instantaneous forward rate).
 
-    The speed of mean reversion and the volatility are assumed constant.
+    The speed of mean reversion and the volatility strip are constant.
 
     Attributes:
         kappa: Speed of mean reversion.
-        vol: Volatility.
+        vol: Volatility strip.
+        discount_curve: Discount curve represented on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+        int_step_size: Integration/propagation step size represented as
+            a year fraction. Default is 1 / 365.
+    """
+
+    def __init__(self,
+                 kappa: misc.DiscreteFunc,
+                 vol: misc.DiscreteFunc,
+                 discount_curve: misc.DiscreteFunc,
+                 event_grid: np.ndarray,
+                 int_step_size: float = 1 / 365):
+        super().__init__(kappa, vol, discount_curve, event_grid,
+                         "constant", int_step_size)
+
+        self.initialization()
+
+    def _calc_rate_mean(self):
+        """Conditional mean of pseudo short rate process.
+
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+        """
+        kappa = self.kappa_eg[0]
+        vol = self.vol_eg[0]
+        # Values at initial event.
+        self.rate_mean[0] = np.array([1, 0])
+        # First term in Eq. (10.40).
+        self.rate_mean[1:, 0] = np.exp(-kappa * np.diff(self.event_grid))
+        # Second term in Eq. (10.40).
+        self.rate_mean[:, 1] = \
+            misc_hw.int_y_constant(kappa, vol, self.event_grid)
+
+    def _calc_rate_variance(self):
+        """Conditional variance of pseudo short rate process.
+
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+        """
+        kappa = self.kappa_eg[0]
+        vol = self.vol_eg[0]
+        self.rate_variance[1:] = \
+            vol ** 2 * (1 - np.exp(-2 * kappa * np.diff(self.event_grid))) \
+            / (2 * kappa)
+
+    def _calc_discount_mean(self):
+        """Conditional mean of pseudo discount process.
+
+        The pseudo discount process is really -int_t^{t+dt} x_u du. See
+        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        """
+        kappa = self.kappa_eg[0]
+        vol = self.vol_eg[0]
+        # First term in Eq. (10.42).
+        self.discount_mean[1:, 0] = \
+            (1 - np.exp(-kappa * np.diff(self.event_grid))) / kappa
+        # Second term in Eq. (10.42).
+        self.discount_mean[:, 1] = \
+            misc_hw.double_int_y_constant(kappa, vol, self.event_grid)
+
+    def _calc_discount_variance(self):
+        """Conditional variance of pseudo discount process.
+
+        The pseudo discount process is really -int_t^{t+dt} x_u du. See
+        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        """
+        self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
+            - self.y_eg[:-1] * self.discount_mean[1:, 0] ** 2
+
+    def _calc_covariance(self):
+        """Covariance between short rate and discount processes.
+
+        See L.B.G. Andersen & V.V. Piterbarg 2010, lemma 10.1.11.
+        """
+        kappa = self.kappa_eg[0]
+        vol = self.vol_eg[0]
+        exp_kappa = np.exp(-kappa * np.diff(self.event_grid))
+        self.covariance[1:] = \
+            -vol ** 2 * (1 - exp_kappa) ** 2 / (2 * kappa ** 2)
+
+
+class SDEPiecewise(SDEBasic):
+    """SDE class for 1-factor Hull-White model.
+
+    The pseudo short rate is given by
+        dx_t = (y_t - kappa * x_t) * dt + vol_t * dW_t,
+    where
+        x_t = r_t - f(0,t) (f is the instantaneous forward rate).
+
+    The speed of mean reversion is constant and the volatility strip is
+    piecewise constant.
+
+    TODO: Implicit assumption that all vol-strip events are represented on the event grid.
+
+    Attributes:
+        kappa: Speed of mean reversion.
+        vol: Volatility strip.
         discount_curve: Discount curve represented on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
@@ -334,7 +430,7 @@ class SDEConstant(SDEBasic):
         See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
         """
         kappa = self.kappa_eg[0]
-        vol = self.vol_eg[0]
+        vol = self.vol_eg[:-1]
         self.rate_variance[1:] = \
             vol ** 2 * (1 - np.exp(-2 * kappa * np.diff(self.event_grid))) \
             / (2 * kappa)
@@ -378,13 +474,7 @@ class SDEConstant(SDEBasic):
         See L.B.G. Andersen & V.V. Piterbarg 2010, lemma 10.1.11.
         """
         kappa = self.kappa_eg[0]
-        vol = self.vol_eg[0]
-
-        exp_kappa_1 = np.exp(-2 * kappa * np.diff(self.event_grid))
-        exp_kappa_2 = np.exp(-kappa * np.diff(self.event_grid))
+        vol = self.vol_eg[:-1]
+        exp_kappa = np.exp(-kappa * np.diff(self.event_grid))
         self.covariance[1:] = \
-            -vol ** 2 * (1 + exp_kappa_1 - 2 * exp_kappa_2) / (2 * kappa ** 2)
-
-
-class SDEPiecewise(SDEBasic):
-    pass
+            -vol ** 2 * (1 - exp_kappa) ** 2 / (2 * kappa ** 2)

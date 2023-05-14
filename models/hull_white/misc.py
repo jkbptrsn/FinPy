@@ -56,6 +56,63 @@ def y_constant(kappa: float,
     return vol ** 2 * (1 - np.exp(-two_kappa * event_grid)) / two_kappa
 
 
+def int_y_constant(kappa: float,
+                   vol: float,
+                   event_grid: np.ndarray) -> np.ndarray:
+    """Calculate "integral" of y-function on event grid.
+
+    Assuming that speed of mean reversion and volatility are constant.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+
+    Args:
+        kappa: Speed of mean reversion.
+        vol: Volatility.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        "Integral" of y-function.
+    """
+    exp_kappa_1 = np.exp(-2 * kappa * event_grid[1:])
+    exp_kappa_2 = np.exp(-kappa * np.diff(event_grid))
+    event_grid_sum = event_grid[1:] + event_grid[:-1]
+    exp_kappa_3 = np.exp(-kappa * event_grid_sum)
+    integral = np.zeros(event_grid.size)
+    integral[1:] = vol ** 2 * (1 + exp_kappa_1
+                               - exp_kappa_2 - exp_kappa_3) / (2 * kappa ** 2)
+    return integral
+
+
+def double_int_y_constant(kappa: float,
+                          vol: float,
+                          event_grid: np.ndarray) -> np.ndarray:
+    """Calculate "double integral" of y-function on event grid.
+
+    Assuming that speed of mean reversion and volatility are constant.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+
+    Args:
+        kappa: Speed of mean reversion.
+        vol: Volatility.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        "Double integral" of y-function.
+    """
+    exp_kappa_1 = (np.exp(-2 * kappa * event_grid[:-1])
+                   - np.exp(-2 * kappa * event_grid[1:])) / 2
+    exp_kappa_2 = np.exp(-kappa * np.diff(event_grid)) - 1
+    event_grid_sum = event_grid[1:] + event_grid[:-1]
+    exp_kappa_3 = \
+        np.exp(-kappa * event_grid_sum) - np.exp(-2 * kappa * event_grid[:-1])
+    integral = np.zeros(event_grid.size)
+    integral[1:] = \
+        vol ** 2 * (kappa * np.diff(event_grid) + exp_kappa_1
+                    + exp_kappa_2 + exp_kappa_3) / (2 * kappa ** 3)
+    return integral
+
+
 def y_piecewise(kappa: float,
                 vol: np.ndarray,
                 event_grid: np.ndarray) -> np.ndarray:
