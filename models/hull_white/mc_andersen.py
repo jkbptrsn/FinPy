@@ -409,6 +409,9 @@ class SDEPiecewise(SDEBasic):
 
         See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
         """
+
+        # TODO: int_y_piecewise, double_y_piecewise, int_y_general, double_int_y_general
+
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
         # Values at initial event.
