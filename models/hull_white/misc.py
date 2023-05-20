@@ -196,6 +196,77 @@ def int_y_piecewise(kappa: float,
     return return_vector
 
 
+def double_int_y_piecewise(kappa: float,
+                           vol: np.ndarray,
+                           event_grid: np.ndarray) -> np.ndarray:
+    """Calculate "double integral" of y-function on event grid.
+
+    Assuming that speed of mean reversion is constant and volatility
+    strip is piecewise constant.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+
+    Args:
+        kappa: Speed of mean reversion.
+        vol: Volatility strip on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        "Double integral" of y-function.
+    """
+    return_vector = np.zeros(event_grid.size)
+    two_kappa = 2 * kappa
+    two_kappa_cubed = 2 * kappa ** 3
+    for idx in range(1, event_grid.size):
+        # See notes for "less than".
+        event_filter = event_grid < event_grid[idx]
+        vol_times = event_grid[event_filter]
+        vol_values = vol[event_filter]
+
+        # First term.
+        delta_t = event_grid[idx] - vol_times
+        y = np.exp(-two_kappa * delta_t[1:]) \
+            - np.exp(-two_kappa * delta_t[:-1])
+        y *= vol_values[:-1] ** 2 / (2 * two_kappa_cubed)
+        return_vector[idx] += y.sum()
+        delta_t = event_grid[idx] - vol_times[-1]
+        y = two_kappa * event_grid[idx] + math.exp(-two_kappa * delta_t)
+        y *= vol_values[-1] ** 2 / (2 * two_kappa_cubed)
+        return_vector[idx] += y
+
+        # Second term.
+        delta_t = event_grid[idx] + event_grid[idx - 1] - 2 * vol_times
+        y = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
+        y *= vol_values[:-1] ** 2 / two_kappa_cubed
+        return_vector[idx] -= y.sum()
+        delta_t = event_grid[idx] - event_grid[idx - 1]
+        y = math.exp(-kappa * delta_t)
+        delta_t = event_grid[idx] + event_grid[idx - 1] - 2 * vol_times[-1]
+        y += math.exp(-kappa * delta_t)
+        y *= vol_values[-1] ** 2 / two_kappa_cubed
+        return_vector[idx] += y
+
+        # Third term.
+        delta_t = event_grid[idx - 1] - vol_times
+        y = np.exp(-two_kappa * delta_t[1:]) \
+            - np.exp(-two_kappa * delta_t[:-1])
+        y *= vol_values[:-1] ** 2 / (2 * two_kappa_cubed)
+        return_vector[idx] -= y.sum()
+        y = two_kappa * event_grid[idx - 1] - 1
+        y *= vol_values[-1] ** 2 / (2 * two_kappa_cubed)
+        return_vector[idx] -= y
+
+        # Fourth term.
+        delta_t = event_grid[idx - 1] - vol_times
+        y = np.exp(-two_kappa * delta_t[1:]) - np.exp(-two_kappa * delta_t[:-1])
+        y *= vol_values[:-1] ** 2 / two_kappa_cubed
+        return_vector[idx] += y.sum()
+        y = 2 * vol_values[-1] ** 2 / two_kappa_cubed
+        return_vector[idx] -= y
+
+    return return_vector
+
+
 def y_general(int_grid: np.ndarray,
               int_event_idx: np.ndarray,
               int_kappa_step: np.ndarray,
