@@ -131,7 +131,7 @@ def y_piecewise(kappa: float,
     Returns:
         y-function.
     """
-    y_return = np.zeros(event_grid.size)
+    y_function = np.zeros(event_grid.size)
     two_kappa = 2 * kappa
     for idx in range(1, event_grid.size):
         # See notes for "less than or equal to".
@@ -142,8 +142,8 @@ def y_piecewise(kappa: float,
         y = np.exp(-two_kappa * delta_t[1:]) \
             - np.exp(-two_kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / two_kappa
-        y_return[idx] = y.sum()
-    return y_return
+        y_function[idx] = y.sum()
+    return y_function
 
 
 def int_y_piecewise(kappa: float,
@@ -164,7 +164,7 @@ def int_y_piecewise(kappa: float,
     Returns:
         "Integral" of y-function.
     """
-    return_vector = np.zeros(event_grid.size)
+    integral = np.zeros(event_grid.size)
     two_kappa = 2 * kappa
     two_kappa_sq = 2 * kappa ** 2
     for idx in range(1, event_grid.size):
@@ -177,23 +177,23 @@ def int_y_piecewise(kappa: float,
         y = np.exp(-two_kappa * delta_t[:-1]) \
             - np.exp(-two_kappa * delta_t[1:])
         y *= vol_values[:-1] ** 2 / two_kappa_sq
-        return_vector[idx] += y.sum()
+        integral[idx] += y.sum()
         # Second term.
         delta_t = event_grid[idx] - event_grid[idx - 1]
         y = 1 + math.exp(-two_kappa * delta_t)
         y *= vol_values[-1] ** 2 / two_kappa_sq
-        return_vector[idx] += y
+        integral[idx] += y
         # Third term.
         delta_t = event_grid[idx] + event_grid[idx - 1] - 2 * vol_times
         y = np.exp(-kappa * delta_t[:-1]) - np.exp(-kappa * delta_t[1:])
         y *= vol_values[:-1] ** 2 / two_kappa_sq
-        return_vector[idx] += y.sum()
+        integral[idx] += y.sum()
         # Fourth term.
         delta_t = event_grid[idx] - event_grid[idx - 1]
         y = 2 * math.exp(-kappa * delta_t)
         y *= vol_values[-1] ** 2 / two_kappa_sq
-        return_vector[idx] += y
-    return return_vector
+        integral[idx] += y
+    return integral
 
 
 def double_int_y_piecewise(kappa: float,
@@ -214,7 +214,7 @@ def double_int_y_piecewise(kappa: float,
     Returns:
         "Double integral" of y-function.
     """
-    return_vector = np.zeros(event_grid.size)
+    integral = np.zeros(event_grid.size)
     two_kappa = 2 * kappa
     two_kappa_cubed = 2 * kappa ** 3
     for idx in range(1, event_grid.size):
@@ -228,43 +228,43 @@ def double_int_y_piecewise(kappa: float,
         y = np.exp(-two_kappa * delta_t[1:]) \
             - np.exp(-two_kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / (2 * two_kappa_cubed)
-        return_vector[idx] += y.sum()
+        integral[idx] += y.sum()
         delta_t = event_grid[idx] - vol_times[-1]
         y = two_kappa * event_grid[idx] + math.exp(-two_kappa * delta_t)
         y *= vol_values[-1] ** 2 / (2 * two_kappa_cubed)
-        return_vector[idx] += y
+        integral[idx] += y
 
         # Second term.
         delta_t = event_grid[idx] + event_grid[idx - 1] - 2 * vol_times
         y = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / two_kappa_cubed
-        return_vector[idx] -= y.sum()
+        integral[idx] -= y.sum()
         delta_t = event_grid[idx] - event_grid[idx - 1]
         y = math.exp(-kappa * delta_t)
         delta_t = event_grid[idx] + event_grid[idx - 1] - 2 * vol_times[-1]
         y += math.exp(-kappa * delta_t)
         y *= vol_values[-1] ** 2 / two_kappa_cubed
-        return_vector[idx] += y
+        integral[idx] += y
 
         # Third term.
         delta_t = event_grid[idx - 1] - vol_times
         y = np.exp(-two_kappa * delta_t[1:]) \
             - np.exp(-two_kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / (2 * two_kappa_cubed)
-        return_vector[idx] -= y.sum()
+        integral[idx] -= y.sum()
         y = two_kappa * event_grid[idx - 1] - 1
         y *= vol_values[-1] ** 2 / (2 * two_kappa_cubed)
-        return_vector[idx] -= y
+        integral[idx] -= y
 
         # Fourth term.
         delta_t = event_grid[idx - 1] - vol_times
         y = np.exp(-two_kappa * delta_t[1:]) - np.exp(-two_kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / two_kappa_cubed
-        return_vector[idx] += y.sum()
+        integral[idx] += y.sum()
         y = 2 * vol_values[-1] ** 2 / two_kappa_cubed
-        return_vector[idx] -= y
+        integral[idx] -= y
 
-    return return_vector
+    return integral
 
 
 def y_general(int_grid: np.ndarray,
@@ -331,7 +331,7 @@ def int_y_general(int_grid: np.ndarray,
     y_eg, y_ig = y_general(int_grid, int_event_idx, int_kappa_step,
                            vol_int_grid, event_grid)
     # Calculation of "integral" of y-function on event grid.
-    int_y_eg = np.zeros(event_grid.size)
+    integral = np.zeros(event_grid.size)
     for event_idx in range(1, event_grid.size):
         # Integration indices of two adjacent events.
         idx1 = int_event_idx[event_idx - 1]
@@ -342,8 +342,53 @@ def int_y_general(int_grid: np.ndarray,
         int_kappa = np.append(int_kappa_step[idx1 + 1:idx2], 0)
         int_kappa = np.cumsum(int_kappa[::-1])[::-1]
         integrand = np.exp(-int_kappa) * y_ig[idx1:idx2]
-        int_y_eg[event_idx] = np.sum(misc.trapz(int_grid_tmp, integrand))
-    return int_y_eg
+        integral[event_idx] = np.sum(misc.trapz(int_grid_tmp, integrand))
+    return integral
+
+
+def double_int_y_general(int_grid: np.ndarray,
+                         int_event_idx: np.ndarray,
+                         int_kappa_step: np.ndarray,
+                         vol_int_grid: np.ndarray,
+                         event_grid: np.ndarray) -> (np.ndarray, np.ndarray):
+    """Calculate "double integral" of y-function on event grid.
+
+    See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+
+    Args:
+        int_grid: Integration grid.
+        int_event_idx: Integration grid
+        int_kappa_step: Step-wise integration of kappa on integration
+            grid.
+        vol_int_grid: Volatility on integration grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        "Double integral" of y-function.
+    """
+    y_eg, y_ig = y_general(int_grid, int_event_idx, int_kappa_step,
+                           vol_int_grid, event_grid)
+    # Calculation of "double integral" of y-function on event grid.
+    integral = np.zeros(event_grid.size)
+    for event_idx in range(1, event_grid.size):
+        # Integration indices of two adjacent events.
+        idx1 = int_event_idx[event_idx - 1]
+        idx2 = int_event_idx[event_idx] + 1
+        # Double time integral in Eq. (10.42).
+        inner_integral = np.array(0)
+        for idx in range(idx1 + 1, idx2):
+            int_grid_tmp = int_grid[idx1:idx + 1]
+            int_kappa_tmp = np.append(int_kappa_step[idx1 + 1:idx + 1], 0)
+            int_kappa_tmp = np.cumsum(int_kappa_tmp[::-1])[::-1]
+            integrand = np.exp(-int_kappa_tmp) * y_ig[idx1:idx + 1]
+            inner_integral = \
+                np.append(inner_integral,
+                          np.sum(misc.trapz(int_grid_tmp, integrand)))
+        # Slice of integration grid.
+        int_grid_tmp = int_grid[idx1:idx2]
+        integral[event_idx] = np.sum(misc.trapz(int_grid_tmp, inner_integral))
+    return integral
 
 
 def g_constant(kappa: float,
