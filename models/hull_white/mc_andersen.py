@@ -315,9 +315,8 @@ class SDEConstant(SDEBasic):
         """
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
-        # Values at initial event.
-        self.rate_mean[0] = np.array([1, 0])
         # First term in Eq. (10.40).
+        self.rate_mean[0, :] = np.array([1, 0])
         self.rate_mean[1:, 0] = np.exp(-kappa * np.diff(self.event_grid))
         # Second term in Eq. (10.40).
         self.rate_mean[:, 1] = \
@@ -330,6 +329,7 @@ class SDEConstant(SDEBasic):
         """
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
+        self.rate_variance[0] = 0
         self.rate_variance[1:] = \
             vol ** 2 * (1 - np.exp(-2 * kappa * np.diff(self.event_grid))) \
             / (2 * kappa)
@@ -343,6 +343,7 @@ class SDEConstant(SDEBasic):
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
         # First term in Eq. (10.42).
+        self.discount_mean[0, :] = 0
         self.discount_mean[1:, 0] = \
             (1 - np.exp(-kappa * np.diff(self.event_grid))) / kappa
         # Second term in Eq. (10.42).
@@ -355,6 +356,7 @@ class SDEConstant(SDEBasic):
         The pseudo discount process is really -int_t^{t+dt} x_u du. See
         L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
         """
+        self.discount_variance[0] = 0
         self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
             - self.y_eg[:-1] * self.discount_mean[1:, 0] ** 2
 
@@ -366,6 +368,7 @@ class SDEConstant(SDEBasic):
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
         exp_kappa = np.exp(-kappa * np.diff(self.event_grid))
+        self.covariance[0] = 0
         self.covariance[1:] = \
             -vol ** 2 * (1 - exp_kappa) ** 2 / (2 * kappa ** 2)
 
@@ -400,7 +403,7 @@ class SDEPiecewise(SDEBasic):
                  event_grid: np.ndarray,
                  int_step_size: float = 1 / 365):
         super().__init__(kappa, vol, discount_curve, event_grid,
-                         "constant", int_step_size)
+                         "piecewise", int_step_size)
 
         self.initialization()
 
@@ -410,13 +413,12 @@ class SDEPiecewise(SDEBasic):
         See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
         """
         kappa = self.kappa_eg[0]
-        vol = self.vol_eg[0]
-        # Values at initial event.
-        self.rate_mean[0] = np.array([1, 0])
         # First term in Eq. (10.40).
+        self.rate_mean[0, :] = np.array([1, 0])
         self.rate_mean[1:, 0] = np.exp(-kappa * np.diff(self.event_grid))
         # Second term in Eq. (10.40).
-        self.rate_mean[:, 1] = misc_hw.int_y_piecewise(kappa, vol, self.event_grid)
+        self.rate_mean[:, 1] = \
+            misc_hw.int_y_piecewise(kappa, self.vol_eg, self.event_grid)
 
     def _calc_rate_variance(self):
         """Conditional variance of pseudo short rate process.
@@ -425,6 +427,7 @@ class SDEPiecewise(SDEBasic):
         """
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[:-1]
+        self.rate_variance[0] = 0
         self.rate_variance[1:] = \
             vol ** 2 * (1 - np.exp(-2 * kappa * np.diff(self.event_grid))) \
             / (2 * kappa)
@@ -438,6 +441,7 @@ class SDEPiecewise(SDEBasic):
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
         # First term in Eq. (10.42).
+        self.discount_mean[0, :] = 0
         self.discount_mean[1:, 0] = \
             (1 - np.exp(-kappa * np.diff(self.event_grid))) / kappa
         # Second term in Eq. (10.42).
@@ -450,6 +454,7 @@ class SDEPiecewise(SDEBasic):
         The pseudo discount process is really -int_t^{t+dt} x_u du. See
         L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
         """
+        self.discount_variance[0] = 0
         self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
             - self.y_eg[:-1] * self.discount_mean[1:, 0] ** 2
 
@@ -459,7 +464,150 @@ class SDEPiecewise(SDEBasic):
         See L.B.G. Andersen & V.V. Piterbarg 2010, lemma 10.1.11.
         """
         kappa = self.kappa_eg[0]
-        vol = self.vol_eg[:-1]
         exp_kappa = np.exp(-kappa * np.diff(self.event_grid))
+        self.covariance[0] = 0
         self.covariance[1:] = \
-            -vol ** 2 * (1 - exp_kappa) ** 2 / (2 * kappa ** 2)
+            -self.vol_eg[:-1] ** 2 * (1 - exp_kappa) ** 2 / (2 * kappa ** 2)
+
+
+class SDEGeneral(SDEBasic):
+    """SDE class for 1-factor Hull-White model.
+
+    The pseudo short rate is given by
+        dx_t = (y_t - kappa * x_t) * dt + vol_t * dW_t,
+    where
+        x_t = r_t - f(0,t) (f is the instantaneous forward rate).
+
+    No assumption on the time-dependence of the speed of mean reversion
+    and the volatility strip.
+
+    TODO: Implicit assumption that all vol-strip events are represented on the event grid.
+
+    Attributes:
+        kappa: Speed of mean reversion.
+        vol: Volatility strip.
+        discount_curve: Discount curve represented on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+        int_step_size: Integration/propagation step size represented as
+            a year fraction. Default is 1 / 365.
+    """
+
+    def __init__(self,
+                 kappa: misc.DiscreteFunc,
+                 vol: misc.DiscreteFunc,
+                 discount_curve: misc.DiscreteFunc,
+                 event_grid: np.ndarray,
+                 int_step_size: float = 1 / 365):
+        super().__init__(kappa, vol, discount_curve, event_grid,
+                         "general", int_step_size)
+
+        self.initialization()
+
+    def _calc_rate_mean(self):
+        """Conditional mean of pseudo short rate process.
+
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+        """
+        # First term in Eq. (10.40).
+        self.rate_mean[0, :] = np.array([1, 0])
+        for event_idx in range(1, self.event_grid.size):
+            # Integration indices of two adjacent events.
+            idx1 = self.int_event_idx[event_idx - 1]
+            idx2 = self.int_event_idx[event_idx] + 1
+            # Slice of time-integrated kappa for each integration step.
+            int_kappa = np.append(self.int_kappa_step[idx1 + 1:idx2], 0)
+            self.rate_mean[event_idx, 0] = math.exp(-np.sum(int_kappa))
+        # Second term in Eq. (10.40).
+        self.rate_mean[:, 1] = \
+            misc_hw.int_y_general(self.int_grid, self.int_event_idx,
+                                  self.int_kappa_step, self.vol_ig,
+                                  self.event_grid)
+
+    def _calc_rate_variance(self):
+        """Conditional variance of pseudo short rate process.
+
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+        """
+        self.rate_variance[0] = 0
+        for event_idx in range(1, self.event_grid.size):
+            # Integration indices of two adjacent events.
+            idx1 = self.int_event_idx[event_idx - 1]
+            idx2 = self.int_event_idx[event_idx] + 1
+            # Slice of integration grid.
+            int_grid = self.int_grid[idx1:idx2]
+            # Slice of time-integrated kappa for each integration step.
+            int_kappa = np.append(self.int_kappa_step[idx1 + 1:idx2], 0)
+            int_kappa = np.cumsum(int_kappa[::-1])[::-1]
+            integrand = np.exp(-int_kappa) * self.vol_ig[idx1:idx2]
+            integrand = integrand ** 2
+            variance = np.sum(misc.trapz(int_grid, integrand))
+            self.rate_variance[event_idx] = variance
+
+    def _calc_discount_mean(self):
+        """Conditional mean of pseudo discount process.
+
+        The pseudo discount process is really -int_t^{t+dt} x_u du. See
+        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        """
+        self.discount_mean[0, :] = 0
+        # First term in Eq. (10.42).
+        for event_idx in range(1, self.event_grid.size):
+            # Integration indices of two adjacent events.
+            idx1 = self.int_event_idx[event_idx - 1]
+            idx2 = self.int_event_idx[event_idx] + 1
+            # Slice of integration grid.
+            int_grid = self.int_grid[idx1:idx2]
+            # Slice of time-integrated kappa for each integration step.
+            int_kappa = np.append(0, self.int_kappa_step[idx1 + 1:idx2])
+            # G-function in Eq. (10.18).
+            int_kappa = np.cumsum(int_kappa)
+            integrand = np.exp(-int_kappa)
+            self.discount_mean[event_idx, 0] = \
+                np.sum(misc.trapz(int_grid, integrand))
+        # Second term in Eq. (10.42).
+        self.discount_mean[:, 1] = \
+            misc_hw.double_int_y_general(self.int_grid, self.int_event_idx,
+                                         self.int_kappa_step, self.vol_ig,
+                                         self.event_grid)
+
+    def _calc_discount_variance(self):
+        """Conditional variance of pseudo discount process.
+
+        The pseudo discount process is really -int_t^{t+dt} x_u du. See
+        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        """
+        self.discount_variance[0] = 0
+        self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
+            - self.y_eg[:-1] * self.discount_mean[1:, 0] ** 2
+
+    def _calc_covariance(self):
+        """Covariance between short rate and discount processes.
+
+        See L.B.G. Andersen & V.V. Piterbarg 2010, lemma 10.1.11.
+        """
+        self.covariance[0] = 0
+        for event_idx in range(1, self.event_grid.size):
+            # Integration indices of two adjacent events.
+            idx1 = self.int_event_idx[event_idx - 1]
+            idx2 = self.int_event_idx[event_idx] + 1
+            # Slice of time-integrated kappa for each integration step.
+            int_kappa = np.append(0, self.int_kappa_step[idx1 + 1:idx2])
+            int_kappa = np.cumsum(int_kappa[::-1])[::-1]
+            exp_kappa = np.exp(-int_kappa)
+            cov = np.array(0)
+            for idx in range(idx1 + 1, idx2):
+                int_grid_tmp = self.int_grid[idx1:idx + 1]
+                int_kappa_tmp = \
+                    np.append(self.int_kappa_step[idx1 + 1:idx + 1], 0)
+                int_kappa_tmp = np.cumsum(int_kappa_tmp[::-1])[::-1]
+
+                # TODO: Check slicing of exp_kappa!
+                integrand = self.vol_ig[idx1:idx + 1] ** 2 * \
+                    np.exp(-int_kappa_tmp) * exp_kappa[idx - idx1 - 1:]
+
+                cov = np.append(cov,
+                                np.sum(misc.trapz(int_grid_tmp, integrand)))
+            # Slice of integration grid.
+            int_grid = self.int_grid[idx1:idx2]
+            self.covariance[event_idx] = -np.sum(misc.trapz(int_grid, cov))
