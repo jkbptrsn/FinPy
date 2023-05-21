@@ -409,9 +409,6 @@ class SDEPiecewise(SDEBasic):
 
         See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
         """
-
-        # TODO:  int_y_general, double_int_y_general
-
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
         # Values at initial event.
@@ -419,13 +416,7 @@ class SDEPiecewise(SDEBasic):
         # First term in Eq. (10.40).
         self.rate_mean[1:, 0] = np.exp(-kappa * np.diff(self.event_grid))
         # Second term in Eq. (10.40).
-        exp_kappa_1 = np.exp(-2 * kappa * self.event_grid[1:])
-        exp_kappa_2 = np.exp(-kappa * np.diff(self.event_grid))
-        event_grid_sum = self.event_grid[1:] + self.event_grid[:-1]
-        exp_kappa_3 = np.exp(-kappa * event_grid_sum)
-        self.rate_mean[1:, 1] = \
-            vol ** 2 * (1 + exp_kappa_1 - exp_kappa_2 - exp_kappa_3) \
-            / (2 * kappa ** 2)
+        self.rate_mean[:, 1] = misc_hw.int_y_piecewise(kappa, vol, self.event_grid)
 
     def _calc_rate_variance(self):
         """Conditional variance of pseudo short rate process.
@@ -449,18 +440,9 @@ class SDEPiecewise(SDEBasic):
         # First term in Eq. (10.42).
         self.discount_mean[1:, 0] = \
             (1 - np.exp(-kappa * np.diff(self.event_grid))) / kappa
-        # First term in Eq. (10.42).
-        exp_kappa_1 = \
-            (np.exp(-2 * kappa * self.event_grid[:-1])
-             - np.exp(-2 * kappa * self.event_grid[1:])) / 2
-        exp_kappa_2 = np.exp(-kappa * np.diff(self.event_grid)) - 1
-        event_grid_sum = self.event_grid[1:] + self.event_grid[:-1]
-        exp_kappa_3 = \
-            np.exp(-kappa * event_grid_sum) \
-            - np.exp(-2 * kappa * self.event_grid[:-1])
-        self.discount_mean[1:, 1] = \
-            vol ** 2 * (kappa * np.diff(self.event_grid) + exp_kappa_1
-                        + exp_kappa_2 + exp_kappa_3) / (2 * kappa ** 3)
+        # Second term in Eq. (10.42).
+        self.discount_mean[:, 1] = \
+            misc_hw.double_int_y_piecewise(kappa, vol, self.event_grid)
 
     def _calc_discount_variance(self):
         """Conditional variance of pseudo discount process.
