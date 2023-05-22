@@ -187,12 +187,12 @@ def int_y_piecewise(kappa: float,
         delta_t = event_grid[idx] + event_grid[idx - 1] - 2 * vol_times
         y = np.exp(-kappa * delta_t[:-1]) - np.exp(-kappa * delta_t[1:])
         y *= vol_values[:-1] ** 2 / two_kappa_sq
-        integral[idx] += y.sum()
+        integral[idx] -= y.sum()
         # Fourth term.
         delta_t = event_grid[idx] - event_grid[idx - 1]
         y = 2 * math.exp(-kappa * delta_t)
         y *= vol_values[-1] ** 2 / two_kappa_sq
-        integral[idx] += y
+        integral[idx] -= y
     return integral
 
 
