@@ -222,7 +222,6 @@ def double_int_y_piecewise(kappa: float,
         event_filter = event_grid < event_grid[idx]
         vol_times = event_grid[event_filter]
         vol_values = vol[event_filter]
-
         # First term.
         delta_t = event_grid[idx] - vol_times
         y = np.exp(-two_kappa * delta_t[1:]) \
@@ -230,10 +229,9 @@ def double_int_y_piecewise(kappa: float,
         y *= vol_values[:-1] ** 2 / (2 * two_kappa_cubed)
         integral[idx] += y.sum()
         delta_t = event_grid[idx] - vol_times[-1]
-        y = two_kappa * event_grid[idx] + math.exp(-two_kappa * delta_t)
+        y = two_kappa * event_grid[idx] - math.exp(-two_kappa * delta_t)
         y *= vol_values[-1] ** 2 / (2 * two_kappa_cubed)
         integral[idx] += y
-
         # Second term.
         delta_t = event_grid[idx] + event_grid[idx - 1] - 2 * vol_times
         y = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
@@ -245,7 +243,6 @@ def double_int_y_piecewise(kappa: float,
         y += math.exp(-kappa * delta_t)
         y *= vol_values[-1] ** 2 / two_kappa_cubed
         integral[idx] += y
-
         # Third term.
         delta_t = event_grid[idx - 1] - vol_times
         y = np.exp(-two_kappa * delta_t[1:]) \
@@ -255,15 +252,14 @@ def double_int_y_piecewise(kappa: float,
         y = two_kappa * event_grid[idx - 1] - 1
         y *= vol_values[-1] ** 2 / (2 * two_kappa_cubed)
         integral[idx] -= y
-
         # Fourth term.
         delta_t = event_grid[idx - 1] - vol_times
-        y = np.exp(-two_kappa * delta_t[1:]) - np.exp(-two_kappa * delta_t[:-1])
+        y = np.exp(-two_kappa * delta_t[1:]) \
+            - np.exp(-two_kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / two_kappa_cubed
         integral[idx] += y.sum()
         y = 2 * vol_values[-1] ** 2 / two_kappa_cubed
         integral[idx] -= y
-
     return integral
 
 

@@ -15,6 +15,8 @@ class SDEBasic:
 
     See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
 
+    TODO: Add methods for rate and discount "adjustment"...
+
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility strip.
@@ -293,18 +295,14 @@ class SDEConstant(SDEBasic):
         discount_curve: Discount curve represented on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
-        int_step_size: Integration/propagation step size represented as
-            a year fraction. Default is 1 / 365.
     """
 
     def __init__(self,
                  kappa: misc.DiscreteFunc,
                  vol: misc.DiscreteFunc,
                  discount_curve: misc.DiscreteFunc,
-                 event_grid: np.ndarray,
-                 int_step_size: float = 1 / 365):
-        super().__init__(kappa, vol, discount_curve, event_grid,
-                         "constant", int_step_size)
+                 event_grid: np.ndarray):
+        super().__init__(kappa, vol, discount_curve, event_grid, "constant")
 
         self.initialization()
 
@@ -392,18 +390,14 @@ class SDEPiecewise(SDEBasic):
         discount_curve: Discount curve represented on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
-        int_step_size: Integration/propagation step size represented as
-            a year fraction. Default is 1 / 365.
     """
 
     def __init__(self,
                  kappa: misc.DiscreteFunc,
                  vol: misc.DiscreteFunc,
                  discount_curve: misc.DiscreteFunc,
-                 event_grid: np.ndarray,
-                 int_step_size: float = 1 / 365):
-        super().__init__(kappa, vol, discount_curve, event_grid,
-                         "piecewise", int_step_size)
+                 event_grid: np.ndarray):
+        super().__init__(kappa, vol, discount_curve, event_grid, "piecewise")
 
         self.initialization()
 
@@ -439,14 +433,13 @@ class SDEPiecewise(SDEBasic):
         L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
         """
         kappa = self.kappa_eg[0]
-        vol = self.vol_eg[0]
         # First term in Eq. (10.42).
         self.discount_mean[0, :] = 0
         self.discount_mean[1:, 0] = \
             (1 - np.exp(-kappa * np.diff(self.event_grid))) / kappa
         # Second term in Eq. (10.42).
         self.discount_mean[:, 1] = \
-            misc_hw.double_int_y_piecewise(kappa, vol, self.event_grid)
+            misc_hw.double_int_y_piecewise(kappa, self.vol_eg, self.event_grid)
 
     def _calc_discount_variance(self):
         """Conditional variance of pseudo discount process.
@@ -601,11 +594,8 @@ class SDEGeneral(SDEBasic):
                 int_kappa_tmp = \
                     np.append(self.int_kappa_step[idx1 + 1:idx + 1], 0)
                 int_kappa_tmp = np.cumsum(int_kappa_tmp[::-1])[::-1]
-
-                # TODO: Check slicing of exp_kappa!
                 integrand = self.vol_ig[idx1:idx + 1] ** 2 * \
-                    np.exp(-int_kappa_tmp) * exp_kappa[idx - idx1 - 1:]
-
+                    np.exp(-int_kappa_tmp) * exp_kappa[:idx + 1 - idx1]
                 cov = np.append(cov,
                                 np.sum(misc.trapz(int_grid_tmp, integrand)))
             # Slice of integration grid.
