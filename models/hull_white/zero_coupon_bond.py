@@ -5,13 +5,16 @@ from scipy.interpolate import UnivariateSpline
 
 from models import bonds
 from models.hull_white import misc as misc_hw
-from models.hull_white import sde
+
+from models.hull_white import sde as sde_old
+from models.hull_white import mc_andersen as sde
+
 from utils import global_types
 from utils import misc
 from utils import payoffs
 
 
-class ZCBond(sde.SDE, bonds.VanillaBond):
+class ZCBond(sde_old.SDE, bonds.VanillaBond):
     """Zero-coupon bond in 1-factor Hull-White model.
 
     TODO: Use rate or pseudo rate?
@@ -482,11 +485,35 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
             # Propagation for one time step.
             self.fd.propagation(dt, True)
 
-###############################################################################
+    def mc_exact_setup(self,
+                       time_dependence: str = "constant",
+                       int_step_size: float = 1 / 365):
+        """Setup exact Monte-Carlo solver.
 
-    def mc_exact_setup(self):
-        """Setup exact Monte-Carlo solver."""
-        pass
+        Args:
+            time_dependence: Time dependence of model parameters.
+                Default is "constant".
+            int_step_size: Integration step size represented as a year
+                fraction. Default is 1 / 365.
+        """
+        if time_dependence == "constant":
+            self.mc_exact = sde.SDEConstant(self.kappa,
+                                            self.vol,
+                                            self.discount_curve,
+                                            self.event_grid)
+        elif time_dependence == "piecewise":
+            self.mc_exact = sde.SDEPiecewise(self.kappa,
+                                             self.vol,
+                                             self.discount_curve,
+                                             self.event_grid)
+        elif time_dependence == "general":
+            self.mc_exact = sde.SDEGeneral(self.kappa,
+                                           self.vol,
+                                           self.discount_curve,
+                                           self.event_grid,
+                                           int_step_size)
+        else:
+            raise ValueError(f"Time-dependence is unknown: {time_dependence}")
 
     def mc_exact_solve(self,
                        spot: float,
@@ -503,9 +530,9 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
             seed: Seed of random number generator. Default is None.
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
-        pass
+        rate, discount = \
+            self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        discount = self.mc_exact.discount_adjustment(discount)
+        self.mc_exact.solution = np.mean(discount[-1, :])
+        self.mc_exact.error = misc.monte_carlo_error(discount[-1, :])

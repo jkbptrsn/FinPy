@@ -5,7 +5,6 @@ import numpy as np
 
 from models.hull_white import mc_andersen as sde
 from models.hull_white import misc as misc_hw
-from unit_tests.test_hull_white import input
 from utils import misc
 
 plot_results = False
@@ -212,6 +211,7 @@ class Misc(unittest.TestCase):
 
 
 class SDE(unittest.TestCase):
+    """SDE classes in 1-factor Hull-White model."""
 
     def setUp(self) -> None:
         # Event dates in year fractions.
@@ -267,14 +267,14 @@ class SDE(unittest.TestCase):
         # Number of Monte-Carlo paths.
         n_paths = 100000
 
-        # Analytical results.
+        # Zero-coupon bond price at all events. Analytical results.
         price_a = self.discount_curve.values
 
         # SDE constant.
         rate, discount = \
             self.sde_constant.paths(0, n_paths, seed=0, antithetic=True)
         discount = self.sde_constant.discount_adjustment(discount)
-        # Monte-Carlo estimates.
+        # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
         diff = np.abs((price_n - price_a) / price_a)
@@ -286,7 +286,7 @@ class SDE(unittest.TestCase):
         rate, discount = \
             self.sde_piecewise1.paths(0, n_paths, seed=0, antithetic=True)
         discount = self.sde_piecewise1.discount_adjustment(discount)
-        # Monte-Carlo estimates.
+        # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
         diff = np.abs((price_n - price_a) / price_a)
@@ -298,7 +298,7 @@ class SDE(unittest.TestCase):
         rate, discount = \
             self.sde_general1.paths(0, n_paths, seed=0, antithetic=True)
         discount = self.sde_general1.discount_adjustment(discount)
-        # Monte-Carlo estimates.
+        # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
         diff = np.abs((price_n - price_a) / price_a)
@@ -378,14 +378,14 @@ class SDE(unittest.TestCase):
         # Number of Monte-Carlo paths.
         n_paths = 100000
 
-        # Analytical results.
+        # Zero-coupon bond price at all events. Analytical results.
         price_a = self.discount_curve.values
 
         # SDE piecewise.
         rate, discount = \
             self.sde_piecewise2.paths(0, n_paths, seed=0, antithetic=True)
         discount = self.sde_piecewise2.discount_adjustment(discount)
-        # Monte-Carlo estimates.
+        # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
         diff = np.abs((price_n - price_a) / price_a)
@@ -397,7 +397,7 @@ class SDE(unittest.TestCase):
         rate, discount = \
             self.sde_general2.paths(0, n_paths, seed=0, antithetic=True)
         discount = self.sde_general2.discount_adjustment(discount)
-        # Monte-Carlo estimates.
+        # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
         diff = np.abs((price_n - price_a) / price_a)

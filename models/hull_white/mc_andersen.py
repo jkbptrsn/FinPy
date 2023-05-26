@@ -10,33 +10,10 @@ from utils import global_types
 from utils import misc
 
 
-def discount_adjustment(discount_paths: np.ndarray,
-                        discount_curve: misc.DiscreteFunc) -> np.ndarray:
-    """Adjust pseudo discount paths.
-
-    Assume that pseudo discount paths and discount curve are represented
-    on identical event grids.
-
-    Args:
-        discount_paths: Pseudo discount factor along Monte-Carlo paths.
-        discount_curve: Initial discount bond curve.
-
-    Returns:
-        Actual discount paths.
-    """
-    adjustment = discount_paths.transpose() * discount_curve.values
-    return adjustment.transpose()
-
-
 class SDEBasic:
     """Basic SDE class for 1-factor Hull-White model.
 
     See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
-
-    TODO: Add methods for rate and discount "adjustment"
-    TODO: Unit tests of
-        * compare Monte-Carlo paths
-        * Pricing of zero-coupon bond
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -316,7 +293,8 @@ class SDEBasic:
         adjustment = rate_paths.transpose() + self.forward_rate_eg
         return adjustment.transpose()
 
-    def discount_adjustment(self, discount_paths: np.ndarray) -> np.ndarray:
+    def discount_adjustment(self,
+                            discount_paths: np.ndarray) -> np.ndarray:
         """Adjust pseudo discount paths.
 
         Assume that pseudo discount paths and discount curve are
