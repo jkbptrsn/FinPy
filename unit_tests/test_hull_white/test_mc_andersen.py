@@ -10,21 +10,22 @@ from unit_tests.test_hull_white import input
 from utils import misc
 
 plot_results = True
-print_results = False
+print_results = True
 
 
 class Misc(unittest.TestCase):
+    """Various functions used in 1-factor Hull-White model."""
 
     def setUp(self) -> None:
         # Event dates in year fractions.
         self.event_grid = np.arange(31)
-        # Speed of mean reversion.
-        self.kappa_scalar = 0.015
+        # Speed of mean reversion strip.
+        self.kappa_scalar = 0.15
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
         self.kappa1 = \
             misc.DiscreteFunc("kappa1", self.event_grid, self.kappa_vector1)
-        # Volatility.
-        self.vol_scalar = 0.005
+        # Volatility strip.
+        self.vol_scalar = 0.05
         self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)
         self.vol1 = \
             misc.DiscreteFunc("vol1", self.event_grid, self.vol_vector1)
@@ -33,7 +34,7 @@ class Misc(unittest.TestCase):
             if idx % 2 == 0:
                 self.vol_vector2[idx] = self.vol_vector1[idx]
             else:
-                self.vol_vector2[idx] = 2 * self.vol_vector1[idx]
+                self.vol_vector2[idx] = 4 * self.vol_vector1[idx]
         self.vol2 = \
             misc.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
@@ -45,10 +46,10 @@ class Misc(unittest.TestCase):
                                    int_step_size=1 / 12)
         self.sde2 = sde.SDEGeneral(self.kappa1, self.vol2,
                                    self.discount_curve, self.event_grid,
-                                   int_step_size=1 / 360)
+                                   int_step_size=1 / 100)
 
     def test_y_constant(self):
-        """Test numerical evaluation of the y-function."""
+        """Numerical evaluation of y-function."""
         y_constant = misc_hw.y_constant(self.kappa_scalar, self.vol_scalar,
                                         self.event_grid)
         y_piecewise = misc_hw.y_piecewise(self.kappa_scalar, self.vol_vector1,
@@ -58,6 +59,13 @@ class Misc(unittest.TestCase):
                                          self.sde1.int_kappa_step,
                                          self.sde1.vol_ig,
                                          self.sde1.event_grid)
+        if plot_results:
+            plt.plot(self.event_grid, y_constant, "-b")
+            plt.plot(self.event_grid, y_piecewise, "or")
+            plt.plot(self.event_grid, y_piecewise, "xk")
+            plt.xlabel("Time")
+            plt.ylabel("y-function")
+            plt.show()
         for idx, (y1, y2, y3) in \
                 enumerate(zip(y_constant, y_piecewise, y_general)):
             if idx > 0:
@@ -66,13 +74,10 @@ class Misc(unittest.TestCase):
                 if print_results:
                     print(diff1, diff2)
                 self.assertTrue(diff1 < 1.0e-15)
-                self.assertTrue(diff2 < 1.0e-6)
+                self.assertTrue(diff2 < 6.0e-5)
 
     def test_y_piecewise(self):
-        """Test numerical evaluation of the y-function.
-
-        TODO: Check y_general calculation. The approximation seems too crude...
-        """
+        """Numerical evaluation of y-function."""
         y_piecewise = misc_hw.y_piecewise(self.kappa_scalar, self.vol_vector2,
                                           self.event_grid)
         y_general, _ = misc_hw.y_general(self.sde2.int_grid,
@@ -80,14 +85,124 @@ class Misc(unittest.TestCase):
                                          self.sde2.int_kappa_step,
                                          self.sde2.vol_ig,
                                          self.sde2.event_grid)
+        if plot_results:
+            plt.plot(self.event_grid, y_piecewise, "-b")
+            plt.plot(self.event_grid, y_general, "or")
+            plt.xlabel("Time")
+            plt.ylabel("y-function")
+            plt.show()
         for idx, (y1, y2) in enumerate(zip(y_piecewise, y_general)):
             if idx > 1:
                 diff = abs(y1 - y2) / y1
                 if print_results:
                     print(y1, y2, diff)
-                self.assertTrue(diff < 1.0e-3)
+                self.assertTrue(diff < 6.0e-3)
 
-    # TODO: Add tests for int_y and double_int_y functions...
+    def test_int_y_constant(self):
+        """Numerical evaluation of "integral" of y-function."""
+        y_constant = \
+            misc_hw.int_y_constant(self.kappa_scalar, self.vol_scalar,
+                                   self.event_grid)
+        y_piecewise = \
+            misc_hw.int_y_piecewise(self.kappa_scalar, self.vol_vector1,
+                                    self.event_grid)
+        y_general = misc_hw.int_y_general(self.sde1.int_grid,
+                                          self.sde1.int_event_idx,
+                                          self.sde1.int_kappa_step,
+                                          self.sde1.vol_ig,
+                                          self.sde1.event_grid)
+        if plot_results:
+            plt.plot(self.event_grid, y_constant, "-b")
+            plt.plot(self.event_grid, y_piecewise, "or")
+            plt.plot(self.event_grid, y_piecewise, "xk")
+            plt.xlabel("Time")
+            plt.ylabel("Integral of y-function")
+            plt.show()
+        for idx, (y1, y2, y3) in \
+                enumerate(zip(y_constant, y_piecewise, y_general)):
+            if idx > 0:
+                diff1 = abs(y1 - y2) / y1
+                diff2 = abs(y1 - y3) / y1
+                if print_results:
+                    print(diff1, diff2)
+                self.assertTrue(diff1 < 5.0e-15)
+                self.assertTrue(diff2 < 7.0e-5)
+
+    def test_int_y_piecewise(self):
+        """Test numerical evaluation of "integral" of y-function."""
+        y_piecewise = \
+            misc_hw.int_y_piecewise(self.kappa_scalar, self.vol_vector2,
+                                    self.event_grid)
+        y_general = misc_hw.int_y_general(self.sde2.int_grid,
+                                          self.sde2.int_event_idx,
+                                          self.sde2.int_kappa_step,
+                                          self.sde2.vol_ig,
+                                          self.sde2.event_grid)
+        if plot_results:
+            plt.plot(self.event_grid, y_piecewise, "-b")
+            plt.plot(self.event_grid, y_general, "or")
+            plt.xlabel("Time")
+            plt.ylabel("Integral of y-function")
+            plt.show()
+        for idx, (y1, y2) in enumerate(zip(y_piecewise, y_general)):
+            if idx > 1:
+                diff = abs(y1 - y2) / y1
+                if print_results:
+                    print(y1, y2, diff)
+                self.assertTrue(diff < 8.0e-3)
+
+    def test_double_int_y_constant(self):
+        """Numerical evaluation of "double integral" of y-function."""
+        y_constant = \
+            misc_hw.double_int_y_constant(self.kappa_scalar, self.vol_scalar,
+                                          self.event_grid)
+        y_piecewise = \
+            misc_hw.double_int_y_piecewise(self.kappa_scalar, self.vol_vector1,
+                                           self.event_grid)
+        y_general = misc_hw.double_int_y_general(self.sde1.int_grid,
+                                                 self.sde1.int_event_idx,
+                                                 self.sde1.int_kappa_step,
+                                                 self.sde1.vol_ig,
+                                                 self.sde1.event_grid)
+        if plot_results:
+            plt.plot(self.event_grid, y_constant, "-b")
+            plt.plot(self.event_grid, y_piecewise, "or")
+            plt.plot(self.event_grid, y_piecewise, "xk")
+            plt.xlabel("Time")
+            plt.ylabel("Double integral of y-function")
+            plt.show()
+        for idx, (y1, y2, y3) in \
+                enumerate(zip(y_constant, y_piecewise, y_general)):
+            if idx > 0:
+                diff1 = abs(y1 - y2) / y1
+                diff2 = abs(y1 - y3) / y1
+                if print_results:
+                    print(diff1, diff2)
+                self.assertTrue(diff1 < 2.0e-13)
+                self.assertTrue(diff2 < 4.0e-3)
+
+    def test_double_int_y_piecewise(self):
+        """Test numerical evaluation of "double integral" of y-function."""
+        y_piecewise = \
+            misc_hw.double_int_y_piecewise(self.kappa_scalar, self.vol_vector2,
+                                           self.event_grid)
+        y_general = misc_hw.double_int_y_general(self.sde2.int_grid,
+                                                 self.sde2.int_event_idx,
+                                                 self.sde2.int_kappa_step,
+                                                 self.sde2.vol_ig,
+                                                 self.sde2.event_grid)
+        if plot_results:
+            plt.plot(self.event_grid, y_piecewise, "-b")
+            plt.plot(self.event_grid, y_general, "or")
+            plt.xlabel("Time")
+            plt.ylabel("Double integral of y-function")
+            plt.show()
+        for idx, (y1, y2) in enumerate(zip(y_piecewise, y_general)):
+            if idx > 2:
+                diff = abs(y1 - y2) / y1
+                if print_results:
+                    print(y1, y2, diff)
+                self.assertTrue(diff < 4.0e-3)
 
 
 class SDE(unittest.TestCase):

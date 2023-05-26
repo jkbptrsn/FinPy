@@ -307,7 +307,7 @@ def int_y_general(int_grid: np.ndarray,
                   int_event_idx: np.ndarray,
                   int_kappa_step: np.ndarray,
                   vol_int_grid: np.ndarray,
-                  event_grid: np.ndarray) -> (np.ndarray, np.ndarray):
+                  event_grid: np.ndarray) -> np.ndarray:
     """Calculate "integral" of y-function on event grid.
 
     See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
@@ -346,7 +346,7 @@ def double_int_y_general(int_grid: np.ndarray,
                          int_event_idx: np.ndarray,
                          int_kappa_step: np.ndarray,
                          vol_int_grid: np.ndarray,
-                         event_grid: np.ndarray) -> (np.ndarray, np.ndarray):
+                         event_grid: np.ndarray) -> np.ndarray:
     """Calculate "double integral" of y-function on event grid.
 
     See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).

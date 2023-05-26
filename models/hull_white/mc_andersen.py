@@ -15,7 +15,10 @@ class SDEBasic:
 
     See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
 
-    TODO: Add methods for rate and discount "adjustment"...
+    TODO: Add methods for rate and discount "adjustment"
+    TODO: Unit tests of
+        * compare Monte-Carlo paths
+        * Pricing of zero-coupon bond
 
     Attributes:
         kappa: Speed of mean reversion.
