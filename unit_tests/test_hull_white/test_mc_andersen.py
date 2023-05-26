@@ -4,13 +4,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from models.hull_white import mc_andersen as sde
-from models.hull_white import sde as sde_old
 from models.hull_white import misc as misc_hw
 from unit_tests.test_hull_white import input
 from utils import misc
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 
 class Misc(unittest.TestCase):
@@ -61,11 +60,12 @@ class Misc(unittest.TestCase):
                                          self.sde1.vol_ig,
                                          self.sde1.event_grid)
         if plot_results:
-            plt.plot(self.event_grid, y_constant, "-b")
-            plt.plot(self.event_grid, y_piecewise, "or")
-            plt.plot(self.event_grid, y_piecewise, "xk")
+            plt.plot(self.event_grid, y_constant, "-b", label="Constant")
+            plt.plot(self.event_grid, y_piecewise, "or", label="Piecewise")
+            plt.plot(self.event_grid, y_general, "xk", label="General")
             plt.xlabel("Time")
             plt.ylabel("y-function")
+            plt.legend()
             plt.show()
         for idx, (y1, y2, y3) in \
                 enumerate(zip(y_constant, y_piecewise, y_general)):
@@ -87,10 +87,11 @@ class Misc(unittest.TestCase):
                                          self.sde2.vol_ig,
                                          self.sde2.event_grid)
         if plot_results:
-            plt.plot(self.event_grid, y_piecewise, "-b")
-            plt.plot(self.event_grid, y_general, "or")
+            plt.plot(self.event_grid, y_piecewise, "-or", label="Piecewise")
+            plt.plot(self.event_grid, y_general, "xk", label="General")
             plt.xlabel("Time")
             plt.ylabel("y-function")
+            plt.legend()
             plt.show()
         for idx, (y1, y2) in enumerate(zip(y_piecewise, y_general)):
             if idx > 1:
@@ -113,11 +114,12 @@ class Misc(unittest.TestCase):
                                           self.sde1.vol_ig,
                                           self.sde1.event_grid)
         if plot_results:
-            plt.plot(self.event_grid, y_constant, "-b")
-            plt.plot(self.event_grid, y_piecewise, "or")
-            plt.plot(self.event_grid, y_piecewise, "xk")
+            plt.plot(self.event_grid, y_constant, "-b", label="Constant")
+            plt.plot(self.event_grid, y_piecewise, "or", label="Piecewise")
+            plt.plot(self.event_grid, y_general, "xk", label="General")
             plt.xlabel("Time")
             plt.ylabel("Integral of y-function")
+            plt.legend()
             plt.show()
         for idx, (y1, y2, y3) in \
                 enumerate(zip(y_constant, y_piecewise, y_general)):
@@ -140,10 +142,11 @@ class Misc(unittest.TestCase):
                                           self.sde2.vol_ig,
                                           self.sde2.event_grid)
         if plot_results:
-            plt.plot(self.event_grid, y_piecewise, "-b")
-            plt.plot(self.event_grid, y_general, "or")
+            plt.plot(self.event_grid, y_piecewise, "-or", label="Piecewise")
+            plt.plot(self.event_grid, y_general, "xk", label="General")
             plt.xlabel("Time")
             plt.ylabel("Integral of y-function")
+            plt.legend()
             plt.show()
         for idx, (y1, y2) in enumerate(zip(y_piecewise, y_general)):
             if idx > 1:
@@ -166,11 +169,12 @@ class Misc(unittest.TestCase):
                                                  self.sde1.vol_ig,
                                                  self.sde1.event_grid)
         if plot_results:
-            plt.plot(self.event_grid, y_constant, "-b")
-            plt.plot(self.event_grid, y_piecewise, "or")
-            plt.plot(self.event_grid, y_piecewise, "xk")
+            plt.plot(self.event_grid, y_constant, "-b", label="Constant")
+            plt.plot(self.event_grid, y_piecewise, "or", label="Piecewise")
+            plt.plot(self.event_grid, y_general, "xk", label="General")
             plt.xlabel("Time")
             plt.ylabel("Double integral of y-function")
+            plt.legend()
             plt.show()
         for idx, (y1, y2, y3) in \
                 enumerate(zip(y_constant, y_piecewise, y_general)):
@@ -193,10 +197,11 @@ class Misc(unittest.TestCase):
                                                  self.sde2.vol_ig,
                                                  self.sde2.event_grid)
         if plot_results:
-            plt.plot(self.event_grid, y_piecewise, "-b")
-            plt.plot(self.event_grid, y_general, "or")
+            plt.plot(self.event_grid, y_piecewise, "-or", label="Piecewise")
+            plt.plot(self.event_grid, y_general, "xk", label="General")
             plt.xlabel("Time")
             plt.ylabel("Double integral of y-function")
+            plt.legend()
             plt.show()
         for idx, (y1, y2) in enumerate(zip(y_piecewise, y_general)):
             if idx > 2:
@@ -207,79 +212,6 @@ class Misc(unittest.TestCase):
 
 
 class SDE(unittest.TestCase):
-
-    # TODO: Compare SDE classes like below. For time-independent speed
-    #  of mean reversion and vol-strip, SDEConstant and SDEPiecewise
-    #  should produce the same scenarios (within machine precision)
-    #  when random number generator is reset between initializations...
-    #  SDEGeneral should come close...
-    # def test_sde_classes(self):
-    #     """Test the classes SDEConstant and SDE.
-    #
-    #     In the case of both constant speed of mean reversion and
-    #     constant volatility, the time-dependent mean and variance of
-    #     the pseudo short rate and discount processes, respectively,
-    #     should be.
-    #     """
-    #     # Event dates in year fractions.
-    #     event_grid = np.arange(11)
-    #     # Speed of mean reversion.
-    #     kappa_const = 0.03
-    #     # Volatility.
-    #     vol_const = 0.02
-    #     # Speed of mean reversion strip.
-    #     kappa = np.array([np.arange(2), kappa_const * np.ones(2)])
-    #     kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
-    #     # Volatility strip.
-    #     vol = np.array([np.arange(2), vol_const * np.ones(2)])
-    #     vol = misc.DiscreteFunc("vol", vol[0], vol[1])
-    #     # Number of Monte-Carlo paths.
-    #     n_paths = 100000
-    #     # SDE objects.
-    #     hw = sde.SDE(kappa, vol, event_grid, int_step_size=1 / 52)
-    #     hw_const = \
-    #         sde.SDEConstant(kappa, vol, event_grid, int_step_size=1 / 52)
-    #     # Pseudo rate and discount factors.
-    #     rate, discount = hw.paths(0, n_paths, seed=0)
-    #     rate_const, discount_const = hw_const.paths(0, n_paths, seed=0)
-    #     # Compare trajectories.
-    #     diff_rate = np.abs(rate[1:, :] - rate_const[1:, :]) / rate_const[1:, :]
-    #     diff_rate = np.max(diff_rate)
-    #     diff_discount = \
-    #         np.abs(discount[1:, :] - discount_const[1:, :]) \
-    #         / discount_const[1:, :]
-    #     diff_discount = np.max(diff_discount)
-    #     print(diff_rate, diff_discount)
-    #     self.assertTrue(diff_rate < 8.3e-3)
-    #     self.assertTrue(diff_discount < 1.7e-4)
-    #     # Compare mean and variance of pseudo short rate and discount
-    #     # processes, respectively.
-    #     diff_rate_mean = hw.rate_mean[1:, :] - hw_const.rate_mean[1:, :]
-    #     diff_rate_mean = np.abs(diff_rate_mean) / hw_const.rate_mean[1:, :]
-    #     # print(np.max(diff_rate_mean[:, 0]), np.max(diff_rate_mean[:, 1]))
-    #     self.assertTrue(np.max(diff_rate_mean[:, 0]) < 1.0e-10)
-    #     self.assertTrue(np.max(diff_rate_mean[:, 1]) < 1.4e-7)
-    #     diff_rate_var = hw.rate_variance[1:] - hw_const.rate_variance[1:]
-    #     diff_rate_var = np.abs(diff_rate_var / hw_const.rate_variance[1:])
-    #     # print(np.max(diff_rate_var))
-    #     self.assertTrue(np.max(diff_rate_var) < 1.2e-7)
-    #     diff_discount_mean = \
-    #         hw.discount_mean[1:, :] - hw_const.discount_mean[1:, :]
-    #     diff_discount_mean = \
-    #         np.abs(diff_discount_mean) / hw_const.discount_mean[1:, :]
-    #     # print(np.max(diff_discount_mean[:, 0]), np.max(diff_discount_mean[:, 1]))
-    #     self.assertTrue(np.max(diff_discount_mean[:, 0]) < 2.8e-8)
-    #     self.assertTrue(np.max(diff_discount_mean[:, 0]) < 1.9e-4)
-    #     diff_discount_var = \
-    #         hw.discount_variance[1:] - hw_const.discount_variance[1:]
-    #     diff_discount_var = \
-    #         np.abs(diff_discount_var / hw_const.discount_variance[1:])
-    #     # print(np.max(diff_discount_var))
-    #     self.assertTrue(np.max(diff_discount_var) < 1.9e-4)
-    #     diff_cov = hw.covariance[1:] - hw_const.covariance[1:]
-    #     diff_cov = np.abs(diff_cov / hw_const.covariance[1:])
-    #     # print(np.max(diff_cov))
-    #     self.assertTrue(np.max(diff_cov) < 5.7e-4)
 
     def setUp(self) -> None:
         # Event dates in year fractions.
@@ -299,7 +231,7 @@ class SDE(unittest.TestCase):
             if idx % 2 == 0:
                 self.vol_vector2[idx] = self.vol_vector1[idx]
             else:
-                self.vol_vector2[idx] = 4 * self.vol_vector1[idx]
+                self.vol_vector2[idx] = 2 * self.vol_vector1[idx]
         self.vol2 = \
             misc.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
@@ -323,189 +255,209 @@ class SDE(unittest.TestCase):
                                            self.vol1,
                                            self.discount_curve,
                                            self.event_grid,
-                                           int_step_size=1 / 12)
+                                           int_step_size=1 / 100)
         self.sde_general2 = sde.SDEGeneral(self.kappa1,
                                            self.vol2,
                                            self.discount_curve,
                                            self.event_grid,
                                            int_step_size=1 / 100)
 
-    def test_sde_objects(self):
-        """..."""
+    def test_sde_constant_vol(self):
+        """Test SDE classes for constant vol-strip."""
         # Number of Monte-Carlo paths.
-        n_paths = 1000
+        n_paths = 100000
 
-        # SDE object.
-        hw_constant = sde.SDEConstant(kappa, vol, discount_curve, event_grid)
-        rate, discount = hw_constant.paths(0, n_paths, seed=0, antithetic=True)
-        discount = sde_old.discount_adjustment(discount, discount_curve)
         # Analytical results.
-        price_a = discount_curve.values
-        # Monte-Carlo estimates.
-        price_n = discount.sum(axis=1) / n_paths
-        # Maximum relative difference.
-        diff = np.abs((price_n - price_a) / price_a)
-        print(diff, np.max(diff))
+        price_a = self.discount_curve.values
 
-        # SDE object.
-        hw_piecewise = sde.SDEPiecewise(kappa, vol, discount_curve, event_grid)
+        # SDE constant.
         rate, discount = \
-            hw_piecewise.paths(0, n_paths, seed=0, antithetic=True)
-        discount = sde_old.discount_adjustment(discount, discount_curve)
-        # Analytical results.
-        price_a = discount_curve.values
+            self.sde_constant.paths(0, n_paths, seed=0, antithetic=True)
+        discount = self.sde_constant.discount_adjustment(discount)
         # Monte-Carlo estimates.
-        price_n = discount.sum(axis=1) / n_paths
+        price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
         diff = np.abs((price_n - price_a) / price_a)
         if print_results:
             print(diff, np.max(diff))
+        self.assertTrue(np.max(diff) < 2.59e-3)
 
-        # SDE object.
-        hw_general = sde.SDEGeneral(kappa, vol, discount_curve, event_grid)
+        # SDE piecewise.
         rate, discount = \
-            hw_general.paths(0, n_paths, seed=0, antithetic=True)
-        discount = sde_old.discount_adjustment(discount, discount_curve)
-        # Analytical results.
-        price_a = discount_curve.values
+            self.sde_piecewise1.paths(0, n_paths, seed=0, antithetic=True)
+        discount = self.sde_piecewise1.discount_adjustment(discount)
         # Monte-Carlo estimates.
-        price_n = discount.sum(axis=1) / n_paths
+        price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
         diff = np.abs((price_n - price_a) / price_a)
         if print_results:
             print(diff, np.max(diff))
+        self.assertTrue(np.max(diff) < 2.59e-3)
+
+        # SDE general.
+        rate, discount = \
+            self.sde_general1.paths(0, n_paths, seed=0, antithetic=True)
+        discount = self.sde_general1.discount_adjustment(discount)
+        # Monte-Carlo estimates.
+        price_n = np.mean(discount, axis=1)
+        # Maximum relative difference.
+        diff = np.abs((price_n - price_a) / price_a)
+        if print_results:
+            print(diff, np.max(diff))
+        self.assertTrue(np.max(diff) < 2.50e-3)
 
         if plot_results:
-            plt.plot(event_grid, hw_constant.y_eg, "-b")
-            plt.plot(event_grid, hw_piecewise.y_eg, "-r")
-            plt.plot(event_grid, hw_general.y_eg, "-k")
+            plt.plot(self.event_grid, self.sde_constant.y_eg,
+                     "-b", label="Constant")
+            plt.plot(self.event_grid, self.sde_piecewise1.y_eg,
+                     "or", label="Piecewise")
+            plt.plot(self.event_grid, self.sde_general1.y_eg,
+                     "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("y-function")
+            plt.legend()
             plt.show()
 
-            plt.plot(event_grid, hw_constant.rate_mean[:, 0], "-b")
-            plt.plot(event_grid, hw_piecewise.rate_mean[:, 0], "-r")
-            plt.plot(event_grid, hw_general.rate_mean[:, 0], "-k")
+            plt.plot(self.event_grid, self.sde_constant.rate_mean[:, 0],
+                     "-b", label="Constant")
+            plt.plot(self.event_grid, self.sde_piecewise1.rate_mean[:, 0],
+                     "or", label="Piecewise")
+            plt.plot(self.event_grid, self.sde_general1.rate_mean[:, 0],
+                     "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("Rate mean, 1")
+            plt.legend()
             plt.show()
 
-            plt.plot(event_grid, hw_constant.rate_mean[:, 1], "-b")
-            plt.plot(event_grid, hw_piecewise.rate_mean[:, 1], "-r")
-            plt.plot(event_grid, hw_general.rate_mean[:, 1], "-k")
+            plt.plot(self.event_grid, self.sde_constant.rate_mean[:, 1],
+                     "-b", label="Constant")
+            plt.plot(self.event_grid, self.sde_piecewise1.rate_mean[:, 1],
+                     "or", label="Piecewise")
+            plt.plot(self.event_grid, self.sde_general1.rate_mean[:, 1],
+                     "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("Rate mean, 2")
+            plt.legend()
             plt.show()
 
-            plt.plot(event_grid, hw_constant.discount_mean[:, 0], "-b")
-            plt.plot(event_grid, hw_piecewise.discount_mean[:, 0], "-r")
-            plt.plot(event_grid, hw_general.discount_mean[:, 0], "-k")
+            plt.plot(self.event_grid, self.sde_constant.discount_mean[:, 0],
+                     "-b", label="Constant")
+            plt.plot(self.event_grid, self.sde_piecewise1.discount_mean[:, 0],
+                     "or", label="Piecewise")
+            plt.plot(self.event_grid, self.sde_general1.discount_mean[:, 0],
+                     "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("Discount mean, 1")
+            plt.legend()
             plt.show()
 
-            plt.plot(event_grid, hw_constant.discount_mean[:, 1], "-b")
-            plt.plot(event_grid, hw_piecewise.discount_mean[:, 1], "-r")
-            plt.plot(event_grid, hw_general.discount_mean[:, 1], "-k")
+            plt.plot(self.event_grid, self.sde_constant.discount_mean[:, 1],
+                     "-b", label="Constant")
+            plt.plot(self.event_grid, self.sde_piecewise1.discount_mean[:, 1],
+                     "or", label="Piecewise")
+            plt.plot(self.event_grid, self.sde_general1.discount_mean[:, 1],
+                     "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("Discount mean, 2")
+            plt.legend()
             plt.show()
 
-            plt.plot(event_grid, hw_constant.covariance, "-b")
-            plt.plot(event_grid, hw_piecewise.covariance, "-r")
-            plt.plot(event_grid, hw_general.covariance, "-k")
+            plt.plot(self.event_grid, self.sde_constant.covariance,
+                     "-b", label="Constant")
+            plt.plot(self.event_grid, self.sde_piecewise1.covariance,
+                     "or", label="Piecewise")
+            plt.plot(self.event_grid, self.sde_general1.covariance,
+                     "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("Covariance")
+            plt.legend()
             plt.show()
 
-        #self.assertTrue(np.max(diff) < 2.4e-5)
-
-    def test_zero_coupon_bond_pricing_2(self):
-        """Test Monte-Carlo evaluation of zero-coupon bond price.
-
-        Compare closed-form expression and Monte-Carlo simulation of
-        zero-coupon bonds with different maturities.
-        """
-        # Event dates in year fractions.
-        event_grid = np.arange(11)
-        # Speed of mean reversion.
-        kappa_const = 0.015
-        # Volatility.
-        vol_const = 0.005
-        # Speed of mean reversion strip.
-        kappa = \
-            np.array([np.array([2, 3, 7]), kappa_const * np.array([2, 2, 2])])
-        kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
-        # Volatility strip.
-        vol = np.array([np.arange(10),
-                        vol_const * np.array([1, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
-        vol = misc.DiscreteFunc("vol", vol[0], vol[1])
-        # Discount curve.
-        forward_rate = 0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
-        discount_curve = np.exp(-forward_rate * event_grid)
-        discount_curve = \
-            misc.DiscreteFunc("discount curve", event_grid, discount_curve)
+    def test_sde_piecewise_vol(self):
+        """Test SDE classes for piecewise-constant vol-strip."""
         # Number of Monte-Carlo paths.
-        n_paths = 1000
+        n_paths = 100000
 
-        # SDE object.
-        hw_constant = sde.SDEConstant(kappa, vol, discount_curve, event_grid)
-        rate, discount = hw_constant.paths(0, n_paths, seed=0, antithetic=True)
-        discount = sde_old.discount_adjustment(discount, discount_curve)
         # Analytical results.
-        price_a = discount_curve.values
-        # Monte-Carlo estimates.
-        price_n = discount.sum(axis=1) / n_paths
-        # Maximum relative difference.
-        diff = np.abs((price_n - price_a) / price_a)
-        if print_results:
-            print(diff, np.max(diff))
+        price_a = self.discount_curve.values
 
-        # SDE object.
-        hw_piecewise = sde.SDEPiecewise(kappa, vol, discount_curve, event_grid)
+        # SDE piecewise.
         rate, discount = \
-            hw_piecewise.paths(0, n_paths, seed=0, antithetic=True)
-        discount = sde_old.discount_adjustment(discount, discount_curve)
-        # Analytical results.
-        price_a = discount_curve.values
+            self.sde_piecewise2.paths(0, n_paths, seed=0, antithetic=True)
+        discount = self.sde_piecewise2.discount_adjustment(discount)
         # Monte-Carlo estimates.
-        price_n = discount.sum(axis=1) / n_paths
+        price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
         diff = np.abs((price_n - price_a) / price_a)
         if print_results:
             print(diff, np.max(diff))
+        self.assertTrue(np.max(diff) < 9.1e-3)
 
-        # SDE object.
-        hw_general = sde.SDEGeneral(kappa, vol, discount_curve, event_grid)
+        # SDE general.
         rate, discount = \
-            hw_general.paths(0, n_paths, seed=0, antithetic=True)
-        discount = sde_old.discount_adjustment(discount, discount_curve)
-        # Analytical results.
-        price_a = discount_curve.values
+            self.sde_general2.paths(0, n_paths, seed=0, antithetic=True)
+        discount = self.sde_general2.discount_adjustment(discount)
         # Monte-Carlo estimates.
-        price_n = discount.sum(axis=1) / n_paths
+        price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
         diff = np.abs((price_n - price_a) / price_a)
         if print_results:
             print(diff, np.max(diff))
+        self.assertTrue(np.max(diff) < 8.86e-3)
 
         if plot_results:
-            plt.plot(event_grid, hw_constant.y_eg, "-b")
-            plt.plot(event_grid, hw_piecewise.y_eg, "-r")
-            plt.plot(event_grid, hw_general.y_eg, "-k")
+            plt.plot(self.event_grid, self.sde_piecewise2.y_eg,
+                     "-or", label="Piecewise")
+            plt.plot(self.event_grid, self.sde_general2.y_eg,
+                     "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("y-function")
+            plt.legend()
             plt.show()
 
-            plt.plot(event_grid, hw_constant.rate_mean[:, 0], "-b")
-            plt.plot(event_grid, hw_piecewise.rate_mean[:, 0], "-r")
-            plt.plot(event_grid, hw_general.rate_mean[:, 0], "-k")
+            plt.plot(self.event_grid, self.sde_piecewise2.rate_mean[:, 0],
+                     "-or", label="Piecewise")
+            plt.plot(self.event_grid, self.sde_general2.rate_mean[:, 0],
+                     "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("Rate mean, 1")
+            plt.legend()
             plt.show()
 
-            plt.plot(event_grid, hw_constant.rate_mean[:, 1], "-b")
-            plt.plot(event_grid, hw_piecewise.rate_mean[:, 1], "-r")
-            plt.plot(event_grid, hw_general.rate_mean[:, 1], "-k")
+            plt.plot(self.event_grid, self.sde_piecewise2.rate_mean[:, 1],
+                     "-or", label="Piecewise")
+            plt.plot(self.event_grid, self.sde_general2.rate_mean[:, 1],
+                     "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("Rate mean, 2")
+            plt.legend()
             plt.show()
 
-            plt.plot(event_grid, hw_constant.discount_mean[:, 0], "-b")
-            plt.plot(event_grid, hw_piecewise.discount_mean[:, 0], "-r")
-            plt.plot(event_grid, hw_general.discount_mean[:, 0], "-k")
+            plt.plot(self.event_grid, self.sde_piecewise2.discount_mean[:, 0],
+                     "-or", label="Piecewise")
+            plt.plot(self.event_grid, self.sde_general2.discount_mean[:, 0],
+                     "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("Discount mean, 1")
+            plt.legend()
             plt.show()
 
-            plt.plot(event_grid, hw_constant.discount_mean[:, 1], "-b")
-            plt.plot(event_grid, hw_piecewise.discount_mean[:, 1], "-r")
-            plt.plot(event_grid, hw_general.discount_mean[:, 1], "-k")
+            plt.plot(self.event_grid, self.sde_piecewise2.discount_mean[:, 1],
+                     "-or", label="Piecewise")
+            plt.plot(self.event_grid, self.sde_general2.discount_mean[:, 1],
+                     "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("Discount mean, 2")
+            plt.legend()
             plt.show()
 
-            plt.plot(event_grid, hw_constant.covariance, "-b")
-            plt.plot(event_grid, hw_piecewise.covariance, "-r")
-            plt.plot(event_grid, hw_general.covariance, "-k")
+            plt.plot(self.event_grid, self.sde_piecewise2.covariance,
+                     "-or", label="Piecewise")
+            plt.plot(self.event_grid, self.sde_general2.covariance,
+                     "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("Covariance")
+            plt.legend()
             plt.show()
 
 

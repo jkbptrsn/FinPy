@@ -300,6 +300,37 @@ class SDEBasic:
         discount = np.exp(discount)
         return rate, discount
 
+    def rate_adjustment(self,
+                        rate_paths: np.ndarray) -> np.ndarray:
+        """Adjust pseudo rate paths.
+
+        Assume that pseudo rate paths and discount curve are represented
+        on identical event grids.
+
+        Args:
+            rate_paths: Pseudo short rate along Monte-Carlo paths.
+
+        Returns:
+            Actual short rate paths.
+        """
+        adjustment = rate_paths.transpose() + self.forward_rate_eg
+        return adjustment.transpose()
+
+    def discount_adjustment(self, discount_paths: np.ndarray) -> np.ndarray:
+        """Adjust pseudo discount paths.
+
+        Assume that pseudo discount paths and discount curve are
+        represented on identical event grids.
+
+        Args:
+            discount_paths: Pseudo discount factor along Monte-Carlo paths.
+
+        Returns:
+            Actual discount paths.
+        """
+        adjustment = discount_paths.transpose() * self.discount_curve_eg
+        return adjustment.transpose()
+
 
 class SDEConstant(SDEBasic):
     """SDE class for 1-factor Hull-White model.
