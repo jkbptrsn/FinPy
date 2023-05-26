@@ -10,6 +10,24 @@ from utils import global_types
 from utils import misc
 
 
+def discount_adjustment(discount_paths: np.ndarray,
+                        discount_curve: misc.DiscreteFunc) -> np.ndarray:
+    """Adjust pseudo discount paths.
+
+    Assume that pseudo discount paths and discount curve are represented
+    on identical event grids.
+
+    Args:
+        discount_paths: Pseudo discount factor along Monte-Carlo paths.
+        discount_curve: Initial discount bond curve.
+
+    Returns:
+        Actual discount paths.
+    """
+    adjustment = discount_paths.transpose() * discount_curve.values
+    return adjustment.transpose()
+
+
 class SDEBasic:
     """Basic SDE class for 1-factor Hull-White model.
 
@@ -119,6 +137,7 @@ class SDEBasic:
         self.discount_curve_eg = \
             self.discount_curve.interpolation(self.event_grid)
 
+        # TODO: Where is forward rate used?
         # Instantaneous forward rate on event grid.
         log_discount = np.log(self.discount_curve_eg)
         smoothing = 0

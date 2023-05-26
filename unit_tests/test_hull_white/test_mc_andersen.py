@@ -18,7 +18,7 @@ class Misc(unittest.TestCase):
 
     def setUp(self) -> None:
         # Event dates in year fractions.
-        self.event_grid = np.arange(31)
+        self.event_grid = np.arange(16)
         # Speed of mean reversion strip.
         self.kappa_scalar = 0.15
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
@@ -41,6 +41,7 @@ class Misc(unittest.TestCase):
         self.discount_curve = \
             misc.DiscreteFunc("discount", self.event_grid,
                               np.ones(self.event_grid.size))
+        # SDE objects.
         self.sde1 = sde.SDEGeneral(self.kappa1, self.vol1,
                                    self.discount_curve, self.event_grid,
                                    int_step_size=1 / 12)
@@ -280,33 +281,57 @@ class SDE(unittest.TestCase):
     #     # print(np.max(diff_cov))
     #     self.assertTrue(np.max(diff_cov) < 5.7e-4)
 
-    def test_zero_coupon_bond_pricing(self):
-        """Test Monte-Carlo evaluation of zero-coupon bond price.
-
-        Compare closed-form expression and Monte-Carlo simulation of
-        zero-coupon bonds with different maturities.
-        """
+    def setUp(self) -> None:
         # Event dates in year fractions.
-        event_grid = np.arange(11)
-        # Speed of mean reversion.
-        kappa_const = 0.015
-        # Volatility.
-        vol_const = 0.005
+        self.event_grid = np.arange(16)
         # Speed of mean reversion strip.
-        kappa = \
-            np.array([np.array([2, 3, 7]), kappa_const * np.array([2, 2, 2])])
-        kappa = misc.DiscreteFunc("kappa", kappa[0], kappa[1])
+        self.kappa_scalar = 0.15
+        self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
+        self.kappa1 = \
+            misc.DiscreteFunc("kappa1", self.event_grid, self.kappa_vector1)
         # Volatility strip.
-#        vol = np.array([np.arange(10),
-#                        vol_const * np.array([1, 2, 3, 1, 1, 5, 6, 6, 3, 3])])
-        vol = np.array([np.arange(10),
-                        vol_const * np.ones(10)])
-        vol = misc.DiscreteFunc("vol", vol[0], vol[1])
+        self.vol_scalar = 0.05
+        self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)
+        self.vol1 = \
+            misc.DiscreteFunc("vol1", self.event_grid, self.vol_vector1)
+        self.vol_vector2 = np.zeros(self.event_grid.size)
+        for idx in range(self.event_grid.size):
+            if idx % 2 == 0:
+                self.vol_vector2[idx] = self.vol_vector1[idx]
+            else:
+                self.vol_vector2[idx] = 4 * self.vol_vector1[idx]
+        self.vol2 = \
+            misc.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
-        forward_rate = 0.02 * np.array([1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6])
-        discount_curve = np.exp(-forward_rate * event_grid)
-        discount_curve = \
-            misc.DiscreteFunc("discount curve", event_grid, discount_curve)
+        self.discount_curve = \
+            misc.DiscreteFunc("discount", self.event_grid,
+                              np.ones(self.event_grid.size))
+        # SDE objects.
+        self.sde_constant = sde.SDEConstant(self.kappa1,
+                                            self.vol1,
+                                            self.discount_curve,
+                                            self.event_grid)
+        self.sde_piecewise1 = sde.SDEPiecewise(self.kappa1,
+                                               self.vol1,
+                                               self.discount_curve,
+                                               self.event_grid)
+        self.sde_piecewise2 = sde.SDEPiecewise(self.kappa1,
+                                               self.vol2,
+                                               self.discount_curve,
+                                               self.event_grid)
+        self.sde_general1 = sde.SDEGeneral(self.kappa1,
+                                           self.vol1,
+                                           self.discount_curve,
+                                           self.event_grid,
+                                           int_step_size=1 / 12)
+        self.sde_general2 = sde.SDEGeneral(self.kappa1,
+                                           self.vol2,
+                                           self.discount_curve,
+                                           self.event_grid,
+                                           int_step_size=1 / 100)
+
+    def test_sde_objects(self):
+        """..."""
         # Number of Monte-Carlo paths.
         n_paths = 1000
 
