@@ -4,8 +4,8 @@ from matplotlib import pyplot as plt
 
 from utils import cash_flows
 
-plot_results = False
-print_results = False
+plot_results = True
+print_results = True
 
 
 class CashFlows(unittest.TestCase):

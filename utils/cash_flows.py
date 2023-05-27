@@ -15,8 +15,8 @@ def cash_flow(coupon: float,
         frequency: Yearly payment frequency.
         cash_flow_grid: Grid of cash flow events.
         principal: Loan principal.
-        _type: Type of cash flow. annuity, standing or serial.
-            Default is annuity.
+        _type: Type of cash flow. 'annuity', 'standing' or 'serial'.
+            Default is 'annuity'.
 
     Returns:
         Cash flow.
@@ -56,7 +56,7 @@ def cash_flow_split(coupon: float,
 def set_cash_flow_grid(t_initial: float,
                        t_final: float,
                        frequency: int) -> np.ndarray:
-    """Set up grid cash flow events.
+    """Set up grid with 'cash flow' events.
 
     Args:
         t_initial: Initial time of first payment period.
@@ -64,9 +64,9 @@ def set_cash_flow_grid(t_initial: float,
         frequency: Yearly payment frequency.
 
     Returns:
-        Grid cash flow events.
+        'Cash flow' grid.
     """
-    # Year-faction between payment dates.
+    # Year-fraction between payment dates.
     dt = 1 / frequency
     # Number of payment dates.
     n_payments = (t_final - t_initial) / dt
@@ -87,10 +87,10 @@ def set_event_grid(cash_flow_grid: np.ndarray,
 
     Args:
         cash_flow_grid: Grid of cash flow events.
-        time_step:
+        time_step: Time step between events. Default is 0.01.
 
     Returns:
-        Event grid.
+        Event grid, cash flow schedule.
     """
     event_grid = np.zeros(1)
     cash_flow_schedule = np.zeros(cash_flow_grid.size, dtype=int)
@@ -100,7 +100,8 @@ def set_event_grid(cash_flow_grid: np.ndarray,
         event_grid_tmp = event_grid[-1] + time_step * np.arange(1, n_steps + 1)
         event_grid = np.append(event_grid, event_grid_tmp)
         if cf_time_step - n_steps * time_step > 1.0e-12:
-            event_grid = np.append(event_grid, event_grid[-1] + cf_time_step)
+            dt = cf_time_step - n_steps * time_step
+            event_grid = np.append(event_grid, event_grid[-1] + dt)
             cash_flow_schedule[idx] = n_steps + 1
         else:
             cash_flow_schedule[idx] = n_steps
@@ -141,34 +142,34 @@ def annuity_yield(n_terms: int,
     return principal / annuity_factor(n_terms, coupon)
 
 
-def annuity_interest(coupon: float,
+def annuity_interest(coupon_term: float,
                      principal: float) -> float:
     """Interest payment for current loan principal.
 
     Args:
-        coupon: Coupon rate per term.
+        coupon_term: Coupon rate per term.
         principal: Current loan principal.
 
     Returns:
         Interest payment.
     """
-    return coupon * principal
+    return coupon_term * principal
 
 
-def annuity_installment(coupon: float,
+def annuity_installment(coupon_term: float,
                         principal: float,
                         _yield: float) -> float:
     """Installment payment for current loan principal.
 
     Args:
-        coupon: Coupon rate per term.
+        coupon_term: Coupon rate per term.
         principal: Current loan principal.
         _yield: Annuity yield per term.
 
     Returns:
         Installment payment.
     """
-    return _yield - annuity_interest(coupon, principal)
+    return _yield - annuity_interest(coupon_term, principal)
 
 
 def annuity(coupon: float,
@@ -182,7 +183,7 @@ def annuity(coupon: float,
     Args:
         coupon: Yearly coupon rate.
         frequency: Yearly payment frequency.
-        cash_flow_grid: Grid of cash flow events.
+        cash_flow_grid: Grid of cash flow events. Assumed equidistant.
         principal: Loan principal.
 
     Returns:
@@ -219,7 +220,7 @@ def standing_loan(coupon: float,
     Args:
         coupon: Yearly coupon rate.
         frequency: Yearly payment frequency.
-        cash_flow_grid: Grid of payment dates.
+        cash_flow_grid: Grid of payment dates. Assumed equidistant.
         principal: Loan principal.
 
     Returns:
@@ -246,7 +247,7 @@ def serial_loan(coupon: float,
     Args:
         coupon: Yearly coupon rate.
         frequency: Yearly payment frequency.
-        cash_flow_grid: Grid of cash flow events.
+        cash_flow_grid: Grid of cash flow events. Assumed equidistant.
         principal: Loan principal.
 
     Returns:
