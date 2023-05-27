@@ -60,9 +60,9 @@ class Bond(bonds.VanillaBondAnalytical1F):
 
         # Zero-coupon bond object.
         self.zcbond = \
-            zcbond.ZCBondNew(kappa, vol, discount_curve,
-                             self.cash_flow_schedule[-1],
-                             event_grid, time_dependence, int_step_size)
+            zcbond.ZCBond(kappa, vol, discount_curve,
+                          self.cash_flow_schedule[-1],
+                          event_grid, time_dependence, int_step_size)
 
         self.initialization()
 

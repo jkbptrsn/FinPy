@@ -44,20 +44,20 @@ class YFunction(unittest.TestCase):
         self.vol_piecewise_eg = \
             self.vol_piecewise.interpolation(self.event_grid)
         # Bond object.
-        self.bond_constant = zcbond.ZCBondNew(self.kappa_constant,
-                                              self.vol_constant,
-                                              self.discount_curve,
-                                              self.maturity_idx,
-                                              self.event_grid,
+        self.bond_constant = zcbond.ZCBond(self.kappa_constant,
+                                           self.vol_constant,
+                                           self.discount_curve,
+                                           self.maturity_idx,
+                                           self.event_grid,
                                               "general",
-                                              1 / 10)
-        self.bond_piecewise = zcbond.ZCBondNew(self.kappa_constant,
-                                               self.vol_piecewise,
-                                               self.discount_curve,
-                                               self.maturity_idx,
-                                               self.event_grid,
+                                           1 / 10)
+        self.bond_piecewise = zcbond.ZCBond(self.kappa_constant,
+                                            self.vol_piecewise,
+                                            self.discount_curve,
+                                            self.maturity_idx,
+                                            self.event_grid,
                                                "general",
-                                               1 / 100)
+                                            1 / 100)
 
     def test_constant(self):
         """Calculation of y-function with constant vol."""
@@ -109,13 +109,13 @@ class GFunction(unittest.TestCase):
         self.kappa_constant_eg = \
             self.kappa_constant.interpolation(self.event_grid)
         # Bond object.
-        self.bond_constant = zcbond.ZCBondNew(self.kappa_constant,
-                                              self.vol_constant,
-                                              self.discount_curve,
-                                              self.maturity_idx,
-                                              self.event_grid,
+        self.bond_constant = zcbond.ZCBond(self.kappa_constant,
+                                           self.vol_constant,
+                                           self.discount_curve,
+                                           self.maturity_idx,
+                                           self.event_grid,
                                               "general",
-                                              1 / 100)
+                                           1 / 100)
 
     def test_constant(self):
         """Calculation of y-function with constant vol."""
@@ -152,13 +152,13 @@ class ZeroCouponBond(unittest.TestCase):
         self.int_step_size = self.fd_dt / self.int_step_factor
         # Zero-coupon bond.
         self.time_dependence = "piecewise"
-        self.bond = zcbond.ZCBondNew(self.kappa,
-                                     self.vol,
-                                     self.discount_curve,
-                                     self.fd_maturity_idx,
-                                     self.fd_event_grid,
-                                     self.time_dependence,
-                                     self.int_step_size)
+        self.bond = zcbond.ZCBond(self.kappa,
+                                  self.vol,
+                                  self.discount_curve,
+                                  self.fd_maturity_idx,
+                                  self.fd_event_grid,
+                                  self.time_dependence,
+                                  self.int_step_size)
 
     def test_int_grid(self):
         """Number of integration grid points."""

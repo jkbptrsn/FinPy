@@ -35,14 +35,14 @@ class Swap(unittest.TestCase):
 
         # Swap.
         self.time_dependence = "piecewise"
-        self.swap = swap.SwapNew(self.kappa,
-                                 self.vol,
-                                 self.discount_curve,
-                                 self.fixed_rate,
-                                 self.fixing_schedule,
-                                 self.payment_schedule,
-                                 self.event_grid,
-                                 self.time_dependence)
+        self.swap = swap.Swap(self.kappa,
+                              self.vol,
+                              self.discount_curve,
+                              self.fixed_rate,
+                              self.fixing_schedule,
+                              self.payment_schedule,
+                              self.event_grid,
+                              self.time_dependence)
 
     def test_pricing(self):
         """..."""

@@ -44,15 +44,15 @@ class VFunction(unittest.TestCase):
         self.vol_constant_eg = \
             self.vol_constant.interpolation(self.event_grid)
         # Call object.
-        self.call = call.CallNew(self.kappa_constant,
-                                 self.vol_constant,
-                                 self.discount_curve,
-                                 self.strike,
-                                 self.expiry_idx,
-                                 self.maturity_idx,
-                                 self.event_grid,
+        self.call = call.Call(self.kappa_constant,
+                              self.vol_constant,
+                              self.discount_curve,
+                              self.strike,
+                              self.expiry_idx,
+                              self.maturity_idx,
+                              self.event_grid,
                                  "piecewise",
-                                 1 / 100)
+                              1 / 100)
 
     def test_constant(self):
         """Calculation of v-function with constant vol."""
@@ -96,15 +96,15 @@ class Call(unittest.TestCase):
         self.int_step_size = self.fd_dt / self.int_step_factor
         # Call option.
         self.time_dependence = "piecewise"
-        self.call = call.CallNew(self.kappa,
-                                 self.vol,
-                                 self.discount_curve,
-                                 self.strike,
-                                 self.fd_expiry_idx,
-                                 self.fd_maturity_idx,
-                                 self.fd_event_grid,
-                                 self.time_dependence,
-                                 self.int_step_size)
+        self.call = call.Call(self.kappa,
+                              self.vol,
+                              self.discount_curve,
+                              self.strike,
+                              self.fd_expiry_idx,
+                              self.fd_maturity_idx,
+                              self.fd_event_grid,
+                              self.time_dependence,
+                              self.int_step_size)
 
     def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""
@@ -154,15 +154,15 @@ class Put(unittest.TestCase):
         self.int_step_size = self.fd_dt / self.int_step_factor
         # Put option.
         self.time_dependence = "piecewise"
-        self.put = put.PutNew(self.kappa,
-                              self.vol,
-                              self.discount_curve,
-                              self.strike,
-                              self.fd_expiry_idx,
-                              self.fd_maturity_idx,
-                              self.fd_event_grid,
-                              self.time_dependence,
-                              self.int_step_size)
+        self.put = put.Put(self.kappa,
+                           self.vol,
+                           self.discount_curve,
+                           self.strike,
+                           self.fd_expiry_idx,
+                           self.fd_maturity_idx,
+                           self.fd_event_grid,
+                           self.time_dependence,
+                           self.int_step_size)
 
     def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""
