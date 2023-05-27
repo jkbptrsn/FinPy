@@ -30,3 +30,9 @@ class Model(enum.Enum):
     HULL_WHITE_1F = enum.auto()
     SABR = enum.auto()
     VASICEK = enum.auto()
+
+
+class Transformation(enum.Enum):
+    """Short rate transformation in 1-factor Hull-White model."""
+    ANDERSEN = enum.auto()
+    PELSSER = enum.auto()

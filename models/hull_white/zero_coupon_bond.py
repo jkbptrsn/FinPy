@@ -82,6 +82,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         self.initialization()
 
         self.model = global_types.Model.HULL_WHITE_1F
+        self.transformation = global_types.Transformation.ANDERSEN
         self.type = global_types.Instrument.ZERO_COUPON_BOND
 
     @property

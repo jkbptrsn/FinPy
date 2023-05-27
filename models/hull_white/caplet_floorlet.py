@@ -76,6 +76,7 @@ class CapletFloorlet(options.EuropeanOptionAnalytical1F):
         self.initialization()
 
         self.model = global_types.Model.HULL_WHITE_1F
+        self.transformation = global_types.Transformation.ANDERSEN
         if self.cap_or_floor == "caplet":
             self.type = global_types.Instrument.CAPLET
         elif self.cap_or_floor == "floorlet":

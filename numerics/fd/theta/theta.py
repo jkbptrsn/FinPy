@@ -26,8 +26,6 @@ class ThetaBase:
         equidistant: Is grid equidistant? Default is false.
 
     TODO: Smoothing of payoff functions -- not necessary according to Andreasen
-    TODO: Rannacher time stepping with fully implicit method -- not necessary according to Andreasen
-    TODO: Upwinding -- rarely used by Andreasen
     """
 
     def __init__(self,
@@ -240,9 +238,19 @@ def setup_solver(instrument,
         diffusion = instrument.vol * np.sqrt(solver.grid)
         rate = solver.grid
     elif instrument.model == global_types.Model.HULL_WHITE_1F:
-        drift = instrument.y_eg[-1] - instrument.kappa_eg[-1] * solver.grid
-        diffusion = instrument.vol_eg[-1] + 0 * solver.grid
-        rate = solver.grid + instrument.forward_rate_eg[-1]
+
+        if instrument.transformation == global_types.Transformation.ANDERSEN:
+            drift = instrument.y_eg[-1] - instrument.kappa_eg[-1] * solver.grid
+            diffusion = instrument.vol_eg[-1] + 0 * solver.grid
+            rate = solver.grid + instrument.forward_rate_eg[-1]
+        elif instrument.transformation == global_types.Transformation.PELSSER:
+            drift = -instrument.kappa_eg[-1] * solver.grid
+            diffusion = instrument.vol_eg[-1] + 0 * solver.grid
+            rate = solver.grid
+        else:
+            raise ValueError(f"Transformation is not recognized: "
+                             f"{instrument.transformation}")
+
     elif instrument.model == global_types.Model.VASICEK:
         drift = instrument.kappa * (instrument.mean_rate - solver.grid)
         diffusion = instrument.vol + 0 * solver.grid
@@ -253,9 +261,10 @@ def setup_solver(instrument,
     solver.set_diffusion(diffusion)
     solver.set_rate(rate)
 
-    # Terminal solution to PDE. TODO: Move to each instrument. Cannot generalize...
+    # Terminal solution to PDE.
+    # TODO: Move to each instrument. Cannot generalize...
     # TODO: What about call/put written on zero-coupon bond?
-    #  Terminal condition should depend on zero-coupon bond, not option payoff
+    #  Terminal condition should depend on zero-coupon bond, not option payoff.
     solver.solution = instrument.payoff(solver.grid)
 
     return solver
