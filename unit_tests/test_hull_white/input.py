@@ -34,6 +34,11 @@ vol_grid = np.array([0.0165, 0.0143, 0.0140, 0.0132, 0.0128, 0.0103,
                      0.0067, 0.0096, 0.0087, 0.0091, 0.0098])
 vol_strip = misc.DiscreteFunc("vol", time_grid, vol_grid)
 
+# Constant volatility strip.
+time_grid = np.array([0, 10])
+vol_grid_constant = 0.01 * np.array([1, 1])
+vol_strip_constant = misc.DiscreteFunc("vol", time_grid, vol_grid_constant)
+
 # Extended yield curve.
 time_grid = np.array(
     [0.025,

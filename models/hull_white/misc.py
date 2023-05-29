@@ -387,6 +387,298 @@ def double_int_y_general(int_grid: np.ndarray,
     return integral
 
 
+def alpha_constant(kappa: float,
+                   vol: float,
+                   event_grid: np.ndarray) -> np.ndarray:
+    """Calculate alpha-function on event grid.
+
+    Assuming that speed of mean reversion is constant and volatility
+    strip is constant. The function doesn't include the instantaneous
+    forward rate. See Pelsser, section 5.3.
+
+    Args:
+        kappa: Speed of mean reversion.
+        vol: Volatility strip on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        alpha-function.
+    """
+    return vol ** 2 * (1 - np.exp(-kappa * event_grid)) ** 2 / (2 * kappa ** 2)
+
+
+def alpha_piecewise(kappa: float,
+                    vol: np.ndarray,
+                    event_grid: np.ndarray) -> np.ndarray:
+    """Calculate alpha-function on event grid.
+
+    Assuming that speed of mean reversion is constant and volatility
+    strip is piecewise constant. The function doesn't include the
+    instantaneous forward rate. See Pelsser, section 5.3.
+
+    Args:
+        kappa: Speed of mean reversion.
+        vol: Volatility strip on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        alpha-function.
+    """
+    two_kappa_sq = 2 * kappa ** 2
+    sum_array = np.zeros(event_grid.size)
+    for idx in range(1, event_grid.size):
+        event_filter = event_grid < event_grid[idx]
+        vol_times = event_grid[event_filter]
+        vol_values = vol[event_filter]
+        #
+        delta_t = event_grid[idx] - 2 * vol_times
+        tmp = np.exp(-kappa * delta_t[:-1]) - np.exp(-kappa * delta_t[1:])
+        tmp *= vol_values[:-1] ** 2 / two_kappa_sq
+        sum_array[idx] += tmp.sum()
+        delta_t = event_grid[idx] - 2 * vol_times[-1]
+        tmp = math.exp(kappa * event_grid[idx]) + math.exp(-kappa * delta_t)
+        sum_array[idx] += vol_values[-1] ** 2 * tmp / two_kappa_sq
+        #
+        delta_t = event_grid[idx - 1] - 2 * vol_times
+        tmp = np.exp(-kappa * delta_t[:-1]) - np.exp(-kappa * delta_t[1:])
+        tmp *= vol_values[:-1] ** 2 / two_kappa_sq
+        sum_array[idx] -= tmp.sum()
+        delta_t = event_grid[idx - 1] - 2 * vol_times[-1]
+        tmp = \
+            math.exp(kappa * event_grid[idx - 1]) + math.exp(-kappa * delta_t)
+        sum_array[idx] -= vol_values[-1] ** 2 * tmp / two_kappa_sq
+    integral = np.zeros(event_grid.size)
+    for idx in range(1, event_grid.size):
+        factor = math.exp(-kappa * event_grid[idx])
+        integral[idx] = factor * np.sum(sum_array[:idx + 1])
+    return integral
+
+
+def alpha_general(int_grid: np.ndarray,
+                  int_event_idx: np.ndarray,
+                  int_kappa_step: np.ndarray,
+                  vol_int_grid: np.ndarray,
+                  event_grid: np.ndarray) -> np.ndarray:
+    """Calculate alpha-function on event grid.
+
+    The function doesn't include the instantaneous forward rate.
+    See Pelsser, section 5.3.
+
+    Args:
+        int_grid: Integration grid.
+        int_event_idx: Integration grid
+        int_kappa_step: Step-wise integration of kappa on integration
+            grid.
+        vol_int_grid: Volatility on integration grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        alpha-function.
+    """
+    y_eg, y_ig = y_general(int_grid, int_event_idx, int_kappa_step,
+                           vol_int_grid, event_grid)
+    integral = np.zeros(event_grid.size)
+    for event_idx in range(1, event_grid.size):
+        # Integration index of event.
+        idx = int_event_idx[event_idx] + 1
+        # Slice of integration grid.
+        int_grid_tmp = int_grid[:idx]
+        # Slice of time-integrated kappa for each integration step.
+        int_kappa = np.append(int_kappa_step[1:idx], 0)
+        int_kappa = np.cumsum(int_kappa[::-1])[::-1]
+        integrand = np.exp(-int_kappa) * y_ig[:idx]
+        integral[event_idx] = np.sum(misc.trapz(int_grid_tmp, integrand))
+    return integral
+
+
+def int_alpha_constant(kappa: float,
+                       vol: float,
+                       event_grid: np.ndarray) -> np.ndarray:
+    """Calculate integral of alpha-function on event grid.
+
+    Assuming that speed of mean reversion is constant and volatility
+    strip is constant. The integrand doesn't include the instantaneous
+    forward rate. See Pelsser, section 5.3.
+
+    Args:
+        kappa: Speed of mean reversion.
+        vol: Volatility strip on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        Integral of alpha-function.
+    """
+    exp_kappa_1 = np.exp(-2 * kappa * event_grid[:-1]) \
+        - np.exp(-2 * kappa * event_grid[1:])
+    exp_kappa_2 = np.exp(-kappa * event_grid[1:]) \
+        - np.exp(-kappa * event_grid[:-1])
+    integral = np.zeros(event_grid.size)
+    integral[1:] = \
+        vol ** 2 * (2 * kappa * np.diff(event_grid)
+                    + exp_kappa_1 + 4 * exp_kappa_2) / (4 * kappa ** 3)
+    return integral
+
+
+def int_alpha_piecewise(kappa: float,
+                        vol: np.ndarray,
+                        event_grid: np.ndarray) -> np.ndarray:
+    """Calculate integral of alpha-function on event grid.
+
+    Assuming that speed of mean reversion is constant and volatility
+    strip is piecewise constant. The integrand doesn't include the
+    instantaneous forward rate. See Pelsser, section 5.3.
+
+    Args:
+        kappa: Speed of mean reversion.
+        vol: Volatility strip on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        Integral of alpha-function.
+    """
+    two_kappa = 2 * kappa
+    two_kappa_cubed = 2 * kappa ** 3
+    sum_array = np.zeros(event_grid.size)
+    for idx in range(1, event_grid.size):
+        event_filter = event_grid < event_grid[idx]
+        vol_times = event_grid[event_filter]
+        vol_values = vol[event_filter]
+        #
+        delta_t = event_grid[idx] - 2 * vol_times
+        tmp = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
+        tmp *= vol_values[:-1] ** 2 / two_kappa_cubed
+        sum_array[idx] += tmp.sum()
+        delta_t = event_grid[idx] - 2 * vol_times[-1]
+        tmp = math.exp(kappa * event_grid[idx]) + math.exp(-kappa * delta_t)
+        sum_array[idx] -= vol_values[-1] ** 2 * tmp / two_kappa_cubed
+        #
+        delta_t = event_grid[idx - 1] - 2 * vol_times
+        tmp = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
+        tmp *= vol_values[:-1] ** 2 / two_kappa_cubed
+        sum_array[idx] -= tmp.sum()
+        delta_t = event_grid[idx - 1] - 2 * vol_times[-1]
+        tmp = \
+            math.exp(kappa * event_grid[idx - 1]) + math.exp(-kappa * delta_t)
+        sum_array[idx] += vol_values[-1] ** 2 * tmp / two_kappa_cubed
+
+    integral = np.zeros(event_grid.size)
+    for i_index in range(1, event_grid.size):
+
+        #
+        event_filter = event_grid < event_grid[i_index]
+        vol_times = event_grid[event_filter]
+        vol_values = vol[event_filter]
+
+        factor = math.exp(-kappa * event_grid[i_index]) \
+            - math.exp(-kappa * event_grid[i_index - 1])
+        integral[i_index] = np.sum(factor * sum_array[:i_index])
+
+        #
+        delta_t = event_grid[i_index] - vol_times
+        y = np.exp(-two_kappa * delta_t[1:]) \
+            - np.exp(-two_kappa * delta_t[:-1])
+        y *= vol_values[:-1] ** 2 / (2 * two_kappa_cubed)
+        integral[i_index] += y.sum()
+        delta_t = event_grid[i_index] - event_grid[i_index - 1]
+        y = math.exp(-two_kappa * delta_t) - two_kappa * event_grid[i_index]
+        y *= vol_values[-1] ** 2 / (2 * two_kappa_cubed)
+        integral[i_index] -= y
+
+        #
+        delta_t = event_grid[i_index - 1] - vol_times
+        y = np.exp(-two_kappa * delta_t[1:]) \
+            - np.exp(-two_kappa * delta_t[:-1])
+        y *= vol_values[:-1] ** 2 / (2 * two_kappa_cubed)
+        integral[i_index] -= y.sum()
+        y = 1 - two_kappa * event_grid[i_index - 1]
+        y *= vol_values[-1] ** 2 / (2 * two_kappa_cubed)
+        integral[i_index] += y
+
+        #
+        delta_t = event_grid[i_index] + event_grid[i_index - 1] - 2 * vol_times
+        y = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
+        y *= vol_values[:-1] ** 2 / two_kappa_cubed
+        integral[i_index] -= y.sum()
+        delta_t = event_grid[i_index] - event_grid[i_index - 1]
+        y = math.exp(-kappa * delta_t)
+        delta_t = event_grid[i_index] + event_grid[i_index - 1] - 2 * vol_times[-1]
+        y += math.exp(-kappa * delta_t)
+        y *= vol_values[-1] ** 2 / two_kappa_cubed
+        integral[i_index] += y
+
+        #
+        delta_t = event_grid[i_index - 1] + event_grid[i_index - 1] - 2 * vol_times
+        y = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
+        y *= vol_values[:-1] ** 2 / two_kappa_cubed
+        integral[i_index] += y.sum()
+        delta_t = event_grid[i_index - 1] - event_grid[i_index - 1]
+        y = math.exp(-kappa * delta_t)
+        delta_t = event_grid[i_index - 1] + event_grid[i_index - 1] - 2 * vol_times[-1]
+        y += math.exp(-kappa * delta_t)
+        y *= vol_values[-1] ** 2 / two_kappa_cubed
+        integral[i_index] -= y
+
+    return integral
+
+
+def int_alpha_general(int_grid: np.ndarray,
+                      int_event_idx: np.ndarray,
+                      int_kappa_step: np.ndarray,
+                      vol_int_grid: np.ndarray,
+                      event_grid: np.ndarray) -> np.ndarray:
+    """Calculate integral of alpha-function on event grid.
+
+    The integrand doesn't include the instantaneous forward rate.
+    See Pelsser, section 5.3.
+
+    Args:
+        int_grid: Integration grid.
+        int_event_idx: Integration grid
+        int_kappa_step: Step-wise integration of kappa on integration
+            grid.
+        vol_int_grid: Volatility on integration grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+
+    Returns:
+        Integral of alpha-function.
+    """
+    y_eg, y_ig = y_general(int_grid, int_event_idx, int_kappa_step,
+                           vol_int_grid, event_grid)
+    integral = np.zeros(event_grid.size)
+    for event_idx in range(1, event_grid.size):
+        # Integration indices of two adjacent events.
+        idx1 = int_event_idx[event_idx - 1]
+        idx2 = int_event_idx[event_idx] + 1
+        # Double time integral in Eq. (10.42).
+        inner_integral = np.array(0)
+        for idx in range(idx1 + 1, idx2):
+
+            # int_grid_tmp = int_grid[idx1:idx + 1]
+            int_grid_tmp = int_grid[:idx + 1]
+
+            # int_kappa_tmp = np.append(int_kappa_step[idx1 + 1:idx + 1], 0)
+            int_kappa_tmp = np.append(int_kappa_step[1:idx + 1], 0)
+
+            int_kappa_tmp = np.cumsum(int_kappa_tmp[::-1])[::-1]
+
+            # integrand = np.exp(-int_kappa_tmp) * y_ig[idx1:idx + 1]
+            integrand = np.exp(-int_kappa_tmp) * y_ig[:idx + 1]
+
+            inner_integral = \
+                np.append(inner_integral,
+                          np.sum(misc.trapz(int_grid_tmp, integrand)))
+        # Slice of integration grid.
+        int_grid_tmp = int_grid[idx1:idx2]
+        integral[event_idx] = np.sum(misc.trapz(int_grid_tmp, inner_integral))
+    return integral
+
+
 def g_constant(kappa: float,
                maturity_idx: int,
                event_grid: np.ndarray) -> np.ndarray:

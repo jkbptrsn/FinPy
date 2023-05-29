@@ -335,3 +335,94 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         discount = self.mc_exact.discount_adjustment(discount)
         self.mc_exact.solution = np.mean(discount[-1, :])
         self.mc_exact.error = misc.monte_carlo_error(discount[-1, :])
+
+
+class ZCBondPelsser(ZCBond):
+    """Zero-coupon bond in 1-factor Hull-White model.
+
+    Zero-coupon bond dependent on pseudo short rate modelled by 1-factor
+    Hull-White SDE. See Pelsser, chapter 5.
+
+    Attributes:
+        kappa: Speed of mean reversion.
+        vol: Volatility.
+        discount_curve: Discount curve represented on event grid.
+        maturity_idx: Maturity index on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+        time_dependence: Time dependence of model parameters.
+            "constant": kappa and vol are constant.
+            "piecewise": kappa is constant and vol is piecewise constant.
+            "general": General time dependence.
+            Default is "piecewise".
+        int_step_size: Integration/propagation step size represented as
+            a year fraction. Default is 1 / 365.
+        """
+
+    def __init__(self,
+                 kappa: misc.DiscreteFunc,
+                 vol: misc.DiscreteFunc,
+                 discount_curve: misc.DiscreteFunc,
+                 maturity_idx: int,
+                 event_grid: np.ndarray,
+                 time_dependence: str = "piecewise",
+                 int_step_size: float = 1 / 365):
+        super().__init__(kappa,
+                         vol,
+                         discount_curve,
+                         maturity_idx,
+                         event_grid,
+                         time_dependence,
+                         int_step_size)
+
+        self.transformation = global_types.Transformation.PELSSER
+
+        self.adjustment = None
+        self.adjustment_function()
+
+    def adjustment_function(self):
+        """Adjustment of short rate transformation."""
+        # P(0, t_{i+1}) / P(0, t_i)
+        discount_steps = \
+            self.discount_curve_eg[1:] / self.discount_curve_eg[:-1]
+        discount_steps = np.append(1, discount_steps)
+        # alpha_t_i - f(0,t_i), see Pelsser Eq (5.30).
+        if self.time_dependence == "constant":
+            int_alpha = \
+                misc_hw.int_alpha_constant(self.kappa_eg[0],
+                                           self.vol_eg[0],
+                                           self.event_grid)
+        elif self.time_dependence == "piecewise":
+            int_alpha = \
+                misc_hw.int_alpha_piecewise(self.kappa_eg[0],
+                                            self.vol_eg,
+                                            self.event_grid)
+        elif self.time_dependence == "general":
+            int_alpha = \
+                misc_hw.int_alpha_general(self.int_grid,
+                                          self.int_event_idx,
+                                          self.int_kappa_step,
+                                          self.vol_ig,
+                                          self.event_grid)
+        else:
+            raise ValueError(f"Time-dependence is unknown: "
+                             f"{self.time_dependence}")
+        self.adjustment = discount_steps * np.exp(-int_alpha)
+
+    def fd_solve(self):
+        """Run finite difference solver on event grid."""
+        self.fd.set_propagator()
+        for count, dt in enumerate(np.flip(np.diff(self.event_grid))):
+            # Time index at time "t", when moving from "t+1" to "t".
+            idx = -2 - count
+            # Update drift, diffusion, and rate functions.
+            drift = -self.kappa_eg[idx] * self.fd.grid
+            diffusion = self.vol_eg[idx] + 0 * self.fd.grid
+            rate = self.fd.grid
+            self.fd.set_drift(drift)
+            self.fd.set_diffusion(diffusion)
+            self.fd.set_rate(rate)
+            # Propagation for one time step.
+            self.fd.propagation(dt, True)
+            # Transformation adjustment.
+            self.fd.solution *= self.adjustment[idx + 1]
