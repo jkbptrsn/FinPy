@@ -1,12 +1,9 @@
-import math
 import typing
 
 import numpy as np
 
 from models import options
-from models.hull_white import misc as misc_hw
 from models.hull_white import caplet_floorlet as xlet
-from models.hull_white import zero_coupon_bond as zcbond
 from utils import global_types
 from utils import misc
 
@@ -70,6 +67,7 @@ class CapFloor(options.EuropeanOptionAnalytical1F):
         self.v_eg = None
 
         self.model = global_types.Model.HULL_WHITE_1F
+        self.transformation = global_types.Transformation.ANDERSEN
         if self.cap_or_floor == "cap":
             self.type = global_types.Instrument.CAP
             caplet_floorlet = "caplet"

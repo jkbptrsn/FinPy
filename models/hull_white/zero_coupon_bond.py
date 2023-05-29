@@ -4,216 +4,14 @@ import numpy as np
 from scipy.interpolate import UnivariateSpline
 
 from models import bonds
-from models.hull_white import misc as misc_hw
-
-from models.hull_white import sde as sde_old
 from models.hull_white import mc_andersen as sde
-
+from models.hull_white import misc as misc_hw
 from utils import global_types
 from utils import misc
 from utils import payoffs
 
 
-class ZCBond(sde_old.SDE, bonds.VanillaBond):
-    """Zero-coupon bond in 1-factor Hull-White model.
-
-    TODO: Use rate or pseudo rate?
-
-    Zero-coupon bond dependent on pseudo short rate modelled by 1-factor
-    Hull-White SDE. See L.B.G. Andersen & V.V. Piterbarg 2010,
-    proposition 10.1.7.
-
-    Attributes:
-        kappa: Speed of mean reversion.
-        vol: Volatility.
-
-        discount_curve: Discount curve represented on event grid.
-
-        maturity_idx: Maturity index on event grid.
-
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-
-        int_step_size: Integration/propagation step size represented as
-            a year fraction. Default is 1 / 365.
-    """
-
-    def __init__(self,
-                 kappa: misc.DiscreteFunc,
-                 vol: misc.DiscreteFunc,
-                 discount_curve: misc.DiscreteFunc,
-                 event_grid: np.ndarray,
-                 maturity_idx: int,
-                 int_step_size: float = 1 / 365):
-        super().__init__(kappa, vol, event_grid, int_step_size)
-        self.discount_curve = discount_curve
-        self.maturity_idx = maturity_idx
-
-        self.bond_type = global_types.Instrument.ZERO_COUPON_BOND
-
-    @property
-    def maturity(self) -> float:
-        return self.event_grid[self.maturity_idx]
-
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) -> \
-            typing.Union[float, np.ndarray]:
-        """Payoff function.
-
-        Args:
-            spot: Current short rate.
-
-        Returns:
-            Payoff.
-        """
-        return payoffs.zero_coupon_bond(spot)
-
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
-        """Price function.
-
-        Args:
-            spot: Current pseudo short rate.
-            event_idx: Index on event grid.
-
-        Returns:
-            Price.
-        """
-        return self._calc_price(spot, event_idx, self.maturity_idx)
-
-    def price_vector(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_indices: np.ndarray) -> np.ndarray:
-        """Price of zero coupon bond for each index in maturity_indices."""
-        if isinstance(spot, np.ndarray):
-            zcbond_prices = np.zeros((maturity_indices.size, spot.size))
-        else:
-            zcbond_prices = np.zeros((maturity_indices.size, 1))
-        for idx, maturity_idx in enumerate(maturity_indices):
-            zcbond_prices[idx] = self._calc_price(spot, event_idx, maturity_idx)
-        return zcbond_prices
-
-    def _calc_price(self,
-                    spot: typing.Union[float, np.ndarray],
-                    event_idx: int,
-                    maturity_idx: int) -> typing.Union[float, np.ndarray]:
-        """Calculate zero-coupon bond price.
-
-        Calculate price of zero-coupon bond based at current time
-        (event_idx) for maturity at time T (maturity_idx). See
-        proposition 10.1.7, L.B.G. Andersen & V.V. Piterbarg 2010.
-
-        Args:
-            spot: Current pseudo short rate.
-            event_idx: Event grid index corresponding to current time.
-            maturity_idx: Event grid index corresponding to maturity.
-
-        Returns:
-            Zero-coupon bond price.
-        """
-        if event_idx > maturity_idx:
-            raise ValueError("event_idx > maturity_idx")
-
-        # P(0,t): Zero-coupon bond price at time zero with maturity t.
-        price1 = self.discount_curve.values[event_idx]
-        # P(0,T): Zero-coupon bond price at time zero with maturity T.
-        price2 = self.discount_curve.values[maturity_idx]
-
-        # Integration indices of the two relevant events.
-        int_idx1 = self.int_event_idx[event_idx]
-        int_idx2 = self.int_event_idx[maturity_idx] + 1
-
-        # Slice of integration grid.
-        int_grid = self.int_grid[int_idx1:int_idx2]
-        # Slice of time-integrated kappa for each integration step.
-        int_kappa = self.int_kappa_step[int_idx1:int_idx2]
-        # G(t,T): G-function,
-        # see Eq. (10.18), L.B.G. Andersen & V.V. Piterbarg 2010.
-        integrand = np.exp(-np.cumsum(int_kappa))
-        g = np.sum(misc.trapz(int_grid, integrand))
-        # y(t): y-function,
-        # see Eq. (10.17), L.B.G. Andersen & V.V. Piterbarg 2010.
-        y = self.y_event_grid[event_idx]
-        return price2 * np.exp(-spot * g - y * g ** 2 / 2) / price1
-
-###############################################################################
-
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
-        """1st order price sensitivity wrt short rate.
-
-        Args:
-            spot: Current pseudo short rate.
-            event_idx: Index on event grid.
-
-        Returns:
-            Delta.
-        """
-        pass
-
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
-        """2nd order price sensitivity wrt short rate.
-
-        Args:
-            spot: Current pseudo short rate.
-            event_idx: Index on event grid.
-
-        Returns:
-            Gamma.
-        """
-        pass
-
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
-        """1st order price sensitivity wrt time.
-
-        Args:
-            spot: Current pseudo short rate.
-            event_idx: Index on event grid.
-
-        Returns:
-            Theta.
-        """
-        pass
-
-    def fd_solve(self):
-        """Run finite difference solver on event grid."""
-        pass
-
-    def mc_exact_setup(self):
-        """Setup exact Monte-Carlo solver."""
-        pass
-
-    def mc_exact_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False):
-        """Run Monte-Carlo solver on event grid.
-
-        Args:
-            spot: Short rate at as-of date.
-            n_paths: Number of Monte-Carlo paths.
-            rng: Random number generator. Default is None.
-            seed: Seed of random number generator. Default is None.
-            antithetic: Antithetic sampling for variance reduction.
-                Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
-        """
-        pass
-
-
-class ZCBondNew(bonds.VanillaBondAnalytical1F):
+class ZCBond(bonds.VanillaBondAnalytical1F):
     """Zero-coupon bond in 1-factor Hull-White model.
 
     Zero-coupon bond dependent on pseudo short rate modelled by 1-factor
@@ -284,6 +82,7 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         self.initialization()
 
         self.model = global_types.Model.HULL_WHITE_1F
+        self.transformation = global_types.Transformation.ANDERSEN
         self.type = global_types.Instrument.ZERO_COUPON_BOND
 
     @property
@@ -536,3 +335,94 @@ class ZCBondNew(bonds.VanillaBondAnalytical1F):
         discount = self.mc_exact.discount_adjustment(discount)
         self.mc_exact.solution = np.mean(discount[-1, :])
         self.mc_exact.error = misc.monte_carlo_error(discount[-1, :])
+
+
+class ZCBondPelsser(ZCBond):
+    """Zero-coupon bond in 1-factor Hull-White model.
+
+    Zero-coupon bond dependent on pseudo short rate modelled by 1-factor
+    Hull-White SDE. See Pelsser, chapter 5.
+
+    Attributes:
+        kappa: Speed of mean reversion.
+        vol: Volatility.
+        discount_curve: Discount curve represented on event grid.
+        maturity_idx: Maturity index on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+        time_dependence: Time dependence of model parameters.
+            "constant": kappa and vol are constant.
+            "piecewise": kappa is constant and vol is piecewise constant.
+            "general": General time dependence.
+            Default is "piecewise".
+        int_step_size: Integration/propagation step size represented as
+            a year fraction. Default is 1 / 365.
+        """
+
+    def __init__(self,
+                 kappa: misc.DiscreteFunc,
+                 vol: misc.DiscreteFunc,
+                 discount_curve: misc.DiscreteFunc,
+                 maturity_idx: int,
+                 event_grid: np.ndarray,
+                 time_dependence: str = "piecewise",
+                 int_step_size: float = 1 / 365):
+        super().__init__(kappa,
+                         vol,
+                         discount_curve,
+                         maturity_idx,
+                         event_grid,
+                         time_dependence,
+                         int_step_size)
+
+        self.transformation = global_types.Transformation.PELSSER
+
+        self.adjustment = None
+        self.adjustment_function()
+
+    def adjustment_function(self):
+        """Adjustment of short rate transformation."""
+        # P(0, t_{i+1}) / P(0, t_i)
+        discount_steps = \
+            self.discount_curve_eg[1:] / self.discount_curve_eg[:-1]
+        discount_steps = np.append(1, discount_steps)
+        # alpha_t_i - f(0,t_i), see Pelsser Eq (5.30).
+        if self.time_dependence == "constant":
+            int_alpha = \
+                misc_hw.int_alpha_constant(self.kappa_eg[0],
+                                           self.vol_eg[0],
+                                           self.event_grid)
+        elif self.time_dependence == "piecewise":
+            int_alpha = \
+                misc_hw.int_alpha_piecewise(self.kappa_eg[0],
+                                            self.vol_eg,
+                                            self.event_grid)
+        elif self.time_dependence == "general":
+            int_alpha = \
+                misc_hw.int_alpha_general(self.int_grid,
+                                          self.int_event_idx,
+                                          self.int_kappa_step,
+                                          self.vol_ig,
+                                          self.event_grid)
+        else:
+            raise ValueError(f"Time-dependence is unknown: "
+                             f"{self.time_dependence}")
+        self.adjustment = discount_steps * np.exp(-int_alpha)
+
+    def fd_solve(self):
+        """Run finite difference solver on event grid."""
+        self.fd.set_propagator()
+        for count, dt in enumerate(np.flip(np.diff(self.event_grid))):
+            # Time index at time "t", when moving from "t+1" to "t".
+            idx = -2 - count
+            # Update drift, diffusion, and rate functions.
+            drift = -self.kappa_eg[idx] * self.fd.grid
+            diffusion = self.vol_eg[idx] + 0 * self.fd.grid
+            rate = self.fd.grid
+            self.fd.set_drift(drift)
+            self.fd.set_diffusion(diffusion)
+            self.fd.set_rate(rate)
+            # Propagation for one time step.
+            self.fd.propagation(dt, True)
+            # Transformation adjustment.
+            self.fd.solution *= self.adjustment[idx + 1]
