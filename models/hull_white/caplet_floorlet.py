@@ -7,8 +7,8 @@ from scipy.stats import norm
 from models import options
 from models.hull_white import misc as misc_hw
 from models.hull_white import zero_coupon_bond as zcbond
+from utils import data_types
 from utils import global_types
-from utils import misc
 
 
 class CapletFloorlet(options.EuropeanOptionAnalytical1F):
@@ -34,9 +34,9 @@ class CapletFloorlet(options.EuropeanOptionAnalytical1F):
     """
 
     def __init__(self,
-                 kappa: misc.DiscreteFunc,
-                 vol: misc.DiscreteFunc,
-                 discount_curve: misc.DiscreteFunc,
+                 kappa: data_types.DiscreteFunc,
+                 vol: data_types.DiscreteFunc,
+                 discount_curve: data_types.DiscreteFunc,
                  strike_rate: float,
                  fixing_idx: int,
                  payment_idx: int,

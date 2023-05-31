@@ -4,8 +4,8 @@ import numpy as np
 
 from models import options
 from models.hull_white import caplet_floorlet as xlet
+from utils import data_types
 from utils import global_types
-from utils import misc
 
 
 class CapFloor(options.EuropeanOptionAnalytical1F):
@@ -31,9 +31,9 @@ class CapFloor(options.EuropeanOptionAnalytical1F):
     """
 
     def __init__(self,
-                 kappa: misc.DiscreteFunc,
-                 vol: misc.DiscreteFunc,
-                 discount_curve: misc.DiscreteFunc,
+                 kappa: data_types.DiscreteFunc,
+                 vol: data_types.DiscreteFunc,
+                 discount_curve: data_types.DiscreteFunc,
                  strike_rate: float,
                  fixing_schedule: np.ndarray,
                  payment_schedule: np.ndarray,

@@ -6,7 +6,7 @@ import numpy as np
 from models.hull_white import misc as misc_hw
 from models.hull_white import zero_coupon_bond as zcbond
 from unit_tests.test_hull_white import input
-from utils import misc
+from utils import data_types
 from utils import plots
 
 plot_results = False
@@ -20,13 +20,16 @@ class YFunction(unittest.TestCase):
         # Speed of mean reversion strips.
         time_grid = np.array([0, 2, 4, 6, 10, 20, 30])
         kappa_grid = 0.023 * np.array([1] * 7)
-        self.kappa_constant = misc.DiscreteFunc("kappa", time_grid, kappa_grid)
+        self.kappa_constant = \
+            data_types.DiscreteFunc("kappa", time_grid, kappa_grid)
         # Volatility strips.
         vol_grid = 0.0165 * np.array([1] * 7)
-        self.vol_constant = misc.DiscreteFunc("vol", time_grid, vol_grid)
+        self.vol_constant = \
+            data_types.DiscreteFunc("vol", time_grid, vol_grid)
         vol_grid = np.array([0.0165, 0.0143, 0.0140, 0.0067,
                              0.0096, 0.0087, 0.0091])
-        self.vol_piecewise = misc.DiscreteFunc("vol", time_grid, vol_grid)
+        self.vol_piecewise = \
+            data_types.DiscreteFunc("vol", time_grid, vol_grid)
         # Discount curve.
         self.discount_curve = input.disc_curve
         # Bond maturity.
@@ -92,10 +95,12 @@ class GFunction(unittest.TestCase):
         # Speed of mean reversion strips.
         time_grid = np.array([0, 2, 4, 6, 10, 20, 30])
         kappa_grid = 0.023 * np.array([1] * 7)
-        self.kappa_constant = misc.DiscreteFunc("kappa", time_grid, kappa_grid)
+        self.kappa_constant = \
+            data_types.DiscreteFunc("kappa", time_grid, kappa_grid)
         # Volatility strips.
         vol_grid = 0.0165 * np.array([1] * 7)
-        self.vol_constant = misc.DiscreteFunc("vol", time_grid, vol_grid)
+        self.vol_constant = \
+            data_types.DiscreteFunc("vol", time_grid, vol_grid)
         # Discount curve.
         self.discount_curve = input.disc_curve
         # Bond maturity.
@@ -134,13 +139,16 @@ class AlphaFunction(unittest.TestCase):
         # Speed of mean reversion strips.
         time_grid = np.array([0, 2, 4, 6, 10, 20, 30])
         kappa_grid = 0.023 * np.array([1] * 7)
-        self.kappa_constant = misc.DiscreteFunc("kappa", time_grid, kappa_grid)
+        self.kappa_constant = \
+            data_types.DiscreteFunc("kappa", time_grid, kappa_grid)
         # Volatility strips.
         vol_grid = 0.0165 * np.array([1] * 7)
-        self.vol_constant = misc.DiscreteFunc("vol", time_grid, vol_grid)
+        self.vol_constant = \
+            data_types.DiscreteFunc("vol", time_grid, vol_grid)
         vol_grid = np.array([0.0165, 0.0143, 0.0140, 0.0067,
                              0.0096, 0.0087, 0.0091])
-        self.vol_piecewise = misc.DiscreteFunc("vol", time_grid, vol_grid)
+        self.vol_piecewise = \
+            data_types.DiscreteFunc("vol", time_grid, vol_grid)
         # Discount curve.
         self.discount_curve = input.disc_curve
         # Bond maturity.
@@ -220,13 +228,16 @@ class IntAlphaFunction(unittest.TestCase):
         # Speed of mean reversion strips.
         time_grid = np.array([0, 2, 4, 6, 10, 20, 30])
         kappa_grid = 0.023 * np.array([1] * 7)
-        self.kappa_constant = misc.DiscreteFunc("kappa", time_grid, kappa_grid)
+        self.kappa_constant = \
+            data_types.DiscreteFunc("kappa", time_grid, kappa_grid)
         # Volatility strips.
         vol_grid = 0.0165 * np.array([1] * 7)
-        self.vol_constant = misc.DiscreteFunc("vol", time_grid, vol_grid)
+        self.vol_constant = \
+            data_types.DiscreteFunc("vol", time_grid, vol_grid)
         vol_grid = np.array([0.0165, 0.0143, 0.0140, 0.0067,
                              0.0096, 0.0087, 0.0091])
-        self.vol_piecewise = misc.DiscreteFunc("vol", time_grid, vol_grid)
+        self.vol_piecewise = \
+            data_types.DiscreteFunc("vol", time_grid, vol_grid)
         # Discount curve.
         self.discount_curve = input.disc_curve
         # Bond maturity.

@@ -6,6 +6,7 @@ from scipy.interpolate import UnivariateSpline
 from models import bonds
 from models.hull_white import mc_andersen as sde
 from models.hull_white import misc as misc_hw
+from utils import data_types
 from utils import global_types
 from utils import misc
 from utils import payoffs
@@ -35,9 +36,9 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
     """
 
     def __init__(self,
-                 kappa: misc.DiscreteFunc,
-                 vol: misc.DiscreteFunc,
-                 discount_curve: misc.DiscreteFunc,
+                 kappa: data_types.DiscreteFunc,
+                 vol: data_types.DiscreteFunc,
+                 discount_curve: data_types.DiscreteFunc,
                  maturity_idx: int,
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
@@ -360,9 +361,9 @@ class ZCBondPelsser(ZCBond):
         """
 
     def __init__(self,
-                 kappa: misc.DiscreteFunc,
-                 vol: misc.DiscreteFunc,
-                 discount_curve: misc.DiscreteFunc,
+                 kappa: data_types.DiscreteFunc,
+                 vol: data_types.DiscreteFunc,
+                 discount_curve: data_types.DiscreteFunc,
                  maturity_idx: int,
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
