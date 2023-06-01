@@ -429,6 +429,34 @@ class ZeroCouponBond(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 5e-3)
 
+    def test_monte_carlo_pelsser(self):
+        """Monte-Carlo pricing of zero-coupon bond."""
+        x_grid = 0.02 * np.arange(11) - 0.1
+        analytical = self.bond_pelsser.price(x_grid, 0)
+        n_paths = 30000
+        self.bond_pelsser.mc_exact_setup(time_dependence="piecewise")
+        numerical = np.zeros(x_grid.size)
+        error = np.zeros(x_grid.size)
+        rng = np.random.default_rng(0)
+        for idx, spot in enumerate(x_grid):
+            self.bond_pelsser.mc_exact_solve(spot, n_paths, rng=rng, antithetic=True)
+            numerical[idx] = self.bond_pelsser.mc_exact.solution
+            error[idx] = self.bond_pelsser.mc_exact.error
+        if plot_results:
+            plt.plot(x_grid, analytical, "-b")
+            plt.errorbar(x_grid, numerical, yerr=error, fmt="or")
+            plt.xlabel("Initial pseudo short rate")
+            plt.ylabel("Zero-coupon bond price")
+            plt.show()
+        relative_error = np.abs((analytical - numerical) / analytical)
+        # Maximum error in interval around pseudo short rate of 0.
+        idx_min = np.argwhere(x_grid < -0.05)[-1][0]
+        idx_max = np.argwhere(x_grid < 0.05)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print("max error: ", max_error)
+        self.assertTrue(max_error < 5e-3)
+
 
 if __name__ == '__main__':
     unittest.main()
