@@ -274,7 +274,8 @@ class SDE(unittest.TestCase):
         # SDE constant.
         rate, discount = \
             self.sde_constant.paths(0, n_paths, seed=0, antithetic=True)
-        discount = self.sde_constant.discount_adjustment(discount)
+        discount = self.sde_constant.discount_adjustment(discount,
+            self.sde_constant.discount_curve_eg)
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
@@ -286,7 +287,8 @@ class SDE(unittest.TestCase):
         # SDE piecewise.
         rate, discount = \
             self.sde_piecewise1.paths(0, n_paths, seed=0, antithetic=True)
-        discount = self.sde_piecewise1.discount_adjustment(discount)
+        discount = self.sde_piecewise1.discount_adjustment(discount,
+            self.sde_piecewise1.discount_curve_eg)
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
@@ -298,7 +300,8 @@ class SDE(unittest.TestCase):
         # SDE general.
         rate, discount = \
             self.sde_general1.paths(0, n_paths, seed=0, antithetic=True)
-        discount = self.sde_general1.discount_adjustment(discount)
+        discount = self.sde_general1.discount_adjustment(discount,
+            self.sde_general1.discount_curve_eg)
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
@@ -385,7 +388,8 @@ class SDE(unittest.TestCase):
         # SDE piecewise.
         rate, discount = \
             self.sde_piecewise2.paths(0, n_paths, seed=0, antithetic=True)
-        discount = self.sde_piecewise2.discount_adjustment(discount)
+        discount = self.sde_piecewise2.discount_adjustment(discount,
+            self.sde_piecewise2.discount_curve_eg)
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
@@ -397,7 +401,8 @@ class SDE(unittest.TestCase):
         # SDE general.
         rate, discount = \
             self.sde_general2.paths(0, n_paths, seed=0, antithetic=True)
-        discount = self.sde_general2.discount_adjustment(discount)
+        discount = self.sde_general2.discount_adjustment(discount,
+            self.sde_general2.discount_curve_eg)
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.

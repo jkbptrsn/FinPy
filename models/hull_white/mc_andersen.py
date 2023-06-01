@@ -277,8 +277,9 @@ class SDEBasic:
         discount = np.exp(discount)
         return rate, discount
 
-    def rate_adjustment(self,
-                        rate_paths: np.ndarray) -> np.ndarray:
+    @staticmethod
+    def rate_adjustment(rate_paths: np.ndarray,
+                        adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo rate paths.
 
         Assume that pseudo rate paths and discount curve are represented
@@ -286,15 +287,16 @@ class SDEBasic:
 
         Args:
             rate_paths: Pseudo short rate along Monte-Carlo paths.
+            adjustment: Instantaneous forward rate on event grid.
 
         Returns:
             Actual short rate paths.
         """
-        adjustment = rate_paths.transpose() + self.forward_rate_eg
-        return adjustment.transpose()
+        return (rate_paths.transpose() + adjustment).transpose()
 
-    def discount_adjustment(self,
-                            discount_paths: np.ndarray) -> np.ndarray:
+    @staticmethod
+    def discount_adjustment(discount_paths: np.ndarray,
+                            adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo discount paths.
 
         Assume that pseudo discount paths and discount curve are
@@ -302,12 +304,13 @@ class SDEBasic:
 
         Args:
             discount_paths: Pseudo discount factor along Monte-Carlo paths.
+            adjustment: ...
 
         Returns:
             Actual discount paths.
         """
-        adjustment = discount_paths.transpose() * self.discount_curve_eg
-        return adjustment.transpose()
+        tmp = discount_paths.transpose() * adjustment
+        return tmp.transpose()
 
 
 class SDEConstant(SDEBasic):
@@ -333,7 +336,11 @@ class SDEConstant(SDEBasic):
                  vol: data_types.DiscreteFunc,
                  discount_curve: data_types.DiscreteFunc,
                  event_grid: np.ndarray):
-        super().__init__(kappa, vol, discount_curve, event_grid, "constant")
+        super().__init__(kappa,
+                         vol,
+                         discount_curve,
+                         event_grid,
+                         "constant")
 
         self.initialization()
 
@@ -428,7 +435,11 @@ class SDEPiecewise(SDEBasic):
                  vol: data_types.DiscreteFunc,
                  discount_curve: data_types.DiscreteFunc,
                  event_grid: np.ndarray):
-        super().__init__(kappa, vol, discount_curve, event_grid, "piecewise")
+        super().__init__(kappa,
+                         vol,
+                         discount_curve,
+                         event_grid,
+                         "piecewise")
 
         self.initialization()
 
@@ -523,8 +534,12 @@ class SDEGeneral(SDEBasic):
                  discount_curve: data_types.DiscreteFunc,
                  event_grid: np.ndarray,
                  int_step_size: float = 1 / 365):
-        super().__init__(kappa, vol, discount_curve, event_grid,
-                         "general", int_step_size)
+        super().__init__(kappa,
+                         vol,
+                         discount_curve,
+                         event_grid,
+                         "general",
+                         int_step_size)
 
         self.initialization()
 
