@@ -109,6 +109,16 @@ class Call(unittest.TestCase):
                               self.time_dependence,
                               self.int_step_size)
 
+        self.callPelsser = call.CallPelsser(self.kappa,
+                                            self.vol,
+                                            self.discount_curve,
+                                            self.strike,
+                                            self.fd_expiry_idx,
+                                            self.fd_maturity_idx,
+                                            self.fd_event_grid,
+                                            self.time_dependence,
+                                            self.int_step_size)
+
     def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""
         self.call.fd_setup(self.x_grid, equidistant=True)
@@ -118,6 +128,23 @@ class Call(unittest.TestCase):
         relative_error = np.abs((analytical - numerical) / analytical)
         if plot_results:
             plots.plot_price_and_greeks(self.call)
+        # Maximum error in interval around pseudo short rate of 0.
+        idx_min = np.argwhere(self.x_grid < -0.002)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.002)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print("max error: ", max_error)
+        self.assertTrue(max_error < 8.e-3)
+
+    def test_theta_method_pelsser(self):
+        """Finite difference pricing of zero-coupon bond."""
+        self.callPelsser.fd_setup(self.x_grid, equidistant=True)
+        self.callPelsser.fd_solve()
+        numerical = self.callPelsser.fd.solution
+        analytical = self.callPelsser.price(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        if plot_results:
+            plots.plot_price_and_greeks(self.callPelsser)
         # Maximum error in interval around pseudo short rate of 0.
         idx_min = np.argwhere(self.x_grid < -0.002)[-1][0]
         idx_max = np.argwhere(self.x_grid < 0.002)[-1][0]

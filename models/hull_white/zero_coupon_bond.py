@@ -273,9 +273,10 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
         for count, dt in enumerate(np.flip(np.diff(self.event_grid))):
-            # Time index at time "t", when moving from "t+1" to "t".
-            idx = -2 - count
+            # Event index before propagation with time step -dt.
+            event_idx = (self.event_grid.size - 1) - count
             # Update drift, diffusion, and rate functions.
+            idx = event_idx - 1
             drift = self.y_eg[idx] - self.kappa_eg[idx] * self.fd.grid
             diffusion = self.vol_eg[idx] + 0 * self.fd.grid
             rate = self.fd.grid + self.forward_rate_eg[idx]
@@ -414,9 +415,10 @@ class ZCBondPelsser(ZCBond):
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
         for count, dt in enumerate(np.flip(np.diff(self.event_grid))):
-            # Time index at time "t", when moving from "t+1" to "t".
-            idx = -2 - count
+            # Event index before propagation with time step -dt.
+            event_idx = (self.event_grid.size - 1) - count
             # Update drift, diffusion, and rate functions.
+            idx = event_idx - 1
             drift = -self.kappa_eg[idx] * self.fd.grid
             diffusion = self.vol_eg[idx] + 0 * self.fd.grid
             rate = self.fd.grid
@@ -426,4 +428,4 @@ class ZCBondPelsser(ZCBond):
             # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
-            self.fd.solution *= self.adjustment[idx + 1]
+            self.fd.solution *= self.adjustment[event_idx]
