@@ -5,7 +5,7 @@ import numpy as np
 from scipy.interpolate import UnivariateSpline
 
 from models.hull_white import misc as misc_hw
-
+from utils import data_types
 from utils import global_types
 from utils import misc
 
@@ -31,9 +31,9 @@ class SDEBasic:
     """
 
     def __init__(self,
-                 kappa: misc.DiscreteFunc,
-                 vol: misc.DiscreteFunc,
-                 discount_curve: misc.DiscreteFunc,
+                 kappa: data_types.DiscreteFunc,
+                 vol: data_types.DiscreteFunc,
+                 discount_curve: data_types.DiscreteFunc,
                  event_grid: np.ndarray,
                  time_dependence: str = "constant",
                  int_step_size: float = 1 / 365):
@@ -329,9 +329,9 @@ class SDEConstant(SDEBasic):
     """
 
     def __init__(self,
-                 kappa: misc.DiscreteFunc,
-                 vol: misc.DiscreteFunc,
-                 discount_curve: misc.DiscreteFunc,
+                 kappa: data_types.DiscreteFunc,
+                 vol: data_types.DiscreteFunc,
+                 discount_curve: data_types.DiscreteFunc,
                  event_grid: np.ndarray):
         super().__init__(kappa, vol, discount_curve, event_grid, "constant")
 
@@ -424,9 +424,9 @@ class SDEPiecewise(SDEBasic):
     """
 
     def __init__(self,
-                 kappa: misc.DiscreteFunc,
-                 vol: misc.DiscreteFunc,
-                 discount_curve: misc.DiscreteFunc,
+                 kappa: data_types.DiscreteFunc,
+                 vol: data_types.DiscreteFunc,
+                 discount_curve: data_types.DiscreteFunc,
                  event_grid: np.ndarray):
         super().__init__(kappa, vol, discount_curve, event_grid, "piecewise")
 
@@ -518,9 +518,9 @@ class SDEGeneral(SDEBasic):
     """
 
     def __init__(self,
-                 kappa: misc.DiscreteFunc,
-                 vol: misc.DiscreteFunc,
-                 discount_curve: misc.DiscreteFunc,
+                 kappa: data_types.DiscreteFunc,
+                 vol: data_types.DiscreteFunc,
+                 discount_curve: data_types.DiscreteFunc,
                  event_grid: np.ndarray,
                  int_step_size: float = 1 / 365):
         super().__init__(kappa, vol, discount_curve, event_grid,

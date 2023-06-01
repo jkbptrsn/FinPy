@@ -6,6 +6,7 @@ from models.hull_white import call_option as call
 from models.hull_white import put_option as put
 from models.hull_white import misc as misc_hw
 from unit_tests.test_hull_white import input
+from utils import data_types
 from utils import misc
 from utils import plots
 
@@ -20,10 +21,12 @@ class VFunction(unittest.TestCase):
         # Speed of mean reversion strip.
         time_grid = np.array([0, 2, 4, 6, 10, 20, 30])
         kappa_grid = 0.023 * np.array([1] * 7)
-        self.kappa_constant = misc.DiscreteFunc("kappa", time_grid, kappa_grid)
+        self.kappa_constant = \
+            data_types.DiscreteFunc("kappa", time_grid, kappa_grid)
         # Volatility strip.
         vol_grid = 0.0165 * np.array([1] * 7)
-        self.vol_constant = misc.DiscreteFunc("vol", time_grid, vol_grid)
+        self.vol_constant = \
+            data_types.DiscreteFunc("vol", time_grid, vol_grid)
         # Discount curve.
         self.discount_curve = input.disc_curve
         # Bond maturity.

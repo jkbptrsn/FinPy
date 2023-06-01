@@ -7,8 +7,8 @@ from models import options
 from models.hull_white import put_option
 from models.hull_white import swap
 from models.hull_white import zero_coupon_bond as zcbond
+from utils import data_types
 from utils import global_types
-from utils import misc
 from utils import payoffs
 
 
@@ -29,9 +29,9 @@ class Payer(options.EuropeanOptionAnalytical1F):
     """
 
     def __init__(self,
-                 kappa: misc.DiscreteFunc,
-                 vol: misc.DiscreteFunc,
-                 discount_curve: misc.DiscreteFunc,
+                 kappa: data_types.DiscreteFunc,
+                 vol: data_types.DiscreteFunc,
+                 discount_curve: data_types.DiscreteFunc,
                  fixed_rate: float,
                  fixing_schedule: np.ndarray,
                  payment_schedule: np.ndarray,

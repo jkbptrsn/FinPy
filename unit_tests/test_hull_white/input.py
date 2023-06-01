@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 
-from utils import misc
+from utils import data_types
 
 
 # Yield curve. Continuous compounded yield y(0,0,t).
@@ -13,7 +13,7 @@ yield_grid = np.array([-0.0034, 0.0005, 0.0061, 0.0135, 0.0179,
                        0.0256, 0.0261, 0.0265, 0.0270, 0.0277,
                        0.0281, 0.0267, 0.0249, 0.0233])
 yield_curve = \
-    misc.DiscreteFunc("yield", time_grid, yield_grid, interp_scheme="cubic")
+    data_types.DiscreteFunc("yield", time_grid, yield_grid, interp_scheme="cubic")
 
 # Discount curve.
 disc_grid = np.exp(-yield_grid * time_grid)
@@ -21,23 +21,23 @@ disc_grid = np.exp(-yield_grid * time_grid)
 time_grid = np.append(0, time_grid)
 disc_grid = np.append(1, disc_grid)
 disc_curve = \
-    misc.DiscreteFunc("discount", time_grid, disc_grid, interp_scheme="cubic")
+    data_types.DiscreteFunc("discount", time_grid, disc_grid, interp_scheme="cubic")
 
 # Speed of mean reversion strip.
 time_grid = np.array([0, 10])
 kappa_grid = 0.023 * np.array([1, 1])
-kappa_strip = misc.DiscreteFunc("kappa", time_grid, kappa_grid)
+kappa_strip = data_types.DiscreteFunc("kappa", time_grid, kappa_grid)
 
 # Volatility strip.
 time_grid = np.array([0, 0.25, 0.5, 1, 2, 3, 4, 5, 7, 10, 20])
 vol_grid = np.array([0.0165, 0.0143, 0.0140, 0.0132, 0.0128, 0.0103,
                      0.0067, 0.0096, 0.0087, 0.0091, 0.0098])
-vol_strip = misc.DiscreteFunc("vol", time_grid, vol_grid)
+vol_strip = data_types.DiscreteFunc("vol", time_grid, vol_grid)
 
 # Constant volatility strip.
 time_grid = np.array([0, 10])
 vol_grid_constant = 0.01 * np.array([1, 1])
-vol_strip_constant = misc.DiscreteFunc("vol", time_grid, vol_grid_constant)
+vol_strip_constant = data_types.DiscreteFunc("vol", time_grid, vol_grid_constant)
 
 # Extended yield curve.
 time_grid = np.array(
@@ -271,7 +271,7 @@ yield_grid = np.array([
     0.02391,
     0.02383])
 yield_curve_ext = \
-    misc.DiscreteFunc("yield", time_grid, yield_grid, interp_scheme="cubic")
+    data_types.DiscreteFunc("yield", time_grid, yield_grid, interp_scheme="cubic")
 
 # Discount curve.
 disc_grid = np.exp(-yield_grid * time_grid)
@@ -279,7 +279,7 @@ disc_grid = np.exp(-yield_grid * time_grid)
 time_grid_ext = np.append(0, time_grid)
 disc_grid_ext = np.append(1, disc_grid)
 disc_curve_ext = \
-    misc.DiscreteFunc("discount", time_grid_ext, disc_grid_ext,
+    data_types.DiscreteFunc("discount", time_grid_ext, disc_grid_ext,
                       interp_scheme="cubic")
 
 # Instantaneous forward rate curve. f(0,t).
@@ -399,7 +399,7 @@ forward_rate_grid = np.array([
     0.01509,
     0.01504])
 forward_rate_ext = \
-    misc.DiscreteFunc("forward rate", time_grid, forward_rate_grid,
+    data_types.DiscreteFunc("forward rate", time_grid, forward_rate_grid,
                       interp_scheme="cubic")
 
 

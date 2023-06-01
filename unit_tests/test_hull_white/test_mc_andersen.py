@@ -5,7 +5,7 @@ import numpy as np
 
 from models.hull_white import mc_andersen as sde
 from models.hull_white import misc as misc_hw
-from utils import misc
+from utils import data_types
 
 plot_results = False
 print_results = False
@@ -21,12 +21,12 @@ class Misc(unittest.TestCase):
         self.kappa_scalar = 0.15
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
         self.kappa1 = \
-            misc.DiscreteFunc("kappa1", self.event_grid, self.kappa_vector1)
+            data_types.DiscreteFunc("kappa1", self.event_grid, self.kappa_vector1)
         # Volatility strip.
         self.vol_scalar = 0.05
         self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)
         self.vol1 = \
-            misc.DiscreteFunc("vol1", self.event_grid, self.vol_vector1)
+            data_types.DiscreteFunc("vol1", self.event_grid, self.vol_vector1)
         self.vol_vector2 = np.zeros(self.event_grid.size)
         for idx in range(self.event_grid.size):
             if idx % 2 == 0:
@@ -34,11 +34,11 @@ class Misc(unittest.TestCase):
             else:
                 self.vol_vector2[idx] = 4 * self.vol_vector1[idx]
         self.vol2 = \
-            misc.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
+            data_types.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
         self.discount_curve = \
-            misc.DiscreteFunc("discount", self.event_grid,
-                              np.ones(self.event_grid.size))
+            data_types.DiscreteFunc("discount", self.event_grid,
+                                    np.ones(self.event_grid.size))
         # SDE objects.
         self.sde1 = sde.SDEGeneral(self.kappa1, self.vol1,
                                    self.discount_curve, self.event_grid,
@@ -220,12 +220,13 @@ class SDE(unittest.TestCase):
         self.kappa_scalar = 0.15
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
         self.kappa1 = \
-            misc.DiscreteFunc("kappa1", self.event_grid, self.kappa_vector1)
+            data_types.DiscreteFunc("kappa1", self.event_grid,
+                                    self.kappa_vector1)
         # Volatility strip.
         self.vol_scalar = 0.05
         self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)
         self.vol1 = \
-            misc.DiscreteFunc("vol1", self.event_grid, self.vol_vector1)
+            data_types.DiscreteFunc("vol1", self.event_grid, self.vol_vector1)
         self.vol_vector2 = np.zeros(self.event_grid.size)
         for idx in range(self.event_grid.size):
             if idx % 2 == 0:
@@ -233,11 +234,11 @@ class SDE(unittest.TestCase):
             else:
                 self.vol_vector2[idx] = 2 * self.vol_vector1[idx]
         self.vol2 = \
-            misc.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
+            data_types.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
         self.discount_curve = \
-            misc.DiscreteFunc("discount", self.event_grid,
-                              np.ones(self.event_grid.size))
+            data_types.DiscreteFunc("discount", self.event_grid,
+                                    np.ones(self.event_grid.size))
         # SDE objects.
         self.sde_constant = sde.SDEConstant(self.kappa1,
                                             self.vol1,

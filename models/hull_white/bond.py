@@ -4,8 +4,8 @@ import numpy as np
 
 from models import bonds
 from models.hull_white import zero_coupon_bond as zcbond
+from utils import data_types
 from utils import global_types
-from utils import misc
 
 
 class Bond(bonds.VanillaBondAnalytical1F):
@@ -31,9 +31,9 @@ class Bond(bonds.VanillaBondAnalytical1F):
     """
 
     def __init__(self,
-                 kappa: misc.DiscreteFunc,
-                 vol: misc.DiscreteFunc,
-                 discount_curve: misc.DiscreteFunc,
+                 kappa: data_types.DiscreteFunc,
+                 vol: data_types.DiscreteFunc,
+                 discount_curve: data_types.DiscreteFunc,
                  cash_flow_schedule: np.ndarray,
                  cash_flow: np.ndarray,
                  event_grid: np.ndarray,
