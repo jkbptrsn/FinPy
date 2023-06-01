@@ -194,6 +194,16 @@ class Put(unittest.TestCase):
                            self.time_dependence,
                            self.int_step_size)
 
+        self.putPelsser = put.PutPelsser(self.kappa,
+                                         self.vol,
+                                         self.discount_curve,
+                                         self.strike,
+                                         self.fd_expiry_idx,
+                                         self.fd_maturity_idx,
+                                         self.fd_event_grid,
+                                         self.time_dependence,
+                                         self.int_step_size)
+
     def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""
         self.put.fd_setup(self.x_grid, equidistant=True)
@@ -210,6 +220,23 @@ class Put(unittest.TestCase):
         if print_results:
             print("max error: ", max_error)
         self.assertTrue(max_error < 6.e-4)
+
+    def test_theta_method_pelsser(self):
+        """Finite difference pricing of zero-coupon bond."""
+        self.putPelsser.fd_setup(self.x_grid, equidistant=True)
+        self.putPelsser.fd_solve()
+        numerical = self.putPelsser.fd.solution
+        analytical = self.putPelsser.price(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        if plot_results:
+            plots.plot_price_and_greeks(self.putPelsser)
+        # Maximum error in interval around pseudo short rate of 0.
+        idx_min = np.argwhere(self.x_grid < -0.002)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.002)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print("max error: ", max_error)
+        self.assertTrue(max_error < 7.e-4)
 
 
 if __name__ == '__main__':
