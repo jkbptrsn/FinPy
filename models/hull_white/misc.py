@@ -4,7 +4,6 @@ import typing
 import numpy as np
 from scipy.stats import norm
 
-from models.hull_white import zero_coupon_bond
 from utils import misc
 
 
@@ -817,7 +816,7 @@ def call_put_price(spot: typing.Union[float, np.ndarray],
                    event_idx: int,
                    expiry_idx: int,
                    maturity_idx: int,
-                   zcbond: zero_coupon_bond.ZCBond,
+                   zcbond,
                    v_eg: np.ndarray,
                    type_: str) -> typing.Union[float, np.ndarray]:
     """Price function wrt value of pseudo short rate.
@@ -868,7 +867,7 @@ def call_put_delta(spot: typing.Union[float, np.ndarray],
                    event_idx: int,
                    expiry_idx: int,
                    maturity_idx: int,
-                   zcbond: zero_coupon_bond.ZCBond,
+                   zcbond,
                    v_eg: np.ndarray,
                    type_: str) -> typing.Union[float, np.ndarray]:
     """1st order price sensitivity wrt value of pseudo short rate.

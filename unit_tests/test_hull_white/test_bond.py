@@ -1,13 +1,10 @@
-import math
 import unittest
 
 import numpy as np
 
-from models.hull_white import misc as misc_hw
 from models.hull_white import bond
 from unit_tests.test_hull_white import input
 from utils import cash_flows
-from utils import misc
 from utils import plots
 
 plot_results = False
