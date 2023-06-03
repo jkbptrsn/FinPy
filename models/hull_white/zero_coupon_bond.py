@@ -410,9 +410,9 @@ class ZCBondPelsser(ZCBond):
                                            self.vol_eg[0],
                                            self.event_grid)
         elif self.time_dependence == "piecewise":
-            alpha = misc_hw.alpha_constant(self.kappa_eg[0],
-                                           self.vol_eg,
-                                           self.event_grid)
+            alpha = misc_hw.alpha_piecewise(self.kappa_eg[0],
+                                            self.vol_eg,
+                                            self.event_grid)
             int_alpha = \
                 misc_hw.int_alpha_piecewise(self.kappa_eg[0],
                                             self.vol_eg,

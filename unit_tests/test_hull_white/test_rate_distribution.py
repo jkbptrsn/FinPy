@@ -1,53 +1,132 @@
+import unittest
+
 import matplotlib.pyplot as plt
 import numpy as np
 
+from models.hull_white import zero_coupon_bond as zcbond
+from models.hull_white import mc_andersen as mc_a
+from models.hull_white import mc_pelsser as mc_p
 from unit_tests.test_hull_white import input
-from models.hull_white import call_option
-from models.hull_white import caplet_floorlet
-from models.hull_white import put_option
-from models.hull_white import sde
-from models.hull_white import swap
-from models.hull_white import swaption
-from models.hull_white import zero_coupon_bond
-from utils import misc
-from utils import plots
+
+plot_results = False
+
+
+class JointDistributions(unittest.TestCase):
+    """..."""
+
+    def setUp(self) -> None:
+        # Speed of mean reversion strip.
+        self.kappa = input.kappa_strip
+        # Volatility strip.
+        self.vol = input.vol_strip
+        # Discount curve.
+        self.discount_curve = input.disc_curve
+        # Number of MC paths.
+        self.n_paths = 50000
+        # Number of terms.
+        self.n_terms = 21
+        # Yearly frequency.
+        self.frequency = 1
+        # Event grid.
+        self.event_grid = np.arange(self.n_terms) / self.frequency
+        # SDE objects.
+        self.mc_a = mc_a.SDEPiecewise(self.kappa,
+                                      self.vol,
+                                      self.discount_curve,
+                                      self.event_grid)
+        self.mc_p = mc_p.SDEPiecewise(self.kappa,
+                                      self.vol,
+                                      self.discount_curve,
+                                      self.event_grid)
+        # Zero-coupon bond objects.
+        mat = self.n_terms - 1
+        self.bond_a = zcbond.ZCBond(self.kappa,
+                                    self.vol,
+                                    self.discount_curve,
+                                    mat,
+                                    self.event_grid)
+        self.bond_p = zcbond.ZCBondPelsser(self.kappa,
+                                           self.vol,
+                                           self.discount_curve,
+                                           mat,
+                                           self.event_grid)
+
+    def test_compare(self):
+        """..."""
+        # MC paths using the Andersen transformation.
+        r_a, d_a = self.mc_a.paths(0, self.n_paths, seed=0)
+        r_a_adj = self.mc_a.rate_adjustment(r_a, self.bond_a.adjustment_rate)
+        d_a_adj = \
+            self.mc_a.discount_adjustment(d_a, self.bond_a.adjustment_discount)
+        # MC paths using the Pelsser transformation.
+        r_p, d_p = self.mc_p.paths(0, self.n_paths, seed=0)
+        r_p_adj = self.mc_p.rate_adjustment(r_p, self.bond_p.adjustment_rate)
+        tmp = np.cumprod(self.bond_p.adjustment_discount)
+        d_p_adj = self.mc_p.discount_adjustment(d_p, tmp)
+
+        if plot_results:
+            bin_numbers = (50, 50)
+            bin_range = [[-0.2, 0.2], [0, 3]]
+            fig, ax = plt.subplots(nrows=1, ncols=3, sharey=True)
+            fig.suptitle("Joint distributions")
+
+            if False:
+                r_a_plot = r_a_adj
+                d_a_plot = d_a_adj
+                r_p_plot = r_p_adj
+                d_p_plot = d_p_adj
+            else:
+                r_a_plot = r_a
+                d_a_plot = d_a
+                r_p_plot = r_p
+                d_p_plot = d_p
+
+            for event_idx in range(1, self.n_terms):
+                # Plot distribution based on Andersen transformation.
+                hist_a, r_edge, d_edge = \
+                    np.histogram2d(r_a_plot[event_idx, :],
+                                   d_a_plot[event_idx, :],
+                                   bins=bin_numbers,
+                                   range=bin_range,
+                                   density=True)
+                r_middle = (r_edge[1:] + r_edge[:-1]) / 2
+                d_middle = (d_edge[1:] + d_edge[:-1]) / 2
+                r_mesh, d_mesh = np.meshgrid(r_middle, d_middle)
+                first = ax[0].pcolormesh(r_mesh, d_mesh, hist_a.transpose())
+                ax[0].set_xlabel("Short rate")
+                ax[0].set_ylabel("Discount factor")
+                ax[0].set_title("'Andersen'")
+                cb1 = fig.colorbar(first, ax=ax[0])
+                # Plot distribution based on Pelsser transformation.
+                hist_p, _, _ = \
+                    np.histogram2d(r_p_plot[event_idx, :],
+                                   d_p_plot[event_idx, :],
+                                   bins=bin_numbers,
+                                   range=bin_range,
+                                   density=True)
+                second = ax[1].pcolormesh(r_mesh, d_mesh, hist_p.transpose())
+                ax[1].set_xlabel("Short rate")
+                ax[1].set_title("'Pelsser'")
+                cb2 = fig.colorbar(second, ax=ax[1])
+                # Plot difference.
+                diff = hist_p.transpose() - hist_a.transpose()
+                third = ax[2].pcolormesh(r_mesh, d_mesh, diff)
+                ax[2].set_xlabel("Short rate")
+                ax[2].set_title("'Pelsser' - 'Andersen'")
+                cb3 = fig.colorbar(third, ax=ax[2])
+                plt.pause(0.1)
+                if event_idx != self.n_terms - 1:
+                    cb1.remove()
+                    cb2.remove()
+                    cb3.remove()
+            plt.show()
+
+        # Compare paths.
+        r_diff = np.abs(r_a_adj - r_p_adj)
+        d_diff = np.abs(d_a_adj - d_p_adj)
+        self.assertTrue(np.max(r_diff) < 4e-14)
+        self.assertTrue(np.max(d_diff) < 3e-14)
 
 
 if __name__ == '__main__':
-
-    # Speed of mean reversion strip.
-    kappa = input.kappa_strip
-    # Volatility strip.
-    vol = input.vol_strip
-    # Discount curve.
-    discount_curve = input.disc_curve
-
-#    event_grid_plot = 0.1 * np.arange(0, 251, 250)
-    event_grid_plot = 0.1 * np.arange(251)
-    n_paths = 20000  # 200000
-    hw = sde.SDE(kappa, vol, event_grid_plot, int_step_size=1 / 52)
-    hw_p = sde.SDEPelsser(kappa, vol, event_grid_plot, int_step_size=1 / 52)
-
-    rate, discount = hw.paths(0, n_paths, seed=0)
-    rate_p, discount_p = hw_p.paths(0, n_paths, seed=0)
-
-    _, mean = hw.calc_rate_mean_custom(0, 1)
-    variance = hw.calc_rate_variance_custom(0, 1)
-#    plots.plot_rate_distribution(1, rate, mean, np.sqrt(variance))
-    _, mean_p = hw_p.calc_rate_mean_custom(0, 1)
-    mean_p *= 0
-    variance_p = hw_p.calc_rate_variance_custom(0, 1)
-#    plots.plot_rate_distribution(1, rate_p, mean_p, np.sqrt(variance_p))
-
-    for event_idx in range(1, 251, 10):
-        _, mean = hw.calc_rate_mean_custom(0, event_idx)
-        variance = hw.calc_rate_variance_custom(0, event_idx)
-#        plots.plot_rate_distribution(event_idx, rate, mean, np.sqrt(variance))
-        _, mean_p = hw_p.calc_rate_mean_custom(0, event_idx)
-        mean_p *= 0
-        variance_p = hw_p.calc_rate_variance_custom(0, event_idx)
-#        plots.plot_rate_distribution(event_idx, rate_p, mean_p, np.sqrt(variance_p))
-
-        plots.plot_rate_discount_distribution(event_idx, rate, discount)
-
-        plt.cla()
+    unittest.main()

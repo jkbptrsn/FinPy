@@ -153,8 +153,8 @@ def plot_rate_distribution(event_idx, rate, mean, std):
     plt.plot(grid, norm.pdf(grid, loc=mean, scale=std))
     print(mean, std)
 
-#    plt.show()
-    plt.pause(0.2)
+    plt.show()
+#    plt.pause(2.2)
 
 
 def plot_rate_discount_distribution(event_idx, rate, discount):
