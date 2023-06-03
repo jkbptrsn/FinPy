@@ -1,147 +1,108 @@
-import datetime
-import time
 import unittest
 
-import matplotlib.pyplot as plt
 import numpy as np
-import scipy
 
+from models.hull_white import coupon_bond as bond
 from unit_tests.test_hull_white import input
-from models.hull_white import call_option
-from models.hull_white import caplet_floorlet
-from models.hull_white import put_option
-from models.hull_white import sde
-from models.hull_white import swap
-from models.hull_white import swaption
-from models.hull_white import zero_coupon_bond
-from utils import misc
+from utils import cash_flows
+from utils import plots
+
+plot_results = False
+print_results = False
 
 
-class CouponBond(unittest.TestCase):
+class Bond(unittest.TestCase):
+    """Bond in 1-factor Hull-White model."""
 
-    def test_zero_coupon_bond_pricing(self):
-        pass
+    def setUp(self) -> None:
+        # Model parameters.
+        self.kappa = input.kappa_strip
+        self.vol = input.vol_strip
+        self.discount_curve = input.disc_curve
+
+        self.t_initial = 0
+        self.t_final = 5
+        self.principal = 100
+        self.coupon = 0.05
+        self.frequency = 1
+        self.cf_type = "annuity"
+
+        self.cash_flow_grid = \
+            cash_flows.set_cash_flow_grid(self.t_initial, self.t_final,
+                                          self.frequency)
+        self.cash_flow = \
+            cash_flows.cash_flow(self.coupon, self.frequency,
+                                 self.cash_flow_grid, self.principal,
+                                 self.cf_type)
+
+        # Event grid
+        event_dt = 0.01
+        self.event_grid, self.cash_flow_schedule = \
+            cash_flows.set_event_grid(self.cash_flow_grid, event_dt)
+
+        # FD spatial grid.
+        self.x_min = -0.15
+        self.x_max = 0.15
+        self.x_steps = 201
+        self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
+        self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
+
+        # Bond.
+        self.time_dependence = "piecewise"
+        self.bond = bond.Bond(self.kappa,
+                              self.vol,
+                              self.discount_curve,
+                              self.cash_flow_schedule,
+                              self.cash_flow,
+                              self.event_grid,
+                              self.time_dependence)
+        self.bond_pelsser = \
+            bond.BondPelsser(self.kappa,
+                             self.vol,
+                             self.discount_curve,
+                             self.cash_flow_schedule,
+                             self.cash_flow,
+                             self.event_grid,
+                             self.time_dependence)
+
+    def test_theta_method(self):
+        """Finite difference pricing of bond."""
+        self.bond.fd_setup(self.x_grid, equidistant=True)
+        self.bond.fd_solve()
+        numerical = self.bond.fd.solution
+        analytical = self.bond.price(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        if plot_results:
+            plots.plot_price_and_greeks(self.bond)
+        # Maximum error in interval around pseudo short rate of 0.
+        idx_min = np.argwhere(self.x_grid < -0.05)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.05)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            cash_flows.print_cash_flow(self.cash_flow)
+            print("max error: ", max_error)
+            print("Price at zero = ", analytical[(self.x_steps - 1) // 2])
+        self.assertTrue(max_error < 4.e-4)
+
+    def test_theta_method_pelsser(self):
+        """Finite difference pricing of bond."""
+        self.bond_pelsser.fd_setup(self.x_grid, equidistant=True)
+        self.bond_pelsser.fd_solve()
+        numerical = self.bond_pelsser.fd.solution
+        analytical = self.bond_pelsser.price(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        if plot_results:
+            plots.plot_price_and_greeks(self.bond_pelsser)
+        # Maximum error in interval around pseudo short rate of 0.
+        idx_min = np.argwhere(self.x_grid < -0.05)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.05)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            cash_flows.print_cash_flow(self.cash_flow)
+            print("max error: ", max_error)
+            print("Price at zero = ", analytical[(self.x_steps - 1) // 2])
+        self.assertTrue(max_error < 4.e-4)
 
 
-if __name__ == "__main__":
-
-    start_init = time.perf_counter()
-
-    # Speed of mean reversion strip.
-    kappa = input.kappa_strip
-
-    # Volatility strip.
-    vol = input.vol_strip
-
-    # Event dates in year fractions.
-    event_grid = input.time_grid_ext
-
-    # Discount curve.
-    discount_curve = input.disc_curve_ext
-
-    # time_grid_plot = 0.01 * np.arange(3001)
-    # plt.plot(time_grid_plot, kappa.interpolation(time_grid_plot))
-    # plt.show()
-    #
-    # time_grid_plot = 0.01 * np.arange(3001)
-    # plt.plot(time_grid_plot, vol.interpolation(time_grid_plot))
-    # plt.show()
-    #
-    # time_grid_plot = 0.01 * np.arange(3001)
-    # plt.plot(time_grid_plot, discount_curve.interpolation(time_grid_plot))
-    # plt.plot(discount_curve.time_grid, discount_curve.values)
-    # plt.show()
-
-    # Array with number of MC paths for each convergence test.
-    n_paths_array = np.array([2 ** e for e in range(10, 13, 2)])
-    # Number of repetitions per test.
-    n_reps = 100
-
-    # Integration step size
-    int_step_size = 1 / 365
-
-    # SDE object.
-    hw = sde.SDE(kappa, vol, event_grid, int_step_size=int_step_size)
-
-    # Random number generator.
-    rng = np.random.default_rng(0)
-
-    # Coupon
-    coupon = 0.03
-    coupon_tau = coupon * np.diff(event_grid)
-
-    # Analytical results.
-    price_a = np.sum(coupon_tau * discount_curve.values[1:]) \
-        + discount_curve.values[-1]
-    price_a *= 100
-
-    average_price = np.zeros((2, n_paths_array.size))
-    rms_errors = np.zeros((2, n_paths_array.size))
-
-    end_init = time.perf_counter()
-    print(f"Timing initialization: "
-          f"{datetime.timedelta(seconds=end_init - start_init)}")
-
-    for idx, n_paths in enumerate(n_paths_array):
-
-        start_rep = time.perf_counter()
-
-        for _ in range(n_reps):
-
-            # Ordinary Monte-Carlo.
-            rate, discount = hw.paths(0, n_paths, rng=rng, antithetic=False)
-            discount = sde.discount_adjustment(discount, discount_curve)
-            price_n = discount.sum(axis=1) / n_paths
-            price_n = np.sum(coupon_tau * price_n[1:]) + price_n[-1]
-            price_n *= 100
-            average_price[0, idx] += price_n
-            rms_errors[0, idx] += ((price_n - price_a) / price_a) ** 2
-
-            # Antithetic sampling.
-            rate, discount = hw.paths(0, n_paths, rng=rng, antithetic=True)
-            discount = sde.discount_adjustment(discount, discount_curve)
-            price_n = discount.sum(axis=1) / n_paths
-            price_n = np.sum(coupon_tau * price_n[1:]) + price_n[-1]
-            price_n *= 100
-            average_price[1, idx] += price_n
-            rms_errors[1, idx] += ((price_n - price_a) / price_a) ** 2
-
-        end_rep = time.perf_counter()
-        # Average execution time
-        average_time = (end_rep - start_rep) / n_reps
-
-        # Average price.
-        average_price[:, idx] /= n_reps
-        # Root mean square error.
-        rms_errors[:, idx] = np.sqrt(rms_errors[:, idx] / n_reps)
-
-        print(f"\nTest {idx + 1} with number of paths = {n_paths}:")
-        print(f"* 'Analytical' result: {price_a}")
-        print(f"* Ordinary Monte-Carlo: {average_price[0, idx]}. "
-              f"Abs diff = {abs(average_price[0, idx] - price_a)}")
-        print(f"* Antithetic sampling: {average_price[1, idx]}. "
-              f"Abs diff = {abs(average_price[1, idx] - price_a)}")
-        print(f"* Average execution time: "
-              f"{datetime.timedelta(seconds=average_time)}")
-
-    reg = \
-        scipy.stats.linregress(np.log(n_paths_array), np.log(rms_errors[0, :]))
-    reg_line = n_paths_array ** reg.slope * np.exp(reg.intercept)
-    plt.plot(n_paths_array, rms_errors[0, :], "ob")
-    plt.plot(n_paths_array, reg_line, "-b", linewidth=0.6)
-
-    reg = \
-        scipy.stats.linregress(np.log(n_paths_array), np.log(rms_errors[1, :]))
-    reg_line = n_paths_array ** reg.slope * np.exp(reg.intercept)
-    plt.plot(n_paths_array, rms_errors[1, :], "or")
-    plt.plot(n_paths_array, reg_line, "-r", linewidth=0.6)
-
-    plt.xlabel("Number of paths")
-    plt.ylabel("Root mean square error")
-    plt.xscale("log")
-    plt.yscale("log")
-    plt.show()
-
-    end_time = time.perf_counter()
-    print(f"\nTotal execution time: "
-          f"{datetime.timedelta(seconds=end_time-start_init)}")
+if __name__ == '__main__':
+    unittest.main()
