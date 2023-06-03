@@ -3,9 +3,11 @@ import typing
 import numpy as np
 
 from models import bonds
+from models.hull_white import misc as misc_hw
 from models.hull_white import zero_coupon_bond as zcbond
 from utils import data_types
 from utils import global_types
+from utils import misc
 
 
 class Swap(bonds.VanillaBondAnalytical1F):
@@ -244,10 +246,11 @@ class Swap(bonds.VanillaBondAnalytical1F):
             event_idx = (self.event_grid.size - 1) - count
 
             # Update drift, diffusion, and rate functions.
+            update_idx = event_idx - 1
             drift = \
-                self.y_eg[event_idx] - self.kappa_eg[event_idx] * self.fd.grid
-            diffusion = self.vol_eg[event_idx] + 0 * self.fd.grid
-            rate = self.fd.grid + self.forward_rate_eg[event_idx]
+                self.y_eg[update_idx] - self.kappa_eg[update_idx] * self.fd.grid
+            diffusion = self.vol_eg[update_idx] + 0 * self.fd.grid
+            rate = self.fd.grid + self.forward_rate_eg[update_idx]
             self.fd.set_drift(drift)
             self.fd.set_diffusion(diffusion)
             self.fd.set_rate(rate)
@@ -477,3 +480,158 @@ class Swap(bonds.VanillaBondAnalytical1F):
             Simple forward rate.
         """
         return (bond_price_t1 / bond_price_t2 - 1) / tau
+
+
+class SwapPelsser(Swap):
+    """Fixed-for-floating swap in 1-factor Hull-White model.
+
+    Fixed-for-floating swap based on "simple rate" fixing. Priced from
+    the point of view of the fixed rate payer. See Pelsser, chapter 5.
+
+    Attributes:
+        kappa: Speed of mean reversion.
+        vol: Volatility.
+        discount_curve: Discount curve represented on event grid.
+        fixed_rate: Fixed rate.
+        fixing_schedule: Fixing indices on event grid.
+        payment_schedule: Payment indices on event grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+        int_step_size: Integration/propagation step size represented as
+            a year fraction. Default is 1 / 365.
+    """
+
+    def __init__(self,
+                 kappa: data_types.DiscreteFunc,
+                 vol: data_types.DiscreteFunc,
+                 discount_curve: data_types.DiscreteFunc,
+                 fixed_rate: float,
+                 fixing_schedule: np.ndarray,
+                 payment_schedule: np.ndarray,
+                 event_grid: np.ndarray,
+                 time_dependence: str = "piecewise",
+                 int_step_size: float = 1 / 365):
+        super().__init__(kappa,
+                         vol,
+                         discount_curve,
+                         fixed_rate,
+                         fixing_schedule,
+                         payment_schedule,
+                         event_grid,
+                         time_dependence,
+                         int_step_size)
+
+        # Integration grid.
+        self.int_grid = None
+        # Indices of event dates on integration grid.
+        self.int_event_idx = None
+        # Speed of mean reversion on integration grid.
+        self.kappa_ig = None
+        # Step-wise integration of kappa on integration grid.
+        self.int_kappa_step = None
+        # Volatility on integration grid.
+        self.vol_ig = None
+
+        self.transformation = global_types.Transformation.PELSSER
+
+        self.adjustment_rate = None
+        self.adjustment_discount = None
+        self.adjustment_function()
+
+    def adjustment_function(self):
+        """Adjustment of short rate transformation."""
+        # P(0, t_{i+1}) / P(0, t_i)
+        discount_steps = \
+            self.discount_curve_eg[1:] / self.discount_curve_eg[:-1]
+        discount_steps = np.append(1, discount_steps)
+        # alpha_t_i - f(0,t_i), see Pelsser Eq (5.30).
+        if self.time_dependence == "constant":
+            alpha = misc_hw.alpha_constant(self.kappa_eg[0],
+                                           self.vol_eg[0],
+                                           self.event_grid)
+            int_alpha = \
+                misc_hw.int_alpha_constant(self.kappa_eg[0],
+                                           self.vol_eg[0],
+                                           self.event_grid)
+        elif self.time_dependence == "piecewise":
+            alpha = misc_hw.alpha_piecewise(self.kappa_eg[0],
+                                            self.vol_eg,
+                                            self.event_grid)
+            int_alpha = \
+                misc_hw.int_alpha_piecewise(self.kappa_eg[0],
+                                            self.vol_eg,
+                                            self.event_grid)
+        elif self.time_dependence == "general":
+            self.int_grid, self.int_event_idx = \
+                misc_hw.setup_int_grid(self.event_grid, self.int_step_size)
+            # Speed of mean reversion interpolated on integration grid.
+            self.kappa_ig = self.kappa.interpolation(self.int_grid)
+            # Volatility interpolated on integration grid.
+            self.vol_ig = self.vol.interpolation(self.int_grid)
+            # Integration of speed of mean reversion using trapezoidal rule.
+            self.int_kappa_step = \
+                np.append(0, misc.trapz(self.int_grid, self.kappa_ig))
+            alpha = \
+                misc_hw.alpha_general(self.int_grid,
+                                      self.int_event_idx,
+                                      self.int_kappa_step,
+                                      self.vol_ig,
+                                      self.event_grid)
+            int_alpha = \
+                misc_hw.int_alpha_general(self.int_grid,
+                                          self.int_event_idx,
+                                          self.int_kappa_step,
+                                          self.vol_ig,
+                                          self.event_grid)
+        else:
+            raise ValueError(f"Time-dependence is unknown: "
+                             f"{self.time_dependence}")
+        self.adjustment_rate = self.forward_rate_eg + alpha
+        self.adjustment_discount = discount_steps * np.exp(-int_alpha)
+
+    def fd_solve(self):
+        """Run finite difference solver on event grid."""
+        self.fd.set_propagator()
+        self.fd.solution = np.zeros(self.fd.grid.size)
+        # Numerical propagation.
+        time_steps = np.flip(np.diff(self.event_grid))
+        for count, dt in enumerate(time_steps):
+            # Event index before propagation over dt.
+            event_idx = (self.event_grid.size - 1) - count
+            # Update drift, diffusion, and rate functions.
+            update_idx = event_idx - 1
+            drift = -self.kappa_eg[update_idx] * self.fd.grid
+            diffusion = self.vol_eg[update_idx] + 0 * self.fd.grid
+            rate = self.fd.grid
+            self.fd.set_drift(drift)
+            self.fd.set_diffusion(diffusion)
+            self.fd.set_rate(rate)
+            # Payments, discount to fixing event.
+            if event_idx in self.fixing_schedule:
+                idx_fix = event_idx
+                which_fix = np.where(self.fixing_schedule == idx_fix)
+                idx_pay = self.payment_schedule[which_fix][0]
+
+                # P(t_fixing, t_payment).
+                bond_price = self.zcbond_price(self.fd.grid, idx_fix, idx_pay)
+#                grid = self.fd.grid + self.adjustment_rate[event_idx]
+#                bond_price = self.zcbond_price(grid, idx_fix, idx_pay)
+
+                # Tenor.
+                tenor = self.event_grid[idx_pay] - self.event_grid[idx_fix]
+                # Simple forward rate at t_fixing for (t_fixing, t_payment).
+                simple_rate = self.simple_forward_rate(bond_price, tenor)
+                # Payment.
+                payment = tenor * (simple_rate - self.fixed_rate)
+
+                # Analytical discounting from payment date to fixing date.
+                payment *= bond_price
+#                payment *= np.prod(self.adjustment_discount[idx_fix + 1: idx_pay + 1])
+
+                self.fd.solution += payment
+
+            # Propagation for one time step.
+            self.fd.propagation(dt, True)
+
+            # Transformation adjustment.
+            self.fd.solution *= self.adjustment_discount[event_idx]

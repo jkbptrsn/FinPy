@@ -43,6 +43,15 @@ class Swap(unittest.TestCase):
                               self.payment_schedule,
                               self.event_grid,
                               self.time_dependence)
+        self.swap_pelsser = \
+            swap.SwapPelsser(self.kappa,
+                             self.vol,
+                             self.discount_curve,
+                             self.fixed_rate,
+                             self.fixing_schedule,
+                             self.payment_schedule,
+                             self.event_grid,
+                             self.time_dependence)
 
     def test_pricing(self):
         """..."""
@@ -70,7 +79,24 @@ class Swap(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 2.e-2)
+        self.assertTrue(max_error < 3.e-3)
+
+    def test_theta_method_pelsser(self):
+        """Finite difference pricing of zero-coupon bond."""
+        self.swap_pelsser.fd_setup(self.x_grid, equidistant=True)
+        self.swap_pelsser.fd_solve()
+        numerical = self.swap_pelsser.fd.solution
+        analytical = self.swap_pelsser.price(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        if plot_results:
+            plots.plot_price_and_greeks(self.swap_pelsser)
+        # Maximum error in interval around pseudo short rate of 0.
+        idx_min = np.argwhere(self.x_grid < -0.05)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.05)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print("max error: ", max_error)
+        self.assertTrue(max_error < 2.e0)
 
 
 if __name__ == '__main__':
