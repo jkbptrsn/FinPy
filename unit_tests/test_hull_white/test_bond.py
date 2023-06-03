@@ -56,6 +56,14 @@ class Bond(unittest.TestCase):
                               self.cash_flow,
                               self.event_grid,
                               self.time_dependence)
+        self.bond_pelsser = \
+            bond.BondPelsser(self.kappa,
+                             self.vol,
+                             self.discount_curve,
+                             self.cash_flow_schedule,
+                             self.cash_flow,
+                             self.event_grid,
+                             self.time_dependence)
 
     def test_theta_method(self):
         """Finite difference pricing of bond."""
@@ -66,6 +74,25 @@ class Bond(unittest.TestCase):
         relative_error = np.abs((analytical - numerical) / analytical)
         if plot_results:
             plots.plot_price_and_greeks(self.bond)
+        # Maximum error in interval around pseudo short rate of 0.
+        idx_min = np.argwhere(self.x_grid < -0.05)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.05)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            cash_flows.print_cash_flow(self.cash_flow)
+            print("max error: ", max_error)
+            print("Price at zero = ", analytical[(self.x_steps - 1) // 2])
+        self.assertTrue(max_error < 4.e-4)
+
+    def test_theta_method_pelsser(self):
+        """Finite difference pricing of bond."""
+        self.bond_pelsser.fd_setup(self.x_grid, equidistant=True)
+        self.bond_pelsser.fd_solve()
+        numerical = self.bond_pelsser.fd.solution
+        analytical = self.bond_pelsser.price(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        if plot_results:
+            plots.plot_price_and_greeks(self.bond_pelsser)
         # Maximum error in interval around pseudo short rate of 0.
         idx_min = np.argwhere(self.x_grid < -0.05)[-1][0]
         idx_max = np.argwhere(self.x_grid < 0.05)[-1][0]
