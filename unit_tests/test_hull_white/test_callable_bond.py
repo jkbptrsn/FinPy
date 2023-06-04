@@ -8,7 +8,7 @@ from utils import cash_flows
 from utils import plots
 
 plot_results = False
-print_results = False
+print_results = True
 
 
 class FixedRate(unittest.TestCase):
@@ -118,14 +118,6 @@ class FixedRate(unittest.TestCase):
             print("max error: ", max_error)
             print("Price at zero = ", analytical[(self.x_steps - 1) // 2])
         self.assertTrue(max_error < 9.e-4)
-
-    def test_cash_flow(self):
-        """..."""
-        cf = \
-            cash_flows.cash_flow_split_issuance(
-                self.coupon, self.frequency, self.cash_flow_grid,
-                self.issuance_terms, self.principal, self.type, self.io)
-        # cash_flows.print_cash_flow(cf)
 
 
 if __name__ == '__main__':

@@ -8,6 +8,7 @@ from models.hull_white import zero_coupon_bond as zcbond
 from utils import data_types
 from utils import global_types
 from utils import misc
+from utils import smoothing
 
 
 class FixedRate(bonds.VanillaBondAnalytical1F):
@@ -199,16 +200,24 @@ class FixedRate(bonds.VanillaBondAnalytical1F):
             if event_idx in self.cash_flow_schedule:
                 which_payment = \
                     np.where(self.cash_flow_schedule == event_idx)[0]
-#                self.fd.solution += self.cash_flow[:, which_payment[0]].sum()
+                self.fd.solution += self.cash_flow[:, which_payment[0]].sum()
 
-                # Redemption rate.
-                remaining_redemptions = \
-                    self.cash_flow[0, which_payment[0]:].sum()
-                redemption_rate = \
-                    self.cash_flow[0, which_payment[0]] / remaining_redemptions
-                self.fd.solution *= (1 - redemption_rate)
-                self.fd.solution += \
-                    100 * (redemption_rate + self.coupon / self.frequency)
+                # # Prepayment option.
+                # prepayment_factor = 0.2
+                # option_value = np.maximum(self.fd.solution - 100, 0)
+                # option_value = \
+                #     smoothing.smoothing_1d(self.fd.grid, option_value)
+                # option_value *= prepayment_factor
+                #
+                # remaining_redemptions = \
+                #     self.cash_flow[0, which_payment[0]:].sum()
+                # redemption_rate = \
+                #     self.cash_flow[0, which_payment[0]] / remaining_redemptions
+                # self.fd.solution *= (1 - redemption_rate)
+                # self.fd.solution += \
+                #     100 * (redemption_rate + self.coupon / self.frequency)
+                #
+                # self.fd.solution -= option_value
 
             # Backwards propagation over dt.
             self.fd.propagation(dt, True)
@@ -434,16 +443,25 @@ class FixedRatePelsser(FixedRate):
             if event_idx in self.cash_flow_schedule:
                 which_payment = \
                     np.where(self.cash_flow_schedule == event_idx)[0]
-#                self.fd.solution += self.cash_flow[:, which_payment[0]].sum()
+                self.fd.solution += self.cash_flow[:, which_payment[0]].sum()
 
-                # Redemption rate.
-                remaining_redemptions = \
-                    self.cash_flow[0, which_payment[0]:].sum()
-                redemption_rate = \
-                    self.cash_flow[0, which_payment[0]] / remaining_redemptions
-                self.fd.solution *= (1 - redemption_rate)
-                self.fd.solution += \
-                    100 * (redemption_rate + self.coupon / self.frequency)
+                # # Prepayment option.
+                # prepayment_factor = 0.2
+                # option_value = np.maximum(self.fd.solution - 100, 0)
+                # option_value = \
+                #     smoothing.smoothing_1d(self.fd.grid, option_value)
+                # option_value *= prepayment_factor
+                #
+                # # Redemption rate.
+                # remaining_redemptions = \
+                #     self.cash_flow[0, which_payment[0]:].sum()
+                # redemption_rate = \
+                #     self.cash_flow[0, which_payment[0]] / remaining_redemptions
+                # self.fd.solution *= (1 - redemption_rate)
+                # self.fd.solution += \
+                #     100 * (redemption_rate + self.coupon / self.frequency)
+                #
+                # self.fd.solution -= option_value
 
             # Backwards propagation over dt.
             self.fd.propagation(dt, True)
