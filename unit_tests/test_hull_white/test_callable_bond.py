@@ -7,8 +7,8 @@ from unit_tests.test_hull_white import input
 from utils import cash_flows
 from utils import plots
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 
 class FixedRate(unittest.TestCase):
@@ -25,7 +25,7 @@ class FixedRate(unittest.TestCase):
         # Initial time of first payment period.
         self.t_i = 0
         # Final time of last payment period.
-        self.t_f = 30
+        self.t_f = 10
         # Principal at time zero.
         self.principal = 100
         # Fixed yearly coupon.
@@ -33,20 +33,21 @@ class FixedRate(unittest.TestCase):
         # Term frequency per year.
         self.frequency = 4
         # Number of 'interest only' terms.
-        self.io = 40
+        self.io = 12
         # Number of terms in issuance period.
-        self.issuance_terms = 12
+        self.issuance_terms = 4
 
         # Cash flow with issuance period.
         self.cash_flow_grid = \
             cash_flows.set_cash_flow_grid_issuance(
                 self.t_i, self.t_f, self.frequency, self.issuance_terms)
-        self.cash_flow_grid -= self.cash_flow_grid[0]
         self.cash_flow = \
             cash_flows.cash_flow_split_issuance(
                 self.coupon, self.frequency, self.cash_flow_grid,
                 self.issuance_terms, self.principal, self.type, self.io)
-        self.cash_flow = self.cash_flow.sum(axis=0)
+#        self.cash_flow = self.cash_flow.sum(axis=0)
+
+        self.cash_flow_grid -= self.cash_flow_grid[0]
 
         # Event grid.
         event_dt = 1 / 12
@@ -65,6 +66,8 @@ class FixedRate(unittest.TestCase):
         self.bond = bond.FixedRate(self.kappa,
                                    self.vol,
                                    self.discount_curve,
+                                   self.coupon,
+                                   self.frequency,
                                    self.cash_flow_schedule,
                                    self.cash_flow,
                                    self.event_grid,
@@ -73,6 +76,8 @@ class FixedRate(unittest.TestCase):
             bond.FixedRatePelsser(self.kappa,
                                   self.vol,
                                   self.discount_curve,
+                                  self.coupon,
+                                  self.frequency,
                                   self.cash_flow_schedule,
                                   self.cash_flow,
                                   self.event_grid,
@@ -113,6 +118,14 @@ class FixedRate(unittest.TestCase):
             print("max error: ", max_error)
             print("Price at zero = ", analytical[(self.x_steps - 1) // 2])
         self.assertTrue(max_error < 9.e-4)
+
+    def test_cash_flow(self):
+        """..."""
+        cf = \
+            cash_flows.cash_flow_split_issuance(
+                self.coupon, self.frequency, self.cash_flow_grid,
+                self.issuance_terms, self.principal, self.type, self.io)
+        # cash_flows.print_cash_flow(cf)
 
 
 if __name__ == '__main__':

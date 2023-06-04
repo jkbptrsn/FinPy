@@ -1,6 +1,7 @@
 import unittest
 
 from matplotlib import pyplot as plt
+import numpy as np
 
 from utils import cash_flows
 
@@ -65,16 +66,35 @@ class CashFlows(unittest.TestCase):
             plt.legend()
             plt.show()
 
-            plt.plot(self.payment_grid_issuance, self.cash_flow_issuance[0, :],
+            plt.plot(self.payment_grid_issuance,
+                     self.cash_flow_issuance[0, :],
                      "ob", label="Installment")
-            plt.plot(self.payment_grid_issuance, self.cash_flow_issuance[1, :],
+            plt.plot(self.payment_grid_issuance,
+                     self.cash_flow_issuance[1, :],
                      "or", label="Interest")
-            plt.plot(self.payment_grid_issuance, self.cash_flow_issuance.sum(axis=0),
+            plt.plot(self.payment_grid_issuance,
+                     self.cash_flow_issuance.sum(axis=0),
                      "ok", label="Total")
             plt.xlabel("Time")
             plt.ylabel("Payment")
             plt.legend()
             plt.show()
+
+        # Calculating redemptions backwards.
+        cf_test = np.zeros(self.cash_flow.shape)
+        for n in range(cf_test.shape[1] - 1, -1, -1):
+            redemption_rate = \
+                self.cash_flow[0, n] / np.sum(self.cash_flow[0, n:])
+            cf_test[0, n] = 100 * redemption_rate
+            cf_test[1, n] = 100 * self.coupon / self.frequency
+            cf_test[:, n + 1:] *= (1 - redemption_rate)
+        for n in range(cf_test.shape[1]):
+            self.assertTrue(abs(cf_test[0, n] - self.cash_flow[0, n]) < 1.e-13)
+            self.assertTrue(abs(cf_test[1, n] - self.cash_flow[1, n]) < 1.e-13)
+            if print_results:
+                print(n,
+                      cf_test[0, n], self.cash_flow[0, n],
+                      cf_test[1, n], self.cash_flow[1, n])
 
 
 if __name__ == '__main__':

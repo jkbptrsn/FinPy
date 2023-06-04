@@ -19,8 +19,10 @@ class FixedRate(bonds.VanillaBondAnalytical1F):
         kappa: Speed of mean reversion.
         vol: Volatility.
         discount_curve: Discount curve represented on event grid.
+        coupon: Yearly coupon rate.
+        frequency: Yearly payment frequency.
         cash_flow_schedule: Cash flow indices on event grid.
-        cash_flow: Cash flow.
+        cash_flow: Cash flow, separated in installment and interest.
         event_grid: Event dates represented as year fractions from as-of
             date.
         time_dependence: Time dependence of model parameters.
@@ -36,6 +38,8 @@ class FixedRate(bonds.VanillaBondAnalytical1F):
                  kappa: data_types.DiscreteFunc,
                  vol: data_types.DiscreteFunc,
                  discount_curve: data_types.DiscreteFunc,
+                 coupon: float,
+                 frequency: int,
                  cash_flow_schedule: np.ndarray,
                  cash_flow: np.ndarray,
                  event_grid: np.ndarray,
@@ -45,6 +49,8 @@ class FixedRate(bonds.VanillaBondAnalytical1F):
         self.kappa = kappa
         self.vol = vol
         self.discount_curve = discount_curve
+        self.coupon = coupon
+        self.frequency = frequency
         self.cash_flow_schedule = cash_flow_schedule
         self.cash_flow = cash_flow
         self.event_grid = event_grid
@@ -96,7 +102,7 @@ class FixedRate(bonds.VanillaBondAnalytical1F):
         Returns:
             Payoff.
         """
-        return self.cash_flow[-1] + 0 * spot
+        return np.sum(self.cash_flow[:, -1]) + 0 * spot
 
     def price(self,
               spot: typing.Union[float, np.ndarray],
@@ -114,7 +120,7 @@ class FixedRate(bonds.VanillaBondAnalytical1F):
         for count, idx_pay in enumerate(self.cash_flow_schedule):
             # Discount factor from idx_pay to event_idx.
             discount = self.zcbond_price(spot, event_idx, idx_pay)
-            _price += discount * self.cash_flow[count]
+            _price += discount * self.cash_flow[:, count].sum()
         return _price
 
     def delta(self,
@@ -134,7 +140,7 @@ class FixedRate(bonds.VanillaBondAnalytical1F):
             # 1st order derivative of discount factor from idx_pay to
             # event_idx.
             discount = self.zcbond_delta(spot, event_idx, idx_pay)
-            _delta += discount * self.cash_flow[count]
+            _delta += discount * self.cash_flow[:, count].sum()
         return _delta
 
     def gamma(self,
@@ -154,7 +160,7 @@ class FixedRate(bonds.VanillaBondAnalytical1F):
             # 2nd order derivative of discount factor from idx_pay to
             # event_idx.
             discount = self.zcbond_gamma(spot, event_idx, idx_pay)
-            _gamma += discount * self.cash_flow[count]
+            _gamma += discount * self.cash_flow[:, count].sum()
         return _gamma
 
     def theta(self,
@@ -193,11 +199,21 @@ class FixedRate(bonds.VanillaBondAnalytical1F):
             if event_idx in self.cash_flow_schedule:
                 which_payment = \
                     np.where(self.cash_flow_schedule == event_idx)[0]
-                self.fd.solution += self.cash_flow[which_payment[0]]
+#                self.fd.solution += self.cash_flow[:, which_payment[0]].sum()
+
+                # Redemption rate.
+                remaining_redemptions = \
+                    self.cash_flow[0, which_payment[0]:].sum()
+                redemption_rate = \
+                    self.cash_flow[0, which_payment[0]] / remaining_redemptions
+                self.fd.solution *= (1 - redemption_rate)
+                self.fd.solution += \
+                    100 * (redemption_rate + self.coupon / self.frequency)
+
             # Backwards propagation over dt.
             self.fd.propagation(dt, True)
         if 0 in self.cash_flow_schedule:
-            self.fd.solution += self.cash_flow[0]
+            self.fd.solution += self.cash_flow[:, 0].sum()
 
     def mc_exact_setup(self):
         """Setup exact Monte-Carlo solver."""
@@ -292,6 +308,8 @@ class FixedRatePelsser(FixedRate):
         kappa: Speed of mean reversion.
         vol: Volatility.
         discount_curve: Discount curve represented on event grid.
+        coupon: Yearly coupon rate.
+        frequency: Yearly payment frequency.
         cash_flow_schedule: Cash flow indices on event grid.
         cash_flow: Cash flow.
         event_grid: Event dates represented as year fractions from as-of
@@ -309,6 +327,8 @@ class FixedRatePelsser(FixedRate):
                  kappa: data_types.DiscreteFunc,
                  vol: data_types.DiscreteFunc,
                  discount_curve: data_types.DiscreteFunc,
+                 coupon: float,
+                 frequency: int,
                  cash_flow_schedule: np.ndarray,
                  cash_flow: np.ndarray,
                  event_grid: np.ndarray,
@@ -317,6 +337,8 @@ class FixedRatePelsser(FixedRate):
         super().__init__(kappa,
                          vol,
                          discount_curve,
+                         coupon,
+                         frequency,
                          cash_flow_schedule,
                          cash_flow,
                          event_grid,
@@ -412,10 +434,20 @@ class FixedRatePelsser(FixedRate):
             if event_idx in self.cash_flow_schedule:
                 which_payment = \
                     np.where(self.cash_flow_schedule == event_idx)[0]
-                self.fd.solution += self.cash_flow[which_payment[0]]
+#                self.fd.solution += self.cash_flow[:, which_payment[0]].sum()
+
+                # Redemption rate.
+                remaining_redemptions = \
+                    self.cash_flow[0, which_payment[0]:].sum()
+                redemption_rate = \
+                    self.cash_flow[0, which_payment[0]] / remaining_redemptions
+                self.fd.solution *= (1 - redemption_rate)
+                self.fd.solution += \
+                    100 * (redemption_rate + self.coupon / self.frequency)
+
             # Backwards propagation over dt.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjustment_discount[event_idx]
         if 0 in self.cash_flow_schedule:
-            self.fd.solution += self.cash_flow[0]
+            self.fd.solution += self.cash_flow[:, 0].sum()
