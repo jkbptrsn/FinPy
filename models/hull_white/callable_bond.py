@@ -10,10 +10,10 @@ from utils import global_types
 from utils import misc
 
 
-class Bond(bonds.VanillaBondAnalytical1F):
-    """Bond in 1-factor Hull-White model.
+class FixedRate(bonds.VanillaBondAnalytical1F):
+    """Fixed rate callable Bond in 1-factor Hull-White model.
 
-    Bond with pre-specified cash flow.
+    Fixed rate callable bond with pre-specified cash flow.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -196,6 +196,8 @@ class Bond(bonds.VanillaBondAnalytical1F):
                 self.fd.solution += self.cash_flow[which_payment[0]]
             # Backwards propagation over dt.
             self.fd.propagation(dt, True)
+        if 0 in self.cash_flow_schedule:
+            self.fd.solution += self.cash_flow[0]
 
     def mc_exact_setup(self):
         """Setup exact Monte-Carlo solver."""
@@ -281,10 +283,10 @@ class Bond(bonds.VanillaBondAnalytical1F):
         return self.zcbond.gamma(spot, event_idx)
 
 
-class BondPelsser(Bond):
-    """Bond in 1-factor Hull-White model.
+class FixedRatePelsser(FixedRate):
+    """Fixed rate callable bond in 1-factor Hull-White model.
 
-    Bond with pre-specified cash flow.
+    Fixed rate callable bond with pre-specified cash flow.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -400,8 +402,8 @@ class BondPelsser(Bond):
             event_idx = (self.event_grid.size - 1) - count
             # Update drift, diffusion, and rate functions.
             update_idx = event_idx - 1
-            drift = -self.kappa_eg[event_idx] * self.fd.grid
-            diffusion = self.vol_eg[event_idx] + 0 * self.fd.grid
+            drift = -self.kappa_eg[update_idx] * self.fd.grid
+            diffusion = self.vol_eg[update_idx] + 0 * self.fd.grid
             rate = self.fd.grid
             self.fd.set_drift(drift)
             self.fd.set_diffusion(diffusion)
@@ -415,3 +417,5 @@ class BondPelsser(Bond):
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjustment_discount[event_idx]
+        if 0 in self.cash_flow_schedule:
+            self.fd.solution += self.cash_flow[0]
