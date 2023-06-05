@@ -14,6 +14,16 @@ from utils import smoothing
 class FixedRate(bonds.VanillaBondAnalytical1F):
     """Fixed rate callable Bond in 1-factor Hull-White model.
 
+    TODO:
+     * Don't initialize in zcbond_price, zcbond_delta and zcbond_gamma
+        Used "smart" calculation of G-function, see Andersen & Piterbarg
+        Add a method to zcbond class for re-calculating G if maturity_idx is updated
+     * deadline_schedule
+     * Numerical propagation (discounting) of par from term to deadline
+     * Add OAS argument
+     * Wrapper for calculating OAS based on price
+     * Price-rate plots
+
     Fixed rate callable bond with pre-specified cash flow.
 
     Attributes:
@@ -266,7 +276,9 @@ class FixedRate(bonds.VanillaBondAnalytical1F):
         """
         if self.zcbond.maturity_idx != maturity_idx:
             self.zcbond.maturity_idx = maturity_idx
-            self.zcbond.initialization()
+#            self.zcbond.initialization()
+#            self.zcbond._setup_int_grid()
+#            self.zcbond._setup_model_parameters()
         return self.zcbond.price(spot, event_idx)
 
     def zcbond_delta(self,
