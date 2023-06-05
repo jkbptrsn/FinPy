@@ -138,5 +138,101 @@ class PutOption(unittest.TestCase):
         self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 2.0e-4)
 
 
+class LongstaffSchwartz(unittest.TestCase):
+    """Numerical examples in Longstaff-Schwartz article."""
+
+    def setUp(self) -> None:
+        self.rate = 0.06
+        self.vol1 = 0.2
+        self.vol2 = 0.4
+        self.strike = 40
+
+        self.frequency = 50
+        self.event_grid1 = \
+            np.arange(int(1 * self.frequency) + 1) / self.frequency
+        self.event_grid2 = \
+            np.arange(int(2 * self.frequency) + 1) / self.frequency
+
+        self.x_grid = np.arange(1, 401) / 4
+
+        self.pa11 = put.PutAmerican(self.rate,
+                                    self.vol1,
+                                    self.strike,
+                                    self.event_grid1.size - 1,
+                                    self.event_grid1)
+
+        self.p11 = put.Put(self.rate,
+                           self.vol1,
+                           self.strike,
+                           self.event_grid1.size - 1,
+                           self.event_grid1)
+
+        self.pa12 = put.PutAmerican(self.rate,
+                                    self.vol1,
+                                    self.strike,
+                                    self.event_grid2.size - 1,
+                                    self.event_grid2)
+
+        self.p12 = put.Put(self.rate,
+                           self.vol1,
+                           self.strike,
+                           self.event_grid2.size - 1,
+                           self.event_grid2)
+
+        self.pa21 = put.PutAmerican(self.rate,
+                                    self.vol2,
+                                    self.strike,
+                                    self.event_grid1.size - 1,
+                                    self.event_grid1)
+
+        self.p21 = put.Put(self.rate,
+                           self.vol2,
+                           self.strike,
+                           self.event_grid1.size - 1,
+                           self.event_grid1)
+
+        self.pa22 = put.PutAmerican(self.rate,
+                                    self.vol2,
+                                    self.strike,
+                                    self.event_grid2.size - 1,
+                                    self.event_grid2)
+
+        self.p22 = put.Put(self.rate,
+                           self.vol2,
+                           self.strike,
+                           self.event_grid2.size - 1,
+                           self.event_grid2)
+
+    def test_pricing(self):
+        """..."""
+        self.pa11.fd_setup(self.x_grid, equidistant=True)
+        self.pa11.fd_solve()
+        analytical11 = self.p11.price(self.x_grid, 0)
+
+        self.pa12.fd_setup(self.x_grid, equidistant=True)
+        self.pa12.fd_solve()
+        analytical12 = self.p12.price(self.x_grid, 0)
+
+        self.pa21.fd_setup(self.x_grid, equidistant=True)
+        self.pa21.fd_solve()
+        analytical21 = self.p21.price(self.x_grid, 0)
+
+        self.pa22.fd_setup(self.x_grid, equidistant=True)
+        self.pa22.fd_solve()
+        analytical22 = self.p22.price(self.x_grid, 0)
+        if print_results:
+            for x, pa, p in \
+                    zip(self.x_grid, self.pa11.fd.solution, analytical11):
+                for y in (36, 38, 40, 42, 44):
+                    if abs(x - y) < 1.e-6:
+                        print(f"{int(x):3}  "
+                              f"{pa:6.3f}  "
+                              f"{p:6.3f}  "
+                              f"{pa - p:6.3f}")
+        if plot_results:
+            plt.plot(self.x_grid, self.pa11.fd.solution)
+            plt.show()
+
+
 if __name__ == '__main__':
     unittest.main()

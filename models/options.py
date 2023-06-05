@@ -261,3 +261,58 @@ class VanillaOption(metaclass=abc.ABCMeta):
             Theta.
         """
         pass
+
+
+class AmericanOption(metaclass=abc.ABCMeta):
+    """American option..."""
+
+    def __init__(self):
+        # Solver objects.
+        self.fd = None
+        self.mc = None
+        self.mc_exact = None
+
+    @property
+    @abc.abstractmethod
+    def expiry(self) -> float:
+        pass
+
+    @abc.abstractmethod
+    def payoff(self,
+               spot: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
+        """Payoff function.
+
+        Args:
+            spot: Current value of underlying.
+
+        Returns:
+            Payoff.
+        """
+        pass
+
+    def fd_setup(self,
+                 x_grid: np.ndarray,
+                 form: str = "tri",
+                 equidistant: bool = False,
+                 theta_value: float = 0.5):
+        """Setting up finite difference solver.
+
+        Args:
+            x_grid: Grid in spatial dimension.
+            form: Tri- ("tri") or pentadiagonal ("penta") form. Default
+                is tridiagonal.
+            equidistant: Is grid equidistant? Default is false.
+            theta_value: Determines the specific method:
+                0   : Explicit method.
+                0.5 : Crank-Nicolson method (default).
+                1   : Fully implicit method.
+        """
+        self.fd = fd_theta.setup_solver(self, x_grid, form, equidistant,
+                                        theta_value)
+        self.fd.initialization()
+
+    @abc.abstractmethod
+    def fd_solve(self):
+        """Run finite difference solver on event grid."""
+        pass
