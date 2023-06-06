@@ -207,6 +207,13 @@ class LongstaffSchwartz(unittest.TestCase):
         """..."""
         self.pa11.fd_setup(self.x_grid, equidistant=True)
         self.pa11.fd_solve()
+
+        n_paths = 100000
+        self.p11.mc_exact_setup()
+        self.p11.mc_exact.initialization(36, n_paths, seed=0, antithetic=True)
+        self.p11.mc_exact_solve()
+        mean, std, error = self.p11.mc_exact.price(self.p11, self.event_grid1.size - 1)
+        print(mean, std, error)
         analytical11 = self.p11.price(self.x_grid, 0)
 
         self.pa12.fd_setup(self.x_grid, equidistant=True)

@@ -206,6 +206,15 @@ class Put(options.EuropeanOptionAnalytical1F):
             self.fd.set_propagator()
             self.fd.propagation(dt)
 
+    def mc_exact_setup(self):
+        """Setup exact Monte-Carlo solver."""
+        self.mc_exact = \
+            sde.SDE(self.rate, self.vol, self.event_grid, self.dividend)
+
+    def mc_exact_solve(self):
+        """Run Monte-Carlo solver on event_grid."""
+        self.mc_exact.paths()
+
 
 class PutAmerican(options.AmericanOption):
     """American put option in Black-Scholes model.
