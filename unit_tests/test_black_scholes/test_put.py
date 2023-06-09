@@ -7,8 +7,8 @@ from models.black_scholes import put_option as put
 from models.black_scholes import binary_option as binary
 from utils import plots
 
-plot_results = False
-print_results = False
+plot_results = True
+print_results = True
 
 
 class PutOption(unittest.TestCase):
@@ -153,7 +153,7 @@ class LongstaffSchwartz(unittest.TestCase):
         self.event_grid2 = \
             np.arange(int(2 * self.frequency) + 1) / self.frequency
 
-        self.x_grid = np.arange(1, 401) / 4
+        self.x_grid = np.arange(1, 4802) / 24
 
         self.pa11 = put.PutAmerican(self.rate,
                                     self.vol1,
@@ -228,14 +228,36 @@ class LongstaffSchwartz(unittest.TestCase):
         self.pa22.fd_solve()
         analytical22 = self.p22.price(self.x_grid, 0)
         if print_results:
-            for x, pa, p in \
-                    zip(self.x_grid, self.pa11.fd.solution, analytical11):
-                for y in (36, 38, 40, 42, 44):
+            for y in (36, 38, 40, 42, 44):
+                for x, pa, p in \
+                        zip(self.x_grid, self.pa11.fd.solution, analytical11):
                     if abs(x - y) < 1.e-6:
                         print(f"{int(x):3}  "
                               f"{pa:6.3f}  "
                               f"{p:6.3f}  "
                               f"{pa - p:6.3f}")
+                for x, pa, p in \
+                        zip(self.x_grid, self.pa12.fd.solution, analytical12):
+                    if abs(x - y) < 1.e-6:
+                        print(f"{int(x):3}  "
+                              f"{pa:6.3f}  "
+                              f"{p:6.3f}  "
+                              f"{pa - p:6.3f}")
+                for x, pa, p in \
+                        zip(self.x_grid, self.pa21.fd.solution, analytical21):
+                    if abs(x - y) < 1.e-6:
+                        print(f"{int(x):3}  "
+                              f"{pa:6.3f}  "
+                              f"{p:6.3f}  "
+                              f"{pa - p:6.3f}")
+                for x, pa, p in \
+                        zip(self.x_grid, self.pa22.fd.solution, analytical22):
+                    if abs(x - y) < 1.e-6:
+                        print(f"{int(x):3}  "
+                              f"{pa:6.3f}  "
+                              f"{p:6.3f}  "
+                              f"{pa - p:6.3f}")
+                print("")
         if plot_results:
             plt.plot(self.x_grid, self.pa11.fd.solution)
             plt.show()

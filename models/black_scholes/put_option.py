@@ -9,6 +9,7 @@ from models.black_scholes import misc
 from models.black_scholes import sde
 from utils import global_types
 from utils import payoffs
+from utils import smoothing
 
 
 class Put(options.EuropeanOptionAnalytical1F):
@@ -302,3 +303,6 @@ class PutAmerican(options.AmericanOption):
             # Compare continuation value and exercise value.
             self.fd.solution = \
                 np.maximum(self.fd.solution, self.strike - self.fd.grid)
+#            self.fd.solution = \
+#                smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
+
