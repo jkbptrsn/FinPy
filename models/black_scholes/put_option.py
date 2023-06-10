@@ -296,13 +296,16 @@ class PutAmerican(options.AmericanOption):
 
     def fd_solve(self):
         """Run solver on event_grid..."""
+        counter = 0
         for dt in np.flip(np.diff(self.event_grid)):
             self.fd.set_propagator()
             self.fd.propagation(dt)
 
             # Compare continuation value and exercise value.
-            self.fd.solution = \
-                np.maximum(self.fd.solution, self.strike - self.fd.grid)
-#            self.fd.solution = \
-#                smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
+            if counter % 10 == 0:
+                self.fd.solution = \
+                    np.maximum(self.fd.solution, self.strike - self.fd.grid)
+#                self.fd.solution = \
+#                    smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
 
+            counter += 1

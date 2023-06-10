@@ -7,7 +7,7 @@ from models.black_scholes import put_option as put
 from models.black_scholes import binary_option as binary
 from utils import plots
 
-plot_results = True
+plot_results = False
 print_results = True
 
 
@@ -142,18 +142,43 @@ class LongstaffSchwartz(unittest.TestCase):
     """Numerical examples in Longstaff-Schwartz article."""
 
     def setUp(self) -> None:
+        self.fd_american = \
+            (4.478,
+             4.840,
+             7.101,
+             8.508,
+             3.250,
+             3.745,
+             6.148,
+             7.670,
+             2.314,
+             2.885,
+             5.312,
+             6.920,
+             1.617,
+             2.212,
+             4.582,
+             6.248,
+             1.110,
+             1.690,
+             3.948,
+             5.647)
+
+        self.threshold = 6e-3
+
         self.rate = 0.06
         self.vol1 = 0.2
         self.vol2 = 0.4
         self.strike = 40
 
-        self.frequency = 50
+        self.frequency = 500
         self.event_grid1 = \
             np.arange(int(1 * self.frequency) + 1) / self.frequency
         self.event_grid2 = \
             np.arange(int(2 * self.frequency) + 1) / self.frequency
 
-        self.x_grid = np.arange(1, 4802) / 24
+        self.x_grid = np.arange(801) / 4
+        self.x_grid = self.x_grid[1:]
 
         self.pa11 = put.PutAmerican(self.rate,
                                     self.vol1,
@@ -227,40 +252,56 @@ class LongstaffSchwartz(unittest.TestCase):
         self.pa22.fd_setup(self.x_grid, equidistant=True)
         self.pa22.fd_solve()
         analytical22 = self.p22.price(self.x_grid, 0)
-        if print_results:
-            for y in (36, 38, 40, 42, 44):
-                for x, pa, p in \
-                        zip(self.x_grid, self.pa11.fd.solution, analytical11):
-                    if abs(x - y) < 1.e-6:
+
+        counter = 0
+        for y in (36, 38, 40, 42, 44):
+            for x, pa, p in \
+                    zip(self.x_grid, self.pa11.fd.solution, analytical11):
+                if abs(x - y) < 1.e-6:
+                    diff = self.fd_american[counter] - pa
+                    counter += 1
+                    self.assertTrue(abs(diff) < self.threshold)
+                    if print_results:
                         print(f"{int(x):3}  "
                               f"{pa:6.3f}  "
                               f"{p:6.3f}  "
                               f"{pa - p:6.3f}")
-                for x, pa, p in \
-                        zip(self.x_grid, self.pa12.fd.solution, analytical12):
-                    if abs(x - y) < 1.e-6:
+            for x, pa, p in \
+                    zip(self.x_grid, self.pa12.fd.solution, analytical12):
+                if abs(x - y) < 1.e-6:
+                    diff = self.fd_american[counter] - pa
+                    counter += 1
+                    self.assertTrue(abs(diff) < self.threshold)
+                    if print_results:
                         print(f"{int(x):3}  "
                               f"{pa:6.3f}  "
                               f"{p:6.3f}  "
                               f"{pa - p:6.3f}")
-                for x, pa, p in \
-                        zip(self.x_grid, self.pa21.fd.solution, analytical21):
-                    if abs(x - y) < 1.e-6:
+            for x, pa, p in \
+                    zip(self.x_grid, self.pa21.fd.solution, analytical21):
+                if abs(x - y) < 1.e-6:
+                    diff = self.fd_american[counter] - pa
+                    counter += 1
+                    self.assertTrue(abs(diff) < self.threshold)
+                    if print_results:
                         print(f"{int(x):3}  "
                               f"{pa:6.3f}  "
                               f"{p:6.3f}  "
                               f"{pa - p:6.3f}")
-                for x, pa, p in \
-                        zip(self.x_grid, self.pa22.fd.solution, analytical22):
-                    if abs(x - y) < 1.e-6:
+            for x, pa, p in \
+                    zip(self.x_grid, self.pa22.fd.solution, analytical22):
+                if abs(x - y) < 1.e-6:
+                    diff = self.fd_american[counter] - pa
+                    counter += 1
+                    self.assertTrue(abs(diff) < self.threshold)
+                    if print_results:
                         print(f"{int(x):3}  "
                               f"{pa:6.3f}  "
                               f"{p:6.3f}  "
                               f"{pa - p:6.3f}")
-                print("")
+            print("")
         if plot_results:
-            plt.plot(self.x_grid, self.pa11.fd.solution)
-            plt.show()
+            plots.plot_price_and_greeks(self.pa11)
 
 
 if __name__ == '__main__':
