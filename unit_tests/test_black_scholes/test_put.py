@@ -3,6 +3,7 @@ import unittest
 from matplotlib import pyplot as plt
 import numpy as np
 
+from numerics.mc import lsm
 from models.black_scholes import put_option as put
 from models.black_scholes import binary_option as binary
 from utils import plots
@@ -180,6 +181,8 @@ class LongstaffSchwartz(unittest.TestCase):
         self.x_grid = np.arange(801) / 4
         self.x_grid = self.x_grid[1:]
 
+        self.n_paths = 10000
+
         self.pa11 = put.PutAmerican(self.rate,
                                     self.vol1,
                                     self.strike,
@@ -231,30 +234,62 @@ class LongstaffSchwartz(unittest.TestCase):
     def test_pricing(self):
         """..."""
         self.pa11.fd_setup(self.x_grid, equidistant=True)
-        self.pa11.fd_solve()
+        self.pa11.mc_exact_setup()
 
-        n_paths = 100000
         self.p11.mc_exact_setup()
-        self.p11.mc_exact.initialization(36, n_paths, seed=0, antithetic=True)
-        self.p11.mc_exact_solve()
-        mean, std, error = self.p11.mc_exact.price(self.p11, self.event_grid1.size - 1)
-        print(mean, std, error)
+
+        self.pa11.fd_solve()
         analytical11 = self.p11.price(self.x_grid, 0)
 
         self.pa12.fd_setup(self.x_grid, equidistant=True)
+        self.p12.mc_exact_setup()
         self.pa12.fd_solve()
         analytical12 = self.p12.price(self.x_grid, 0)
 
         self.pa21.fd_setup(self.x_grid, equidistant=True)
+        self.p21.mc_exact_setup()
         self.pa21.fd_solve()
         analytical21 = self.p21.price(self.x_grid, 0)
 
         self.pa22.fd_setup(self.x_grid, equidistant=True)
+        self.p22.mc_exact_setup()
         self.pa22.fd_solve()
         analytical22 = self.p22.price(self.x_grid, 0)
 
         counter = 0
-        for y in (36, 38, 40, 42, 44):
+        if print_results:
+            print("  S  FD European  MC European     MC error  FD American")
+        for y in (36,): # 38, 40, 42, 44):
+
+            self.p11.mc_exact.initialization(y, self.n_paths,
+                                             seed=0, antithetic=True)
+            self.p11.mc_exact_solve()
+            p11_mean, _, p11_error = \
+                self.p11.mc_exact.price(self.p11, self.event_grid1.size - 1)
+
+            self.pa11.mc_exact.initialization(y, self.n_paths,
+                                              seed=0, antithetic=True)
+            self.pa11.mc_exact_solve()
+            lsm.price_american_put(self.pa11.mc_exact.solution)
+
+            self.p12.mc_exact.initialization(y, self.n_paths,
+                                             seed=0, antithetic=True)
+            self.p12.mc_exact_solve()
+            p12_mean, _, p12_error = \
+                self.p12.mc_exact.price(self.p12, self.event_grid2.size - 1)
+
+            self.p21.mc_exact.initialization(y, self.n_paths,
+                                             seed=0, antithetic=True)
+            self.p21.mc_exact_solve()
+            p21_mean, _, p21_error = \
+                self.p21.mc_exact.price(self.p21, self.event_grid1.size - 1)
+
+            self.p22.mc_exact.initialization(y, self.n_paths,
+                                             seed=0, antithetic=True)
+            self.p22.mc_exact_solve()
+            p22_mean, _, p22_error = \
+                self.p22.mc_exact.price(self.p22, self.event_grid2.size - 1)
+
             for x, pa, p in \
                     zip(self.x_grid, self.pa11.fd.solution, analytical11):
                 if abs(x - y) < 1.e-6:
@@ -263,9 +298,10 @@ class LongstaffSchwartz(unittest.TestCase):
                     self.assertTrue(abs(diff) < self.threshold)
                     if print_results:
                         print(f"{int(x):3}  "
-                              f"{pa:6.3f}  "
-                              f"{p:6.3f}  "
-                              f"{pa - p:6.3f}")
+                              f"{p:11.3f}  "
+                              f"{p11_mean:11.3f}  "
+                              f"{p11_error:11.3f}  "
+                              f"{pa:11.3f}  ")
             for x, pa, p in \
                     zip(self.x_grid, self.pa12.fd.solution, analytical12):
                 if abs(x - y) < 1.e-6:
@@ -274,9 +310,10 @@ class LongstaffSchwartz(unittest.TestCase):
                     self.assertTrue(abs(diff) < self.threshold)
                     if print_results:
                         print(f"{int(x):3}  "
-                              f"{pa:6.3f}  "
-                              f"{p:6.3f}  "
-                              f"{pa - p:6.3f}")
+                              f"{p:11.3f}  "
+                              f"{p12_mean:11.3f}  "
+                              f"{p12_error:11.3f}  "
+                              f"{pa:11.3f}  ")
             for x, pa, p in \
                     zip(self.x_grid, self.pa21.fd.solution, analytical21):
                 if abs(x - y) < 1.e-6:
@@ -285,9 +322,10 @@ class LongstaffSchwartz(unittest.TestCase):
                     self.assertTrue(abs(diff) < self.threshold)
                     if print_results:
                         print(f"{int(x):3}  "
-                              f"{pa:6.3f}  "
-                              f"{p:6.3f}  "
-                              f"{pa - p:6.3f}")
+                              f"{p:11.3f}  "
+                              f"{p21_mean:11.3f}  "
+                              f"{p21_error:11.3f}  "
+                              f"{pa:11.3f}  ")
             for x, pa, p in \
                     zip(self.x_grid, self.pa22.fd.solution, analytical22):
                 if abs(x - y) < 1.e-6:
@@ -296,9 +334,10 @@ class LongstaffSchwartz(unittest.TestCase):
                     self.assertTrue(abs(diff) < self.threshold)
                     if print_results:
                         print(f"{int(x):3}  "
-                              f"{pa:6.3f}  "
-                              f"{p:6.3f}  "
-                              f"{pa - p:6.3f}")
+                              f"{p:11.3f}  "
+                              f"{p22_mean:11.3f}  "
+                              f"{p22_error:11.3f}  "
+                              f"{pa:11.3f}  ")
             print("")
         if plot_results:
             plots.plot_price_and_greeks(self.pa11)

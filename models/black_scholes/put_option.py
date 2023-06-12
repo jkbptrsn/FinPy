@@ -221,7 +221,6 @@ class PutAmerican(options.AmericanOption):
     """American put option in Black-Scholes model.
 
     TODO:
-     * MC pricing of European put option.
      * MC pricing of American put option using LSM.
      * FD pricing of American call option.
      * MC pricing of European call option.
@@ -309,3 +308,12 @@ class PutAmerican(options.AmericanOption):
 #                    smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
 
             counter += 1
+
+    def mc_exact_setup(self):
+        """Setup exact Monte-Carlo solver."""
+        self.mc_exact = \
+            sde.SDE(self.rate, self.vol, self.event_grid, self.dividend)
+
+    def mc_exact_solve(self):
+        """Run Monte-Carlo solver on event_grid."""
+        self.mc_exact.paths()
