@@ -5,8 +5,8 @@ import numpy as np
 from scipy import optimize
 
 
-def power_functions(x, a, b, c, d):
-    return a + b * x + c * x ** 2 + d * x ** 3
+def power_functions(x, a, b, c):  #, d):
+    return a + b * x + c * x ** 2  # + d * x ** 3
 
 
 def continuation_value(x, y):
@@ -30,11 +30,11 @@ def price_american_put(paths):
 
             # Expected continuation value.
             parms = continuation_value(paths[n, :], con_value)
-            plt.plot(paths[n, :], con_value, "ob")
-            plt.plot(x_grid, power_functions(x_grid, *parms), "-r")
-            plt.pause(0.5)
+#            plt.plot(paths[n, :], con_value, "ob")
+#            plt.plot(x_grid, power_functions(x_grid, *parms), "-r")
+#            plt.pause(0.5)
 #            plt.show()
-            plt.cla()
+#            plt.cla()
 
             exp_con_value = power_functions(paths[n, :], *parms)
             exp_con_value = np.maximum(exp_con_value, 0)
@@ -56,12 +56,12 @@ def price_american_put(paths):
         if idx != -1:
             exercise_value = np.max(40 - paths[exercise_index[m], m], 0)
             # Time to exercise
-            time_exercise = exercise_index[m] * 10 / 500
+            time_exercise = exercise_index[m] / 500
 
             mc_average += exercise_value * math.exp(-0.06 * time_exercise)
 
+    # print(exercise_index)
+
     mc_average /= paths.shape[1]
 
-    print(mc_average)
-
-    print(exercise_index)
+    return mc_average

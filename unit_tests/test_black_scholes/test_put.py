@@ -235,31 +235,33 @@ class LongstaffSchwartz(unittest.TestCase):
         """..."""
         self.pa11.fd_setup(self.x_grid, equidistant=True)
         self.pa11.mc_exact_setup()
-
         self.p11.mc_exact_setup()
-
         self.pa11.fd_solve()
         analytical11 = self.p11.price(self.x_grid, 0)
 
         self.pa12.fd_setup(self.x_grid, equidistant=True)
+        self.pa12.mc_exact_setup()
         self.p12.mc_exact_setup()
         self.pa12.fd_solve()
         analytical12 = self.p12.price(self.x_grid, 0)
 
         self.pa21.fd_setup(self.x_grid, equidistant=True)
+        self.pa21.mc_exact_setup()
         self.p21.mc_exact_setup()
         self.pa21.fd_solve()
         analytical21 = self.p21.price(self.x_grid, 0)
 
         self.pa22.fd_setup(self.x_grid, equidistant=True)
+        self.pa22.mc_exact_setup()
         self.p22.mc_exact_setup()
         self.pa22.fd_solve()
         analytical22 = self.p22.price(self.x_grid, 0)
 
         counter = 0
         if print_results:
-            print("  S  FD European  MC European     MC error  FD American")
-        for y in (36,): # 38, 40, 42, 44):
+            print("  S  FD European  MC European     "
+                  "MC error  FD American  MC American")
+        for y in (36, 38, 40, 42, 44):
 
             self.p11.mc_exact.initialization(y, self.n_paths,
                                              seed=0, antithetic=True)
@@ -270,7 +272,7 @@ class LongstaffSchwartz(unittest.TestCase):
             self.pa11.mc_exact.initialization(y, self.n_paths,
                                               seed=0, antithetic=True)
             self.pa11.mc_exact_solve()
-            lsm.price_american_put(self.pa11.mc_exact.solution)
+            pa11_mc = lsm.price_american_put(self.pa11.mc_exact.solution)
 
             self.p12.mc_exact.initialization(y, self.n_paths,
                                              seed=0, antithetic=True)
@@ -278,17 +280,32 @@ class LongstaffSchwartz(unittest.TestCase):
             p12_mean, _, p12_error = \
                 self.p12.mc_exact.price(self.p12, self.event_grid2.size - 1)
 
+            self.pa12.mc_exact.initialization(y, self.n_paths,
+                                              seed=0, antithetic=True)
+            self.pa12.mc_exact_solve()
+            pa12_mc = lsm.price_american_put(self.pa12.mc_exact.solution)
+
             self.p21.mc_exact.initialization(y, self.n_paths,
                                              seed=0, antithetic=True)
             self.p21.mc_exact_solve()
             p21_mean, _, p21_error = \
                 self.p21.mc_exact.price(self.p21, self.event_grid1.size - 1)
 
+            self.pa21.mc_exact.initialization(y, self.n_paths,
+                                              seed=0, antithetic=True)
+            self.pa21.mc_exact_solve()
+            pa21_mc = lsm.price_american_put(self.pa21.mc_exact.solution)
+
             self.p22.mc_exact.initialization(y, self.n_paths,
                                              seed=0, antithetic=True)
             self.p22.mc_exact_solve()
             p22_mean, _, p22_error = \
                 self.p22.mc_exact.price(self.p22, self.event_grid2.size - 1)
+
+            self.pa22.mc_exact.initialization(y, self.n_paths,
+                                              seed=0, antithetic=True)
+            self.pa22.mc_exact_solve()
+            pa22_mc = lsm.price_american_put(self.pa22.mc_exact.solution)
 
             for x, pa, p in \
                     zip(self.x_grid, self.pa11.fd.solution, analytical11):
@@ -301,7 +318,8 @@ class LongstaffSchwartz(unittest.TestCase):
                               f"{p:11.3f}  "
                               f"{p11_mean:11.3f}  "
                               f"{p11_error:11.3f}  "
-                              f"{pa:11.3f}  ")
+                              f"{pa:11.3f}  "
+                              f"{pa11_mc:11.3f}  ")
             for x, pa, p in \
                     zip(self.x_grid, self.pa12.fd.solution, analytical12):
                 if abs(x - y) < 1.e-6:
@@ -313,7 +331,8 @@ class LongstaffSchwartz(unittest.TestCase):
                               f"{p:11.3f}  "
                               f"{p12_mean:11.3f}  "
                               f"{p12_error:11.3f}  "
-                              f"{pa:11.3f}  ")
+                              f"{pa:11.3f}  "
+                              f"{pa12_mc:11.3f}  ")
             for x, pa, p in \
                     zip(self.x_grid, self.pa21.fd.solution, analytical21):
                 if abs(x - y) < 1.e-6:
@@ -325,7 +344,8 @@ class LongstaffSchwartz(unittest.TestCase):
                               f"{p:11.3f}  "
                               f"{p21_mean:11.3f}  "
                               f"{p21_error:11.3f}  "
-                              f"{pa:11.3f}  ")
+                              f"{pa:11.3f}  "
+                              f"{pa21_mc:11.3f}  ")
             for x, pa, p in \
                     zip(self.x_grid, self.pa22.fd.solution, analytical22):
                 if abs(x - y) < 1.e-6:
@@ -337,7 +357,8 @@ class LongstaffSchwartz(unittest.TestCase):
                               f"{p:11.3f}  "
                               f"{p22_mean:11.3f}  "
                               f"{p22_error:11.3f}  "
-                              f"{pa:11.3f}  ")
+                              f"{pa:11.3f}  "
+                              f"{pa22_mc:11.3f}  ")
             print("")
         if plot_results:
             plots.plot_price_and_greeks(self.pa11)
