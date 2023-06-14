@@ -5,17 +5,41 @@ import numpy as np
 from scipy import optimize
 
 
-def power_functions(x, a, b, c):  #, d):
-    return a + b * x + c * x ** 2  # + d * x ** 3
+def power_functions_1st(x, a, b):
+    return a + b * x
 
 
-def continuation_value(x, y):
-    parameters = optimize.curve_fit(power_functions, xdata=x, ydata=y)[0]
-#    print(parameters)
-    return parameters
+def power_functions_2nd(x, a, b, c):
+    return a + b * x + c * x ** 2
+
+
+def power_functions_3rd(x, a, b, c, d):
+    return a + b * x + c * x ** 2 + d * x ** 3
+
+
+def power_functions_4th(x, a, b, c, d, e):
+    return a + b * x + c * x ** 2 + d * x ** 3 + e * x ** 4
+
+
+def power_functions_5th(x, a, b, c, d, e, f):
+    return a + b * x + c * x ** 2 + d * x ** 3 + e * x ** 4 + f * x ** 5
+
+
+def regression(fn, x, y):
+    return optimize.curve_fit(fn, xdata=x, ydata=y)[0]
 
 
 def price_american_put(paths):
+    """
+
+    Args:
+        paths: Monte-Carlo paths.
+
+    Returns:
+        American option price.
+    """
+
+    fn = power_functions_3rd
 
     exercise_index = -np.ones(paths.shape[1], dtype=int)
     con_value = np.zeros(paths.shape[1])
@@ -29,14 +53,14 @@ def price_american_put(paths):
             exercise_value = np.maximum(40 - paths[n, :], 0)
 
             # Expected continuation value.
-            parms = continuation_value(paths[n, :], con_value)
+            parms = regression(fn, paths[n, :], con_value)
 #            plt.plot(paths[n, :], con_value, "ob")
-#            plt.plot(x_grid, power_functions(x_grid, *parms), "-r")
+#            plt.plot(x_grid, fn(x_grid, *parms), "-r")
 #            plt.pause(0.5)
 #            plt.show()
 #            plt.cla()
 
-            exp_con_value = power_functions(paths[n, :], *parms)
+            exp_con_value = fn(paths[n, :], *parms)
             exp_con_value = np.maximum(exp_con_value, 0)
 
 #            tmp = np.maximum(exercise_value - con_value, 0)
