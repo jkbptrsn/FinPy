@@ -252,7 +252,6 @@ class PutAmerican(options.AmericanOption):
         self.rate = rate
         self.vol = vol
         self.strike = strike
-        self.strike = strike
         self.expiry_idx = expiry_idx
         self.event_grid = event_grid
         self.dividend = dividend

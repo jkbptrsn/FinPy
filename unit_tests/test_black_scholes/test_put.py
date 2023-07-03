@@ -184,7 +184,7 @@ class LongstaffSchwartz(unittest.TestCase):
         self.x_grid = self.x_grid[1:]
 
         # Number of MC paths.
-        self.n_paths = 1000
+        self.n_paths = 2000
 
         self.pFDa11 = \
             put.PutAmerican(self.rate,
@@ -214,6 +214,13 @@ class LongstaffSchwartz(unittest.TestCase):
                             self.event_grid_fd2.size - 1,
                             self.event_grid_fd2)
 
+        self.pMCa12 = \
+            put.PutAmerican(self.rate,
+                            self.vol1,
+                            self.strike,
+                            self.event_grid_mc2.size - 1,
+                            self.event_grid_mc2)
+
         self.p12 = \
             put.Put(self.rate,
                     self.vol1,
@@ -228,6 +235,13 @@ class LongstaffSchwartz(unittest.TestCase):
                             self.event_grid_fd1.size - 1,
                             self.event_grid_fd1)
 
+        self.pMCa21 = \
+            put.PutAmerican(self.rate,
+                            self.vol2,
+                            self.strike,
+                            self.event_grid_mc1.size - 1,
+                            self.event_grid_mc1)
+
         self.p21 = \
             put.Put(self.rate,
                     self.vol2,
@@ -241,6 +255,13 @@ class LongstaffSchwartz(unittest.TestCase):
                             self.strike,
                             self.event_grid_fd2.size - 1,
                             self.event_grid_fd2)
+
+        self.pMCa22 = \
+            put.PutAmerican(self.rate,
+                            self.vol2,
+                            self.strike,
+                            self.event_grid_mc2.size - 1,
+                            self.event_grid_mc2)
 
         self.p22 = \
             put.Put(self.rate,
@@ -258,19 +279,19 @@ class LongstaffSchwartz(unittest.TestCase):
         analytical11 = self.p11.price(self.x_grid, 0)
 
         self.pFDa12.fd_setup(self.x_grid, equidistant=True)
-        self.pFDa12.mc_exact_setup()
+        self.pMCa12.mc_exact_setup()
         self.p12.mc_exact_setup()
         self.pFDa12.fd_solve()
         analytical12 = self.p12.price(self.x_grid, 0)
 
         self.pFDa21.fd_setup(self.x_grid, equidistant=True)
-        self.pFDa21.mc_exact_setup()
+        self.pMCa21.mc_exact_setup()
         self.p21.mc_exact_setup()
         self.pFDa21.fd_solve()
         analytical21 = self.p21.price(self.x_grid, 0)
 
         self.pFDa22.fd_setup(self.x_grid, equidistant=True)
-        self.pFDa22.mc_exact_setup()
+        self.pMCa22.mc_exact_setup()
         self.p22.mc_exact_setup()
         self.pFDa22.fd_solve()
         analytical22 = self.p22.price(self.x_grid, 0)
@@ -298,10 +319,10 @@ class LongstaffSchwartz(unittest.TestCase):
             p12_mean, _, p12_error = \
                 self.p12.mc_exact.price(self.p12, self.event_grid_fd2.size - 1)
 
-            self.pFDa12.mc_exact.initialization(y, self.n_paths,
+            self.pMCa12.mc_exact.initialization(y, self.n_paths,
                                                 seed=0, antithetic=True)
-            self.pFDa12.mc_exact_solve()
-            pa12_mc = lsm.price_american_put(self.pFDa12.mc_exact.solution)
+            self.pMCa12.mc_exact_solve()
+            pa12_mc = lsm.price_american_put(self.pMCa12.mc_exact.solution)
 
             self.p21.mc_exact.initialization(y, self.n_paths,
                                              seed=0, antithetic=True)
@@ -309,10 +330,10 @@ class LongstaffSchwartz(unittest.TestCase):
             p21_mean, _, p21_error = \
                 self.p21.mc_exact.price(self.p21, self.event_grid_fd1.size - 1)
 
-            self.pFDa21.mc_exact.initialization(y, self.n_paths,
+            self.pMCa21.mc_exact.initialization(y, self.n_paths,
                                                 seed=0, antithetic=True)
-            self.pFDa21.mc_exact_solve()
-            pa21_mc = lsm.price_american_put(self.pFDa21.mc_exact.solution)
+            self.pMCa21.mc_exact_solve()
+            pa21_mc = lsm.price_american_put(self.pMCa21.mc_exact.solution)
 
             self.p22.mc_exact.initialization(y, self.n_paths,
                                              seed=0, antithetic=True)
@@ -320,10 +341,10 @@ class LongstaffSchwartz(unittest.TestCase):
             p22_mean, _, p22_error = \
                 self.p22.mc_exact.price(self.p22, self.event_grid_fd2.size - 1)
 
-            self.pFDa22.mc_exact.initialization(y, self.n_paths,
+            self.pMCa22.mc_exact.initialization(y, self.n_paths,
                                                 seed=0, antithetic=True)
-            self.pFDa22.mc_exact_solve()
-            pa22_mc = lsm.price_american_put(self.pFDa22.mc_exact.solution)
+            self.pMCa22.mc_exact_solve()
+            pa22_mc = lsm.price_american_put(self.pMCa22.mc_exact.solution)
 
             for x, pa, p in \
                     zip(self.x_grid, self.pFDa11.fd.solution, analytical11):

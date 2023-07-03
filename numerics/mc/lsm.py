@@ -48,17 +48,17 @@ def price_american_put(paths):
 
     for n in range(paths.shape[0] - 1, -1, -1):
 
-        if n % 10 == 0:
+        if n % 1 == 0:
             # Immediate exercise value.
             exercise_value = np.maximum(40 - paths[n, :], 0)
 
             # Expected continuation value.
             parms = regression(fn, paths[n, :], con_value)
-#            plt.plot(paths[n, :], con_value, "ob")
-#            plt.plot(x_grid, fn(x_grid, *parms), "-r")
-#            plt.pause(0.5)
+            plt.plot(paths[n, :], con_value, "ob")
+            plt.plot(x_grid, fn(x_grid, *parms), "-r")
+            plt.pause(0.5)
 #            plt.show()
-#            plt.cla()
+            plt.cla()
 
             exp_con_value = fn(paths[n, :], *parms)
             exp_con_value = np.maximum(exp_con_value, 0)
@@ -78,9 +78,9 @@ def price_american_put(paths):
     for m in range(paths.shape[1]):
         idx = exercise_index[m]
         if idx != -1:
-            exercise_value = np.max(40 - paths[exercise_index[m], m], 0)
+            exercise_value = np.max(40 - paths[idx, m], 0)
             # Time to exercise
-            time_exercise = exercise_index[m] / 500
+            time_exercise = idx / 50
 
             mc_average += exercise_value * math.exp(-0.06 * time_exercise)
 
