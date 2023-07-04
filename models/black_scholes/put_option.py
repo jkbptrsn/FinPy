@@ -300,6 +300,7 @@ class PutAmerican(options.AmericanOption):
             self.fd.propagation(dt)
 
             # Compare continuation value and exercise value.
+            # Need an exercise indices on event grid.
             if counter % 10 == 0:
                 self.fd.solution = \
                     np.maximum(self.fd.solution, self.strike - self.fd.grid)

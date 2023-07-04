@@ -173,18 +173,22 @@ class LongstaffSchwartz(unittest.TestCase):
             np.arange(int(2 * self.frequency_fd) + 1) / self.frequency_fd
 
         # Event grids used in MC pricing.
-        self.frequency_mc = 50
+        self.frequency_mc = 500
+        self.skip = 10
         self.event_grid_mc1 = \
             np.arange(int(1 * self.frequency_mc) + 1) / self.frequency_mc
         self.event_grid_mc2 = \
             np.arange(int(2 * self.frequency_mc) + 1) / self.frequency_mc
+
+        self.exercise_indices_mc1 = np.arange(1 * self.frequency_mc, 0, -self.skip)
+        self.exercise_indices_mc2 = np.arange(2 * self.frequency_mc, 0, -self.skip)
 
         # Spatial grid used in FD pricing.
         self.x_grid = np.arange(801) / 4
         self.x_grid = self.x_grid[1:]
 
         # Number of MC paths.
-        self.n_paths = 2000
+        self.n_paths = 10000
 
         self.pFDa11 = \
             put.PutAmerican(self.rate,
@@ -311,7 +315,9 @@ class LongstaffSchwartz(unittest.TestCase):
             self.pMCa11.mc_exact.initialization(y, self.n_paths,
                                                 seed=0, antithetic=True)
             self.pMCa11.mc_exact_solve()
-            pa11_mc = lsm.price_american_put(self.pMCa11.mc_exact.solution)
+            pa11_mc = lsm.price_american_put(self.pMCa11.mc_exact.solution,
+                                             self.event_grid_mc1,
+                                             self.exercise_indices_mc1)
 
             self.p12.mc_exact.initialization(y, self.n_paths,
                                              seed=0, antithetic=True)
@@ -322,7 +328,9 @@ class LongstaffSchwartz(unittest.TestCase):
             self.pMCa12.mc_exact.initialization(y, self.n_paths,
                                                 seed=0, antithetic=True)
             self.pMCa12.mc_exact_solve()
-            pa12_mc = lsm.price_american_put(self.pMCa12.mc_exact.solution)
+            pa12_mc = lsm.price_american_put(self.pMCa12.mc_exact.solution,
+                                             self.event_grid_mc2,
+                                             self.exercise_indices_mc2)
 
             self.p21.mc_exact.initialization(y, self.n_paths,
                                              seed=0, antithetic=True)
@@ -333,7 +341,9 @@ class LongstaffSchwartz(unittest.TestCase):
             self.pMCa21.mc_exact.initialization(y, self.n_paths,
                                                 seed=0, antithetic=True)
             self.pMCa21.mc_exact_solve()
-            pa21_mc = lsm.price_american_put(self.pMCa21.mc_exact.solution)
+            pa21_mc = lsm.price_american_put(self.pMCa21.mc_exact.solution,
+                                             self.event_grid_mc1,
+                                             self.exercise_indices_mc1)
 
             self.p22.mc_exact.initialization(y, self.n_paths,
                                              seed=0, antithetic=True)
@@ -344,7 +354,9 @@ class LongstaffSchwartz(unittest.TestCase):
             self.pMCa22.mc_exact.initialization(y, self.n_paths,
                                                 seed=0, antithetic=True)
             self.pMCa22.mc_exact_solve()
-            pa22_mc = lsm.price_american_put(self.pMCa22.mc_exact.solution)
+            pa22_mc = lsm.price_american_put(self.pMCa22.mc_exact.solution,
+                                             self.event_grid_mc2,
+                                             self.exercise_indices_mc2)
 
             for x, pa, p in \
                     zip(self.x_grid, self.pFDa11.fd.solution, analytical11):
