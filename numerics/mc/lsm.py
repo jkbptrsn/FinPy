@@ -78,15 +78,16 @@ def price_american_put(paths,
             # Expected continuation value.
             parms = regression(fn, paths[n, :], con_value)
 
-            if plot_regression:
-                x_grid = np.linspace(10, 80)
-                plt.plot(paths[n, :], con_value, "ob")
-                plt.plot(x_grid, fn(x_grid, *parms), "-r")
-                plt.pause(0.5)
-                plt.cla()
-
             exp_con_value = fn(paths[n, :], *parms)
             exp_con_value = np.maximum(exp_con_value, 0)
+
+            if plot_regression:
+                x_grid = np.linspace(10, 120)
+                plt.plot(paths[n, :], con_value, "ob")
+                plt.plot(x_grid, fn(x_grid, *parms), "-r")
+                plt.plot(x_grid, np.maximum(fn(x_grid, *parms), 0), "-k")
+                plt.pause(0.5)
+                plt.cla()
 
 #            tmp = np.maximum(exercise_value - con_value, 0)
             tmp = np.maximum(exercise_value - exp_con_value, 0)
@@ -106,5 +107,9 @@ def price_american_put(paths,
             mc_average += exercise_value * math.exp(-0.06 * time_exercise)
 
     mc_average /= paths.shape[1]
+
+    if False:
+        plt.hist(exercise_index)
+        plt.show()
 
     return mc_average
