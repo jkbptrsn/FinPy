@@ -235,7 +235,7 @@ class PutAmerican(options.AmericanOption):
         rate: Interest rate.
         vol: Volatility.
         strike: Strike price of stock at expiry.
-        expiry_idx: Expiry index on event_grid.
+        exercise_grid: Exercise indices on event_grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
         dividend: Continuous dividend yield. Default value is 0.
@@ -245,14 +245,14 @@ class PutAmerican(options.AmericanOption):
                  rate: float,
                  vol: float,
                  strike: float,
-                 expiry_idx: int,
+                 exercise_grid: np.array,
                  event_grid: np.ndarray,
                  dividend: float = 0):
         super().__init__()
         self.rate = rate
         self.vol = vol
         self.strike = strike
-        self.expiry_idx = expiry_idx
+        self.exercise_grid = exercise_grid
         self.event_grid = event_grid
         self.dividend = dividend
 
@@ -261,7 +261,7 @@ class PutAmerican(options.AmericanOption):
 
     @property
     def expiry(self) -> float:
-        return self.event_grid[self.expiry_idx]
+        return self.event_grid[self.exercise_grid[-1]]
 
     def payoff(self,
                spot: typing.Union[float, np.ndarray]) \
@@ -293,19 +293,23 @@ class PutAmerican(options.AmericanOption):
         return - payoffs.binary_cash_put(spot, self.strike)
 
     def fd_solve(self):
-        """Run solver on event_grid..."""
+        """Run finite difference solver on event_grid."""
         counter = 0
         for dt in np.flip(np.diff(self.event_grid)):
-            self.fd.set_propagator()
-            self.fd.propagation(dt)
+            # Event index before propagation with time step -dt.
+            event_idx = (self.event_grid.size - 1) - counter
 
             # Compare continuation value and exercise value.
-            # Need an exercise indices on event grid.
-            if counter % 10 == 0:
+            if event_idx in self.exercise_grid:
+                exercise_value = self.payoff(self.fd.grid)
                 self.fd.solution = \
-                    np.maximum(self.fd.solution, self.strike - self.fd.grid)
+                    np.maximum(self.fd.solution, exercise_value)
+                # TODO: Why doesn't smoothing work better?
 #                self.fd.solution = \
 #                    smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
+
+            self.fd.set_propagator()
+            self.fd.propagation(dt)
 
             counter += 1
 

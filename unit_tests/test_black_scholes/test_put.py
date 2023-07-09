@@ -194,14 +194,14 @@ class LongstaffSchwartz(unittest.TestCase):
             put.PutAmerican(self.rate,
                             self.vol1,
                             self.strike,
-                            self.event_grid_fd1.size - 1,
+                            self.exercise_indices_mc1,
                             self.event_grid_fd1)
 
         self.pMCa11 = \
             put.PutAmerican(self.rate,
                             self.vol1,
                             self.strike,
-                            self.event_grid_mc1.size - 1,
+                            self.exercise_indices_mc1,
                             self.event_grid_mc1)
 
         self.p11 = \
@@ -215,14 +215,14 @@ class LongstaffSchwartz(unittest.TestCase):
             put.PutAmerican(self.rate,
                             self.vol1,
                             self.strike,
-                            self.event_grid_fd2.size - 1,
+                            self.exercise_indices_mc2,
                             self.event_grid_fd2)
 
         self.pMCa12 = \
             put.PutAmerican(self.rate,
                             self.vol1,
                             self.strike,
-                            self.event_grid_mc2.size - 1,
+                            self.exercise_indices_mc2,
                             self.event_grid_mc2)
 
         self.p12 = \
@@ -236,14 +236,14 @@ class LongstaffSchwartz(unittest.TestCase):
             put.PutAmerican(self.rate,
                             self.vol2,
                             self.strike,
-                            self.event_grid_fd1.size - 1,
+                            self.exercise_indices_mc1,
                             self.event_grid_fd1)
 
         self.pMCa21 = \
             put.PutAmerican(self.rate,
                             self.vol2,
                             self.strike,
-                            self.event_grid_mc1.size - 1,
+                            self.exercise_indices_mc1,
                             self.event_grid_mc1)
 
         self.p21 = \
@@ -257,14 +257,14 @@ class LongstaffSchwartz(unittest.TestCase):
             put.PutAmerican(self.rate,
                             self.vol2,
                             self.strike,
-                            self.event_grid_fd2.size - 1,
+                            self.exercise_indices_mc2,
                             self.event_grid_fd2)
 
         self.pMCa22 = \
             put.PutAmerican(self.rate,
                             self.vol2,
                             self.strike,
-                            self.event_grid_mc2.size - 1,
+                            self.exercise_indices_mc2,
                             self.event_grid_mc2)
 
         self.p22 = \
@@ -315,8 +315,7 @@ class LongstaffSchwartz(unittest.TestCase):
             self.pMCa11.mc_exact.initialization(y, self.n_paths,
                                                 seed=0, antithetic=True)
             self.pMCa11.mc_exact_solve()
-            pa11_mc = lsm.american_option(self.pMCa11,
-                                          self.exercise_indices_mc1)
+            pa11_mc = lsm.american_option(self.pMCa11)
 
             self.p12.mc_exact.initialization(y, self.n_paths,
                                              seed=0, antithetic=True)
@@ -327,8 +326,7 @@ class LongstaffSchwartz(unittest.TestCase):
             self.pMCa12.mc_exact.initialization(y, self.n_paths,
                                                 seed=0, antithetic=True)
             self.pMCa12.mc_exact_solve()
-            pa12_mc = lsm.american_option(self.pMCa12,
-                                          self.exercise_indices_mc2)
+            pa12_mc = lsm.american_option(self.pMCa12)
 
             self.p21.mc_exact.initialization(y, self.n_paths,
                                              seed=0, antithetic=True)
@@ -339,8 +337,7 @@ class LongstaffSchwartz(unittest.TestCase):
             self.pMCa21.mc_exact.initialization(y, self.n_paths,
                                                 seed=0, antithetic=True)
             self.pMCa21.mc_exact_solve()
-            pa21_mc = lsm.american_option(self.pMCa21,
-                                          self.exercise_indices_mc1)
+            pa21_mc = lsm.american_option(self.pMCa21)
 
             self.p22.mc_exact.initialization(y, self.n_paths,
                                              seed=0, antithetic=True)
@@ -351,8 +348,7 @@ class LongstaffSchwartz(unittest.TestCase):
             self.pMCa22.mc_exact.initialization(y, self.n_paths,
                                                 seed=0, antithetic=True)
             self.pMCa22.mc_exact_solve()
-            pa22_mc = lsm.american_option(self.pMCa22,
-                                          self.exercise_indices_mc2)
+            pa22_mc = lsm.american_option(self.pMCa22)
 
             for x, pa, p in \
                     zip(self.x_grid, self.pFDa11.fd.solution, analytical11):
