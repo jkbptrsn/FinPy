@@ -11,7 +11,7 @@ from numerics.fd import grid_generation as grid
 from utils import plots
 
 plot_results = False
-print_results = True
+print_results = False
 
 
 class CallOption(unittest.TestCase):

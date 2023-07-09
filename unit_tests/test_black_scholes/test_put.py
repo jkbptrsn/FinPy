@@ -9,7 +9,7 @@ from models.black_scholes import binary_option as binary
 from utils import plots
 
 plot_results = False
-print_results = True
+print_results = False
 
 
 class PutOption(unittest.TestCase):
