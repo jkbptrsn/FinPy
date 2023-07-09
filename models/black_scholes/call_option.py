@@ -213,3 +213,103 @@ class Call(options.EuropeanOptionAnalytical1F):
     def mc_exact_solve(self):
         """Run Monte-Carlo solver on event_grid."""
         self.mc_exact.paths()
+
+
+class CallAmerican(options.AmericanOption):
+    """American call option in Black-Scholes model.
+
+    American call option written on stock price modelled by
+    Black-Scholes SDE.
+
+    See J.C. Hull 2015, chapter 15 and 19.
+
+    Attributes:
+        rate: Interest rate.
+        vol: Volatility.
+        strike: Strike price of stock at expiry.
+        exercise_grid: Exercise indices on event_grid.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+        dividend: Continuous dividend yield. Default value is 0.
+    """
+
+    def __init__(self,
+                 rate: float,
+                 vol: float,
+                 strike: float,
+                 exercise_grid: np.array,
+                 event_grid: np.ndarray,
+                 dividend: float = 0):
+        super().__init__()
+        self.rate = rate
+        self.vol = vol
+        self.strike = strike
+        self.exercise_grid = exercise_grid
+        self.event_grid = event_grid
+        self.dividend = dividend
+
+        self.type = global_types.Instrument.AMERICAN_CALL
+        self.model = global_types.Model.BLACK_SCHOLES
+
+    @property
+    def expiry(self) -> float:
+        return self.event_grid[self.exercise_grid[-1]]
+
+    def payoff(self,
+               spot: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
+        """Payoff function.
+
+        Args:
+            spot: Current stock price.
+
+        Returns:
+            Payoff.
+        """
+        return payoffs.call(spot, self.strike)
+
+    def payoff_dds(self,
+                   spot: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
+        """Derivative of payoff function wrt value of underlying.
+
+        1st order partial derivative of payoff function wrt value of
+        underlying.
+
+        Args:
+            spot: Current stock price.
+
+        Returns:
+            Derivative of payoff.
+        """
+        return payoffs.binary_cash_call(spot, self.strike)
+
+    def fd_solve(self):
+        """Run finite difference solver on event_grid."""
+        counter = 0
+        for dt in np.flip(np.diff(self.event_grid)):
+            # Event index before propagation with time step -dt.
+            event_idx = (self.event_grid.size - 1) - counter
+
+            # Compare continuation value and exercise value.
+            if event_idx in self.exercise_grid:
+                exercise_value = self.payoff(self.fd.grid)
+                self.fd.solution = \
+                    np.maximum(self.fd.solution, exercise_value)
+                # TODO: Why doesn't smoothing work better?
+#                self.fd.solution = \
+#                    smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
+
+            self.fd.set_propagator()
+            self.fd.propagation(dt)
+
+            counter += 1
+
+    def mc_exact_setup(self):
+        """Setup exact Monte-Carlo solver."""
+        self.mc_exact = \
+            sde.SDE(self.rate, self.vol, self.event_grid, self.dividend)
+
+    def mc_exact_solve(self):
+        """Run Monte-Carlo solver on event_grid."""
+        self.mc_exact.paths()

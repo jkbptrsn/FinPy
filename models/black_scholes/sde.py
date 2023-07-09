@@ -42,6 +42,8 @@ class SDE:
         self.seed = None
         self.antithetic = None
 
+        self.discount_grid = np.exp(-rate * event_grid)
+
         self.model = global_types.Model.BLACK_SCHOLES
         self.solution = None
 
