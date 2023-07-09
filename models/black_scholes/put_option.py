@@ -221,7 +221,7 @@ class PutAmerican(options.AmericanOption):
     """American put option in Black-Scholes model.
 
     TODO:
-     * MC pricing of American put option using LSM.
+     * Add exercise grid
      * FD pricing of American call option.
      * MC pricing of European call option.
      * MC pricing of American put option using LSM.

@@ -1,110 +1,103 @@
-import math
-
 from matplotlib import pyplot as plt
 import numpy as np
-from scipy import optimize
+import numpy.polynomial as poly
 
 
-def polynomial_1st(x, a, b):
-    """First order polynomial."""
-    return a + b * x
-
-
-def polynomial_2nd(x, a, b, c):
-    """Second order polynomial."""
-    return a + b * x + c * x ** 2
-
-
-def polynomial_3rd(x, a, b, c, d):
-    """Third order polynomial."""
-    return a + b * x + c * x ** 2 + d * x ** 3
-
-
-def polynomial_4th(x, a, b, c, d, e):
-    """Fourth order polynomial."""
-    return a + b * x + c * x ** 2 + d * x ** 3 + e * x ** 4
-
-
-def polynomial_5th(x, a, b, c, d, e, f):
-    """Fifth order polynomial."""
-    return a + b * x + c * x ** 2 + d * x ** 3 + e * x ** 4 + f * x ** 5
-
-
-def regression(fn, x, y):
-    """Fit function fn to data set (x,y)."""
-    return optimize.curve_fit(fn, xdata=x, ydata=y)[0]
-
-
-def price_american_put(paths,
-                       event_grid,
-                       exercise_grid):
-    """Pricing American put option using Longstaff-Schwartz method.
+def american_option(instrument,
+                    exercise_grid: np.ndarray,
+                    basis_set: str = "Power",
+                    degree: int = 3):
+    """Pricing American option using Longstaff-Schwartz method.
 
     Args:
-        paths: Monte-Carlo paths.
-        event_grid: ...
-        exercise_grid: Exercise event indices on event grid.
+        instrument: ...
+        exercise_grid: Exercise event indices (in reverse order) on
+            event grid.
+        basis_set: Type of polynomial basis set. Default is Power.
+            * Power
+            * Chebyshev
+            * Legendre
+            * Laguerre
+            * Hermite
+        degree: Degree of series based on basis set.
 
     Returns:
         American option price.
     """
 
+    paths = instrument.mc_exact.solution
+    discount_grid = instrument.mc_exact.discount_grid
+
     plot_regression = False
 
-    # Regression function object.
-    fn = polynomial_3rd
-
+    # Get fitting function.
+    if basis_set == "Power":
+        fit_function = poly.Polynomial.fit
+    elif basis_set == "Chebyshev":
+        fit_function = poly.Chebyshev.fit
+    elif basis_set == "Legendre":
+        fit_function = poly.Legendre.fit
+    elif basis_set == "Laguerre":
+        fit_function = poly.Laguerre.fit
+    elif basis_set == "Hermite":
+        fit_function = poly.Hermite.fit
+    else:
+        raise ValueError(f"Type of basis set is unknown: {basis_set}")
     # Index of exercise (on event grid) for each path.
     exercise_index = -np.ones(paths.shape[1], dtype=int)
     # Continuation value for each path.
-    con_value = np.zeros(paths.shape[1])
+    cont_value = np.zeros(paths.shape[1])
 
-    n_old = None
-    for n in exercise_grid:
+    # Loop over exercise indices (in reverse order).
+    # TODO: Do the "reverse" here.
+    idx_old = None
+    for idx in exercise_grid:
+        # Continuation value discounted to current exercise event.
+        if idx_old is None:
+            discount_factor = 1
+            idx_old = idx
+        else:
+            discount_factor = discount_grid[idx_old] / discount_grid[idx]
+            idx_old = idx
+        cont_value *= discount_factor
+        # Immediate exercise value.
+        exercise_value = instrument.payoff(paths[idx, :])
+        # Least squares fit.
+        ls_fit = fit_function(paths[idx, :], cont_value, deg=degree)
+        # LSM estimate of continuation value.
+        lsm_cont_value = ls_fit(paths[idx, :])
 
-            # Discounting.
-            if n_old is None:
-                discount_factor = 1
-                n_old = n
-            else:
-                dt = event_grid[n_old] - event_grid[n]
-                discount_factor = math.exp(-0.06 * dt)
-                n_old = n
-            con_value *= discount_factor
+        # The polynomial fit can give negative continuation values.
+        # These are truncated at zero. TODO: Important!
+        lsm_cont_value = np.maximum(lsm_cont_value, 0)
 
-            # Immediate exercise value.
-            exercise_value = np.maximum(40 - paths[n, :], 0)
+        # Exercise if exercise value is large than continuation value.
+        do_exercise = np.maximum(exercise_value - lsm_cont_value, 0)
+        do_exercise_idx = np.nonzero(do_exercise)
+        # Update exercise indices.
+        exercise_index[do_exercise_idx] = idx
+        # Update continuation values.
+        cont_value[do_exercise_idx] = exercise_value[do_exercise_idx]
 
-            # Expected continuation value.
-            parms = regression(fn, paths[n, :], con_value)
+        if plot_regression:
+            x_grid = np.linspace(10, 120)
+            plt.plot(paths[idx, :], cont_value, "ob")
+            plt.plot(x_grid, ls_fit(x_grid), "-r")
+            plt.plot(x_grid, np.maximum(ls_fit(x_grid), 0), "-k")
+            plt.pause(0.5)
+            plt.cla()
 
-            exp_con_value = fn(paths[n, :], *parms)
-            exp_con_value = np.maximum(exp_con_value, 0)
-
-            if plot_regression:
-                x_grid = np.linspace(10, 120)
-                plt.plot(paths[n, :], con_value, "ob")
-                plt.plot(x_grid, fn(x_grid, *parms), "-r")
-                plt.plot(x_grid, np.maximum(fn(x_grid, *parms), 0), "-k")
-                plt.pause(0.5)
-                plt.cla()
-
-#            tmp = np.maximum(exercise_value - con_value, 0)
-            tmp = np.maximum(exercise_value - exp_con_value, 0)
-
-            for idx in np.nonzero(tmp):
-                exercise_index[idx] = n
-                con_value[idx] = exercise_value[idx]
+    ##################
+    # TODO: make exercise_grid and attribute of instrument object.
 
     mc_average = 0
     for m in range(paths.shape[1]):
         idx = exercise_index[m]
         if idx != -1:
-            exercise_value = np.max(40 - paths[idx, m], 0)
-            # Time to exercise
-            time_exercise = event_grid[idx]
 
-            mc_average += exercise_value * math.exp(-0.06 * time_exercise)
+#            exercise_value = np.max(strike - paths[idx, m], 0)
+            exercise_value = instrument.payoff(paths[idx, m])
+            mc_average += exercise_value * discount_grid[idx]
 
     mc_average /= paths.shape[1]
 
