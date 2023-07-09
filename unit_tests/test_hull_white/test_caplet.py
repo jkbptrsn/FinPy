@@ -2,10 +2,8 @@ import unittest
 
 import numpy as np
 
-from models.hull_white import misc as misc_hw
 from models.hull_white import caplet_floorlet as cf_hw
 from unit_tests.test_hull_white import input
-from utils import misc
 from utils import plots
 
 plot_results = False
@@ -49,6 +47,16 @@ class CapletFloorlet(unittest.TestCase):
                                            self.event_grid,
                                            "caplet",
                                            self.time_dependence)
+        self.caplet_pelsser = \
+            cf_hw.CapletFloorletPelsser(self.kappa,
+                                        self.vol,
+                                        self.discount_curve,
+                                        self.strike_rate,
+                                        self.fixing_idx,
+                                        self.payment_idx,
+                                        self.event_grid,
+                                        "caplet",
+                                        self.time_dependence)
 
         # Floorlet.
         self.floorlet = cf_hw.CapletFloorlet(self.kappa,
@@ -60,6 +68,16 @@ class CapletFloorlet(unittest.TestCase):
                                              self.event_grid,
                                              "floorlet",
                                              self.time_dependence)
+        self.floorlet_pelsser = \
+            cf_hw.CapletFloorletPelsser(self.kappa,
+                                        self.vol,
+                                        self.discount_curve,
+                                        self.strike_rate,
+                                        self.fixing_idx,
+                                        self.payment_idx,
+                                        self.event_grid,
+                                        "floorlet",
+                                        self.time_dependence)
 
     def test_theta_method_caplet(self):
         """Finite difference pricing of caplet."""
@@ -78,6 +96,23 @@ class CapletFloorlet(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 2.e-3)
 
+    def test_theta_method_caplet_pelsser(self):
+        """Finite difference pricing of caplet."""
+        self.caplet_pelsser.fd_setup(self.x_grid, equidistant=True)
+        self.caplet_pelsser.fd_solve()
+        numerical = self.caplet_pelsser.fd.solution
+        analytical = self.caplet_pelsser.price(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        if plot_results:
+            plots.plot_price_and_greeks(self.caplet_pelsser)
+        # Maximum error in interval around pseudo short rate of 0.
+        idx_min = np.argwhere(self.x_grid < -0.05)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.05)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print("max error: ", max_error)
+        self.assertTrue(max_error < 1.e-1)
+
     def test_theta_method_floorlet(self):
         """Finite difference pricing of floorlet."""
         self.floorlet.fd_setup(self.x_grid, equidistant=True)
@@ -94,6 +129,23 @@ class CapletFloorlet(unittest.TestCase):
         if print_results:
             print("max error: ", max_error)
         self.assertTrue(max_error < 3.e-3)
+
+    def test_theta_method_floorlet_pelsser(self):
+        """Finite difference pricing of floorlet."""
+        self.floorlet_pelsser.fd_setup(self.x_grid, equidistant=True)
+        self.floorlet_pelsser.fd_solve()
+        numerical = self.floorlet_pelsser.fd.solution
+        analytical = self.floorlet_pelsser.price(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        if plot_results:
+            plots.plot_price_and_greeks(self.floorlet_pelsser)
+        # Maximum error in interval around pseudo short rate of 0.
+        idx_min = np.argwhere(self.x_grid < -0.05)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.05)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print("max error: ", max_error)
+        self.assertTrue(max_error < 2.e-1)
 
 
 if __name__ == '__main__':
