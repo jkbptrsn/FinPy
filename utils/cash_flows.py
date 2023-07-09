@@ -88,8 +88,9 @@ def cash_flow_split_issuance(coupon: float,
     n_payments = cf_grid.size - issuance_terms
     cf = np.zeros((2, cf_grid.size))
     for idx in range(issuance_terms):
-        cf[:, idx:n_payments + idx] += \
-            cash_flow_split(coupon, frequency, cf_grid[idx:n_payments + idx],
+        cf[:, idx:(n_payments + 1) + idx] += \
+            cash_flow_split(coupon, frequency,
+                            cf_grid[idx:(n_payments + 1) + idx],
                             principal, _type, io)
     # Normalization of installment payments.
     cf[0, :] *= 100 / cf[0, :].sum()
@@ -143,7 +144,7 @@ def set_cash_flow_grid_issuance(t_initial: float,
         'Cash flow' grid.
     """
     cf = set_cash_flow_grid(t_initial, t_final, frequency)
-    issuance_period = np.arange(-(issuance_terms - 1), 1) / frequency
+    issuance_period = np.arange(-(issuance_terms - 2), 1) / frequency
     return np.append(issuance_period, cf)
 
 
