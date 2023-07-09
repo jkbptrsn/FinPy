@@ -5,7 +5,7 @@ import numpy.polynomial as poly
 
 def american_option(instrument,
                     basis_set: str = "Power",
-                    degree: int = 3):
+                    degree: int = 4):
     """Pricing American option using Longstaff-Schwartz method.
 
     Args:

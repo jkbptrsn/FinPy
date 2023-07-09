@@ -1,16 +1,17 @@
-import math
 import unittest
 
 from matplotlib import pyplot as plt
 import numpy as np
 
+from numerics.mc import lsm
 from models.black_scholes import call_option as call
+from models.black_scholes import put_option as put
 from models.black_scholes import binary_option as binary
 from numerics.fd import grid_generation as grid
 from utils import plots
 
 plot_results = False
-print_results = False
+print_results = True
 
 
 class CallOption(unittest.TestCase):
@@ -182,6 +183,274 @@ class CallOption(unittest.TestCase):
             plt.xlabel("Stock price")
             plt.ylabel("Option price")
             plt.pause(5)
+
+
+class LongstaffSchwartz(unittest.TestCase):
+    """Numerical examples in Longstaff-Schwartz article.
+
+    See Longstaff & Schwartz 2001.
+    """
+
+    def setUp(self) -> None:
+        # Finite-difference prices of American put option in
+        # Black-Scholes model, Tabel 1.
+        self.fd_american = \
+            (4.478, 4.840, 7.101, 8.508,
+             3.250, 3.745, 6.148, 7.670,
+             2.314, 2.885, 5.312, 6.920,
+             1.617, 2.212, 4.582, 6.248,
+             1.110, 1.690, 3.948, 5.647)
+        # Threshold for testing.
+        self.threshold = 6e-3
+        # Short term interest rate.
+        self.rate = 0.06
+        # Strike price of put.
+        self.strike = 40
+
+        # Volatility of returns.
+        self.vol1 = 0.2
+        self.vol2 = 0.4
+
+        # Event grids used in FD pricing.
+        self.frequency_fd = 500
+        self.event_grid_fd1 = \
+            np.arange(int(1 * self.frequency_fd) + 1) / self.frequency_fd
+        self.event_grid_fd2 = \
+            np.arange(int(2 * self.frequency_fd) + 1) / self.frequency_fd
+
+        # Event grids used in MC pricing.
+        self.frequency_mc = 500
+        self.skip = 10
+        self.event_grid_mc1 = \
+            np.arange(int(1 * self.frequency_mc) + 1) / self.frequency_mc
+        self.event_grid_mc2 = \
+            np.arange(int(2 * self.frequency_mc) + 1) / self.frequency_mc
+
+        self.exercise_indices_mc1 = np.arange(1 * self.frequency_mc, 0, -self.skip)
+        self.exercise_indices_mc2 = np.arange(2 * self.frequency_mc, 0, -self.skip)
+
+        # Spatial grid used in FD pricing.
+        self.x_grid = np.arange(801) / 4
+        self.x_grid = self.x_grid[1:]
+
+        # Number of MC paths.
+        self.n_paths = 30000
+
+        self.pFDa11 = \
+            call.CallAmerican(self.rate,
+                            self.vol1,
+                            self.strike,
+                            self.exercise_indices_mc1,
+                            self.event_grid_fd1)
+
+        self.pMCa11 = \
+            call.CallAmerican(self.rate,
+                            self.vol1,
+                            self.strike,
+                            self.exercise_indices_mc1,
+                            self.event_grid_mc1)
+
+        self.p11 = \
+            call.Call(self.rate,
+                    self.vol1,
+                    self.strike,
+                    self.event_grid_fd1.size - 1,
+                    self.event_grid_fd1)
+
+        self.pFDa12 = \
+            call.CallAmerican(self.rate,
+                            self.vol1,
+                            self.strike,
+                            self.exercise_indices_mc2,
+                            self.event_grid_fd2)
+
+        self.pMCa12 = \
+            call.CallAmerican(self.rate,
+                            self.vol1,
+                            self.strike,
+                            self.exercise_indices_mc2,
+                            self.event_grid_mc2)
+
+        self.p12 = \
+            call.Call(self.rate,
+                    self.vol1,
+                    self.strike,
+                    self.event_grid_fd2.size - 1,
+                    self.event_grid_fd2)
+
+        self.pFDa21 = \
+            call.CallAmerican(self.rate,
+                            self.vol2,
+                            self.strike,
+                            self.exercise_indices_mc1,
+                            self.event_grid_fd1)
+
+        self.pMCa21 = \
+            call.CallAmerican(self.rate,
+                            self.vol2,
+                            self.strike,
+                            self.exercise_indices_mc1,
+                            self.event_grid_mc1)
+
+        self.p21 = \
+            call.Call(self.rate,
+                    self.vol2,
+                    self.strike,
+                    self.event_grid_fd1.size - 1,
+                    self.event_grid_fd1)
+
+        self.pFDa22 = \
+            call.CallAmerican(self.rate,
+                            self.vol2,
+                            self.strike,
+                            self.exercise_indices_mc2,
+                            self.event_grid_fd2)
+
+        self.pMCa22 = \
+            call.CallAmerican(self.rate,
+                            self.vol2,
+                            self.strike,
+                            self.exercise_indices_mc2,
+                            self.event_grid_mc2)
+
+        self.p22 = \
+            call.Call(self.rate,
+                    self.vol2,
+                    self.strike,
+                    self.event_grid_fd2.size - 1,
+                    self.event_grid_fd2)
+
+    def test_pricing(self):
+        """..."""
+        self.pFDa11.fd_setup(self.x_grid, equidistant=True)
+        self.pMCa11.mc_exact_setup()
+        self.p11.mc_exact_setup()
+        self.pFDa11.fd_solve()
+        analytical11 = self.p11.price(self.x_grid, 0)
+
+        self.pFDa12.fd_setup(self.x_grid, equidistant=True)
+        self.pMCa12.mc_exact_setup()
+        self.p12.mc_exact_setup()
+        self.pFDa12.fd_solve()
+        analytical12 = self.p12.price(self.x_grid, 0)
+
+        self.pFDa21.fd_setup(self.x_grid, equidistant=True)
+        self.pMCa21.mc_exact_setup()
+        self.p21.mc_exact_setup()
+        self.pFDa21.fd_solve()
+        analytical21 = self.p21.price(self.x_grid, 0)
+
+        self.pFDa22.fd_setup(self.x_grid, equidistant=True)
+        self.pMCa22.mc_exact_setup()
+        self.p22.mc_exact_setup()
+        self.pFDa22.fd_solve()
+        analytical22 = self.p22.price(self.x_grid, 0)
+
+        counter = 0
+        if print_results:
+            print("  S  FD European  MC European     "
+                  "MC error  FD American  MC American")
+        for y in (36, 38, 40, 42, 44):
+
+            self.p11.mc_exact.initialization(y, self.n_paths,
+                                             seed=0, antithetic=True)
+            self.p11.mc_exact_solve()
+            p11_mean, _, p11_error = \
+                self.p11.mc_exact.price(self.p11, self.event_grid_fd1.size - 1)
+
+            self.pMCa11.mc_exact.initialization(y, self.n_paths,
+                                                seed=0, antithetic=True)
+            self.pMCa11.mc_exact_solve()
+            pa11_mc = lsm.american_option(self.pMCa11)
+
+            self.p12.mc_exact.initialization(y, self.n_paths,
+                                             seed=0, antithetic=True)
+            self.p12.mc_exact_solve()
+            p12_mean, _, p12_error = \
+                self.p12.mc_exact.price(self.p12, self.event_grid_fd2.size - 1)
+
+            self.pMCa12.mc_exact.initialization(y, self.n_paths,
+                                                seed=0, antithetic=True)
+            self.pMCa12.mc_exact_solve()
+            pa12_mc = lsm.american_option(self.pMCa12)
+
+            self.p21.mc_exact.initialization(y, self.n_paths,
+                                             seed=0, antithetic=True)
+            self.p21.mc_exact_solve()
+            p21_mean, _, p21_error = \
+                self.p21.mc_exact.price(self.p21, self.event_grid_fd1.size - 1)
+
+            self.pMCa21.mc_exact.initialization(y, self.n_paths,
+                                                seed=0, antithetic=True)
+            self.pMCa21.mc_exact_solve()
+            pa21_mc = lsm.american_option(self.pMCa21)
+
+            self.p22.mc_exact.initialization(y, self.n_paths,
+                                             seed=0, antithetic=True)
+            self.p22.mc_exact_solve()
+            p22_mean, _, p22_error = \
+                self.p22.mc_exact.price(self.p22, self.event_grid_fd2.size - 1)
+
+            self.pMCa22.mc_exact.initialization(y, self.n_paths,
+                                                seed=0, antithetic=True)
+            self.pMCa22.mc_exact_solve()
+            pa22_mc = lsm.american_option(self.pMCa22)
+
+            for x, pa, p in \
+                    zip(self.x_grid, self.pFDa11.fd.solution, analytical11):
+                if abs(x - y) < 1.e-6:
+                    diff = self.fd_american[counter] - pa
+                    counter += 1
+#                    self.assertTrue(abs(diff) < self.threshold)
+                    if print_results:
+                        print(f"{int(x):3}  "
+                              f"{p:11.3f}  "
+                              f"{p11_mean:11.3f}  "
+                              f"{p11_error:11.3f}  "
+                              f"{pa:11.3f}  "
+                              f"{pa11_mc:11.3f}  ")
+            for x, pa, p in \
+                    zip(self.x_grid, self.pFDa12.fd.solution, analytical12):
+                if abs(x - y) < 1.e-6:
+                    diff = self.fd_american[counter] - pa
+                    counter += 1
+#                    self.assertTrue(abs(diff) < self.threshold)
+                    if print_results:
+                        print(f"{int(x):3}  "
+                              f"{p:11.3f}  "
+                              f"{p12_mean:11.3f}  "
+                              f"{p12_error:11.3f}  "
+                              f"{pa:11.3f}  "
+                              f"{pa12_mc:11.3f}  ")
+            for x, pa, p in \
+                    zip(self.x_grid, self.pFDa21.fd.solution, analytical21):
+                if abs(x - y) < 1.e-6:
+                    diff = self.fd_american[counter] - pa
+                    counter += 1
+#                    self.assertTrue(abs(diff) < self.threshold)
+                    if print_results:
+                        print(f"{int(x):3}  "
+                              f"{p:11.3f}  "
+                              f"{p21_mean:11.3f}  "
+                              f"{p21_error:11.3f}  "
+                              f"{pa:11.3f}  "
+                              f"{pa21_mc:11.3f}  ")
+            for x, pa, p in \
+                    zip(self.x_grid, self.pFDa22.fd.solution, analytical22):
+                if abs(x - y) < 1.e-6:
+                    diff = self.fd_american[counter] - pa
+                    counter += 1
+#                    self.assertTrue(abs(diff) < self.threshold)
+                    if print_results:
+                        print(f"{int(x):3}  "
+                              f"{p:11.3f}  "
+                              f"{p22_mean:11.3f}  "
+                              f"{p22_error:11.3f}  "
+                              f"{pa:11.3f}  "
+                              f"{pa22_mc:11.3f}  ")
+            print("")
+        if plot_results:
+            plots.plot_price_and_greeks(self.pFDa11)
 
 
 if __name__ == '__main__':
