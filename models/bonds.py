@@ -4,9 +4,9 @@ import typing
 import numpy as np
 
 from numerics.fd.theta import theta as fd_theta
-from numerics.fd.adi import craig_sneyd as fd_craig
 
 
+# TODO: Rename to BondAnalytical1F
 class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
     """Vanilla bond with closed-form solution."""
 
@@ -119,36 +119,4 @@ class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fd_solve(self):
         """Run finite difference solver on event grid."""
-        pass
-
-
-class VanillaBond(metaclass=abc.ABCMeta):
-    """Abstract vanilla bond class."""
-
-    @abc.abstractmethod
-    def payoff(self,
-               spot: (float, np.ndarray)) -> (float, np.ndarray):
-        """Payoff function.
-
-        Args:
-            spot: Current rate.
-
-        Returns:
-            Payoff.
-        """
-        pass
-
-    @abc.abstractmethod
-    def price(self,
-              spot: (float, np.ndarray),
-              event_idx: int) -> (float, np.ndarray):
-        """Price function.
-
-        Args:
-            spot: Current rate.
-            event_idx: Index on event grid.
-
-        Returns:
-            Price.
-        """
         pass

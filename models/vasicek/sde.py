@@ -1,14 +1,14 @@
+import abc
 import math
 import typing
 
 import numpy as np
 
-from models import sde
 from utils import global_types
 from utils import misc
 
 
-class SDE(sde.SDE):
+class Sde(metaclass=abc.ABCMeta):
     """SDE for short rate process in Vasicek model.
 
     The short rate r_t is defined by
@@ -36,6 +36,58 @@ class SDE(sde.SDE):
         self.event_grid = event_grid
 
         self.model = global_types.Model.VASICEK
+
+    @abc.abstractmethod
+    def paths(self,
+              spot: float,
+              n_paths: int,
+              rng: np.random.Generator = None,
+              seed: int = None,
+              antithetic: bool = False):
+        """Generation of Monte-Carlo paths.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of short rate and discount processes
+            represented on event grid.
+        """
+        pass
+
+
+# TODO: SdeEuler
+
+
+class SdeExact(Sde):
+    """SDE for short rate process in Vasicek model.
+
+    The short rate r_t is defined by
+        dr_t = kappa * (mean_rate - r_t) * dt + vol * dW_t,
+    where kappa and mean_rate are the speed of mean reversion and mean
+    reversion level, respectively, and vol denotes the volatility. W_t
+    is a Brownian motion process under the risk-neutral measure Q.
+    Monte-Carlo paths are constructed using exact discretization.
+
+    Attributes:
+        kappa: Speed of mean reversion.
+        mean_rate: Mean reversion level.
+        vol: Volatility.
+        event_grid: Event dates represented as year fractions from as-of
+            date.
+    """
+
+    def __init__(self,
+                 kappa: float,
+                 mean_rate: float,
+                 vol: float,
+                 event_grid: np.ndarray):
+        super().__init__(kappa, mean_rate, vol, event_grid)
 
         self.rate_mean = np.zeros((self.event_grid.size, 2))
         self.rate_variance = np.zeros(self.event_grid.size)

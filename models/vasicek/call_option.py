@@ -150,7 +150,7 @@ class Call(options.EuropeanOptionAnalytical1F):
     def mc_exact_setup(self):
         """Setup exact Monte-Carlo solver."""
         self.mc_exact = \
-            sde.SDE(self.kappa, self.mean_rate, self.vol, self.event_grid)
+            sde.SdeExact(self.kappa, self.mean_rate, self.vol, self.event_grid)
 
     def mc_exact_solve(self,
                        spot: float,

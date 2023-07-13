@@ -27,7 +27,7 @@ class SDE(unittest.TestCase):
         event_grid = np.array([0, maturity])
         maturity_idx = 1
         # SDE object
-        monte_carlo = sde.SDE(kappa, mean_rate, vol, event_grid)
+        monte_carlo = sde.SdeExact(kappa, mean_rate, vol, event_grid)
         # Zero-coupon bond
         bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx, event_grid)
         # Initialize random number generator
@@ -82,7 +82,7 @@ class SDE(unittest.TestCase):
         maturity_idx = 2
         strike = 1.1
         # SDE object
-        monte_carlo = sde.SDE(kappa, mean_rate, vol, event_grid)
+        monte_carlo = sde.SdeExact(kappa, mean_rate, vol, event_grid)
         # Zero-coupon bond
         bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx, event_grid)
         # European call option written on zero-coupon bond
@@ -148,7 +148,7 @@ class SDE(unittest.TestCase):
         maturity_idx = 2
         strike = 1.1
         # SDE object
-        monte_carlo = sde.SDE(kappa, mean_rate, vol, event_grid)
+        monte_carlo = sde.SdeExact(kappa, mean_rate, vol, event_grid)
         # Zero-coupon bond
         bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx,
                                        event_grid)
@@ -211,7 +211,7 @@ if __name__ == '__main__':
     maturity_idx_ = 2
     strike_ = 1.1
     # SDE object
-    monte_carlo = sde.SDE(kappa_, mean_rate_, vol_, event_grid_)
+    monte_carlo = sde.SdeExact(kappa_, mean_rate_, vol_, event_grid_)
     # Zero-coupon bond
     bond = zero_coupon_bond.ZCBond(kappa_, mean_rate_, vol_, maturity_idx_,
                                    event_grid_)
