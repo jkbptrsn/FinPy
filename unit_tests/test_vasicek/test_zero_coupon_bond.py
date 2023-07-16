@@ -6,7 +6,7 @@ import numpy as np
 from models.vasicek import zero_coupon_bond as zcbond
 from utils import plots
 
-plot_results = False
+plot_results = True
 print_results = True
 
 

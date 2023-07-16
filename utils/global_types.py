@@ -33,6 +33,6 @@ class Model(enum.Enum):
 
 
 class Transformation(enum.Enum):
-    """Short rate transformation in 1-factor Hull-White model."""
+    """Short rate transformation in Hull-White model."""
     ANDERSEN = enum.auto()
     PELSSER = enum.auto()

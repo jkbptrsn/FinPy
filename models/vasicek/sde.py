@@ -61,9 +61,6 @@ class Sde(metaclass=abc.ABCMeta):
         pass
 
 
-# TODO: SdeEuler
-
-
 class SdeExact(Sde):
     """SDE for short rate process in Vasicek model.
 
@@ -258,3 +255,6 @@ class SdeExact(Sde):
         # Update...
         self.rates = rate
         self.discounts = discount
+
+
+# TODO: SdeEuler

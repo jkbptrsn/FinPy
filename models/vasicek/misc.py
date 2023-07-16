@@ -95,6 +95,9 @@ def dbdt(time1: float,
     return -math.exp(-kappa * (time2 - time1))
 
 
+########################################################################
+
+
 def sigma_p(time1: float,
             time2: float,
             time3: float,

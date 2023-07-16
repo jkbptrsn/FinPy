@@ -12,16 +12,15 @@ from utils import payoffs
 class ZCBond(bonds.BondAnalytical1F):
     """Zero-coupon bond in Vasicek model.
 
-    Zero-coupon bond dependent on short rate modelled by Vasicek SDE.
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
+    Zero-coupon bond price dependent on short rate modelled by Vasicek
+    SDE. See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
 
     Attributes:
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
         maturity_idx: Maturity index on event grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
+        event_grid: Event dates as year fractions from as-of date.
     """
 
     def __init__(self,
@@ -115,6 +114,8 @@ class ZCBond(bonds.BondAnalytical1F):
         return self.price(spot, event_idx) \
             * (self.dadt(event_idx) - self.dbdt(event_idx) * spot)
 
+########################################################################
+
     def fd_solve(self):
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
@@ -179,6 +180,8 @@ class ZCBond(bonds.BondAnalytical1F):
             represented on event grid.
         """
         pass
+
+########################################################################
 
     def a_function(self,
                    event_idx: int) -> float:
