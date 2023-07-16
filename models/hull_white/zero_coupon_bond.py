@@ -13,8 +13,12 @@ from utils import misc
 from utils import payoffs
 
 
-class ZCBond(bonds.VanillaBondAnalytical1F):
+class ZCBond(bonds.BondAnalytical1F):
     """Zero-coupon bond in 1-factor Hull-White model.
+
+    TODO:
+     * Used "smart" calculation of G-function, see Andersen & Piterbarg
+       Add a method to zcbond class for re-calculating G if maturity_idx is updated
 
     Zero-coupon bond dependent on pseudo short rate modelled by 1-factor
     Hull-White SDE. See L.B.G. Andersen & V.V. Piterbarg 2010,
@@ -348,6 +352,34 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
                                                      self.adjustment_discount)
         self.mc_exact.solution = np.mean(discount[-1, :])
         self.mc_exact.error = misc.monte_carlo_error(discount[-1, :])
+
+    def mc_euler_setup(self):
+        """Setup Euler Monte-Carlo solver."""
+        pass
+
+    def mc_euler_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Euler-Maruyama discretization.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of short rate and discount processes
+            represented on event grid.
+        """
+        pass
 
 
 class ZCBondPelsser(ZCBond):

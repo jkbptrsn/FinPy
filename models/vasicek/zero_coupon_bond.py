@@ -9,7 +9,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class ZCBond(bonds.VanillaBondAnalytical1F):
+class ZCBond(bonds.BondAnalytical1F):
     """Zero-coupon bond in Vasicek model.
 
     Zero-coupon bond dependent on short rate modelled by Vasicek SDE.
@@ -136,6 +136,8 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
                        antithetic: bool = False):
         """Run Monte-Carlo solver on event grid.
 
+        Exact discretization.
+
         Args:
             spot: Short rate at as-of date.
             n_paths: Number of Monte-Carlo paths.
@@ -149,6 +151,34 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
             represented on event grid.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+
+    def mc_euler_setup(self):
+        """Setup Euler Monte-Carlo solver."""
+        pass
+
+    def mc_euler_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Euler-Maruyama discretization.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of short rate and discount processes
+            represented on event grid.
+        """
+        pass
 
     def a_function(self,
                    event_idx: int) -> float:

@@ -6,15 +6,14 @@ import numpy as np
 from numerics.fd.theta import theta as fd_theta
 
 
-# TODO: Rename to BondAnalytical1F
-class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
-    """Vanilla bond with closed-form solution."""
+class BondAnalytical1F(metaclass=abc.ABCMeta):
+    """Bond in 1-factor model with closed-form solution."""
 
     def __init__(self):
         # Solver objects.
         self.fd = None
-        self.mc = None
         self.mc_exact = None
+        self.mc_euler = None
 
     @property
     @abc.abstractmethod
@@ -119,4 +118,64 @@ class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def fd_solve(self):
         """Run finite difference solver on event grid."""
+        pass
+
+    @abc.abstractmethod
+    def mc_exact_setup(self):
+        """Setup exact Monte-Carlo solver."""
+        pass
+
+    @abc.abstractmethod
+    def mc_exact_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Exact discretization.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of short rate and discount processes
+            represented on event grid.
+        """
+        pass
+
+    @abc.abstractmethod
+    def mc_euler_setup(self):
+        """Setup Euler Monte-Carlo solver."""
+        pass
+
+    @abc.abstractmethod
+    def mc_euler_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Euler-Maruyama discretization.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of short rate and discount processes
+            represented on event grid.
+        """
         pass

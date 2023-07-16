@@ -7,7 +7,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class ZCBond(bonds.VanillaBondAnalytical1F):
+class ZCBond(bonds.BondAnalytical1F):
     """Zero-coupon bond in CIR model.
 
     Attributes:
