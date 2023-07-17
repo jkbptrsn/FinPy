@@ -27,7 +27,7 @@ class BondAnalytical1F(metaclass=abc.ABCMeta):
         """Payoff function.
 
         Args:
-            spot: Value of underlying at as-of date.
+            spot: Spot short rate.
 
         Returns:
             Payoff.
@@ -41,7 +41,7 @@ class BondAnalytical1F(metaclass=abc.ABCMeta):
         """Price function.
 
         Args:
-            spot: Value of underlying at as-of date.
+            spot: Spot short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -56,7 +56,7 @@ class BondAnalytical1F(metaclass=abc.ABCMeta):
         """1st order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Value of underlying at as-of date.
+            spot: Spot short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -71,7 +71,7 @@ class BondAnalytical1F(metaclass=abc.ABCMeta):
         """2nd order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Value of underlying at as-of date.
+            spot: Spot short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -86,7 +86,7 @@ class BondAnalytical1F(metaclass=abc.ABCMeta):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Value of underlying at as-of date.
+            spot: Spot short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -137,7 +137,7 @@ class BondAnalytical1F(metaclass=abc.ABCMeta):
         Exact discretization.
 
         Args:
-            spot: Short rate at as-of date.
+            spot: Spot short rate.
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
@@ -167,7 +167,7 @@ class BondAnalytical1F(metaclass=abc.ABCMeta):
         Euler-Maruyama discretization.
 
         Args:
-            spot: Short rate at as-of date.
+            spot: Spot short rate.
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.

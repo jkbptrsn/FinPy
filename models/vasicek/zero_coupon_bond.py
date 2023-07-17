@@ -50,7 +50,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """Payoff function.
 
         Args:
-            spot: Short rate at as-of date.
+            spot: Spot short rate.
 
         Returns:
             Payoff.
@@ -63,7 +63,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """Price function.
 
         Args:
-            spot: Short rate at as-of date.
+            spot: Spot short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -78,7 +78,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """1st order price sensitivity wrt short rate.
 
         Args:
-            spot: Short rate at as-of date.
+            spot: Spot short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -92,7 +92,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """2nd order price sensitivity wrt short rate.
 
         Args:
-            spot: Short rate at as-of date.
+            spot: Spot short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -106,7 +106,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Short rate at as-of date.
+            spot: Spot short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -140,7 +140,7 @@ class ZCBond(bonds.BondAnalytical1F):
         Generation of Monte-Carlo paths using exact discretization.
 
         Args:
-            spot: Short rate at as-of date.
+            spot: Spot short rate.
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
@@ -168,7 +168,7 @@ class ZCBond(bonds.BondAnalytical1F):
         Euler-Maruyama discretization.
 
         Args:
-            spot: Short rate at as-of date.
+            spot: Spot short rate.
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.

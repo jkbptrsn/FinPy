@@ -10,7 +10,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class Call(options.EuropeanOptionAnalytical1F):
+class Call(options.Option1FAnalytical):
     """European call option in Vasicek model.
 
     European call option written on a zero-coupon bond.
@@ -22,8 +22,7 @@ class Call(options.EuropeanOptionAnalytical1F):
         strike: Strike price of zero-coupon bond at expiry.
         expiry_idx: Expiry index on event grid.
         maturity_idx: Maturity index on event grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
+        event_grid: Event dates as year fractions from as-of date.
     """
 
     def __init__(self,
@@ -56,7 +55,7 @@ class Call(options.EuropeanOptionAnalytical1F):
 
     @property
     def maturity(self) -> float:
-        return self.event_grid[self.maturity_idx]
+        return self.zcbond.maturity
 
     def payoff(self,
                spot: typing.Union[float, np.ndarray]) \
@@ -64,12 +63,14 @@ class Call(options.EuropeanOptionAnalytical1F):
         """Payoff function.
 
         Args:
-            spot: Current value of underlying zero-coupon bond.
+            spot: Spot value of underlying zero-coupon bond.
 
         Returns:
             Payoff.
         """
         return payoffs.call(spot, self.strike)
+
+########################################################################
 
     def price(self,
               spot: typing.Union[float, np.ndarray],
@@ -77,7 +78,7 @@ class Call(options.EuropeanOptionAnalytical1F):
         """Price function.
 
         Args:
-            spot: Current short rate.
+            spot: Spot short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -94,7 +95,7 @@ class Call(options.EuropeanOptionAnalytical1F):
         """1st order price sensitivity wrt short rate.
 
         Args:
-            spot: Current short rate.
+            spot: Spot short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -111,7 +112,7 @@ class Call(options.EuropeanOptionAnalytical1F):
         """2nd order price sensitivity wrt short rate.
 
         Args:
-            spot: Current short rate.
+            spot: Spot short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -128,13 +129,16 @@ class Call(options.EuropeanOptionAnalytical1F):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Current short rate.
+            spot: Spot short rate.
             event_idx: Index on event grid.
 
         Returns:
             Theta.
         """
-        pass
+        return misc.european_option_theta(
+            spot, event_idx, self.kappa, self.mean_rate, self.vol,
+            self.strike, self.expiry_idx, self.maturity_idx, self.event_grid,
+            "Call")
 
     def fd_solve(self):
         """Run finite difference solver on event grid."""
@@ -160,8 +164,10 @@ class Call(options.EuropeanOptionAnalytical1F):
                        antithetic: bool = False):
         """Run Monte-Carlo solver on event grid.
 
+        Exact discretization.
+
         Args:
-            spot: Short rate at as-of date.
+            spot: Spot short rate.
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
@@ -173,3 +179,31 @@ class Call(options.EuropeanOptionAnalytical1F):
             represented on event grid.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+
+    def mc_euler_setup(self):
+        """Setup Euler Monte-Carlo solver."""
+        pass
+
+    def mc_euler_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Euler-Maruyama discretization.
+
+        Args:
+            spot: Spot short rate.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of short rate and discount processes
+            represented on event grid.
+        """
+        pass

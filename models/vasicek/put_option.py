@@ -9,7 +9,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class Put(options.EuropeanOptionAnalytical1F):
+class Put(options.Option1FAnalytical):
     """European put option in the Vasicek model.
 
     European put option written on a zero-coupon bond.

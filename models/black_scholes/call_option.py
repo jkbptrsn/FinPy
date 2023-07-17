@@ -11,7 +11,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class Call(options.EuropeanOptionAnalytical1F):
+class Call(options.Option1FAnalytical):
     """European call option in Black-Scholes model.
 
     European call option written on stock price modelled by

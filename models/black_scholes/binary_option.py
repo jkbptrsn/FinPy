@@ -11,7 +11,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class BinaryCashCall(options.EuropeanOptionAnalytical1F):
+class BinaryCashCall(options.Option1FAnalytical):
     """European cash-or-nothing call option in Black-Scholes model.
 
     European cash-or-nothing call option written on stock price modelled
@@ -195,7 +195,7 @@ class BinaryCashCall(options.EuropeanOptionAnalytical1F):
             self.fd.propagation(dt)
 
 
-class BinaryAssetCall(options.EuropeanOptionAnalytical1F):
+class BinaryAssetCall(options.Option1FAnalytical):
     """European asset-or-nothing call option in Black-Scholes model.
 
     European asset-or-nothing call option written on stock price
@@ -319,7 +319,7 @@ class BinaryAssetCall(options.EuropeanOptionAnalytical1F):
             self.fd.propagation(dt)
 
 
-class BinaryCashPut(options.EuropeanOptionAnalytical1F):
+class BinaryCashPut(options.Option1FAnalytical):
     """European cash-or-nothing put option in Black-Scholes model.
 
     European cash-or-nothing put option written on stock price modelled
@@ -443,7 +443,7 @@ class BinaryCashPut(options.EuropeanOptionAnalytical1F):
             self.fd.propagation(dt)
 
 
-class BinaryAssetPut(options.EuropeanOptionAnalytical1F):
+class BinaryAssetPut(options.Option1FAnalytical):
     """European asset-or-nothing put option in Black-Scholes model.
 
     European asset-or-nothing put option written on stock price modelled

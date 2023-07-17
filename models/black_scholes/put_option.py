@@ -12,7 +12,7 @@ from utils import payoffs
 from utils import smoothing
 
 
-class Put(options.EuropeanOptionAnalytical1F):
+class Put(options.Option1FAnalytical):
     """European put option in Black-Scholes model.
 
     European put option written on stock price modelled by

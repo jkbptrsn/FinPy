@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from models.vasicek import call_option as call
-from models.vasicek import zero_coupon_bond as zcbond
 from utils import plots
 
 plot_results = False
