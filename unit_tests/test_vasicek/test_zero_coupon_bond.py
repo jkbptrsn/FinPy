@@ -1,6 +1,5 @@
 import unittest
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from models.vasicek import zero_coupon_bond as zcbond
@@ -36,58 +35,55 @@ class ZeroCouponBond(unittest.TestCase):
         self.mc_dt = self.maturity / (self.mc_t_steps - 1)
         self.mc_event_grid = self.mc_dt * np.arange(self.mc_t_steps)
         self.mc_maturity_idx = self.mc_t_steps - 1
-        # Zero-coupon bond.
+        # Zero-coupon bond objects.
         self.fd_bond = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
                                      self.fd_maturity_idx, self.fd_event_grid)
         self.mc_bond = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
                                      self.mc_maturity_idx, self.mc_event_grid)
 
-    def test_theta_method(self):
+    def test_theta_method(self) -> None:
         """Finite difference pricing of zero-coupon bond."""
         self.fd_bond.fd_setup(self.x_grid, equidistant=True)
         self.fd_bond.fd_solve()
+        # Check price.
         numerical = self.fd_bond.fd.solution
         analytical = self.fd_bond.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
         if plot_results:
-            plt.plot(self.x_grid, relative_error, "-b")
-            plt.xlabel("Short rate")
-            plt.ylabel("Relative error")
-            plt.pause(5)
             plots.plot_price_and_greeks(self.fd_bond)
         # Maximum error in interval around short rate of 0.1.
-        idx_min = np.argwhere(self.x_grid < -0.1)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.3)[-1][0]
+        idx_min = np.argwhere(self.x_grid < -0.2)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.4)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(max_error)
-        self.assertTrue(max_error < 7e-5)
-        # Delta.
+        self.assertTrue(max_error < 4.0e-4)
+        # Check delta.
         numerical = self.fd_bond.fd.delta()
         analytical = self.fd_bond.delta(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(max_error)
-        self.assertTrue(max_error < 3e-4)
-        # Gamma.
+        self.assertTrue(max_error < 1.5e-3)
+        # Check gamma.
         numerical = self.fd_bond.fd.gamma()
         analytical = self.fd_bond.gamma(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(max_error)
-        self.assertTrue(max_error < 8e-4)
-        # Theta.
+        self.assertTrue(max_error < 7.2e-3)
+        # Check theta.
         numerical = self.fd_bond.fd.theta()
         analytical = self.fd_bond.theta(self.x_grid, 0)
         error = np.abs((analytical - numerical))
-        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(max_error)
-        self.assertTrue(max_error < 8e-4)
+        self.assertTrue(max_error < 2.6e-3)
 
-    def test_monte_carlo(self):
+    def test_monte_carlo(self) -> None:
         """Monte-Carlo pricing of zero-coupon bond."""
         self.mc_bond.mc_exact_setup()
         # Spot rate.

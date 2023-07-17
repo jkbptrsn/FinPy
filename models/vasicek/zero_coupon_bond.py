@@ -152,6 +152,10 @@ class ZCBond(bonds.BondAnalytical1F):
         self.mc_exact.mc_error = self.mc_exact.discount_paths[-1].std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
+        # TODO: Go through unit tests.
+        # TODO: SdeEuler with numerical integration of discount factors.
+        # TODO: Setup unit test for mc_euler.
+
 ########################################################################
 
     def mc_euler_setup(self):
