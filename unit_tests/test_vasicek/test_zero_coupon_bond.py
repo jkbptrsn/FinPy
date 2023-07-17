@@ -8,6 +8,9 @@ from utils import plots
 plot_results = True
 print_results = True
 
+if print_results:
+    print("Unit test results from: " + __name__)
+
 
 class ZeroCouponBond(unittest.TestCase):
     """Zero-coupon bond in Vasicek model."""
@@ -56,7 +59,7 @@ class ZeroCouponBond(unittest.TestCase):
         idx_max = np.argwhere(self.x_grid < 0.4)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
-            print(max_error)
+            print(f"Maximum error of price: {max_error}")
         self.assertTrue(max_error < 4.0e-4)
         # Check delta.
         numerical = self.fd_bond.fd.delta()
@@ -64,7 +67,7 @@ class ZeroCouponBond(unittest.TestCase):
         relative_error = np.abs((analytical - numerical) / analytical)
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
-            print(max_error)
+            print(f"Maximum error of delta: {max_error}")
         self.assertTrue(max_error < 1.5e-3)
         # Check gamma.
         numerical = self.fd_bond.fd.gamma()
@@ -72,7 +75,7 @@ class ZeroCouponBond(unittest.TestCase):
         relative_error = np.abs((analytical - numerical) / analytical)
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
-            print(max_error)
+            print(f"Maximum error of gamma: {max_error}")
         self.assertTrue(max_error < 7.2e-3)
         # Check theta.
         numerical = self.fd_bond.fd.theta()
@@ -80,7 +83,7 @@ class ZeroCouponBond(unittest.TestCase):
         error = np.abs((analytical - numerical))
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
-            print(max_error)
+            print(f"Maximum error of theta: {max_error}")
         self.assertTrue(max_error < 2.6e-3)
 
     def test_monte_carlo(self) -> None:
@@ -102,23 +105,27 @@ class ZeroCouponBond(unittest.TestCase):
             error = np.zeros(n_rep)
             for rep in range(n_rep):
                 self.mc_bond.mc_exact_solve(s, n_paths, rng=rng)
-                discounts = self.mc_bond.mc_exact.discount_paths
-                price_n = discounts[self.mc_maturity_idx, :].mean()
+                price_n = self.mc_bond.mc_exact.mc_estimate
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
-                print(s, price_a, error.mean(), error.std())
-            self.assertTrue(error.mean() < 9e-3 and error.std() < 7e-3)
+                print(f"No variance reduction: "
+                      f"Short rate = {s:5.2f}, price = {price_a:2.3f}, "
+                      f"error mean = {error.mean():2.5f}, "
+                      f"error std = {error.std():2.5f}")
+            self.assertTrue(error.mean() < 8.9e-3 and error.std() < 6.7e-3)
             # Numerical result; Antithetic sampling.
             error = np.zeros(n_rep)
             for rep in range(n_rep):
                 self.mc_bond.mc_exact_solve(s, n_paths, rng=rng,
                                             antithetic=True)
-                discounts = self.mc_bond.mc_exact.discount_paths
-                price_n = discounts[self.mc_maturity_idx, :].mean()
+                price_n = self.mc_bond.mc_exact.mc_estimate
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
-                print(s, price_a, error.mean(), error.std())
-            self.assertTrue(error.mean() < 6e-3 and error.std() < 4e-3)
+                print(f"Antithetic sampling:   "
+                      f"Short rate = {s:5.2f}, price = {price_a:2.3f}, "
+                      f"error mean = {error.mean():2.5f}, "
+                      f"error std = {error.std():2.5f}")
+            self.assertTrue(error.mean() < 5.4e-3 and error.std() < 3.8e-3)
 
 
 if __name__ == '__main__':
