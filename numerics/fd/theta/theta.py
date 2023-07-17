@@ -106,12 +106,12 @@ class ThetaBase:
     def theta_calc(self, dt: float) -> np.ndarray:
         """Theta calculated by first order forward finite difference."""
         self.set_propagator()
-        # Save current solution
+        # Save current solution.
         solution_copy = self.solution.copy()
-        # Forward propagation
+        # Forward propagation.
         self.propagation(-dt)
         forward = self.solution.copy()
-        # Restore current solution
+        # Restore current solution.
         self.solution = solution_copy
         return (forward - self.solution) / dt
 

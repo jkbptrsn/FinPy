@@ -27,7 +27,7 @@ class SDE(unittest.TestCase):
         event_grid = np.array([0, maturity])
         maturity_idx = 1
         # SDE object
-        monte_carlo = sde.SDE(kappa, mean_rate, vol, event_grid)
+        monte_carlo = sde.SdeExact(kappa, mean_rate, vol, event_grid)
         # Zero-coupon bond
         bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx, event_grid)
         # Initialize random number generator
@@ -44,7 +44,7 @@ class SDE(unittest.TestCase):
             for rep in range(n_rep):
 #                rates, discounts = monte_carlo.paths(s, n_paths, rng=rng)
                 monte_carlo.paths(s, n_paths, rng=rng)
-                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+                rates, discounts = monte_carlo.rate_paths, monte_carlo.discount_paths
 
                 price_n = discounts[maturity_idx, :].mean()
                 error[rep] += abs((price_n - price_a) / price_a)
@@ -56,7 +56,7 @@ class SDE(unittest.TestCase):
 #                rates, discounts = \
 #                    monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
                 monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
-                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+                rates, discounts = monte_carlo.rate_paths, monte_carlo.discount_paths
 
                 price_n = discounts[maturity_idx, :].mean()
                 error[rep] += abs((price_n - price_a) / price_a)
@@ -82,7 +82,7 @@ class SDE(unittest.TestCase):
         maturity_idx = 2
         strike = 1.1
         # SDE object
-        monte_carlo = sde.SDE(kappa, mean_rate, vol, event_grid)
+        monte_carlo = sde.SdeExact(kappa, mean_rate, vol, event_grid)
         # Zero-coupon bond
         bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx, event_grid)
         # European call option written on zero-coupon bond
@@ -102,7 +102,7 @@ class SDE(unittest.TestCase):
             for rep in range(n_rep):
 #                rates, discounts = monte_carlo.paths(s, n_paths, rng=rng)
                 monte_carlo.paths(s, n_paths, rng=rng)
-                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+                rates, discounts = monte_carlo.rate_paths, monte_carlo.discount_paths
 
                 price_n = \
                     np.maximum(bond.price(rates[expiry_idx, :], expiry_idx)
@@ -118,7 +118,7 @@ class SDE(unittest.TestCase):
 #                rates, discounts = \
 #                    monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
                 monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
-                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+                rates, discounts = monte_carlo.rate_paths, monte_carlo.discount_paths
 
                 price_n = \
                     np.maximum(bond.price(rates[expiry_idx, :], expiry_idx)
@@ -148,7 +148,7 @@ class SDE(unittest.TestCase):
         maturity_idx = 2
         strike = 1.1
         # SDE object
-        monte_carlo = sde.SDE(kappa, mean_rate, vol, event_grid)
+        monte_carlo = sde.SdeExact(kappa, mean_rate, vol, event_grid)
         # Zero-coupon bond
         bond = zero_coupon_bond.ZCBond(kappa, mean_rate, vol, maturity_idx,
                                        event_grid)
@@ -169,7 +169,7 @@ class SDE(unittest.TestCase):
             for rep in range(n_rep):
 #                rates, discounts = monte_carlo.paths(s, n_paths, rng=rng)
                 monte_carlo.paths(s, n_paths, rng=rng)
-                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+                rates, discounts = monte_carlo.rate_paths, monte_carlo.discount_paths
 
                 price_n = np.maximum(strike - bond.price(rates[expiry_idx, :],
                                                          expiry_idx), 0)
@@ -184,7 +184,7 @@ class SDE(unittest.TestCase):
 #                rates, discounts = \
 #                    monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
                 monte_carlo.paths(s, n_paths, rng=rng, antithetic=True)
-                rates, discounts = monte_carlo.rates, monte_carlo.discounts
+                rates, discounts = monte_carlo.rate_paths, monte_carlo.discount_paths
 
                 price_n = np.maximum(strike - bond.price(rates[expiry_idx, :],
                                                          expiry_idx), 0)
@@ -211,7 +211,7 @@ if __name__ == '__main__':
     maturity_idx_ = 2
     strike_ = 1.1
     # SDE object
-    monte_carlo = sde.SDE(kappa_, mean_rate_, vol_, event_grid_)
+    monte_carlo = sde.SdeExact(kappa_, mean_rate_, vol_, event_grid_)
     # Zero-coupon bond
     bond = zero_coupon_bond.ZCBond(kappa_, mean_rate_, vol_, maturity_idx_,
                                    event_grid_)
@@ -238,7 +238,7 @@ if __name__ == '__main__':
         # Price of bond with maturity = maturity_
 #        _, discounts = monte_carlo.paths(s, n_paths_, rng=rng_)
         monte_carlo.paths(s, n_paths_, rng=rng_)
-        discounts = monte_carlo.discounts
+        discounts = monte_carlo.discount_paths
 
         bond_price_a[idx] = bond.price(s, 0)
         bond_price_n[idx] = discounts[maturity_idx_, :].mean()
@@ -247,7 +247,7 @@ if __name__ == '__main__':
         # Call option price with expiry = expiry_
 #        rates, discounts = monte_carlo.paths(s, n_paths_, rng=rng_)
         monte_carlo.paths(s, n_paths_, rng=rng_)
-        rates, discounts = monte_carlo.rates, monte_carlo.discounts
+        rates, discounts = monte_carlo.rate_paths, monte_carlo.discount_paths
 
         call_price_a[idx] = call.price(s, 0)
         call_option_values = \
@@ -259,7 +259,7 @@ if __name__ == '__main__':
         # Put option price with expiry = expiry_
 #        rates, discounts = monte_carlo.paths(s, n_paths_, rng=rng_)
         monte_carlo.paths(s, n_paths_, rng=rng_)
-        rates, discounts = monte_carlo.rates, monte_carlo.discounts
+        rates, discounts = monte_carlo.rate_paths, monte_carlo.discount_paths
 
         put_price_a[idx] = put.price(s, 0)
         put_option_values = \

@@ -7,12 +7,16 @@ from numerics.fd.theta import theta as fd_theta
 from numerics.fd.adi import craig_sneyd as fd_craig
 
 
-class EuropeanOption2D(metaclass=abc.ABCMeta):
-    """European option."""
+# TODO: Rename to Option1F
+# TODO: Add Monte-Carlo related methods.
+class AmericanOption(metaclass=abc.ABCMeta):
+    """American option..."""
 
     def __init__(self):
         # Solver objects.
         self.fd = None
+        self.mc = None
+        self.mc_exact = None
 
     @property
     @abc.abstractmethod
@@ -26,7 +30,7 @@ class EuropeanOption2D(metaclass=abc.ABCMeta):
         """Payoff function.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
 
         Returns:
             Payoff.
@@ -35,30 +39,32 @@ class EuropeanOption2D(metaclass=abc.ABCMeta):
 
     def fd_setup(self,
                  x_grid: np.ndarray,
-                 y_grid: np.ndarray,
                  form: str = "tri",
                  equidistant: bool = False,
                  theta_value: float = 0.5):
         """Setting up finite difference solver.
 
         Args:
-            x_grid: Grid in x dimension.
-            y_grid: Grid in y dimension.
+            x_grid: Grid in spatial dimension.
             form: Tri- ("tri") or pentadiagonal ("penta") form. Default
                 is tridiagonal.
             equidistant: Is grid equidistant? Default is false.
-            theta_value: Theta parameter.
+            theta_value: Determines the specific method:
+                0   : Explicit method.
+                0.5 : Crank-Nicolson method (default).
+                1   : Fully implicit method.
         """
-        self.fd = fd_craig.setup_solver(self, x_grid, y_grid, form,
-                                        equidistant, theta_value)
+        self.fd = fd_theta.setup_solver(self, x_grid, form, equidistant,
+                                        theta_value)
         self.fd.initialization()
 
     @abc.abstractmethod
     def fd_solve(self):
-        """Run solver on event_grid..."""
+        """Run finite difference solver on event grid."""
         pass
 
 
+# TODO: Rename to OptionAnalytical1F
 class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
     """European option with closed-form solution."""
 
@@ -80,7 +86,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """Payoff function.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
 
         Returns:
             Payoff.
@@ -94,7 +100,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """Price function.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -109,7 +115,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """1st order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -124,7 +130,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """2nd order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -139,7 +145,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -184,93 +190,13 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
     #     pass
 
 
-# Could rename this to VanillaOptionAnalytical
-class VanillaOption(metaclass=abc.ABCMeta):
-    """Abstract vanilla option class."""
-
-    @abc.abstractmethod
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
-            -> typing.Union[float, np.ndarray]:
-        """Payoff function.
-
-        Args:
-            spot: Current value of underlying.
-
-        Returns:
-            Payoff.
-        """
-        pass
-
-    @abc.abstractmethod
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
-        """Price function.
-
-        Args:
-            spot: Current value of underlying.
-            event_idx: Index on event grid.
-
-        Returns:
-            Price.
-        """
-        pass
-
-    @abc.abstractmethod
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
-        """1st order price sensitivity wrt value of underlying.
-
-        Args:
-            spot: Current value of underlying.
-            event_idx: Index on event grid.
-
-        Returns:
-            Delta.
-        """
-        pass
-
-    @abc.abstractmethod
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
-        """2nd order price sensitivity wrt value of underlying.
-
-        Args:
-            spot: Current value of underlying.
-            event_idx: Index on event grid.
-
-        Returns:
-            Gamma.
-        """
-        pass
-
-    @abc.abstractmethod
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
-        """1st order price sensitivity wrt time.
-
-        Args:
-            spot: Current value of underlying.
-            event_idx: Index on event grid.
-
-        Returns:
-            Theta.
-        """
-        pass
-
-
-class AmericanOption(metaclass=abc.ABCMeta):
-    """American option..."""
+# TODO: Rename to Option2F
+class EuropeanOption2D(metaclass=abc.ABCMeta):
+    """European option."""
 
     def __init__(self):
         # Solver objects.
         self.fd = None
-        self.mc = None
-        self.mc_exact = None
 
     @property
     @abc.abstractmethod
@@ -284,7 +210,7 @@ class AmericanOption(metaclass=abc.ABCMeta):
         """Payoff function.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
 
         Returns:
             Payoff.
@@ -293,26 +219,25 @@ class AmericanOption(metaclass=abc.ABCMeta):
 
     def fd_setup(self,
                  x_grid: np.ndarray,
+                 y_grid: np.ndarray,
                  form: str = "tri",
                  equidistant: bool = False,
                  theta_value: float = 0.5):
         """Setting up finite difference solver.
 
         Args:
-            x_grid: Grid in spatial dimension.
+            x_grid: Grid in x dimension.
+            y_grid: Grid in y dimension.
             form: Tri- ("tri") or pentadiagonal ("penta") form. Default
                 is tridiagonal.
             equidistant: Is grid equidistant? Default is false.
-            theta_value: Determines the specific method:
-                0   : Explicit method.
-                0.5 : Crank-Nicolson method (default).
-                1   : Fully implicit method.
+            theta_value: Theta parameter.
         """
-        self.fd = fd_theta.setup_solver(self, x_grid, form, equidistant,
-                                        theta_value)
+        self.fd = fd_craig.setup_solver(self, x_grid, y_grid, form,
+                                        equidistant, theta_value)
         self.fd.initialization()
 
     @abc.abstractmethod
     def fd_solve(self):
-        """Run finite difference solver on event grid."""
+        """Run solver on event_grid..."""
         pass

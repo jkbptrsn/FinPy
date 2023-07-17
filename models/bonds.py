@@ -4,17 +4,16 @@ import typing
 import numpy as np
 
 from numerics.fd.theta import theta as fd_theta
-from numerics.fd.adi import craig_sneyd as fd_craig
 
 
-class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
-    """Vanilla bond with closed-form solution."""
+class BondAnalytical1F(metaclass=abc.ABCMeta):
+    """Bond in 1-factor model with closed-form solution."""
 
     def __init__(self):
         # Solver objects.
         self.fd = None
-        self.mc = None
         self.mc_exact = None
+        self.mc_euler = None
 
     @property
     @abc.abstractmethod
@@ -28,7 +27,7 @@ class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
         """Payoff function.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
 
         Returns:
             Payoff.
@@ -42,7 +41,7 @@ class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
         """Price function.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -57,7 +56,7 @@ class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
         """1st order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -72,7 +71,7 @@ class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
         """2nd order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -87,7 +86,7 @@ class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -121,34 +120,62 @@ class VanillaBondAnalytical1F(metaclass=abc.ABCMeta):
         """Run finite difference solver on event grid."""
         pass
 
-
-class VanillaBond(metaclass=abc.ABCMeta):
-    """Abstract vanilla bond class."""
+    @abc.abstractmethod
+    def mc_exact_setup(self):
+        """Setup exact Monte-Carlo solver."""
+        pass
 
     @abc.abstractmethod
-    def payoff(self,
-               spot: (float, np.ndarray)) -> (float, np.ndarray):
-        """Payoff function.
+    def mc_exact_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Exact discretization.
 
         Args:
-            spot: Current rate.
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
 
         Returns:
-            Payoff.
+            Realizations of short rate and discount processes
+            represented on event grid.
         """
         pass
 
     @abc.abstractmethod
-    def price(self,
-              spot: (float, np.ndarray),
-              event_idx: int) -> (float, np.ndarray):
-        """Price function.
+    def mc_euler_setup(self):
+        """Setup Euler Monte-Carlo solver."""
+        pass
+
+    @abc.abstractmethod
+    def mc_euler_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Euler-Maruyama discretization.
 
         Args:
-            spot: Current rate.
-            event_idx: Index on event grid.
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
 
         Returns:
-            Price.
+            Realizations of short rate and discount processes
+            represented on event grid.
         """
         pass

@@ -10,7 +10,7 @@ from utils import global_types
 from utils import misc
 
 
-class Bond(bonds.VanillaBondAnalytical1F):
+class Bond(bonds.BondAnalytical1F):
     """Bond in 1-factor Hull-White model.
 
     Bond with pre-specified cash flow.
@@ -208,6 +208,34 @@ class Bond(bonds.VanillaBondAnalytical1F):
                        seed: int = None,
                        antithetic: bool = False):
         """Run Monte-Carlo solver on event grid.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of short rate and discount processes
+            represented on event grid.
+        """
+        pass
+
+    def mc_euler_setup(self):
+        """Setup Euler Monte-Carlo solver."""
+        pass
+
+    def mc_euler_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Euler-Maruyama discretization.
 
         Args:
             spot: Short rate at as-of date.

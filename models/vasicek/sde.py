@@ -1,14 +1,14 @@
+import abc
 import math
 import typing
 
 import numpy as np
 
-from models import sde
 from utils import global_types
 from utils import misc
 
 
-class SDE(sde.SDE):
+class Sde(metaclass=abc.ABCMeta):
     """SDE for short rate process in Vasicek model.
 
     The short rate r_t is defined by
@@ -21,8 +21,7 @@ class SDE(sde.SDE):
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
+        event_grid: Event dates as year fractions from as-of date.
     """
 
     def __init__(self,
@@ -37,14 +36,65 @@ class SDE(sde.SDE):
 
         self.model = global_types.Model.VASICEK
 
+    @abc.abstractmethod
+    def paths(self,
+              spot: float,
+              n_paths: int,
+              rng: np.random.Generator = None,
+              seed: int = None,
+              antithetic: bool = False):
+        """Generation of Monte-Carlo paths.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of short rate and discount processes
+            represented on event grid.
+        """
+        pass
+
+
+class SdeExact(Sde):
+    """SDE for short rate process in Vasicek model.
+
+    The short rate r_t is defined by
+        dr_t = kappa * (mean_rate - r_t) * dt + vol * dW_t,
+    where kappa and mean_rate are the speed of mean reversion and mean
+    reversion level, respectively, and vol denotes the volatility. W_t
+    is a Brownian motion process under the risk-neutral measure Q.
+
+    Monte-Carlo paths constructed using exact discretization.
+
+    Attributes:
+        kappa: Speed of mean reversion.
+        mean_rate: Mean reversion level.
+        vol: Volatility.
+        event_grid: Event dates as year fractions from as-of date.
+    """
+
+    def __init__(self,
+                 kappa: float,
+                 mean_rate: float,
+                 vol: float,
+                 event_grid: np.ndarray):
+        super().__init__(kappa, mean_rate, vol, event_grid)
+
         self.rate_mean = np.zeros((self.event_grid.size, 2))
         self.rate_variance = np.zeros(self.event_grid.size)
         self.discount_mean = np.zeros((self.event_grid.size, 2))
         self.discount_variance = np.zeros(self.event_grid.size)
         self.covariance = np.zeros(self.event_grid.size)
 
-        self.rates = None
-        self.discounts = None
+        self.rate_paths = None
+        self.discount_paths = None
+        self.mc_estimate = None
+        self.mc_error = None
 
         self.initialization()
 
@@ -78,7 +128,7 @@ class SDE(sde.SDE):
 
     def _rate_increment(self,
                         spot: typing.Union[float, np.ndarray],
-                        time_idx: int,
+                        event_idx: int,
                         normal_rand: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Increment short rate process one time step.
@@ -86,23 +136,25 @@ class SDE(sde.SDE):
         The spot rate is subtracted to get the increment.
 
         Args:
-            spot: Short rate at time corresponding to time_index - 1.
-            time_idx: Time index on event grid.
+            spot: Short rate at event corresponding to event_idx - 1.
+            event_idx: Index on event grid.
             normal_rand: Realizations of independent standard normal
                 random variables.
 
         Returns:
-            Incremented short rate process.
+            Increment of short rate process.
         """
-        mean = self.rate_mean[time_idx, 0] * spot + self.rate_mean[time_idx, 1]
-        variance = self.rate_variance[time_idx]
+        mean = \
+            self.rate_mean[event_idx, 0] * spot + self.rate_mean[event_idx, 1]
+        variance = self.rate_variance[event_idx]
         return mean + math.sqrt(variance) * normal_rand - spot
 
     def _calc_discount_mean(self):
         """Conditional mean of discount process.
 
-        Here the discount process refers to -int_{t_1}^{t_2} r_t dt, see
-        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.12+).
+        Here the discount process refers to -int_{t_1}^{t_2} r_t dt.
+
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.12+).
         """
         dt = np.diff(self.event_grid)
         exp_kappa = np.exp(-self.kappa * dt)
@@ -113,8 +165,9 @@ class SDE(sde.SDE):
     def _calc_discount_variance(self):
         """Conditional variance of discount process.
 
-        Here the discount process refers to -int_{t_1}^{t_2} r_t dt, see
-        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.13+).
+        Here the discount process refers to -int_{t_1}^{t_2} r_t dt.
+
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.13+).
         """
         dt = np.diff(self.event_grid)
         exp_kappa = np.exp(-self.kappa * dt)
@@ -126,24 +179,24 @@ class SDE(sde.SDE):
 
     def _discount_increment(self,
                             spot_rate: typing.Union[float, np.ndarray],
-                            time_idx: int,
+                            event_idx: int,
                             normal_rand: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Increment discount process one time step.
 
         Args:
-            spot_rate: Short rate at time corresponding to
-                time_index - 1.
-            time_idx: Time index on event grid.
+            spot_rate: Short rate at event corresponding to
+                event_idx - 1.
+            event_idx: Index on event grid.
             normal_rand: Realizations of independent standard normal
                 random variables.
 
         Returns:
-            Incremented discount process.
+            Increment of discount process.
         """
-        mean = self.discount_mean[time_idx, 0] * spot_rate \
-            + self.discount_mean[time_idx, 1]
-        variance = self.discount_variance[time_idx]
+        mean = self.discount_mean[event_idx, 0] * spot_rate \
+            + self.discount_mean[event_idx, 1]
+        variance = self.discount_variance[event_idx]
         return mean + math.sqrt(variance) * normal_rand
 
     def _calc_covariance(self):
@@ -160,11 +213,18 @@ class SDE(sde.SDE):
             vol_sq * (2 * exp_kappa - exp_two_kappa - 1) / (2 * kappa_sq)
 
     def _correlation(self,
-                     time_idx: int) -> float:
-        """Conditional correlation of short rate and discount processes."""
-        covariance = self.covariance[time_idx]
-        rate_var = self.rate_variance[time_idx]
-        discount_var = self.discount_variance[time_idx]
+                     event_idx: int) -> float:
+        """Conditional correlation of short rate and discount processes.
+
+        Args:
+            event_idx: Index on event grid.
+
+        Returns:
+            Conditional correlation.
+        """
+        covariance = self.covariance[event_idx]
+        rate_var = self.rate_variance[event_idx]
+        discount_var = self.discount_variance[event_idx]
         return covariance / math.sqrt(rate_var * discount_var)
 
     def paths(self,
@@ -184,25 +244,127 @@ class SDE(sde.SDE):
                 Default is False.
 
         Returns:
+            Realizations of correlated short rate and discount processes
+            represented on event grid.
+        """
+        if rng is None:
+            rng = np.random.default_rng(seed)
+        # Paths of rate process.
+        r_paths = np.zeros((self.event_grid.size, n_paths))
+        r_paths[0] = spot
+        # Paths of discount process.
+        d_paths = np.zeros((self.event_grid.size, n_paths))
+        for event_idx in range(1, self.event_grid.size):
+            correlation = self._correlation(event_idx)
+            # Realizations of standard normal random variables.
+            x_rate, x_discount = \
+                misc.cholesky_2d(correlation, n_paths, rng, antithetic)
+            # Increment of rate process, and update.
+            r_increment = self._rate_increment(r_paths[event_idx - 1],
+                                               event_idx, x_rate)
+            r_paths[event_idx] = r_paths[event_idx - 1] + r_increment
+            # Increment of discount process, and update.
+            d_increment = self._discount_increment(r_paths[event_idx - 1],
+                                                   event_idx, x_discount)
+            d_paths[event_idx] = d_paths[event_idx - 1] + d_increment
+        # Get actual discount factors on event_grid.
+        d_paths = np.exp(d_paths)
+        # Update.
+        self.rate_paths = r_paths
+        self.discount_paths = d_paths
+
+
+class SdeEuler(Sde):
+    """SDE for short rate process in Vasicek model.
+
+    The short rate r_t is defined by
+        dr_t = kappa * (mean_rate - r_t) * dt + vol * dW_t,
+    where kappa and mean_rate are the speed of mean reversion and mean
+    reversion level, respectively, and vol denotes the volatility. W_t
+    is a Brownian motion process under the risk-neutral measure Q.
+
+    Monte-Carlo paths constructed using Euler-Maruyama discretization.
+
+    Attributes:
+        kappa: Speed of mean reversion.
+        mean_rate: Mean reversion level.
+        vol: Volatility.
+        event_grid: Event dates as year fractions from as-of date.
+    """
+
+    def __init__(self,
+                 kappa: float,
+                 mean_rate: float,
+                 vol: float,
+                 event_grid: np.ndarray):
+        super().__init__(kappa, mean_rate, vol, event_grid)
+
+        self.rate_paths = None
+        self.discount_paths = None
+        self.mc_estimate = None
+        self.mc_error = None
+
+    def _rate_increment(self,
+                        spot: typing.Union[float, np.ndarray],
+                        dt: float,
+                        normal_rand: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
+        """Increment short rate process one time step.
+
+        Args:
+            spot: Short rate at event corresponding to event_idx - 1.
+            dt: Time step.
+            normal_rand: Realizations of independent standard normal
+                random variables.
+
+        Returns:
+            Increment of short rate process.
+        """
+        wiener_increment = math.sqrt(dt) * normal_rand
+        rate_increment = self.kappa * (self.mean_rate - spot) * dt \
+            + self.vol * wiener_increment
+        return rate_increment
+
+    def paths(self,
+              spot: float,
+              n_paths: int,
+              rng: np.random.Generator = None,
+              seed: int = None,
+              antithetic: bool = False):
+        """Generation of Monte-Carlo paths using Euler discretization.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
             Realizations of short rate and discount processes
             represented on event grid.
         """
-        rate = np.zeros((self.event_grid.size, n_paths))
-        rate[0] = spot
-        discount = np.zeros((self.event_grid.size, n_paths))
         if rng is None:
             rng = np.random.default_rng(seed)
-        for time_idx in range(1, self.event_grid.size):
-            correlation = self._correlation(time_idx)
-            x_rate, x_discount = \
-                misc.cholesky_2d(correlation, n_paths, rng, antithetic)
-            rate[time_idx] = rate[time_idx - 1] \
-                + self._rate_increment(rate[time_idx - 1], time_idx, x_rate)
-            discount[time_idx] = discount[time_idx - 1] \
-                + self._discount_increment(rate[time_idx - 1], time_idx,
-                                           x_discount)
-        # Get discount factors on event_grid.
-        discount = np.exp(discount)
-        # Update...
-        self.rates = rate
-        self.discounts = discount
+        # Paths of rate process.
+        r_paths = np.zeros((self.event_grid.size, n_paths))
+        r_paths[0] = spot
+        # Paths of discount process.
+        d_paths = np.zeros((self.event_grid.size, n_paths))
+        for idx, dt in enumerate(np.diff(self.event_grid)):
+            event_idx = idx + 1
+            # Realizations of standard normal random variables.
+            x_rate = misc.normal_realizations(n_paths, rng, antithetic)
+            # Increment of rate process, and update.
+            r_increment = \
+                self._rate_increment(r_paths[event_idx - 1], dt, x_rate)
+            r_paths[event_idx] = r_paths[event_idx - 1] + r_increment
+            # Increment of discount process, and update.
+            d_increment = -r_paths[event_idx - 1] * dt
+            d_paths[event_idx] = d_paths[event_idx - 1] + d_increment
+        # Get actual discount factors on event_grid.
+        d_paths = np.exp(d_paths)
+        # Update.
+        self.rate_paths = r_paths
+        self.discount_paths = d_paths

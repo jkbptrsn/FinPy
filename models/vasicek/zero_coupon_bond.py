@@ -1,3 +1,4 @@
+import math
 import typing
 
 import numpy as np
@@ -9,19 +10,18 @@ from utils import global_types
 from utils import payoffs
 
 
-class ZCBond(bonds.VanillaBondAnalytical1F):
+class ZCBond(bonds.BondAnalytical1F):
     """Zero-coupon bond in Vasicek model.
 
-    Zero-coupon bond dependent on short rate modelled by Vasicek SDE.
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
+    Zero-coupon bond price dependent on short rate modelled by Vasicek
+    SDE. See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
 
     Attributes:
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
         maturity_idx: Maturity index on event grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
+        event_grid: Event dates as year fractions from as-of date.
     """
 
     def __init__(self,
@@ -50,7 +50,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         """Payoff function.
 
         Args:
-            spot: Current short rate.
+            spot: Short rate at as-of date.
 
         Returns:
             Payoff.
@@ -63,7 +63,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         """Price function.
 
         Args:
-            spot: Current short rate.
+            spot: Short rate at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -78,7 +78,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         """1st order price sensitivity wrt short rate.
 
         Args:
-            spot: Current short rate.
+            spot: Short rate at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -92,7 +92,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         """2nd order price sensitivity wrt short rate.
 
         Args:
-            spot: Current short rate.
+            spot: Short rate at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -106,7 +106,7 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Current short rate.
+            spot: Short rate at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -120,13 +120,14 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
         self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = self.payoff(self.fd.grid)
+        # Backward propagation.
         for dt in np.flip(np.diff(self.event_grid)):
             self.fd.propagation(dt)
 
     def mc_exact_setup(self):
         """Setup exact Monte-Carlo solver."""
         self.mc_exact = \
-            sde.SDE(self.kappa, self.mean_rate, self.vol, self.event_grid)
+            sde.SdeExact(self.kappa, self.mean_rate, self.vol, self.event_grid)
 
     def mc_exact_solve(self,
                        spot: float,
@@ -135,6 +136,36 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
                        seed: int = None,
                        antithetic: bool = False):
         """Run Monte-Carlo solver on event grid.
+
+        Generation of Monte-Carlo paths using exact discretization.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+        """
+        self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        self.mc_exact.mc_estimate = self.mc_exact.discount_paths[-1].mean()
+        self.mc_exact.mc_error = self.mc_exact.discount_paths[-1].std(ddof=1)
+        self.mc_exact.mc_error /= math.sqrt(n_paths)
+
+    def mc_euler_setup(self):
+        """Setup Euler Monte-Carlo solver."""
+        self.mc_euler = \
+            sde.SdeEuler(self.kappa, self.mean_rate, self.vol, self.event_grid)
+
+    def mc_euler_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Euler-Maruyama discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -148,7 +179,10 @@ class ZCBond(bonds.VanillaBondAnalytical1F):
             Realizations of short rate and discount processes
             represented on event grid.
         """
-        self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
+        self.mc_euler.mc_estimate = self.mc_euler.discount_paths[-1].mean()
+        self.mc_euler.mc_error = self.mc_euler.discount_paths[-1].std(ddof=1)
+        self.mc_euler.mc_error /= math.sqrt(n_paths)
 
     def a_function(self,
                    event_idx: int) -> float:
