@@ -69,7 +69,7 @@ class SdeExact(Sde):
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
 
-    Monte-Carlo paths are constructed using exact discretization.
+    Monte-Carlo paths constructed using exact discretization.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -283,7 +283,7 @@ class SdeEuler(Sde):
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
 
-    Monte-Carlo paths are constructed using Euler discretization.
+    Monte-Carlo paths constructed using Euler-Maruyama discretization.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -303,6 +303,27 @@ class SdeEuler(Sde):
         self.discount_paths = None
         self.mc_estimate = None
         self.mc_error = None
+
+    def _rate_increment(self,
+                        spot: typing.Union[float, np.ndarray],
+                        dt: float,
+                        normal_rand: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
+        """Increment short rate process one time step.
+
+        Args:
+            spot: Short rate at event corresponding to event_idx - 1.
+            dt: Time step.
+            normal_rand: Realizations of independent standard normal
+                random variables.
+
+        Returns:
+            Increment of short rate process.
+        """
+        wiener_increment = math.sqrt(dt) * normal_rand
+        rate_increment = self.kappa * (self.mean_rate - spot) * dt \
+            + self.vol * wiener_increment
+        return rate_increment
 
     def paths(self,
               spot: float,
@@ -324,4 +345,26 @@ class SdeEuler(Sde):
             Realizations of short rate and discount processes
             represented on event grid.
         """
-        pass
+        if rng is None:
+            rng = np.random.default_rng(seed)
+        # Paths of rate process.
+        r_paths = np.zeros((self.event_grid.size, n_paths))
+        r_paths[0] = spot
+        # Paths of discount process.
+        d_paths = np.zeros((self.event_grid.size, n_paths))
+        for idx, dt in enumerate(np.diff(self.event_grid)):
+            event_idx = idx + 1
+            # Realizations of standard normal random variables.
+            x_rate = misc.normal_realizations(n_paths, rng, antithetic)
+            # Increment of rate process, and update.
+            r_increment = \
+                self._rate_increment(r_paths[event_idx - 1], dt, x_rate)
+            r_paths[event_idx] = r_paths[event_idx - 1] + r_increment
+            # Increment of discount process, and update.
+            d_increment = -r_paths[event_idx - 1] * dt
+            d_paths[event_idx] = d_paths[event_idx - 1] + d_increment
+        # Get actual discount factors on event_grid.
+        d_paths = np.exp(d_paths)
+        # Update.
+        self.rate_paths = r_paths
+        self.discount_paths = d_paths

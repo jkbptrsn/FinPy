@@ -152,14 +152,10 @@ class ZCBond(bonds.BondAnalytical1F):
         self.mc_exact.mc_error = self.mc_exact.discount_paths[-1].std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
-        # TODO: SdeEuler with numerical integration of discount factors.
-        # TODO: Setup unit test for mc_euler.
-
-########################################################################
-
     def mc_euler_setup(self):
         """Setup Euler Monte-Carlo solver."""
-        pass
+        self.mc_euler = \
+            sde.SdeEuler(self.kappa, self.mean_rate, self.vol, self.event_grid)
 
     def mc_euler_solve(self,
                        spot: float,
@@ -183,9 +179,10 @@ class ZCBond(bonds.BondAnalytical1F):
             Realizations of short rate and discount processes
             represented on event grid.
         """
-        pass
-
-########################################################################
+        self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
+        self.mc_euler.mc_estimate = self.mc_euler.discount_paths[-1].mean()
+        self.mc_euler.mc_error = self.mc_euler.discount_paths[-1].std(ddof=1)
+        self.mc_euler.mc_error /= math.sqrt(n_paths)
 
     def a_function(self,
                    event_idx: int) -> float:
