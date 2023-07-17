@@ -1,3 +1,4 @@
+import math
 import typing
 
 import numpy as np
@@ -49,7 +50,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """Payoff function.
 
         Args:
-            spot: Current short rate.
+            spot: Short rate at as-of date.
 
         Returns:
             Payoff.
@@ -62,7 +63,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """Price function.
 
         Args:
-            spot: Current short rate.
+            spot: Short rate at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -77,7 +78,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """1st order price sensitivity wrt short rate.
 
         Args:
-            spot: Current short rate.
+            spot: Short rate at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -91,7 +92,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """2nd order price sensitivity wrt short rate.
 
         Args:
-            spot: Current short rate.
+            spot: Short rate at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -105,7 +106,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Current short rate.
+            spot: Short rate at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -114,13 +115,12 @@ class ZCBond(bonds.BondAnalytical1F):
         return self.price(spot, event_idx) \
             * (self.dadt(event_idx) - self.dbdt(event_idx) * spot)
 
-########################################################################
-
     def fd_solve(self):
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = self.payoff(self.fd.grid)
+        # Backward propagation.
         for dt in np.flip(np.diff(self.event_grid)):
             self.fd.propagation(dt)
 
@@ -137,7 +137,7 @@ class ZCBond(bonds.BondAnalytical1F):
                        antithetic: bool = False):
         """Run Monte-Carlo solver on event grid.
 
-        Exact discretization.
+        Generation of Monte-Carlo paths using exact discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -146,12 +146,13 @@ class ZCBond(bonds.BondAnalytical1F):
             seed: Seed of random number generator. Default is None.
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        self.mc_exact.mc_estimate = self.mc_exact.discount_paths[-1].mean()
+        self.mc_exact.mc_error = self.mc_exact.discount_paths[-1].std(ddof=1)
+        self.mc_exact.mc_error /= math.sqrt(n_paths)
+
+########################################################################
 
     def mc_euler_setup(self):
         """Setup Euler Monte-Carlo solver."""

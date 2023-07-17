@@ -106,7 +106,7 @@ class ZeroCouponBond(unittest.TestCase):
             error = np.zeros(n_rep)
             for rep in range(n_rep):
                 self.mc_bond.mc_exact_solve(s, n_paths, rng=rng)
-                discounts = self.mc_bond.mc_exact.discounts
+                discounts = self.mc_bond.mc_exact.discount_paths
                 price_n = discounts[self.mc_maturity_idx, :].mean()
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
@@ -117,7 +117,7 @@ class ZeroCouponBond(unittest.TestCase):
             for rep in range(n_rep):
                 self.mc_bond.mc_exact_solve(s, n_paths, rng=rng,
                                             antithetic=True)
-                discounts = self.mc_bond.mc_exact.discounts
+                discounts = self.mc_bond.mc_exact.discount_paths
                 price_n = discounts[self.mc_maturity_idx, :].mean()
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:

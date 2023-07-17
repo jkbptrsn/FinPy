@@ -30,7 +30,7 @@ class AmericanOption(metaclass=abc.ABCMeta):
         """Payoff function.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
 
         Returns:
             Payoff.
@@ -86,7 +86,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """Payoff function.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
 
         Returns:
             Payoff.
@@ -100,7 +100,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """Price function.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -115,7 +115,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """1st order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -130,7 +130,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """2nd order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -145,7 +145,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
             event_idx: Index on event grid.
 
         Returns:
@@ -210,7 +210,7 @@ class EuropeanOption2D(metaclass=abc.ABCMeta):
         """Payoff function.
 
         Args:
-            spot: Current value of underlying.
+            spot: Value of underlying at as-of date.
 
         Returns:
             Payoff.

@@ -109,8 +109,8 @@ class CallOption(unittest.TestCase):
             error = np.zeros(n_rep)
             for rep in range(n_rep):
                 self.mc_call.mc_exact_solve(s, n_paths, rng=rng)
-                rates = self.mc_call.mc_exact.rates
-                discounts = self.mc_call.mc_exact.discounts
+                rates = self.mc_call.mc_exact.rate_paths
+                discounts = self.mc_call.mc_exact.discount_paths
 
 #                zc_prices = 1 * (discounts[self.mc_maturity_idx] / discounts[self.mc_expiry_idx])
 
@@ -128,8 +128,8 @@ class CallOption(unittest.TestCase):
             for rep in range(n_rep):
                 self.mc_call.mc_exact_solve(s, n_paths, rng=rng,
                                             antithetic=True)
-                rates = self.mc_call.mc_exact.rates
-                discounts = self.mc_call.mc_exact.discounts
+                rates = self.mc_call.mc_exact.rate_paths
+                discounts = self.mc_call.mc_exact.discount_paths
 
 #                zc_prices = 1 * (discounts[self.mc_maturity_idx] / discounts[self.mc_expiry_idx])
 
