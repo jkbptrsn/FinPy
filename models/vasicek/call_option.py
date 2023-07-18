@@ -1,3 +1,4 @@
+import math
 import typing
 
 import numpy as np
@@ -69,8 +70,6 @@ class Call(options.Option1FAnalytical):
             Payoff.
         """
         return payoffs.call(spot, self.strike)
-
-########################################################################
 
     def price(self,
               spot: typing.Union[float, np.ndarray],
@@ -145,9 +144,12 @@ class Call(options.Option1FAnalytical):
         self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = self.zcbond.payoff(self.fd.grid)
-        for idx, dt in enumerate(np.flip(np.diff(self.event_grid))):
+        # Backward propagation.
+        time_steps = np.flip(np.diff(self.event_grid))
+        for idx, dt in enumerate(time_steps):
+            event_idx = self.event_grid.size - idx - 1
             # Expiry of call option.
-            if idx == self.maturity_idx - self.expiry_idx:
+            if event_idx == self.expiry_idx:
                 self.fd.solution = self.payoff(self.fd.solution)
             self.fd.propagation(dt)
 
@@ -179,10 +181,22 @@ class Call(options.Option1FAnalytical):
             represented on event grid.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        # Short rates at expiry.
+        rates = self.mc_exact.rate_paths[self.expiry_idx]
+        # Zero-coupon bond prices.
+        zcbond_prices = self.zcbond.price(rates, self.expiry_idx)
+        # Call option payoffs.
+        call_prices = self.payoff(zcbond_prices)
+        # Discounted payoffs.
+        call_prices *= self.mc_exact.discount_paths[self.expiry_idx]
+        self.mc_exact.mc_estimate = call_prices.mean()
+        self.mc_exact.mc_error = call_prices.std(ddof=1)
+        self.mc_exact.mc_error /= math.sqrt(n_paths)
 
     def mc_euler_setup(self):
         """Setup Euler Monte-Carlo solver."""
-        pass
+        self.mc_euler = \
+            sde.SdeEuler(self.kappa, self.mean_rate, self.vol, self.event_grid)
 
     def mc_euler_solve(self,
                        spot: float,
@@ -206,4 +220,15 @@ class Call(options.Option1FAnalytical):
             Realizations of short rate and discount processes
             represented on event grid.
         """
-        pass
+        self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
+        # Short rates at expiry.
+        rates = self.mc_euler.rate_paths[self.expiry_idx]
+        # Zero-coupon bond prices.
+        zcbond_prices = self.zcbond.price(rates, self.expiry_idx)
+        # Call option payoffs.
+        call_prices = self.payoff(zcbond_prices)
+        # Discounted payoffs.
+        call_prices *= self.mc_euler.discount_paths[self.expiry_idx]
+        self.mc_euler.mc_estimate = call_prices.mean()
+        self.mc_euler.mc_error = call_prices.std(ddof=1)
+        self.mc_euler.mc_error /= math.sqrt(n_paths)

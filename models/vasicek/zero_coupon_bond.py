@@ -121,7 +121,8 @@ class ZCBond(bonds.BondAnalytical1F):
         # Set terminal condition.
         self.fd.solution = self.payoff(self.fd.grid)
         # Backward propagation.
-        for dt in np.flip(np.diff(self.event_grid)):
+        time_steps = np.flip(np.diff(self.event_grid))
+        for dt in time_steps:
             self.fd.propagation(dt)
 
     def mc_exact_setup(self):

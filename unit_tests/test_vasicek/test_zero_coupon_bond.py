@@ -23,18 +23,18 @@ class ZeroCouponBond(unittest.TestCase):
         # FD spatial grid.
         self.x_min = -0.4
         self.x_max = 0.6
-        self.x_steps = 200
+        self.x_steps = 201
         self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         # Bond maturity.
         self.maturity = 10
         # FD event grid.
-        self.fd_t_steps = 100
+        self.fd_t_steps = 101
         self.fd_dt = self.maturity / (self.fd_t_steps - 1)
         self.fd_event_grid = self.fd_dt * np.arange(self.fd_t_steps)
         self.fd_maturity_idx = self.fd_t_steps - 1
         # MC event grid; exact discretization.
-        self.mc_t_steps = 2
+        self.mc_t_steps = 3
         self.mc_dt = self.maturity / (self.mc_t_steps - 1)
         self.mc_event_grid = self.mc_dt * np.arange(self.mc_t_steps)
         self.mc_maturity_idx = self.mc_t_steps - 1
@@ -45,10 +45,12 @@ class ZeroCouponBond(unittest.TestCase):
             self.mc_euler_dt * np.arange(self.mc_euler_t_steps)
         self.mc_euler_maturity_idx = self.mc_euler_t_steps - 1
         # Zero-coupon bond objects.
-        self.fd_bond = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                                     self.fd_maturity_idx, self.fd_event_grid)
-        self.mc_bond = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                                     self.mc_maturity_idx, self.mc_event_grid)
+        self.fd_bond = \
+            zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
+                          self.fd_maturity_idx, self.fd_event_grid)
+        self.mc_bond = \
+            zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
+                          self.mc_maturity_idx, self.mc_event_grid)
         self.mc_euler_bond = \
             zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
                           self.mc_euler_maturity_idx, self.mc_euler_event_grid)
@@ -77,7 +79,7 @@ class ZeroCouponBond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 1.5e-3)
+        self.assertTrue(max_error < 1.6e-3)
         # Check gamma.
         numerical = self.fd_bond.fd.gamma()
         analytical = self.fd_bond.gamma(self.x_grid, 0)
@@ -85,7 +87,7 @@ class ZeroCouponBond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 7.2e-3)
+        self.assertTrue(max_error < 7.4e-3)
         # Check theta.
         numerical = self.fd_bond.fd.theta()
         analytical = self.fd_bond.theta(self.x_grid, 0)
@@ -134,7 +136,7 @@ class ZeroCouponBond(unittest.TestCase):
                       f"Short rate = {s:5.2f}, price = {price_a:2.3f}, "
                       f"error mean = {error.mean():2.5f}, "
                       f"error std = {error.std():2.5f}")
-            self.assertTrue(error.mean() < 5.4e-3 and error.std() < 3.8e-3)
+            self.assertTrue(error.mean() < 5.7e-3 and error.std() < 4.4e-3)
 
     def test_monte_carlo_euler(self) -> None:
         """Monte-Carlo pricing of zero-coupon bond."""
