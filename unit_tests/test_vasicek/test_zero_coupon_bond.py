@@ -1,7 +1,9 @@
 import unittest
 
+import matplotlib.pyplot as plt
 import numpy as np
 
+from models.vasicek import european_option as option
 from models.vasicek import zero_coupon_bond as zcbond
 from utils import plots
 
@@ -181,4 +183,76 @@ class ZeroCouponBond(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+
+    # Model parameters.
+    kappa_ = 0.1
+    mean_rate_ = 0.03
+    vol_ = 0.05
+    spot_ = 0.02
+    spot_vector_ = np.arange(-5, 6, 1) * spot_
+    expiry_ = 5
+    maturity_ = 10
+    event_grid_ = np.array([0, expiry_, maturity_])
+    expiry_idx_ = 1
+    maturity_idx_ = 2
+    strike_ = 1.1
+    # Zero-coupon bond.
+    bond = zcbond.ZCBond(kappa_, mean_rate_, vol_, maturity_idx_, event_grid_)
+    bond_price_a = spot_vector_ * 0
+    bond_price_n = spot_vector_ * 0
+    bond_price_n_error = spot_vector_ * 0
+    # Call option.
+    call = option.EuropeanOption(kappa_, mean_rate_, vol_, strike_,
+                                 expiry_idx_, maturity_idx_, event_grid_,
+                                 "Call")
+    call_price_a = spot_vector_ * 0
+    call_price_n = spot_vector_ * 0
+    call_price_n_error = spot_vector_ * 0
+    # Put option.
+    put = option.EuropeanOption(kappa_, mean_rate_, vol_, strike_,
+                                expiry_idx_, maturity_idx_, event_grid_,
+                                "Put")
+    put_price_a = spot_vector_ * 0
+    put_price_n = spot_vector_ * 0
+    put_price_n_error = spot_vector_ * 0
+    # Initialize random number generator.
+    rng_ = np.random.default_rng(0)
+    # Number of paths for each Monte-Carlo estimate.
+    n_paths_ = 1000
+    for idx, s in enumerate(spot_vector_):
+        # Price of zero-coupon bond with maturity = maturity_.
+        bond_price_a[idx] = bond.price(s, 0)
+        bond.mc_exact_setup()
+        bond.mc_exact_solve(s, n_paths_, rng=rng_)
+        bond_price_n[idx] = bond.mc_exact.mc_estimate
+        bond_price_n_error[idx] = bond.mc_exact.mc_error
+        # Call option price with expiry = expiry_.
+        call_price_a[idx] = call.price(s, 0)
+        call.mc_exact_setup()
+        call.mc_exact_solve(s, n_paths_, rng=rng_)
+        call_price_n[idx] = call.mc_exact.mc_estimate
+        call_price_n_error[idx] = call.mc_exact.mc_error
+        # Put option price with expiry = expiry_
+        put_price_a[idx] = put.price(s, 0)
+        put.mc_exact_setup()
+        put.mc_exact_solve(s, n_paths_, rng=rng_)
+        put_price_n[idx] = put.mc_exact.mc_estimate
+        put_price_n_error[idx] = put.mc_exact.mc_error
+    # Plot error bars corresponding to 95%-confidence intervals.
+    bond_price_n_error *= 1.96
+    call_price_n_error *= 1.96
+    put_price_n_error *= 1.96
+    plt.plot(spot_vector_, bond_price_a, "-b", label="Zero-coupon bond")
+    plt.errorbar(spot_vector_, bond_price_n, bond_price_n_error,
+                 linestyle="none", marker="o", color="b", capsize=5)
+    plt.plot(spot_vector_, call_price_a, "-r", label="Call option")
+    plt.errorbar(spot_vector_, call_price_n, call_price_n_error,
+                 linestyle="none", marker="o", color="r", capsize=5)
+    plt.plot(spot_vector_, put_price_a, "-g", label="Put option")
+    plt.errorbar(spot_vector_, put_price_n, put_price_n_error,
+                 linestyle="none", marker="o", color="g", capsize=5)
+    plt.title(f"95% confidence intervals ({n_paths_} samples)")
+    plt.xlabel("Spot rate")
+    plt.ylabel("Price")
+    plt.legend()
+    plt.show()
