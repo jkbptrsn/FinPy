@@ -7,14 +7,15 @@ from models import options
 from models.vasicek import misc
 from models.vasicek import sde
 from models.vasicek import zero_coupon_bond as zcbond
-from utils import global_types
+from utils.global_types import Instrument
+from utils.global_types import Model
 from utils import payoffs
 
 
-class Call(options.Option1FAnalytical):
-    """European call option in Vasicek model.
+class EuropeanOption(options.Option1FAnalytical):
+    """European call/put option in Vasicek model.
 
-    European call option written on a zero-coupon bond.
+    European call/put option written on a zero-coupon bond.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -24,6 +25,7 @@ class Call(options.Option1FAnalytical):
         expiry_idx: Expiry index on event grid.
         maturity_idx: Maturity index on event grid.
         event_grid: Event dates as year fractions from as-of date.
+        type_: Option type. Default is call.
     """
 
     def __init__(self,
@@ -33,7 +35,8 @@ class Call(options.Option1FAnalytical):
                  strike: float,
                  expiry_idx: int,
                  maturity_idx: int,
-                 event_grid: np.ndarray):
+                 event_grid: np.ndarray,
+                 type_: str = "Call"):
         super().__init__()
         self.kappa = kappa
         self.mean_rate = mean_rate
@@ -47,8 +50,13 @@ class Call(options.Option1FAnalytical):
         self.zcbond = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
                                     self.maturity_idx, self.event_grid)
 
-        self.model = global_types.Model.VASICEK
-        self.type = global_types.Instrument.EUROPEAN_CALL
+        self.model = Model.VASICEK
+        if type_ == "Call":
+            self.type = Instrument.EUROPEAN_CALL
+        elif type_ == "Put":
+            self.type = Instrument.EUROPEAN_PUT
+        else:
+            raise ValueError(f"Option type is unknown: {type_}")
 
     @property
     def expiry(self) -> float:
@@ -69,7 +77,10 @@ class Call(options.Option1FAnalytical):
         Returns:
             Payoff.
         """
-        return payoffs.call(spot, self.strike)
+        if self.type == Instrument.EUROPEAN_CALL:
+            return payoffs.call(spot, self.strike)
+        else:
+            return payoffs.put(spot, self.strike)
 
     def price(self,
               spot: typing.Union[float, np.ndarray],
@@ -86,7 +97,7 @@ class Call(options.Option1FAnalytical):
         return misc.european_option_price(
             spot, event_idx, self.kappa, self.mean_rate, self.vol,
             self.strike, self.expiry_idx, self.maturity_idx, self.event_grid,
-            "Call")
+            self.type)
 
     def delta(self,
               spot: typing.Union[float, np.ndarray],
@@ -103,7 +114,7 @@ class Call(options.Option1FAnalytical):
         return misc.european_option_delta(
             spot, event_idx, self.kappa, self.mean_rate, self.vol,
             self.strike, self.expiry_idx, self.maturity_idx, self.event_grid,
-            "Call")
+            self.type)
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
@@ -120,7 +131,7 @@ class Call(options.Option1FAnalytical):
         return misc.european_option_gamma(
             spot, event_idx, self.kappa, self.mean_rate, self.vol,
             self.strike, self.expiry_idx, self.maturity_idx, self.event_grid,
-            "Call")
+            self.type)
 
     def theta(self,
               spot: typing.Union[float, np.ndarray],
@@ -137,7 +148,7 @@ class Call(options.Option1FAnalytical):
         return misc.european_option_theta(
             spot, event_idx, self.kappa, self.mean_rate, self.vol,
             self.strike, self.expiry_idx, self.maturity_idx, self.event_grid,
-            "Call")
+            self.type)
 
     def fd_solve(self):
         """Run finite difference solver on event grid."""
@@ -148,7 +159,7 @@ class Call(options.Option1FAnalytical):
         time_steps = np.flip(np.diff(self.event_grid))
         for idx, dt in enumerate(time_steps):
             event_idx = self.event_grid.size - idx - 1
-            # Expiry of call option.
+            # Expiry of option.
             if event_idx == self.expiry_idx:
                 self.fd.solution = self.payoff(self.fd.solution)
             self.fd.propagation(dt)
@@ -185,12 +196,12 @@ class Call(options.Option1FAnalytical):
         rates = self.mc_exact.rate_paths[self.expiry_idx]
         # Zero-coupon bond prices.
         zcbond_prices = self.zcbond.price(rates, self.expiry_idx)
-        # Call option payoffs.
-        call_prices = self.payoff(zcbond_prices)
+        # Option payoffs.
+        option_prices = self.payoff(zcbond_prices)
         # Discounted payoffs.
-        call_prices *= self.mc_exact.discount_paths[self.expiry_idx]
-        self.mc_exact.mc_estimate = call_prices.mean()
-        self.mc_exact.mc_error = call_prices.std(ddof=1)
+        option_prices *= self.mc_exact.discount_paths[self.expiry_idx]
+        self.mc_exact.mc_estimate = option_prices.mean()
+        self.mc_exact.mc_error = option_prices.std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
     def mc_euler_setup(self):
@@ -225,10 +236,10 @@ class Call(options.Option1FAnalytical):
         rates = self.mc_euler.rate_paths[self.expiry_idx]
         # Zero-coupon bond prices.
         zcbond_prices = self.zcbond.price(rates, self.expiry_idx)
-        # Call option payoffs.
-        call_prices = self.payoff(zcbond_prices)
+        # Option payoffs.
+        option_prices = self.payoff(zcbond_prices)
         # Discounted payoffs.
-        call_prices *= self.mc_euler.discount_paths[self.expiry_idx]
-        self.mc_euler.mc_estimate = call_prices.mean()
-        self.mc_euler.mc_error = call_prices.std(ddof=1)
+        option_prices *= self.mc_euler.discount_paths[self.expiry_idx]
+        self.mc_euler.mc_estimate = option_prices.mean()
+        self.mc_euler.mc_error = option_prices.std(ddof=1)
         self.mc_euler.mc_error /= math.sqrt(n_paths)

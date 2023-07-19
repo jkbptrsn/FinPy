@@ -5,6 +5,7 @@ import numpy as np
 from scipy.stats import norm
 
 from models.vasicek import zero_coupon_bond as zcbond
+from utils.global_types import Instrument
 
 
 def a_function(time1: float,
@@ -151,7 +152,7 @@ def european_option_price(spot: typing.Union[float, np.ndarray],
                           expiry_idx: int,
                           maturity_idx: int,
                           event_grid: np.ndarray,
-                          option_type: str = "Call") \
+                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option price.
 
@@ -172,9 +173,9 @@ def european_option_price(spot: typing.Union[float, np.ndarray],
     Returns:
         European call/put option price.
     """
-    if option_type == "Call":
+    if option_type == Instrument.EUROPEAN_CALL:
         omega = 1
-    elif option_type == "Put":
+    elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
         raise ValueError(f"Option type is unknown: {option_type}")
@@ -203,7 +204,7 @@ def european_option_delta(spot: typing.Union[float, np.ndarray],
                           expiry_idx: int,
                           maturity_idx: int,
                           event_grid: np.ndarray,
-                          option_type: str = "Call") \
+                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option delta.
 
@@ -224,9 +225,9 @@ def european_option_delta(spot: typing.Union[float, np.ndarray],
     Returns:
         European call/put option delta.
     """
-    if option_type == "Call":
+    if option_type == Instrument.EUROPEAN_CALL:
         omega = 1
-    elif option_type == "Put":
+    elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
         raise ValueError(f"Option type is unknown: {option_type}")
@@ -262,7 +263,7 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
                           expiry_idx: int,
                           maturity_idx: int,
                           event_grid: np.ndarray,
-                          option_type: str = "Call") \
+                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option gamma.
 
@@ -283,9 +284,9 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
     Returns:
         European call/put option gamma.
     """
-    if option_type == "Call":
+    if option_type == Instrument.EUROPEAN_CALL:
         omega = 1
-    elif option_type == "Put":
+    elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
         raise ValueError(f"Option type is unknown: {option_type}")
@@ -315,8 +316,8 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
          - strike * zc1_delta * norm.pdf(omega * (h - s_p)))
     # See notes.
     gamma -= dhdr ** 2 * \
-        (zc2_price * h * norm.pdf(omega * h)
-         - strike * zc1_price * (h - s_p) * norm.pdf(omega * (h - s_p)))
+        (zc2_price * omega * h * norm.pdf(omega * h)
+         - strike * zc1_price * omega * (h - s_p) * norm.pdf(omega * (h - s_p)))
     gamma += omega * d2hdr2 * \
         (zc2_price * norm.pdf(omega * h)
          - strike * zc1_price * norm.pdf(omega * (h - s_p)))
@@ -332,7 +333,7 @@ def european_option_theta(spot: typing.Union[float, np.ndarray],
                           expiry_idx: int,
                           maturity_idx: int,
                           event_grid: np.ndarray,
-                          option_type: str = "Call") \
+                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option theta.
 
@@ -353,9 +354,9 @@ def european_option_theta(spot: typing.Union[float, np.ndarray],
     Returns:
         European call/put option theta.
     """
-    if option_type == "Call":
+    if option_type == Instrument.EUROPEAN_CALL:
         omega = 1
-    elif option_type == "Put":
+    elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
         raise ValueError(f"Option type is unknown: {option_type}")
@@ -380,9 +381,9 @@ def european_option_theta(spot: typing.Union[float, np.ndarray],
     ds_pdt *= -vol * b_function(expiry, maturity, kappa) * exp_kappa / 2
     dhdt = (0.5 - np.log(zc2_price / (zc1_price * strike)) / s_p ** 2) * ds_pdt
     dhdt += (zc2_theta / zc2_price - zc1_theta / zc1_price) / s_p
-    delta = zc2_theta * norm.cdf(omega * h) \
+    theta = zc2_theta * norm.cdf(omega * h) \
         - strike * zc1_theta * norm.cdf(omega * (h - s_p))
-    delta += omega * dhdt \
-        * (zc2_price * norm.pdf(omega * h)
-           - strike * zc1_price * norm.pdf(omega * (h - s_p)))
-    return omega * delta
+    theta += omega \
+        * (zc2_price * norm.pdf(omega * h) * dhdt
+           - strike * zc1_price * norm.pdf(omega * (h - s_p)) * (dhdt - ds_pdt))
+    return omega * theta
