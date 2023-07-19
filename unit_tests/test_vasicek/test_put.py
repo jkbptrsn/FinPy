@@ -12,8 +12,8 @@ if print_results:
     print("Unit test results from: " + __name__)
 
 
-class CallOption(unittest.TestCase):
-    """European call option in Vasicek model."""
+class PutOption(unittest.TestCase):
+    """European put option in Vasicek model."""
 
     def setUp(self) -> None:
         # Model parameters.
@@ -31,7 +31,7 @@ class CallOption(unittest.TestCase):
         # Option expiry.
         self.expiry = 5
         # Option strike.
-        self.strike = 0.8
+        self.strike = 1.3
         # FD event grid.
         self.fd_t_steps = 101
         self.fd_dt = self.maturity / (self.fd_t_steps - 1)
@@ -51,69 +51,69 @@ class CallOption(unittest.TestCase):
             self.mc_euler_dt * np.arange(self.mc_euler_t_steps)
         self.mc_euler_maturity_idx = self.mc_euler_t_steps - 1
         self.mc_euler_expiry_idx = (self.mc_euler_t_steps - 1) // 2
-        # Call option.
-        self.fd_call = \
+        # Put option.
+        self.fd_put = \
             option.EuropeanOption(self.kappa, self.mean_rate, self.vol,
                                   self.strike,
                                   self.fd_expiry_idx, self.fd_maturity_idx,
-                                  self.fd_event_grid, "Call")
-        self.mc_call = \
+                                  self.fd_event_grid, "Put")
+        self.mc_put = \
             option.EuropeanOption(self.kappa, self.mean_rate, self.vol,
                                   self.strike,
                                   self.mc_expiry_idx, self.mc_maturity_idx,
-                                  self.mc_event_grid, "Call")
-        self.mc_euler_call = \
+                                  self.mc_event_grid, "Put")
+        self.mc_euler_put = \
             option.EuropeanOption(self.kappa, self.mean_rate, self.vol,
                                   self.strike,
                                   self.mc_euler_expiry_idx,
                                   self.mc_euler_maturity_idx,
-                                  self.mc_euler_event_grid, "Call")
+                                  self.mc_euler_event_grid, "Put")
 
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
-        self.fd_call.fd_setup(self.x_grid, equidistant=True)
-        self.fd_call.fd_solve()
+        self.fd_put.fd_setup(self.x_grid, equidistant=True)
+        self.fd_put.fd_solve()
         # Check price.
-        numerical = self.fd_call.fd.solution
-        analytical = self.fd_call.price(self.x_grid, 0)
+        numerical = self.fd_put.fd.solution
+        analytical = self.fd_put.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
         if plot_results:
-            plots.plot_price_and_greeks(self.fd_call)
+            plots.plot_price_and_greeks(self.fd_put)
         # Maximum error in interval around short rate of 0.1.
         idx_min = np.argwhere(self.x_grid < -0.2)[-1][0]
         idx_max = np.argwhere(self.x_grid < 0.4)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
-        self.assertTrue(max_error < 8.3e-3)
+        self.assertTrue(max_error < 3.3e-4)
         # Check delta.
-        numerical = self.fd_call.fd.delta()
-        analytical = self.fd_call.delta(self.x_grid, 0)
+        numerical = self.fd_put.fd.delta()
+        analytical = self.fd_put.delta(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 6.0e-3)
+        self.assertTrue(max_error < 6.7e-3)
         # Check gamma.
-        numerical = self.fd_call.fd.gamma()
-        analytical = self.fd_call.gamma(self.x_grid, 0)
+        numerical = self.fd_put.fd.gamma()
+        analytical = self.fd_put.gamma(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 8.7e-3)
+        self.assertTrue(max_error < 8.8e-2)
         # Check theta.
-        numerical = self.fd_call.fd.theta()
-        analytical = self.fd_call.theta(self.x_grid, 0)
+        numerical = self.fd_put.fd.theta()
+        analytical = self.fd_put.theta(self.x_grid, 0)
         error = np.abs((analytical - numerical))
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.5f}")
-        self.assertTrue(max_error < 5.1e-3)
+        self.assertTrue(max_error < 1.0e-3)
 
     def test_monte_carlo_exact(self):
         """Monte-Carlo pricing of European call option."""
-        self.mc_call.mc_exact_setup()
+        self.mc_put.mc_exact_setup()
         # Spot rate.
         spot = 0.02
         spot_vector = np.arange(-4, 5, 2) * spot
@@ -125,25 +125,25 @@ class CallOption(unittest.TestCase):
         n_rep = 50
         for s in spot_vector:
             # Analytical result.
-            price_a = self.mc_call.price(s, 0)
+            price_a = self.mc_put.price(s, 0)
             # Numerical result; no variance reduction.
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                self.mc_call.mc_exact_solve(s, n_paths, rng=rng)
-                price_n = self.mc_call.mc_exact.mc_estimate
+                self.mc_put.mc_exact_solve(s, n_paths, rng=rng)
+                price_n = self.mc_put.mc_exact.mc_estimate
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
                 print(f"No variance reduction: "
                       f"Short rate = {s:5.2f}, price = {price_a:2.3f}, "
                       f"error mean = {error.mean():2.5f}, "
                       f"error std = {error.std():2.5f}")
-            self.assertTrue(error.mean() < 2.2e-2 and error.std() < 1.6e-2)
+            self.assertTrue(error.mean() < 1.3e-2 and error.std() < 7.4e-3)
             # Numerical result; Antithetic sampling.
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                self.mc_call.mc_exact_solve(s, n_paths, rng=rng,
-                                            antithetic=True)
-                price_n = self.mc_call.mc_exact.mc_estimate
+                self.mc_put.mc_exact_solve(s, n_paths, rng=rng,
+                                           antithetic=True)
+                price_n = self.mc_put.mc_exact.mc_estimate
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
                 print(f"Antithetic sampling:   "
@@ -154,7 +154,7 @@ class CallOption(unittest.TestCase):
 
     def test_monte_carlo_euler(self) -> None:
         """Monte-Carlo pricing of zero-coupon bond."""
-        self.mc_euler_call.mc_euler_setup()
+        self.mc_euler_put.mc_euler_setup()
         # Spot rate.
         spot = 0.02
         spot_vector = np.arange(-4, 5, 2) * spot
@@ -166,32 +166,32 @@ class CallOption(unittest.TestCase):
         n_rep = 50
         for s in spot_vector:
             # Analytical result.
-            price_a = self.mc_euler_call.price(s, 0)
+            price_a = self.mc_euler_put.price(s, 0)
             # Numerical result; no variance reduction.
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                self.mc_euler_call.mc_euler_solve(s, n_paths, rng=rng)
-                price_n = self.mc_euler_call.mc_euler.mc_estimate
+                self.mc_euler_put.mc_euler_solve(s, n_paths, rng=rng)
+                price_n = self.mc_euler_put.mc_euler.mc_estimate
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
                 print(f"No variance reduction: "
                       f"Short rate = {s:5.2f}, price = {price_a:2.3f}, "
                       f"error mean = {error.mean():2.5f}, "
                       f"error std = {error.std():2.5f}")
-            self.assertTrue(error.mean() < 2.1e-2 and error.std() < 1.7e-2)
+            self.assertTrue(error.mean() < 2.1e-2 and error.std() < 1.2e-2)
             # Numerical result; Antithetic sampling.
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                self.mc_euler_call.mc_euler_solve(s, n_paths, rng=rng,
-                                                  antithetic=True)
-                price_n = self.mc_euler_call.mc_euler.mc_estimate
+                self.mc_euler_put.mc_euler_solve(s, n_paths, rng=rng,
+                                                 antithetic=True)
+                price_n = self.mc_euler_put.mc_euler.mc_estimate
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
                 print(f"Antithetic sampling:   "
                       f"Short rate = {s:5.2f}, price = {price_a:2.3f}, "
                       f"error mean = {error.mean():2.5f}, "
                       f"error std = {error.std():2.5f}")
-            self.assertTrue(error.mean() < 2.2e-2 and error.std() < 1.7e-2)
+            self.assertTrue(error.mean() < 1.8e-2 and error.std() < 4.4e-3)
 
 
 if __name__ == '__main__':

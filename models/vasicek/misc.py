@@ -5,6 +5,7 @@ import numpy as np
 from scipy.stats import norm
 
 from models.vasicek import zero_coupon_bond as zcbond
+from utils.global_types import Instrument
 
 
 def a_function(time1: float,
@@ -95,9 +96,6 @@ def dbdt(time1: float,
     return -math.exp(-kappa * (time2 - time1))
 
 
-########################################################################
-
-
 def sigma_p(time1: float,
             time2: float,
             time3: float,
@@ -154,7 +152,7 @@ def european_option_price(spot: typing.Union[float, np.ndarray],
                           expiry_idx: int,
                           maturity_idx: int,
                           event_grid: np.ndarray,
-                          option_type: str = "Call") \
+                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option price.
 
@@ -162,23 +160,22 @@ def european_option_price(spot: typing.Union[float, np.ndarray],
 
     Args:
         spot: Spot short rate.
-        event_idx: Index of current time on event grid.
+        event_idx: Index on event grid.
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
         strike: Strike price of zero-coupon bond.
         expiry_idx: Expiry index on event grid.
         maturity_idx: Maturity index on event grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
+        event_grid: Event dates as year fractions from as-of date.
         option_type: European call or put option. Default is call.
 
     Returns:
         European call/put option price.
     """
-    if option_type == "Call":
+    if option_type == Instrument.EUROPEAN_CALL:
         omega = 1
-    elif option_type == "Put":
+    elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
         raise ValueError(f"Option type is unknown: {option_type}")
@@ -191,7 +188,7 @@ def european_option_price(spot: typing.Union[float, np.ndarray],
     time = event_grid[event_idx]
     expiry = event_grid[expiry_idx]
     maturity = event_grid[maturity_idx]
-    # ...
+    # sigma_p and h functions.
     s_p = sigma_p(time, expiry, maturity, kappa, vol)
     h = h_function(zc1_price, zc2_price, s_p, strike)
     return omega * (zc2_price * norm.cdf(omega * h)
@@ -207,7 +204,7 @@ def european_option_delta(spot: typing.Union[float, np.ndarray],
                           expiry_idx: int,
                           maturity_idx: int,
                           event_grid: np.ndarray,
-                          option_type: str = "Call") \
+                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option delta.
 
@@ -215,23 +212,22 @@ def european_option_delta(spot: typing.Union[float, np.ndarray],
 
     Args:
         spot: Spot short rate.
-        event_idx: Index of current time on event grid.
+        event_idx: Index on event grid.
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
         strike: Strike price of zero-coupon bond.
         expiry_idx: Expiry index on event grid.
         maturity_idx: Maturity index on event grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
+        event_grid: Event dates as year fractions from as-of date.
         option_type: European call or put option. Default is call.
 
     Returns:
         European call/put option delta.
     """
-    if option_type == "Call":
+    if option_type == Instrument.EUROPEAN_CALL:
         omega = 1
-    elif option_type == "Put":
+    elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
         raise ValueError(f"Option type is unknown: {option_type}")
@@ -246,7 +242,7 @@ def european_option_delta(spot: typing.Union[float, np.ndarray],
     time = event_grid[event_idx]
     expiry = event_grid[expiry_idx]
     maturity = event_grid[maturity_idx]
-    # ...
+    # sigma_p and h functions.
     s_p = sigma_p(time, expiry, maturity, kappa, vol)
     h = h_function(zc1_price, zc2_price, s_p, strike)
     dhdr = (zc2_delta / zc2_price - zc1_delta / zc1_price) / s_p
@@ -267,7 +263,7 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
                           expiry_idx: int,
                           maturity_idx: int,
                           event_grid: np.ndarray,
-                          option_type: str = "Call") \
+                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option gamma.
 
@@ -275,23 +271,22 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
 
     Args:
         spot: Spot short rate.
-        event_idx: Index of current time on event grid.
+        event_idx: Index on event grid.
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
         vol: Volatility.
         strike: Strike price of zero-coupon bond.
         expiry_idx: Expiry index on event grid.
         maturity_idx: Maturity index on event grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
+        event_grid: Event dates as year fractions from as-of date.
         option_type: European call or put option. Default is call.
 
     Returns:
         European call/put option gamma.
     """
-    if option_type == "Call":
+    if option_type == Instrument.EUROPEAN_CALL:
         omega = 1
-    elif option_type == "Put":
+    elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
         raise ValueError(f"Option type is unknown: {option_type}")
@@ -308,7 +303,7 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
     time = event_grid[event_idx]
     expiry = event_grid[expiry_idx]
     maturity = event_grid[maturity_idx]
-    # ...
+    # sigma_p and h functions.
     s_p = sigma_p(time, expiry, maturity, kappa, vol)
     h = h_function(zc1_price, zc2_price, s_p, strike)
     dhdr = (zc2_delta / zc2_price - zc1_delta / zc1_price) / s_p
@@ -319,10 +314,76 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
     gamma += 2 * omega * dhdr * \
         (zc2_delta * norm.pdf(omega * h)
          - strike * zc1_delta * norm.pdf(omega * (h - s_p)))
+    # See notes.
     gamma -= dhdr ** 2 * \
-        (zc2_price * h * norm.pdf(omega * h)
-         - strike * zc1_price * (h - s_p) * norm.pdf(omega * (h - s_p)))
+        (zc2_price * omega * h * norm.pdf(omega * h)
+         - strike * zc1_price * omega * (h - s_p) * norm.pdf(omega * (h - s_p)))
     gamma += omega * d2hdr2 * \
         (zc2_price * norm.pdf(omega * h)
          - strike * zc1_price * norm.pdf(omega * (h - s_p)))
     return omega * gamma
+
+
+def european_option_theta(spot: typing.Union[float, np.ndarray],
+                          event_idx: int,
+                          kappa: float,
+                          mean_rate: float,
+                          vol: float,
+                          strike: float,
+                          expiry_idx: int,
+                          maturity_idx: int,
+                          event_grid: np.ndarray,
+                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
+        -> typing.Union[float, np.ndarray]:
+    """Calculate European call/put option theta.
+
+    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
+
+    Args:
+        spot: Spot short rate.
+        event_idx: Index on event grid.
+        kappa: Speed of mean reversion.
+        mean_rate: Mean reversion level.
+        vol: Volatility.
+        strike: Strike price of zero-coupon bond.
+        expiry_idx: Expiry index on event grid.
+        maturity_idx: Maturity index on event grid.
+        event_grid: Event dates as year fractions from as-of date.
+        option_type: European call or put option. Default is call.
+
+    Returns:
+        European call/put option theta.
+    """
+    if option_type == Instrument.EUROPEAN_CALL:
+        omega = 1
+    elif option_type == Instrument.EUROPEAN_PUT:
+        omega = -1
+    else:
+        raise ValueError(f"Option type is unknown: {option_type}")
+    # Bond prices and deltas.
+    zc1 = zcbond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
+    zc1_price = zc1.price(spot, event_idx)
+    zc1_theta = zc1.theta(spot, event_idx)
+    zc2 = zcbond.ZCBond(kappa, mean_rate, vol, maturity_idx, event_grid)
+    zc2_price = zc2.price(spot, event_idx)
+    zc2_theta = zc2.theta(spot, event_idx)
+    # Event times.
+    time = event_grid[event_idx]
+    expiry = event_grid[expiry_idx]
+    maturity = event_grid[maturity_idx]
+    # sigma_p and h functions.
+    s_p = sigma_p(time, expiry, maturity, kappa, vol)
+    h = h_function(zc1_price, zc2_price, s_p, strike)
+    # 1st order time derivative of sigma_p and h functions.
+    two_kappa = 2 * kappa
+    exp_kappa = math.exp(-two_kappa * (expiry - time))
+    ds_pdt = (math.sqrt((1 - exp_kappa) / two_kappa)) ** (-1)
+    ds_pdt *= -vol * b_function(expiry, maturity, kappa) * exp_kappa / 2
+    dhdt = (0.5 - np.log(zc2_price / (zc1_price * strike)) / s_p ** 2) * ds_pdt
+    dhdt += (zc2_theta / zc2_price - zc1_theta / zc1_price) / s_p
+    theta = zc2_theta * norm.cdf(omega * h) \
+        - strike * zc1_theta * norm.cdf(omega * (h - s_p))
+    theta += omega \
+        * (zc2_price * norm.pdf(omega * h) * dhdt
+           - strike * zc1_price * norm.pdf(omega * (h - s_p)) * (dhdt - ds_pdt))
+    return omega * theta

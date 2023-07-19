@@ -11,7 +11,7 @@ from utils import misc
 from utils import payoffs
 
 
-class Put(options.EuropeanOptionAnalytical1F):
+class Put(options.Option1FAnalytical):
     """European put option in 1-factor Hull-White model.
 
     European put option written on zero-coupon bond. See

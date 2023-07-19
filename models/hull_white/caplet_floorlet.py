@@ -12,7 +12,7 @@ from utils import global_types
 from utils import misc
 
 
-class CapletFloorlet(options.EuropeanOptionAnalytical1F):
+class CapletFloorlet(options.Option1FAnalytical):
     """Caplet or floorlet in 1-factor Hull-White model.
 
     See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and

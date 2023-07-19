@@ -12,7 +12,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class Payer(options.EuropeanOptionAnalytical1F):
+class Payer(options.Option1FAnalytical):
     """European payer swaption in 1-factor Hull-White model.
 
     Attributes:

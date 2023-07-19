@@ -11,7 +11,7 @@ from utils import misc
 from utils import payoffs
 
 
-class Call(options.EuropeanOptionAnalytical1F):
+class Call(options.Option1FAnalytical):
     """European call option in 1-factor Hull-White model.
 
     European call option written on zero-coupon bond. See

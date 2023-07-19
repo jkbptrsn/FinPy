@@ -64,15 +64,14 @@ class AmericanOption(metaclass=abc.ABCMeta):
         pass
 
 
-# TODO: Rename to OptionAnalytical1F
-class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
-    """European option with closed-form solution."""
+class Option1FAnalytical(metaclass=abc.ABCMeta):
+    """Option in 1-factor model with closed-form solution."""
 
     def __init__(self):
         # Solver objects.
         self.fd = None
-        self.mc = None
         self.mc_exact = None
+        self.mc_euler = None
 
     @property
     @abc.abstractmethod
@@ -86,7 +85,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """Payoff function.
 
         Args:
-            spot: Value of underlying at as-of date.
+            spot: Spot value of underlying.
 
         Returns:
             Payoff.
@@ -100,7 +99,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """Price function.
 
         Args:
-            spot: Value of underlying at as-of date.
+            spot: Spot value of underlying.
             event_idx: Index on event grid.
 
         Returns:
@@ -115,7 +114,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """1st order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Value of underlying at as-of date.
+            spot: Spot value of underlying.
             event_idx: Index on event grid.
 
         Returns:
@@ -130,7 +129,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """2nd order price sensitivity wrt value of underlying.
 
         Args:
-            spot: Value of underlying at as-of date.
+            spot: Spot value of underlying.
             event_idx: Index on event grid.
 
         Returns:
@@ -145,7 +144,7 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Value of underlying at as-of date.
+            spot: Spot value of underlying.
             event_idx: Index on event grid.
 
         Returns:
@@ -179,15 +178,65 @@ class EuropeanOptionAnalytical1F(metaclass=abc.ABCMeta):
         """Run finite difference solver on event grid."""
         pass
 
-    # @abc.abstractmethod
-    # def mc_setup(self):
-    #     """Setup Monte-Carlo solver."""
-    #     pass
-    #
-    # @abc.abstractmethod
-    # def mc_solve(self):
-    #     """Run Monte-Carlo solver on event_grid."""
-    #     pass
+#    @abc.abstractmethod
+    def mc_exact_setup(self):
+        """Setup exact Monte-Carlo solver."""
+        pass
+
+#    @abc.abstractmethod
+    def mc_exact_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Exact discretization.
+
+        Args:
+            spot: Spot value of underlying.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of underlying process represented on event
+            grid.
+        """
+        pass
+
+#    @abc.abstractmethod
+    def mc_euler_setup(self):
+        """Setup Euler Monte-Carlo solver."""
+        pass
+
+#    @abc.abstractmethod
+    def mc_euler_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Euler-Maruyama discretization.
+
+        Args:
+            spot: Spot value of underlying.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of underlying process represented on event
+            grid.
+        """
+        pass
 
 
 # TODO: Rename to Option2F

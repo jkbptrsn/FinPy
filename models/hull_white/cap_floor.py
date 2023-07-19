@@ -8,7 +8,7 @@ from utils import data_types
 from utils import global_types
 
 
-class CapFloor(options.EuropeanOptionAnalytical1F):
+class CapFloor(options.Option1FAnalytical):
     """Cap or floor in 1-factor Hull-White model.
 
     See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
