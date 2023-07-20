@@ -81,6 +81,8 @@ def trapz(grid: np.ndarray,
 class DiscreteFunc:
     """Interpolation and extrapolation of a discrete function.
 
+    # TODO: Moved to data_types.py . Can the class be deleted?
+
     Attributes:
         name: Name of the function.
         time_grid: Time grid in year fractions.

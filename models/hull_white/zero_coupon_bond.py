@@ -16,12 +16,8 @@ from utils import payoffs
 class ZCBond(bonds.BondAnalytical1F):
     """Zero-coupon bond in 1-factor Hull-White model.
 
-    TODO:
-     * Used "smart" calculation of G-function, see Andersen & Piterbarg
-       Add a method to zcbond class for re-calculating G if maturity_idx is updated
-
-    Zero-coupon bond dependent on pseudo short rate modelled by 1-factor
-    Hull-White SDE. See L.B.G. Andersen & V.V. Piterbarg 2010,
+    Zero-coupon bond price dependent on pseudo short rate modelled by
+    1-factor Hull-White SDE. See L.B.G. Andersen & V.V. Piterbarg 2010,
     proposition 10.1.7.
 
     Attributes:
@@ -29,15 +25,14 @@ class ZCBond(bonds.BondAnalytical1F):
         vol: Volatility.
         discount_curve: Discount curve represented on event grid.
         maturity_idx: Maturity index on event grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
+        event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
             "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise constant.
+            "piecewise": kappa is constant and vol is piecewise
+                constant.
             "general": General time dependence.
             Default is "piecewise".
-        int_step_size: Integration/propagation step size represented as
-            a year fraction. Default is 1 / 365.
+        int_dt: Integration step size. Default is 1 / 365.
     """
 
     def __init__(self,
@@ -47,7 +42,7 @@ class ZCBond(bonds.BondAnalytical1F):
                  maturity_idx: int,
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
-                 int_step_size: float = 1 / 365):
+                 int_dt: float = 1 / 365):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
@@ -55,7 +50,7 @@ class ZCBond(bonds.BondAnalytical1F):
         self.maturity_idx = maturity_idx
         self.event_grid = event_grid
         self.time_dependence = time_dependence
-        self.int_step_size = int_step_size
+        self.int_dt = int_dt
 
         # Speed of mean reversion on event grid.
         self.kappa_eg = None
@@ -107,7 +102,7 @@ class ZCBond(bonds.BondAnalytical1F):
     def _setup_int_grid(self):
         """Set up time grid for numerical integration."""
         self.int_grid, self.int_event_idx = \
-            misc_hw.setup_int_grid(self.event_grid, self.int_step_size)
+            misc_hw.setup_int_grid(self.event_grid, self.int_dt)
 
     def _setup_model_parameters(self):
         """Set up model parameters on event grid."""
@@ -302,13 +297,13 @@ class ZCBond(bonds.BondAnalytical1F):
 
     def mc_exact_setup(self,
                        time_dependence: str = "constant",
-                       int_step_size: float = 1 / 365):
+                       int_dt: float = 1 / 365):
         """Setup exact Monte-Carlo solver.
 
         Args:
             time_dependence: Time dependence of model parameters.
                 Default is "constant".
-            int_step_size: Integration step size represented as a year
+            int_dt: Integration step size represented as a year
                 fraction. Default is 1 / 365.
         """
         if time_dependence == "constant":
@@ -326,7 +321,7 @@ class ZCBond(bonds.BondAnalytical1F):
                                             self.vol,
                                             self.discount_curve,
                                             self.event_grid,
-                                            int_step_size)
+                                            int_dt)
         else:
             raise ValueError(f"Time-dependence is unknown: {time_dependence}")
 
@@ -400,7 +395,7 @@ class ZCBondPelsser(ZCBond):
             "piecewise": kappa is constant and vol is piecewise constant.
             "general": General time dependence.
             Default is "piecewise".
-        int_step_size: Integration/propagation step size represented as
+        int_dt: Integration/propagation step size represented as
             a year fraction. Default is 1 / 365.
         """
 
@@ -411,14 +406,14 @@ class ZCBondPelsser(ZCBond):
                  maturity_idx: int,
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
-                 int_step_size: float = 1 / 365):
+                 int_dt: float = 1 / 365):
         super().__init__(kappa,
                          vol,
                          discount_curve,
                          maturity_idx,
                          event_grid,
                          time_dependence,
-                         int_step_size)
+                         int_dt)
 
         self.transformation = global_types.Transformation.PELSSER
 
@@ -489,13 +484,13 @@ class ZCBondPelsser(ZCBond):
 
     def mc_exact_setup(self,
                        time_dependence: str = "constant",
-                       int_step_size: float = 1 / 365):
+                       int_dt: float = 1 / 365):
         """Setup exact Monte-Carlo solver.
 
         Args:
             time_dependence: Time dependence of model parameters.
                 Default is "constant".
-            int_step_size: Integration step size represented as a year
+            int_dt: Integration step size represented as a year
                 fraction. Default is 1 / 365.
         """
         if time_dependence == "constant":
@@ -513,7 +508,7 @@ class ZCBondPelsser(ZCBond):
                                             self.vol,
                                             self.discount_curve,
                                             self.event_grid,
-                                            int_step_size)
+                                            int_dt)
         else:
             raise ValueError(f"Time-dependence is unknown: {time_dependence}")
 
