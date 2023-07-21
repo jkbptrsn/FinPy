@@ -17,6 +17,8 @@ class Swap(bonds.BondAnalytical1F):
     the point of view of the fixed rate payer. See
     L.B.G. Andersen & V.V. Piterbarg 2010, section 5.5.
 
+    TODO: Call self.zcbond.mat_idx = "updated maturity index" before pricing
+
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.

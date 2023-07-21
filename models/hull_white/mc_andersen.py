@@ -61,9 +61,6 @@ class SDEBasic:
         # Instantaneous forward rate on event grid.
         self.forward_rate_eg = None
 
-        # G-function on event grid.
-        self.g_eg = None
-
         # y-function on event grid.
         self.y_eg = None
 
@@ -78,8 +75,6 @@ class SDEBasic:
         self.int_kappa_step = None
         # Volatility on integration grid.
         self.vol_ig = None
-        # G-function on integration grid.
-        self.g_ig = None
         # y-function on integration grid.
         self.y_ig = None
 

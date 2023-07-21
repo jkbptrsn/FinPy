@@ -62,8 +62,6 @@ class Put(options.Option1FAnalytical):
         self.discount_curve_eg = None
         # Instantaneous forward rate on event grid.
         self.forward_rate_eg = None
-        # G-function on event grid.
-        self.g_eg = None
         # y-function on event grid.
         self.y_eg = None
         # v-function on event grid.
@@ -94,7 +92,6 @@ class Put(options.Option1FAnalytical):
         self.vol_eg = self.zcbond.vol_eg
         self.discount_curve_eg = self.zcbond.discount_curve_eg
         self.forward_rate_eg = self.zcbond.forward_rate_eg
-        self.g_eg = self.zcbond.g_eg
         self.y_eg = self.zcbond.y_eg
 
         # Kappa and vol are constant.

@@ -60,8 +60,12 @@ class ZCBond(bonds.BondAnalytical1F):
         self.discount_curve_eg = None
         # Instantaneous forward rate on event grid.
         self.forward_rate_eg = None
-        # G-function on event grid.
+        # Integration of kappa on event_grid.
+        self.int_kappa_eg = None
+        # G-function, G(0,t), on event grid.
         self.g_eg = None
+        # G-function, G(t,t_maturity), on event grid.
+        self.gt_eg = None
         # y-function on event grid.
         self.y_eg = None
 
@@ -71,12 +75,10 @@ class ZCBond(bonds.BondAnalytical1F):
         self.int_event_idx = None
         # Speed of mean reversion on integration grid.
         self.kappa_ig = None
-        # Step-wise integration of kappa on integration grid.
-        self.int_kappa_step = None
         # Volatility on integration grid.
         self.vol_ig = None
-        # G-function on integration grid.
-        self.g_ig = None
+        # Step-wise integration of kappa on integration grid.
+        self.int_kappa_step_ig = None
         # y-function on integration grid.
         self.y_ig = None
 
@@ -93,6 +95,15 @@ class ZCBond(bonds.BondAnalytical1F):
     @property
     def maturity(self) -> float:
         return self.event_grid[self.maturity_idx]
+
+    @property
+    def mat_idx(self) -> int:
+        return self.maturity_idx
+
+    @mat_idx.setter
+    def mat_idx(self, idx: int):
+        self.maturity_idx = idx
+        self.gt_eg = misc_hw.g_function(idx, self.g_eg, self.int_kappa_eg)
 
     def initialization(self):
         """Initialization of instrument object."""
@@ -124,20 +135,20 @@ class ZCBond(bonds.BondAnalytical1F):
 
         # Kappa and vol are constant.
         if self.time_dependence == "constant":
-            # G-function on event grid.
-            self.g_eg = misc_hw.g_constant(self.kappa_eg[0],
-                                           self.maturity_idx,
-                                           self.event_grid)
+            # Integration of speed of mean reversion on event grid.
+            self.int_kappa_eg = self.kappa_eg[0] * self.event_grid
+            # G-function, G(0,t), on event grid.
+            self.g_eg = misc_hw.g_constant(self.kappa_eg[0], self.event_grid)
             # y-function on event grid.
             self.y_eg = misc_hw.y_constant(self.kappa_eg[0],
                                            self.vol_eg[0],
                                            self.event_grid)
         # Kappa is constant and vol is piecewise constant.
         elif self.time_dependence == "piecewise":
-            # G-function on event grid.
-            self.g_eg = misc_hw.g_constant(self.kappa_eg[0],
-                                           self.maturity_idx,
-                                           self.event_grid)
+            # Integration of speed of mean reversion on event grid.
+            self.int_kappa_eg = self.kappa_eg[0] * self.event_grid
+            # G-function, G(0,t), on event grid.
+            self.g_eg = misc_hw.g_constant(self.kappa_eg[0], self.event_grid)
             # y-function on event grid.
             self.y_eg = misc_hw.y_piecewise(self.kappa_eg[0],
                                             self.vol_eg,
@@ -148,24 +159,31 @@ class ZCBond(bonds.BondAnalytical1F):
             self.kappa_ig = self.kappa.interpolation(self.int_grid)
             # Volatility interpolated on integration grid.
             self.vol_ig = self.vol.interpolation(self.int_grid)
-            # Integration of speed of mean reversion using trapezoidal rule.
-            self.int_kappa_step = \
+            # Integration of speed of mean reversion on integration grid.
+            self.int_kappa_step_ig = \
                 np.append(0, misc.trapz(self.int_grid, self.kappa_ig))
-            # G-function on event grid.
-            self.g_eg, self.g_ig = misc_hw.g_general(self.int_grid,
-                                                     self.int_event_idx,
-                                                     self.int_kappa_step,
-                                                     self.maturity_idx,
-                                                     self.event_grid)
+            # Integration of speed of mean reversion on event grid.
+            self.int_kappa_eg = np.zeros(self.event_grid.size)
+            for event_idx, int_idx in enumerate(self.int_event_idx):
+                self.int_kappa_eg[event_idx] = self.int_kappa_step_ig[int_idx]
+            # G-function, G(0,t), on event grid.
+            self.g_eg = misc_hw.g_general(self.int_grid,
+                                          self.int_event_idx,
+                                          self.int_kappa_step_ig,
+                                          self.event_grid)
             # y-function on event and integration grid.
             self.y_eg, self.y_ig = misc_hw.y_general(self.int_grid,
                                                      self.int_event_idx,
-                                                     self.int_kappa_step,
+                                                     self.int_kappa_step_ig,
                                                      self.vol_ig,
                                                      self.event_grid)
         else:
             raise ValueError(f"Time dependence unknown: "
                              f"{self.time_dependence}")
+        # G-function, G(t,t_maturity), on event grid.
+        self.gt_eg = misc_hw.g_function(self.maturity_idx,
+                                        self.g_eg,
+                                        self.int_kappa_eg)
 
     def payoff(self,
                spot: typing.Union[float, np.ndarray]) -> \
@@ -245,7 +263,7 @@ class ZCBond(bonds.BondAnalytical1F):
         # P(0,T): Zero-coupon bond price at time zero with maturity T.
         price2 = self.discount_curve_eg[self.maturity_idx]
         # G(t,T): G-function.
-        g = self.g_eg[event_idx]
+        g = self.gt_eg[event_idx]
         # y(t): y-function.
         y = self.y_eg[event_idx]
         # P(t,T): Zero-coupon bond price at time t with maturity T.
@@ -448,13 +466,13 @@ class ZCBondPelsser(ZCBond):
             alpha = \
                 misc_hw.alpha_general(self.int_grid,
                                       self.int_event_idx,
-                                      self.int_kappa_step,
+                                      self.int_kappa_step_ig,
                                       self.vol_ig,
                                       self.event_grid)
             int_alpha = \
                 misc_hw.int_alpha_general(self.int_grid,
                                           self.int_event_idx,
-                                          self.int_kappa_step,
+                                          self.int_kappa_step_ig,
                                           self.vol_ig,
                                           self.event_grid)
         else:

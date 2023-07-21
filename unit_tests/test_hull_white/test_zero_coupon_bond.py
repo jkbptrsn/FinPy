@@ -99,13 +99,13 @@ class GFunction(unittest.TestCase):
     """Calculation of G-function."""
 
     def setUp(self) -> None:
-        # Speed of mean reversion strips.
+        # Speed of mean reversion strip.
         time_grid = np.array([0, 2, 4, 6, 10, 20, 30])
-        kappa_grid = 0.023 * np.array([1] * 7)
+        kappa_grid = 0.03 * np.ones(7)
         self.kappa_constant = \
             data_types.DiscreteFunc("kappa", time_grid, kappa_grid)
         # Volatility strips.
-        vol_grid = 0.0165 * np.array([1] * 7)
+        vol_grid = 0.017 * np.ones(7)
         self.vol_constant = \
             data_types.DiscreteFunc("vol", time_grid, vol_grid)
         # Discount curve.
@@ -126,17 +126,27 @@ class GFunction(unittest.TestCase):
                                            self.discount_curve,
                                            self.maturity_idx,
                                            self.event_grid,
-                                              "general",
-                                           1 / 100)
+                                           "general",
+                                           1 / 10)
 
     def test_constant(self):
-        """Calculation of y-function with constant vol."""
+        """Calculation of G-function with constant kappa."""
         g_constant = misc_hw.g_constant(self.kappa_constant_eg[0],
-                                        self.maturity_idx,
                                         self.event_grid)
-        g_general = self.bond_constant.g_eg
-        print(np.max(np.abs(g_constant - g_general)))
-        self.assertTrue(np.max(np.abs(g_constant - g_general)) < 5.e-3)
+        g_constant = misc_hw.g_function(self.maturity_idx, g_constant,
+                                        self.bond_constant.int_kappa_eg)
+        g_general = self.bond_constant.gt_eg
+        diff = np.abs((g_constant[:-1] - g_general[:-1]) / g_constant[:-1])
+        if plot_results:
+            plt.plot(self.event_grid, g_constant, "-b")
+            plt.plot(self.event_grid, g_general, "or")
+            plt.xlabel("t")
+            plt.ylabel("G(t,t_maturity)")
+            plt.show()
+        if print_results:
+            print("G-function with constant kappa.")
+            print(np.max(diff))
+        self.assertTrue(np.max(diff) < 7.5e-7)
 
 
 class AlphaFunction(unittest.TestCase):
@@ -201,7 +211,7 @@ class AlphaFunction(unittest.TestCase):
         alpha_general = \
             misc_hw.alpha_general(self.bond_constant.int_grid,
                                   self.bond_constant.int_event_idx,
-                                  self.bond_constant.int_kappa_step,
+                                  self.bond_constant.int_kappa_step_ig,
                                   self.bond_constant.vol_ig,
                                   self.bond_constant.event_grid)
         diff_piecewise = np.abs((alpha_piecewise[1:]
@@ -220,7 +230,7 @@ class AlphaFunction(unittest.TestCase):
         alpha_general = \
             misc_hw.alpha_general(self.bond_piecewise.int_grid,
                                   self.bond_piecewise.int_event_idx,
-                                  self.bond_piecewise.int_kappa_step,
+                                  self.bond_piecewise.int_kappa_step_ig,
                                   self.bond_piecewise.vol_ig,
                                   self.bond_piecewise.event_grid)
         diff = np.abs((alpha_general[1:]
@@ -290,7 +300,7 @@ class IntAlphaFunction(unittest.TestCase):
         int_alpha_general = \
             misc_hw.int_alpha_general(self.bond_constant.int_grid,
                                       self.bond_constant.int_event_idx,
-                                      self.bond_constant.int_kappa_step,
+                                      self.bond_constant.int_kappa_step_ig,
                                       self.bond_constant.vol_ig,
                                       self.bond_constant.event_grid)
         diff_piecewise = \
@@ -311,7 +321,7 @@ class IntAlphaFunction(unittest.TestCase):
         int_alpha_general = \
             misc_hw.int_alpha_general(self.bond_piecewise.int_grid,
                                       self.bond_piecewise.int_event_idx,
-                                      self.bond_piecewise.int_kappa_step,
+                                      self.bond_piecewise.int_kappa_step_ig,
                                       self.bond_piecewise.vol_ig,
                                       self.bond_piecewise.event_grid)
         diff = np.abs((int_alpha_general[1:]

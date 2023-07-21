@@ -94,7 +94,7 @@ def y_piecewise(kappa: float,
 
 def y_general(int_grid: np.ndarray,
               int_event_idx: np.ndarray,
-              int_kappa_step: np.ndarray,
+              int_kappa_step_ig: np.ndarray,
               vol_int_grid: np.ndarray,
               event_grid: np.ndarray) -> (np.ndarray, np.ndarray):
     """Calculate y-function on event and integration grid.
@@ -103,8 +103,8 @@ def y_general(int_grid: np.ndarray,
 
     Args:
         int_grid: Integration grid.
-        int_event_idx: Event indices on integration grid
-        int_kappa_step: Step-wise integration of kappa on integration
+        int_event_idx: Event indices on integration grid.
+        int_kappa_step_ig: Step-wise integration of kappa on integration
             grid.
         vol_int_grid: Volatility on integration grid.
         event_grid: Event dates as year fractions from as-of date.
@@ -116,7 +116,7 @@ def y_general(int_grid: np.ndarray,
     y_ig = np.zeros(int_grid.size)
     for idx in range(1, int_grid.size):
         # int_u^t_{idx} kappa_s ds.
-        int_kappa = int_kappa_step[:idx + 1]
+        int_kappa = int_kappa_step_ig[:idx + 1]
         # Cumulative sum from "right to left".
         int_kappa = np.flip(np.cumsum(np.flip(int_kappa)))
         # Shift to the left.
@@ -130,6 +130,74 @@ def y_general(int_grid: np.ndarray,
     for event_idx, int_idx in enumerate(int_event_idx):
         y_eg[event_idx] = y_ig[int_idx]
     return y_eg, y_ig
+
+
+def g_function(maturity_idx: int,
+               g_eg: np.ndarray,
+               int_kappa_eg: np.ndarray) -> np.ndarray:
+    """Calculate G-function, G(t,t_maturity), on event grid.
+
+    Args:
+        maturity_idx: Maturity index on event grid.
+        g_eg: G-function, G(0,t) on event grid.
+        int_kappa_eg: Integral of kappa on event grid.
+
+    Returns:
+        G-function.
+    """
+    return (g_eg[maturity_idx] - g_eg) * np.exp(int_kappa_eg)
+
+
+def g_constant(kappa: float,
+               event_grid: np.ndarray) -> np.ndarray:
+    """Calculate G-function, G(0,t), on event grid.
+
+    Assuming that speed of mean reversion is constant.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+
+    Args:
+        kappa: Speed of mean reversion.
+        event_grid: Event dates as year fractions from as-of date.
+
+    Returns:
+        G-function.
+    """
+    return (1 - np.exp(-kappa * event_grid)) / kappa
+
+
+def g_general(int_grid: np.ndarray,
+              int_event_idx: np.ndarray,
+              int_kappa_step_ig: np.ndarray,
+              event_grid: np.ndarray) -> np.ndarray:
+    """Calculate G-function, G(0,t), on event grid.
+
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+
+    Args:
+        int_grid: Integration grid.
+        int_event_idx: Event indices on integration grid.
+        int_kappa_step_ig: Step-wise integration of kappa on integration
+            grid.
+        event_grid: Event dates as year fractions from as-of date.
+
+    Returns:
+        G-function.
+    """
+    # Calculation of G-function, G(0,t), on integration grid.
+    g_ig = np.zeros(int_grid.size)
+    for idx in range(1, int_grid.size):
+        # Slice of integration grid.
+        int_grid_slice = int_grid[:idx + 1]
+        # Slice of time-integrated kappa for each integration step.
+        int_kappa = int_kappa_step_ig[:idx + 1]
+        # Integrand in expression for G-function, G(0,t).
+        integrand = np.exp(-np.cumsum(int_kappa))
+        g_ig[idx] = np.sum(misc.trapz(int_grid_slice, integrand))
+    # Save G-function, G(0,t), on event grid.
+    g_eg = np.zeros(event_grid.size)
+    for event_idx, int_idx in enumerate(int_event_idx):
+        g_eg[event_idx] = g_ig[int_idx]
+    return g_eg
 
 
 ########################################################################
@@ -683,69 +751,6 @@ def int_alpha_general(int_grid: np.ndarray,
         int_grid_tmp = int_grid[idx1:idx2]
         integral[event_idx] = np.sum(misc.trapz(int_grid_tmp, inner_integral))
     return integral
-
-
-def g_constant(kappa: float,
-               maturity_idx: int,
-               event_grid: np.ndarray) -> np.ndarray:
-    """Calculate G-function on event grid.
-
-    Assuming that speed of mean reversion is constant. See
-    L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
-
-    Args:
-        kappa: Speed of mean reversion.
-        maturity_idx: Maturity index on event grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-
-    Returns:
-        G-function.
-    """
-    maturity = event_grid[maturity_idx]
-    # Event grid until maturity.
-    grid = event_grid[event_grid <= maturity]
-    return (1 - np.exp(-kappa * (maturity - grid))) / kappa
-
-
-def g_general(int_grid: np.ndarray,
-              int_event_idx: np.ndarray,
-              int_kappa_step: np.ndarray,
-              maturity_idx: int,
-              event_grid: np.ndarray) -> (np.ndarray, np.ndarray):
-    """Calculate G-function on event grid and integration grid.
-
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
-
-    Args:
-        int_grid: Integration grid.
-        int_event_idx: Integration grid
-        int_kappa_step: Step-wise integration of kappa on integration
-            grid.
-        maturity_idx: Maturity index on event grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-
-    Returns:
-        G-function.
-    """
-    # Index of maturity on integration grid.
-    int_mat_idx = int_event_idx[maturity_idx]
-    # Calculation of G-function on integration grid.
-    g_ig = np.zeros(int_mat_idx + 1)
-    for idx in range(int_mat_idx + 1):
-        # Slice of integration grid.
-        int_grid_slice = int_grid[idx:int_mat_idx + 1]
-        # Slice of time-integrated kappa for each integration step.
-        int_kappa = int_kappa_step[idx:int_mat_idx + 1]
-        # Integrand in expression for G.
-        integrand = np.exp(-np.cumsum(int_kappa))
-        g_ig[idx] = np.sum(misc.trapz(int_grid_slice, integrand))
-    # Save G-function on event grid.
-    g_eg = np.zeros(event_grid.size)
-    for event_idx, int_idx in enumerate(int_event_idx):
-        g_eg[event_idx] = g_ig[int_idx]
-    return g_eg, g_ig
 
 
 def v_constant(kappa: float,
