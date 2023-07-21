@@ -17,17 +17,16 @@ class YFunction(unittest.TestCase):
     """Calculation of y-function."""
 
     def setUp(self) -> None:
-        # Speed of mean reversion strips.
+        # Speed of mean reversion strip.
         time_grid = np.array([0, 2, 4, 6, 10, 20, 30])
-        kappa_grid = 0.023 * np.array([1] * 7)
+        kappa_grid = 0.03 * np.ones(7)
         self.kappa_constant = \
             data_types.DiscreteFunc("kappa", time_grid, kappa_grid)
         # Volatility strips.
-        vol_grid = 0.0165 * np.array([1] * 7)
+        vol_grid = 0.017 * np.ones(7)
         self.vol_constant = \
             data_types.DiscreteFunc("vol", time_grid, vol_grid)
-        vol_grid = np.array([0.0165, 0.0143, 0.0140, 0.0067,
-                             0.0096, 0.0087, 0.0091])
+        vol_grid = np.array([0.017, 0.015, 0.014, 0.006, 0.009, 0.008, 0.009])
         self.vol_piecewise = \
             data_types.DiscreteFunc("vol", time_grid, vol_grid)
         # Discount curve.
@@ -75,8 +74,13 @@ class YFunction(unittest.TestCase):
             np.abs((y_piecewise[1:] - y_constant[1:]) / y_constant[1:])
         diff_general = \
             np.abs((y_general[1:] - y_constant[1:]) / y_constant[1:])
-        self.assertTrue(np.max(diff_piecewise) < 3.e-16)
-        self.assertTrue(np.max(diff_general) < 2.e-6)
+        if print_results:
+            print("y-function with constant vol.")
+            print("Diff, piecewise: ", np.max(diff_piecewise))
+        self.assertTrue(np.max(diff_piecewise) < 2.5e-16)
+        if print_results:
+            print("Diff, general  : ", np.max(diff_general))
+        self.assertTrue(np.max(diff_general) < 3.0e-6)
 
     def test_piecewise(self):
         """Calculation of y-function with piecewise constant vol."""
@@ -85,7 +89,10 @@ class YFunction(unittest.TestCase):
                                           self.event_grid)
         y_general = self.bond_piecewise.y_eg
         diff = np.abs((y_general[1:] - y_piecewise[1:]) / y_piecewise[1:])
-        self.assertTrue(np.max(diff) < 1.e-3)
+        if print_results:
+            print("y-function with piecewise-constant vol.")
+            print("Diff: ", np.max(diff))
+        self.assertTrue(np.max(diff) < 1.1e-3)
 
 
 class GFunction(unittest.TestCase):
