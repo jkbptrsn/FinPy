@@ -52,11 +52,9 @@ class ZCBond(bonds.BondAnalytical1F):
         self.time_dependence = time_dependence
         self.int_dt = int_dt
 
-        ################################################################
-
-        # Speed of mean reversion on event grid.
+        # Kappa on event grid.
         self.kappa_eg = None
-        # Volatility on event grid.
+        # Vol on event grid.
         self.vol_eg = None
         # Discount curve on event grid.
         self.discount_curve_eg = None
@@ -75,17 +73,16 @@ class ZCBond(bonds.BondAnalytical1F):
         self.int_grid = None
         # Indices of event dates on integration grid.
         self.int_event_idx = None
-
-        # Speed of mean reversion on integration grid.
+        # Kappa on integration grid.
         self.kappa_ig = None
-        # Volatility on integration grid.
+        # Vol on integration grid.
         self.vol_ig = None
         # Step-wise integration of kappa on integration grid.
         self.int_kappa_step_ig = None
-        # y-function on integration grid.
-        self.y_ig = None
 
         self.initialization()
+
+        ################################################################
 
         self.adjustment_rate = None
         self.adjustment_discount = None
@@ -116,7 +113,8 @@ class ZCBond(bonds.BondAnalytical1F):
 
     def initialization(self):
         """Initialization of object."""
-        self._setup_int_grid()
+        if self.time_dependence == "general":
+            self._setup_int_grid()
         self._setup_model_parameters()
 
     def _setup_int_grid(self):
@@ -124,19 +122,18 @@ class ZCBond(bonds.BondAnalytical1F):
         self.int_grid, self.int_event_idx = \
             misc_hw.integration_grid(self.event_grid, self.int_dt)
 
-########################################################################
-
     def _setup_model_parameters(self):
-        """Set up model parameters on event grid."""
-        # Speed of mean reversion interpolated on event grid.
+        """Set up model parameters on event and integration grids."""
+        # Kappa interpolated on event grid.
         self.kappa_eg = self.kappa.interpolation(self.event_grid)
-        # Volatility interpolated on event grid.
+        # Vol interpolated on event grid.
         self.vol_eg = self.vol.interpolation(self.event_grid)
         # Discount curve interpolated on event grid.
         self.discount_curve_eg = \
             self.discount_curve.interpolation(self.event_grid)
 
         # Instantaneous forward rate on event grid.
+        # TODO: Test accuracy
         log_discount = np.log(self.discount_curve_eg)
         smoothing = 0
         log_discount_spline = \
@@ -146,7 +143,7 @@ class ZCBond(bonds.BondAnalytical1F):
 
         # Kappa and vol are constant.
         if self.time_dependence == "constant":
-            # Integration of speed of mean reversion on event grid.
+            # Integration of kappa on event grid.
             self.int_kappa_eg = self.kappa_eg[0] * self.event_grid
             # G-function, G(0,t), on event grid.
             self.g_eg = misc_hw.g_constant(self.kappa_eg[0], self.event_grid)
@@ -156,7 +153,7 @@ class ZCBond(bonds.BondAnalytical1F):
                                            self.event_grid)
         # Kappa is constant and vol is piecewise constant.
         elif self.time_dependence == "piecewise":
-            # Integration of speed of mean reversion on event grid.
+            # Integration of kappa on event grid.
             self.int_kappa_eg = self.kappa_eg[0] * self.event_grid
             # G-function, G(0,t), on event grid.
             self.g_eg = misc_hw.g_constant(self.kappa_eg[0], self.event_grid)
@@ -164,30 +161,33 @@ class ZCBond(bonds.BondAnalytical1F):
             self.y_eg = misc_hw.y_piecewise(self.kappa_eg[0],
                                             self.vol_eg,
                                             self.event_grid)
-        # Kappa and vol have general time-dependence.
+        # Kappa and vol have general time dependence.
         elif self.time_dependence == "general":
-            # Speed of mean reversion interpolated on integration grid.
+            # Kappa interpolated on integration grid.
             self.kappa_ig = self.kappa.interpolation(self.int_grid)
-            # Volatility interpolated on integration grid.
+            # Vol interpolated on integration grid.
             self.vol_ig = self.vol.interpolation(self.int_grid)
-            # Integration of speed of mean reversion on integration grid.
+            # Step-wise integration of kappa on integration grid.
             self.int_kappa_step_ig = \
                 np.append(0, misc.trapz(self.int_grid, self.kappa_ig))
-            # Integration of speed of mean reversion on event grid.
+
+            # Integration of kappa on event grid.
             self.int_kappa_eg = np.zeros(self.event_grid.size)
             for event_idx, int_idx in enumerate(self.int_event_idx):
-                self.int_kappa_eg[event_idx] = self.int_kappa_step_ig[int_idx]
+                self.int_kappa_eg[event_idx] = \
+                    np.sum(self.int_kappa_step_ig[:int_idx + 1])
+
             # G-function, G(0,t), on event grid.
             self.g_eg = misc_hw.g_general(self.int_grid,
                                           self.int_event_idx,
                                           self.int_kappa_step_ig,
                                           self.event_grid)
-            # y-function on event and integration grid.
-            self.y_eg, self.y_ig = misc_hw.y_general(self.int_grid,
-                                                     self.int_event_idx,
-                                                     self.int_kappa_step_ig,
-                                                     self.vol_ig,
-                                                     self.event_grid)
+            # y-function on event grid.
+            self.y_eg, _ = misc_hw.y_general(self.int_grid,
+                                             self.int_event_idx,
+                                             self.int_kappa_step_ig,
+                                             self.vol_ig,
+                                             self.event_grid)
         else:
             raise ValueError(f"Time dependence unknown: "
                              f"{self.time_dependence}")
@@ -196,13 +196,15 @@ class ZCBond(bonds.BondAnalytical1F):
                                         self.g_eg,
                                         self.int_kappa_eg)
 
+    ####################################################################
+
     def payoff(self,
                spot: typing.Union[float, np.ndarray]) -> \
             typing.Union[float, np.ndarray]:
         """Payoff function.
 
         Args:
-            spot: Current pseudo short rate.
+            spot: Spot pseudo short rate.
 
         Returns:
             Payoff.
@@ -215,7 +217,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """Price function.
 
         Args:
-            spot: Current pseudo short rate.
+            spot: Spot pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -229,7 +231,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """1st order price sensitivity wrt short rate.
 
         Args:
-            spot: Current pseudo short rate.
+            spot: Spot pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -243,7 +245,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """2nd order price sensitivity wrt short rate.
 
         Args:
-            spot: Current pseudo short rate.
+            spot: Spot pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -259,7 +261,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """Calculate zero-coupon bond price, delta or gamma.
 
         Args:
-            spot: Current pseudo short rate.
+            spot: Spot pseudo short rate.
             event_idx: Index on event grid.
             type_: Calculation type: "price", "delta" or "gamma".
                 Default is "price".
@@ -294,7 +296,7 @@ class ZCBond(bonds.BondAnalytical1F):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Current pseudo short rate.
+            spot: Spot pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:

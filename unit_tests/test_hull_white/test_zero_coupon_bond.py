@@ -378,11 +378,6 @@ class ZeroCouponBond(unittest.TestCase):
                                  self.time_dependence,
                                  self.int_step_size)
 
-    def test_int_grid(self):
-        """Number of integration grid points."""
-        self.assertTrue(self.bond.int_grid.size
-                        == (self.fd_t_steps - 1) * self.int_step_factor + 1)
-
     def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""
         self.bond.fd_setup(self.x_grid, equidistant=True)

@@ -97,7 +97,7 @@ def y_piecewise(kappa: float,
 def y_general(int_grid: np.ndarray,
               int_event_idx: np.ndarray,
               int_kappa_step_ig: np.ndarray,
-              vol_int_grid: np.ndarray,
+              vol_ig: np.ndarray,
               event_grid: np.ndarray) -> (np.ndarray, np.ndarray):
     """Calculate y-function on event and integration grid.
 
@@ -108,7 +108,7 @@ def y_general(int_grid: np.ndarray,
         int_event_idx: Event indices on integration grid.
         int_kappa_step_ig: Step-wise integration of kappa on integration
             grid.
-        vol_int_grid: Volatility on integration grid.
+        vol_ig: Volatility on integration grid.
         event_grid: Event dates as year fractions from as-of date.
 
     Returns:
@@ -125,7 +125,7 @@ def y_general(int_grid: np.ndarray,
         int_kappa[:-1] = int_kappa[1:]
         int_kappa[-1] = 0
         # Integrand in expression for y.
-        integrand = np.exp(-2 * int_kappa) * vol_int_grid[:idx + 1] ** 2
+        integrand = np.exp(-2 * int_kappa) * vol_ig[:idx + 1] ** 2
         y_ig[idx] = np.sum(misc.trapz(int_grid[:idx + 1], integrand))
     # Save y-function on event grid.
     y_eg = np.zeros(event_grid.size)
@@ -382,7 +382,7 @@ def double_int_y_piecewise(kappa: float,
 def int_y_general(int_grid: np.ndarray,
                   int_event_idx: np.ndarray,
                   int_kappa_step: np.ndarray,
-                  vol_int_grid: np.ndarray,
+                  vol_ig: np.ndarray,
                   event_grid: np.ndarray) -> np.ndarray:
     """Calculate "integral" of y-function on event grid.
 
@@ -393,7 +393,7 @@ def int_y_general(int_grid: np.ndarray,
         int_event_idx: Integration grid
         int_kappa_step: Step-wise integration of kappa on integration
             grid.
-        vol_int_grid: Volatility on integration grid.
+        vol_ig: Volatility on integration grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
 
@@ -401,7 +401,7 @@ def int_y_general(int_grid: np.ndarray,
         "Integral" of y-function.
     """
     y_eg, y_ig = y_general(int_grid, int_event_idx, int_kappa_step,
-                           vol_int_grid, event_grid)
+                           vol_ig, event_grid)
     # Calculation of "integral" of y-function on event grid.
     integral = np.zeros(event_grid.size)
     for event_idx in range(1, event_grid.size):
@@ -421,7 +421,7 @@ def int_y_general(int_grid: np.ndarray,
 def double_int_y_general(int_grid: np.ndarray,
                          int_event_idx: np.ndarray,
                          int_kappa_step: np.ndarray,
-                         vol_int_grid: np.ndarray,
+                         vol_ig: np.ndarray,
                          event_grid: np.ndarray) -> np.ndarray:
     """Calculate "double integral" of y-function on event grid.
 
@@ -432,7 +432,7 @@ def double_int_y_general(int_grid: np.ndarray,
         int_event_idx: Integration grid
         int_kappa_step: Step-wise integration of kappa on integration
             grid.
-        vol_int_grid: Volatility on integration grid.
+        vol_ig: Volatility on integration grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
 
@@ -440,7 +440,7 @@ def double_int_y_general(int_grid: np.ndarray,
         "Double integral" of y-function.
     """
     y_eg, y_ig = y_general(int_grid, int_event_idx, int_kappa_step,
-                           vol_int_grid, event_grid)
+                           vol_ig, event_grid)
     # Calculation of "double integral" of y-function on event grid.
     integral = np.zeros(event_grid.size)
     for event_idx in range(1, event_grid.size):
@@ -535,7 +535,7 @@ def alpha_piecewise(kappa: float,
 def alpha_general(int_grid: np.ndarray,
                   int_event_idx: np.ndarray,
                   int_kappa_step: np.ndarray,
-                  vol_int_grid: np.ndarray,
+                  vol_ig: np.ndarray,
                   event_grid: np.ndarray) -> np.ndarray:
     """Calculate alpha-function on event grid.
 
@@ -547,7 +547,7 @@ def alpha_general(int_grid: np.ndarray,
         int_event_idx: Integration grid
         int_kappa_step: Step-wise integration of kappa on integration
             grid.
-        vol_int_grid: Volatility on integration grid.
+        vol_ig: Volatility on integration grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
 
@@ -555,7 +555,7 @@ def alpha_general(int_grid: np.ndarray,
         alpha-function.
     """
     y_eg, y_ig = y_general(int_grid, int_event_idx, int_kappa_step,
-                           vol_int_grid, event_grid)
+                           vol_ig, event_grid)
     integral = np.zeros(event_grid.size)
     for event_idx in range(1, event_grid.size):
         # Integration index of event.
@@ -705,7 +705,7 @@ def int_alpha_piecewise(kappa: float,
 def int_alpha_general(int_grid: np.ndarray,
                       int_event_idx: np.ndarray,
                       int_kappa_step: np.ndarray,
-                      vol_int_grid: np.ndarray,
+                      vol_ig: np.ndarray,
                       event_grid: np.ndarray) -> np.ndarray:
     """Calculate integral of alpha-function on event grid.
 
@@ -717,7 +717,7 @@ def int_alpha_general(int_grid: np.ndarray,
         int_event_idx: Integration grid
         int_kappa_step: Step-wise integration of kappa on integration
             grid.
-        vol_int_grid: Volatility on integration grid.
+        vol_ig: Volatility on integration grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
 
@@ -725,7 +725,7 @@ def int_alpha_general(int_grid: np.ndarray,
         Integral of alpha-function.
     """
     y_eg, y_ig = y_general(int_grid, int_event_idx, int_kappa_step,
-                           vol_int_grid, event_grid)
+                           vol_ig, event_grid)
     integral = np.zeros(event_grid.size)
     for event_idx in range(1, event_grid.size):
         # Integration indices of two adjacent events.
