@@ -40,12 +40,12 @@ class Misc(unittest.TestCase):
             data_types.DiscreteFunc("discount", self.event_grid,
                                     np.ones(self.event_grid.size))
         # SDE objects.
-        self.sde1 = sde.SDEGeneral(self.kappa1, self.vol1,
-                                   self.discount_curve, self.event_grid,
-                                   int_step_size=1 / 12)
-        self.sde2 = sde.SDEGeneral(self.kappa1, self.vol2,
-                                   self.discount_curve, self.event_grid,
-                                   int_step_size=1 / 100)
+        self.sde1 = sde.SdeExactGeneral(self.kappa1, self.vol1,
+                                        self.discount_curve, self.event_grid,
+                                        int_dt=1 / 12)
+        self.sde2 = sde.SdeExactGeneral(self.kappa1, self.vol2,
+                                        self.discount_curve, self.event_grid,
+                                        int_dt=1 / 100)
 
     def test_y_constant(self):
         """Numerical evaluation of y-function."""
@@ -55,7 +55,7 @@ class Misc(unittest.TestCase):
                                           self.event_grid)
         y_general, _ = misc_hw.y_general(self.sde1.int_grid,
                                          self.sde1.int_event_idx,
-                                         self.sde1.int_kappa_step,
+                                         self.sde1.int_kappa_step_ig,
                                          self.sde1.vol_ig,
                                          self.sde1.event_grid)
         if plot_results:
@@ -82,7 +82,7 @@ class Misc(unittest.TestCase):
                                           self.event_grid)
         y_general, _ = misc_hw.y_general(self.sde2.int_grid,
                                          self.sde2.int_event_idx,
-                                         self.sde2.int_kappa_step,
+                                         self.sde2.int_kappa_step_ig,
                                          self.sde2.vol_ig,
                                          self.sde2.event_grid)
         if plot_results:
@@ -109,7 +109,7 @@ class Misc(unittest.TestCase):
                                     self.event_grid)
         y_general = misc_hw.int_y_general(self.sde1.int_grid,
                                           self.sde1.int_event_idx,
-                                          self.sde1.int_kappa_step,
+                                          self.sde1.int_kappa_step_ig,
                                           self.sde1.vol_ig,
                                           self.sde1.event_grid)
         if plot_results:
@@ -137,7 +137,7 @@ class Misc(unittest.TestCase):
                                     self.event_grid)
         y_general = misc_hw.int_y_general(self.sde2.int_grid,
                                           self.sde2.int_event_idx,
-                                          self.sde2.int_kappa_step,
+                                          self.sde2.int_kappa_step_ig,
                                           self.sde2.vol_ig,
                                           self.sde2.event_grid)
         if plot_results:
@@ -164,7 +164,7 @@ class Misc(unittest.TestCase):
                                            self.event_grid)
         y_general = misc_hw.double_int_y_general(self.sde1.int_grid,
                                                  self.sde1.int_event_idx,
-                                                 self.sde1.int_kappa_step,
+                                                 self.sde1.int_kappa_step_ig,
                                                  self.sde1.vol_ig,
                                                  self.sde1.event_grid)
         if plot_results:
@@ -192,7 +192,7 @@ class Misc(unittest.TestCase):
                                            self.event_grid)
         y_general = misc_hw.double_int_y_general(self.sde2.int_grid,
                                                  self.sde2.int_event_idx,
-                                                 self.sde2.int_kappa_step,
+                                                 self.sde2.int_kappa_step_ig,
                                                  self.sde2.vol_ig,
                                                  self.sde2.event_grid)
         if plot_results:
@@ -240,28 +240,28 @@ class SDE(unittest.TestCase):
             data_types.DiscreteFunc("discount", self.event_grid,
                                     np.ones(self.event_grid.size))
         # SDE objects.
-        self.sde_constant = sde.SDEConstant(self.kappa1,
-                                            self.vol1,
-                                            self.discount_curve,
-                                            self.event_grid)
-        self.sde_piecewise1 = sde.SDEPiecewise(self.kappa1,
-                                               self.vol1,
-                                               self.discount_curve,
-                                               self.event_grid)
-        self.sde_piecewise2 = sde.SDEPiecewise(self.kappa1,
-                                               self.vol2,
-                                               self.discount_curve,
-                                               self.event_grid)
-        self.sde_general1 = sde.SDEGeneral(self.kappa1,
-                                           self.vol1,
-                                           self.discount_curve,
-                                           self.event_grid,
-                                           int_step_size=1 / 100)
-        self.sde_general2 = sde.SDEGeneral(self.kappa1,
-                                           self.vol2,
-                                           self.discount_curve,
-                                           self.event_grid,
-                                           int_step_size=1 / 100)
+        self.sde_constant = sde.SdeExactConstant(self.kappa1,
+                                                 self.vol1,
+                                                 self.discount_curve,
+                                                 self.event_grid)
+        self.sde_piecewise1 = sde.SdeExactPiecewise(self.kappa1,
+                                                    self.vol1,
+                                                    self.discount_curve,
+                                                    self.event_grid)
+        self.sde_piecewise2 = sde.SdeExactPiecewise(self.kappa1,
+                                                    self.vol2,
+                                                    self.discount_curve,
+                                                    self.event_grid)
+        self.sde_general1 = sde.SdeExactGeneral(self.kappa1,
+                                                self.vol1,
+                                                self.discount_curve,
+                                                self.event_grid,
+                                                int_dt=1 / 100)
+        self.sde_general2 = sde.SdeExactGeneral(self.kappa1,
+                                                self.vol2,
+                                                self.discount_curve,
+                                                self.event_grid,
+                                                int_dt=1 / 100)
 
     def test_sde_constant_vol(self):
         """Test SDE classes for constant vol-strip."""
@@ -272,10 +272,16 @@ class SDE(unittest.TestCase):
         price_a = self.discount_curve.values
 
         # SDE constant.
-        rate, discount = \
-            self.sde_constant.paths(0, n_paths, seed=0, antithetic=True)
-        discount = self.sde_constant.discount_adjustment(discount,
+#        rate, discount = \
+#            self.sde_constant.paths(0, n_paths, seed=0, antithetic=True)
+#        discount = self.sde_constant.discount_adjustment(discount,
+#            self.sde_constant.discount_curve_eg)
+
+        self.sde_constant.paths(0, n_paths, seed=0, antithetic=True)
+        discount = self.sde_constant.discount_adjustment(
+            self.sde_constant.discount_paths,
             self.sde_constant.discount_curve_eg)
+
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
@@ -285,10 +291,16 @@ class SDE(unittest.TestCase):
         self.assertTrue(np.max(diff) < 2.59e-3)
 
         # SDE piecewise.
-        rate, discount = \
-            self.sde_piecewise1.paths(0, n_paths, seed=0, antithetic=True)
-        discount = self.sde_piecewise1.discount_adjustment(discount,
+#        rate, discount = \
+#            self.sde_piecewise1.paths(0, n_paths, seed=0, antithetic=True)
+#        discount = self.sde_piecewise1.discount_adjustment(discount,
+#            self.sde_piecewise1.discount_curve_eg)
+
+        self.sde_piecewise1.paths(0, n_paths, seed=0, antithetic=True)
+        discount = self.sde_piecewise1.discount_adjustment(
+            self.sde_piecewise1.discount_paths,
             self.sde_piecewise1.discount_curve_eg)
+
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
@@ -298,10 +310,16 @@ class SDE(unittest.TestCase):
         self.assertTrue(np.max(diff) < 2.59e-3)
 
         # SDE general.
-        rate, discount = \
-            self.sde_general1.paths(0, n_paths, seed=0, antithetic=True)
-        discount = self.sde_general1.discount_adjustment(discount,
+#        rate, discount = \
+#            self.sde_general1.paths(0, n_paths, seed=0, antithetic=True)
+#        discount = self.sde_general1.discount_adjustment(discount,
+#            self.sde_general1.discount_curve_eg)
+
+        self.sde_general1.paths(0, n_paths, seed=0, antithetic=True)
+        discount = self.sde_general1.discount_adjustment(
+            self.sde_general1.discount_paths,
             self.sde_general1.discount_curve_eg)
+
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
@@ -386,10 +404,16 @@ class SDE(unittest.TestCase):
         price_a = self.discount_curve.values
 
         # SDE piecewise.
-        rate, discount = \
-            self.sde_piecewise2.paths(0, n_paths, seed=0, antithetic=True)
-        discount = self.sde_piecewise2.discount_adjustment(discount,
+#        rate, discount = \
+#            self.sde_piecewise2.paths(0, n_paths, seed=0, antithetic=True)
+#        discount = self.sde_piecewise2.discount_adjustment(discount,
+#            self.sde_piecewise2.discount_curve_eg)
+
+        self.sde_piecewise2.paths(0, n_paths, seed=0, antithetic=True)
+        discount = self.sde_piecewise2.discount_adjustment(
+            self.sde_piecewise2.discount_paths,
             self.sde_piecewise2.discount_curve_eg)
+
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
@@ -399,10 +423,16 @@ class SDE(unittest.TestCase):
         self.assertTrue(np.max(diff) < 9.1e-3)
 
         # SDE general.
-        rate, discount = \
-            self.sde_general2.paths(0, n_paths, seed=0, antithetic=True)
-        discount = self.sde_general2.discount_adjustment(discount,
+#        rate, discount = \
+#            self.sde_general2.paths(0, n_paths, seed=0, antithetic=True)
+#        discount = self.sde_general2.discount_adjustment(discount,
+#            self.sde_general2.discount_curve_eg)
+
+        self.sde_general2.paths(0, n_paths, seed=0, antithetic=True)
+        discount = self.sde_general2.discount_adjustment(
+            self.sde_general2.discount_paths,
             self.sde_general2.discount_curve_eg)
+
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.

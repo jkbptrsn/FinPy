@@ -394,6 +394,7 @@ class ZeroCouponBond(unittest.TestCase):
         if print_results:
             print("max error: ", max_error)
         self.assertTrue(max_error < 2.e-3)
+        # TODO: Compare all greeks...
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of zero-coupon bond."""
@@ -412,20 +413,23 @@ class ZeroCouponBond(unittest.TestCase):
         if print_results:
             print("max error: ", max_error)
         self.assertTrue(max_error < 2.e-3)
+        # TODO: Compare all greeks...
 
     def test_monte_carlo(self):
         """Monte-Carlo pricing of zero-coupon bond."""
         x_grid = 0.02 * np.arange(11) - 0.1
         analytical = self.bond.price(x_grid, 0)
         n_paths = 30000
-        self.bond.mc_exact_setup(time_dependence="piecewise")
+        # TODO: Why choose time-dependence?
+#        self.bond.mc_exact_setup(time_dependence="piecewise")
+        self.bond.mc_exact_setup()
         numerical = np.zeros(x_grid.size)
         error = np.zeros(x_grid.size)
         rng = np.random.default_rng(0)
         for idx, spot in enumerate(x_grid):
             self.bond.mc_exact_solve(spot, n_paths, rng=rng, antithetic=True)
-            numerical[idx] = self.bond.mc_exact.solution
-            error[idx] = self.bond.mc_exact.error
+            numerical[idx] = self.bond.mc_exact.mc_estimate
+            error[idx] = self.bond.mc_exact.mc_error
         if plot_results:
             plt.plot(x_grid, analytical, "-b")
             plt.errorbar(x_grid, numerical, yerr=error, fmt="or")
@@ -446,14 +450,21 @@ class ZeroCouponBond(unittest.TestCase):
         x_grid = 0.02 * np.arange(11) - 0.1
         analytical = self.bond_pelsser.price(x_grid, 0)
         n_paths = 30000
-        self.bond_pelsser.mc_exact_setup(time_dependence="piecewise")
+        # TODO: Why choose time-dependence?
+#        self.bond_pelsser.mc_exact_setup(time_dependence="piecewise")
+        self.bond_pelsser.mc_exact_setup()
         numerical = np.zeros(x_grid.size)
         error = np.zeros(x_grid.size)
         rng = np.random.default_rng(0)
         for idx, spot in enumerate(x_grid):
+#            self.bond_pelsser.mc_exact_solve(spot, n_paths, rng=rng, antithetic=True)
+#            numerical[idx] = self.bond_pelsser.mc_exact.solution
+#            error[idx] = self.bond_pelsser.mc_exact.error
+
             self.bond_pelsser.mc_exact_solve(spot, n_paths, rng=rng, antithetic=True)
-            numerical[idx] = self.bond_pelsser.mc_exact.solution
-            error[idx] = self.bond_pelsser.mc_exact.error
+            numerical[idx] = self.bond_pelsser.mc_exact.mc_estimate
+            error[idx] = self.bond_pelsser.mc_exact.mc_error
+
         if plot_results:
             plt.plot(x_grid, analytical, "-b")
             plt.errorbar(x_grid, numerical, yerr=error, fmt="or")

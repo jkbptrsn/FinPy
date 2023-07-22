@@ -2,9 +2,75 @@ import math
 import typing
 
 import numpy as np
+from scipy.interpolate import UnivariateSpline
 from scipy.stats import norm
 
 from utils import misc
+
+
+def setup_model_parameters(inst):
+    """Set up model parameters on event and integration grids."""
+    # Kappa interpolated on event grid.
+    inst.kappa_eg = inst.kappa.interpolation(inst.event_grid)
+    # Vol interpolated on event grid.
+    inst.vol_eg = inst.vol.interpolation(inst.event_grid)
+    # Discount curve interpolated on event grid.
+    inst.discount_curve_eg = inst.discount_curve.interpolation(inst.event_grid)
+
+    # Instantaneous forward rate on event grid.
+    # TODO: Test accuracy
+    log_discount = np.log(inst.discount_curve_eg)
+    smoothing = 0
+    log_discount_spline = \
+        UnivariateSpline(inst.event_grid, log_discount, s=smoothing)
+    forward_rate = log_discount_spline.derivative()
+    inst.forward_rate_eg = -forward_rate(inst.event_grid)
+
+    # Kappa and vol are constant.
+    if inst.time_dependence == "constant":
+        # Integration of kappa on event grid.
+        inst.int_kappa_eg = inst.kappa_eg[0] * inst.event_grid
+        # G-function, G(0,t), on event grid.
+        inst.g_eg = g_constant(inst.kappa_eg[0], inst.event_grid)
+        # y-function on event grid.
+        inst.y_eg = y_constant(inst.kappa_eg[0],
+                               inst.vol_eg[0],
+                               inst.event_grid)
+    # Kappa is constant and vol is piecewise constant.
+    elif inst.time_dependence == "piecewise":
+        # Integration of kappa on event grid.
+        inst.int_kappa_eg = inst.kappa_eg[0] * inst.event_grid
+        # G-function, G(0,t), on event grid.
+        inst.g_eg = g_constant(inst.kappa_eg[0], inst.event_grid)
+        # y-function on event grid.
+        inst.y_eg = y_piecewise(inst.kappa_eg[0], inst.vol_eg, inst.event_grid)
+    # Kappa and vol have general time dependence.
+    elif inst.time_dependence == "general":
+        # Kappa interpolated on integration grid.
+        inst.kappa_ig = inst.kappa.interpolation(inst.int_grid)
+        # Vol interpolated on integration grid.
+        inst.vol_ig = inst.vol.interpolation(inst.int_grid)
+        # Step-wise integration of kappa on integration grid.
+        inst.int_kappa_step_ig = \
+            np.append(0, misc.trapz(inst.int_grid, inst.kappa_ig))
+        # Integration of kappa on event grid.
+        inst.int_kappa_eg = np.zeros(inst.event_grid.size)
+        for event_idx, int_idx in enumerate(inst.int_event_idx):
+            inst.int_kappa_eg[event_idx] = \
+                np.sum(inst.int_kappa_step_ig[:int_idx + 1])
+        # G-function, G(0,t), on event grid.
+        inst.g_eg = g_general(inst.int_grid,
+                              inst.int_event_idx,
+                              inst.int_kappa_step_ig,
+                              inst.event_grid)
+        # y-function on event grid.
+        inst.y_eg, _ = y_general(inst.int_grid,
+                                 inst.int_event_idx,
+                                 inst.int_kappa_step_ig,
+                                 inst.vol_ig,
+                                 inst.event_grid)
+    else:
+        raise ValueError(f"Time dependence is unknown: {inst.time_dependence}")
 
 
 def integration_grid(event_grid: np.ndarray,

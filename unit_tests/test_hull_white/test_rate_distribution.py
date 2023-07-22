@@ -30,11 +30,11 @@ class JointDistributions(unittest.TestCase):
         # Event grid.
         self.event_grid = np.arange(self.n_terms) / self.frequency
         # SDE objects.
-        self.mc_a = mc_a.SDEPiecewise(self.kappa,
-                                      self.vol,
-                                      self.discount_curve,
-                                      self.event_grid)
-        self.mc_p = mc_p.SDEPiecewise(self.kappa,
+        self.mc_a = mc_a.SdeExactPiecewise(self.kappa,
+                                           self.vol,
+                                           self.discount_curve,
+                                           self.event_grid)
+        self.mc_p = mc_p.SdePiecewise(self.kappa,
                                       self.vol,
                                       self.discount_curve,
                                       self.event_grid)
@@ -54,12 +54,23 @@ class JointDistributions(unittest.TestCase):
     def test_compare(self):
         """..."""
         # MC paths using the Andersen transformation.
-        r_a, d_a = self.mc_a.paths(0, self.n_paths, seed=0)
-        r_a_adj = self.mc_a.rate_adjustment(r_a, self.bond_a.adjustment_rate)
+#        r_a, d_a = self.mc_a.paths(0, self.n_paths, seed=0)
+#        r_a_adj = self.mc_a.rate_adjustment(r_a, self.bond_a.adjustment_rate)
+#        d_a_adj = \
+#            self.mc_a.discount_adjustment(d_a, self.bond_a.adjustment_discount)
+
+        self.mc_a.paths(0, self.n_paths, seed=0)
+        r_a_adj = self.mc_a.rate_adjustment(self.mc_a.rate_paths,
+                                            self.bond_a.adjustment_rate)
         d_a_adj = \
-            self.mc_a.discount_adjustment(d_a, self.bond_a.adjustment_discount)
+            self.mc_a.discount_adjustment(self.mc_a.discount_paths,
+                                          self.bond_a.adjustment_discount)
+
         # MC paths using the Pelsser transformation.
-        r_p, d_p = self.mc_p.paths(0, self.n_paths, seed=0)
+#        r_p, d_p = self.mc_p.paths(0, self.n_paths, seed=0)
+        self.mc_p.paths(0, self.n_paths, seed=0)
+        r_p = self.mc_p.rate_paths
+        d_p = self.mc_p.discount_paths
         r_p_adj = self.mc_p.rate_adjustment(r_p, self.bond_p.adjustment_rate)
         tmp = np.cumprod(self.bond_p.adjustment_discount)
         d_p_adj = self.mc_p.discount_adjustment(d_p, tmp)

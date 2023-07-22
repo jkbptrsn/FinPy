@@ -7,7 +7,7 @@ from utils import data_types
 from utils import misc
 
 
-class SDEConstant(mc_a.SDEConstant):
+class SdeConstant(mc_a.SdeExactConstant):
     """SDE class for 1-factor Hull-White model.
 
     The pseudo short rate is given by
@@ -39,7 +39,7 @@ class SDEConstant(mc_a.SDEConstant):
         self.discount_mean[:, 1] = 0
 
 
-class SDEPiecewise(mc_a.SDEPiecewise):
+class SdePiecewise(mc_a.SdeExactPiecewise):
     """SDE class for 1-factor Hull-White model.
 
     The pseudo short rate is given by
@@ -74,7 +74,7 @@ class SDEPiecewise(mc_a.SDEPiecewise):
         self.discount_mean[:, 1] = 0
 
 
-class SDEGeneral(mc_a.SDEGeneral):
+class SdeGeneral(mc_a.SdeExactGeneral):
     """SDE class for 1-factor Hull-White model.
 
     The pseudo short rate is given by

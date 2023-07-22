@@ -1,7 +1,7 @@
+import math
 import typing
 
 import numpy as np
-from scipy.interpolate import UnivariateSpline
 
 from models import bonds
 from models.hull_white import mc_andersen as mc_a
@@ -9,7 +9,6 @@ from models.hull_white import mc_pelsser as mc_p
 from models.hull_white import misc as misc_hw
 from utils import data_types
 from utils import global_types
-from utils import misc
 from utils import payoffs
 
 
@@ -80,19 +79,15 @@ class ZCBond(bonds.BondAnalytical1F):
         # Step-wise integration of kappa on integration grid.
         self.int_kappa_step_ig = None
 
-        self.initialization()
+        self.model = global_types.Model.HULL_WHITE_1F
+        self.transformation = global_types.Transformation.ANDERSEN
+        self.type = global_types.Instrument.ZERO_COUPON_BOND
 
-        ################################################################
+        self.initialization()
 
         self.adjustment_rate = None
         self.adjustment_discount = None
         self.adjustment_function()
-
-        ################################################################
-
-        self.model = global_types.Model.HULL_WHITE_1F
-        self.transformation = global_types.Transformation.ANDERSEN
-        self.type = global_types.Instrument.ZERO_COUPON_BOND
 
     @property
     def maturity(self) -> float:
@@ -117,6 +112,11 @@ class ZCBond(bonds.BondAnalytical1F):
             self._setup_int_grid()
         self._setup_model_parameters()
 
+    def adjustment_function(self):
+        """Adjustment of short rate transformation."""
+        self.adjustment_rate = self.forward_rate_eg
+        self.adjustment_discount = self.discount_curve_eg
+
     def _setup_int_grid(self):
         """Set up time grid for numerical integration."""
         self.int_grid, self.int_event_idx = \
@@ -124,73 +124,7 @@ class ZCBond(bonds.BondAnalytical1F):
 
     def _setup_model_parameters(self):
         """Set up model parameters on event and integration grids."""
-        # Kappa interpolated on event grid.
-        self.kappa_eg = self.kappa.interpolation(self.event_grid)
-        # Vol interpolated on event grid.
-        self.vol_eg = self.vol.interpolation(self.event_grid)
-        # Discount curve interpolated on event grid.
-        self.discount_curve_eg = \
-            self.discount_curve.interpolation(self.event_grid)
-
-        # Instantaneous forward rate on event grid.
-        # TODO: Test accuracy
-        log_discount = np.log(self.discount_curve_eg)
-        smoothing = 0
-        log_discount_spline = \
-            UnivariateSpline(self.event_grid, log_discount, s=smoothing)
-        forward_rate = log_discount_spline.derivative()
-        self.forward_rate_eg = -forward_rate(self.event_grid)
-
-        # Kappa and vol are constant.
-        if self.time_dependence == "constant":
-            # Integration of kappa on event grid.
-            self.int_kappa_eg = self.kappa_eg[0] * self.event_grid
-            # G-function, G(0,t), on event grid.
-            self.g_eg = misc_hw.g_constant(self.kappa_eg[0], self.event_grid)
-            # y-function on event grid.
-            self.y_eg = misc_hw.y_constant(self.kappa_eg[0],
-                                           self.vol_eg[0],
-                                           self.event_grid)
-        # Kappa is constant and vol is piecewise constant.
-        elif self.time_dependence == "piecewise":
-            # Integration of kappa on event grid.
-            self.int_kappa_eg = self.kappa_eg[0] * self.event_grid
-            # G-function, G(0,t), on event grid.
-            self.g_eg = misc_hw.g_constant(self.kappa_eg[0], self.event_grid)
-            # y-function on event grid.
-            self.y_eg = misc_hw.y_piecewise(self.kappa_eg[0],
-                                            self.vol_eg,
-                                            self.event_grid)
-        # Kappa and vol have general time dependence.
-        elif self.time_dependence == "general":
-            # Kappa interpolated on integration grid.
-            self.kappa_ig = self.kappa.interpolation(self.int_grid)
-            # Vol interpolated on integration grid.
-            self.vol_ig = self.vol.interpolation(self.int_grid)
-            # Step-wise integration of kappa on integration grid.
-            self.int_kappa_step_ig = \
-                np.append(0, misc.trapz(self.int_grid, self.kappa_ig))
-
-            # Integration of kappa on event grid.
-            self.int_kappa_eg = np.zeros(self.event_grid.size)
-            for event_idx, int_idx in enumerate(self.int_event_idx):
-                self.int_kappa_eg[event_idx] = \
-                    np.sum(self.int_kappa_step_ig[:int_idx + 1])
-
-            # G-function, G(0,t), on event grid.
-            self.g_eg = misc_hw.g_general(self.int_grid,
-                                          self.int_event_idx,
-                                          self.int_kappa_step_ig,
-                                          self.event_grid)
-            # y-function on event grid.
-            self.y_eg, _ = misc_hw.y_general(self.int_grid,
-                                             self.int_event_idx,
-                                             self.int_kappa_step_ig,
-                                             self.vol_ig,
-                                             self.event_grid)
-        else:
-            raise ValueError(f"Time dependence is unknown: "
-                             f"{self.time_dependence}")
+        misc_hw.setup_model_parameters(self)
         # G-function, G(t,t_maturity), on event grid.
         self.gt_eg = misc_hw.g_function(self.maturity_idx,
                                         self.g_eg,
@@ -327,44 +261,27 @@ class ZCBond(bonds.BondAnalytical1F):
             self.fd_update(event_idx - 1)
             self.fd.propagation(dt, True)
 
-    ####################################################################
-
-    def adjustment_function(self):
-        """Adjustment of short rate transformation."""
-        self.adjustment_rate = self.forward_rate_eg
-        self.adjustment_discount = self.discount_curve_eg
-
-    def mc_exact_setup(self,
-                       time_dependence: str = "constant",
-                       int_dt: float = 1 / 365):
-        """Setup exact Monte-Carlo solver.
-
-        # TODO: Remove arguments. Use the ones from bond object.
-
-        Args:
-            time_dependence: Time dependence of model parameters.
-                Default is "constant".
-            int_dt: Integration step size represented as a year
-                fraction. Default is 1 / 365.
-        """
-        if time_dependence == "constant":
-            self.mc_exact = mc_a.SDEConstant(self.kappa,
-                                             self.vol,
-                                             self.discount_curve,
-                                             self.event_grid)
-        elif time_dependence == "piecewise":
-            self.mc_exact = mc_a.SDEPiecewise(self.kappa,
-                                              self.vol,
-                                              self.discount_curve,
-                                              self.event_grid)
-        elif time_dependence == "general":
-            self.mc_exact = mc_a.SDEGeneral(self.kappa,
-                                            self.vol,
-                                            self.discount_curve,
-                                            self.event_grid,
-                                            int_dt)
+    def mc_exact_setup(self):
+        """Setup exact Monte-Carlo solver."""
+        if self.time_dependence == "constant":
+            self.mc_exact = mc_a.SdeExactConstant(self.kappa,
+                                                  self.vol,
+                                                  self.discount_curve,
+                                                  self.event_grid)
+        elif self.time_dependence == "piecewise":
+            self.mc_exact = mc_a.SdeExactPiecewise(self.kappa,
+                                                   self.vol,
+                                                   self.discount_curve,
+                                                   self.event_grid)
+        elif self.time_dependence == "general":
+            self.mc_exact = mc_a.SdeExactGeneral(self.kappa,
+                                                 self.vol,
+                                                 self.discount_curve,
+                                                 self.event_grid,
+                                                 self.int_dt)
         else:
-            raise ValueError(f"Time dependence is unknown: {time_dependence}")
+            raise ValueError(f"Time dependence is unknown: "
+                             f"{self.time_dependence}")
 
     def mc_exact_solve(self,
                        spot: float,
@@ -374,6 +291,8 @@ class ZCBond(bonds.BondAnalytical1F):
                        antithetic: bool = False):
         """Run Monte-Carlo solver on event grid.
 
+        Generation of Monte-Carlo paths using exact discretization.
+
         Args:
             spot: Short rate at as-of date.
             n_paths: Number of Monte-Carlo paths.
@@ -382,12 +301,16 @@ class ZCBond(bonds.BondAnalytical1F):
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
         """
-        rate, discount = \
-            self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
-        discount = self.mc_exact.discount_adjustment(discount,
-                                                     self.adjustment_discount)
-        self.mc_exact.solution = np.mean(discount[-1, :])
-        self.mc_exact.error = misc.monte_carlo_error(discount[-1, :])
+        self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        # Adjustment of discount paths.
+        discount_paths = \
+            self.mc_exact.discount_adjustment(self.mc_exact.discount_paths,
+                                              self.adjustment_discount)
+        self.mc_exact.mc_estimate = discount_paths[-1].mean()
+        self.mc_exact.mc_error = discount_paths[-1].std(ddof=1)
+        self.mc_exact.mc_error /= math.sqrt(n_paths)
+
+    ####################################################################
 
     def mc_euler_setup(self):
         """Setup Euler Monte-Carlo solver."""
@@ -523,35 +446,27 @@ class ZCBondPelsser(ZCBond):
             # Transformation adjustment.
             self.fd.solution *= self.adjustment_discount[event_idx]
 
-    def mc_exact_setup(self,
-                       time_dependence: str = "constant",
-                       int_dt: float = 1 / 365):
-        """Setup exact Monte-Carlo solver.
-
-        Args:
-            time_dependence: Time dependence of model parameters.
-                Default is "constant".
-            int_dt: Integration step size represented as a year
-                fraction. Default is 1 / 365.
-        """
-        if time_dependence == "constant":
-            self.mc_exact = mc_p.SDEConstant(self.kappa,
+    def mc_exact_setup(self):
+        """Setup exact Monte-Carlo solver."""
+        if self.time_dependence == "constant":
+            self.mc_exact = mc_p.SdeConstant(self.kappa,
                                              self.vol,
                                              self.discount_curve,
                                              self.event_grid)
-        elif time_dependence == "piecewise":
-            self.mc_exact = mc_p.SDEPiecewise(self.kappa,
+        elif self.time_dependence == "piecewise":
+            self.mc_exact = mc_p.SdePiecewise(self.kappa,
                                               self.vol,
                                               self.discount_curve,
                                               self.event_grid)
-        elif time_dependence == "general":
-            self.mc_exact = mc_p.SDEGeneral(self.kappa,
+        elif self.time_dependence == "general":
+            self.mc_exact = mc_p.SdeGeneral(self.kappa,
                                             self.vol,
                                             self.discount_curve,
                                             self.event_grid,
-                                            int_dt)
+                                            self.int_dt)
         else:
-            raise ValueError(f"Time-dependence is unknown: {time_dependence}")
+            raise ValueError(f"Time-dependence is unknown: "
+                             f"{self.time_dependence}")
 
     def mc_exact_solve(self,
                        spot: float,
@@ -569,9 +484,12 @@ class ZCBondPelsser(ZCBond):
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
         """
-        rate, discount = \
-            self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        # Adjustment of discount paths.
         tmp = np.cumprod(self.adjustment_discount)
-        discount = self.mc_exact.discount_adjustment(discount, tmp)
-        self.mc_exact.solution = np.mean(discount[-1, :])
-        self.mc_exact.error = misc.monte_carlo_error(discount[-1, :])
+        discount_paths = \
+            self.mc_exact.discount_adjustment(self.mc_exact.discount_paths,
+                                              tmp)
+        self.mc_exact.mc_estimate = discount_paths[-1].mean()
+        self.mc_exact.mc_error = discount_paths[-1].std(ddof=1)
+        self.mc_exact.mc_error /= math.sqrt(n_paths)
