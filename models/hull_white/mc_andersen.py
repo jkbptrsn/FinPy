@@ -97,7 +97,7 @@ class SDEBasic:
     def _setup_int_grid(self):
         """Set up time grid for numerical integration."""
         self.int_grid, self.int_event_idx = \
-            misc_hw.setup_int_grid(self.event_grid, self.int_step_size)
+            misc_hw.integration_grid(self.event_grid, self.int_step_size)
 
     def _setup_model_parameters(self):
         """Set up model parameters on event grid."""

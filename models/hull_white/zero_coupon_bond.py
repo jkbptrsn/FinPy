@@ -32,7 +32,7 @@ class ZCBond(bonds.BondAnalytical1F):
                 constant.
             "general": General time dependence.
             Default is "piecewise".
-        int_dt: Integration step size. Default is 1 / 365.
+        int_dt: Integration step size. Default is 1 / 52.
     """
 
     def __init__(self,
@@ -42,7 +42,7 @@ class ZCBond(bonds.BondAnalytical1F):
                  maturity_idx: int,
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 365):
+                 int_dt: float = 1 / 52):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
@@ -51,6 +51,8 @@ class ZCBond(bonds.BondAnalytical1F):
         self.event_grid = event_grid
         self.time_dependence = time_dependence
         self.int_dt = int_dt
+
+        ################################################################
 
         # Speed of mean reversion on event grid.
         self.kappa_eg = None
@@ -73,6 +75,7 @@ class ZCBond(bonds.BondAnalytical1F):
         self.int_grid = None
         # Indices of event dates on integration grid.
         self.int_event_idx = None
+
         # Speed of mean reversion on integration grid.
         self.kappa_ig = None
         # Volatility on integration grid.
@@ -88,6 +91,8 @@ class ZCBond(bonds.BondAnalytical1F):
         self.adjustment_discount = None
         self.adjustment_function()
 
+        ################################################################
+
         self.model = global_types.Model.HULL_WHITE_1F
         self.transformation = global_types.Transformation.ANDERSEN
         self.type = global_types.Instrument.ZERO_COUPON_BOND
@@ -95,6 +100,8 @@ class ZCBond(bonds.BondAnalytical1F):
     @property
     def maturity(self) -> float:
         return self.event_grid[self.maturity_idx]
+
+########################################################################
 
     @property
     def mat_idx(self) -> int:
@@ -105,15 +112,19 @@ class ZCBond(bonds.BondAnalytical1F):
         self.maturity_idx = idx
         self.gt_eg = misc_hw.g_function(idx, self.g_eg, self.int_kappa_eg)
 
+########################################################################
+
     def initialization(self):
-        """Initialization of instrument object."""
+        """Initialization of object."""
         self._setup_int_grid()
         self._setup_model_parameters()
 
     def _setup_int_grid(self):
         """Set up time grid for numerical integration."""
         self.int_grid, self.int_event_idx = \
-            misc_hw.setup_int_grid(self.event_grid, self.int_dt)
+            misc_hw.integration_grid(self.event_grid, self.int_dt)
+
+########################################################################
 
     def _setup_model_parameters(self):
         """Set up model parameters on event grid."""

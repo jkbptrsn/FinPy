@@ -7,12 +7,17 @@ from scipy.stats import norm
 from utils import misc
 
 
-########################################################################
+def integration_grid(event_grid: np.ndarray,
+                     int_dt: float) -> (np.ndarray, np.ndarray):
+    """Set up time grid for numerical integration.
 
+    Args:
+        event_grid: Event dates as year fractions from as-of date.
+        int_dt: Integration step size.
 
-def setup_int_grid(event_grid: np.ndarray,
-                   int_step_size: float) -> (np.ndarray, np.ndarray):
-    """Set up time grid for numerical integration."""
+    Returns:
+        Integration time grid.
+    """
     # Assume that the first event is the initial time point on the
     # integration grid.
     int_grid = np.array(event_grid[0])
@@ -22,22 +27,19 @@ def setup_int_grid(event_grid: np.ndarray,
     step_size_grid = np.diff(event_grid)
     for idx, step_size in enumerate(step_size_grid):
         # Number of integration steps.
-        steps = math.floor(step_size / int_step_size)
+        steps = math.floor(step_size / int_dt)
         initial_date = event_grid[idx]
         if steps == 0:
             grid = np.array(initial_date + step_size)
         else:
-            grid = int_step_size * np.arange(1, steps + 1) + initial_date
-            diff_step = step_size - steps * int_step_size
+            grid = int_dt * np.arange(1, steps + 1) + initial_date
+            diff_step = step_size - steps * int_dt
             if diff_step > 1.0e-12:
                 grid = np.append(grid, grid[-1] + diff_step)
         int_grid = np.append(int_grid, grid)
         int_event_idx = np.append(int_event_idx, grid.size)
     int_event_idx = np.cumsum(int_event_idx)
     return int_grid, int_event_idx
-
-
-########################################################################
 
 
 def y_constant(kappa: float,

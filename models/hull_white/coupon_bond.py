@@ -391,7 +391,7 @@ class BondPelsser(Bond):
                                             self.event_grid)
         elif self.time_dependence == "general":
             self.int_grid, self.int_event_idx = \
-                misc_hw.setup_int_grid(self.event_grid, self.int_step_size)
+                misc_hw.integration_grid(self.event_grid, self.int_step_size)
             # Speed of mean reversion interpolated on integration grid.
             self.kappa_ig = self.kappa.interpolation(self.int_grid)
             # Volatility interpolated on integration grid.
