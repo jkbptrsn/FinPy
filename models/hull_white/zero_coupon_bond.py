@@ -312,24 +312,22 @@ class ZCBond(bonds.BondAnalytical1F):
         theta *= (-spot * dg_dt - dy_dt * g ** 2 / 2 - y * g * dg_dt)
         return theta
 
-    ####################################################################
-
     def fd_solve(self):
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
-        for count, dt in enumerate(np.flip(np.diff(self.event_grid))):
-            # Event index before propagation with time step -dt.
-            event_idx = (self.event_grid.size - 1) - count
-            # Update drift, diffusion, and rate functions.
-            idx = event_idx - 1
-            drift = self.y_eg[idx] - self.kappa_eg[idx] * self.fd.grid
-            diffusion = self.vol_eg[idx] + 0 * self.fd.grid
-            rate = self.fd.grid + self.forward_rate_eg[idx]
-            self.fd.set_drift(drift)
-            self.fd.set_diffusion(diffusion)
-            self.fd.set_rate(rate)
-            # Propagation for one time step.
+        # Set terminal condition.
+        self.fd.solution = self.payoff(self.fd.grid)
+        # Update drift, diffusion and rate vectors.
+        self.fd_update(self.event_grid.size - 1)
+        # Backward propagation.
+        time_steps = np.flip(np.diff(self.event_grid))
+        for idx, dt in enumerate(time_steps):
+            event_idx = (self.event_grid.size - 1) - idx
+            # Update drift, diffusion and rate vectors at previous event.
+            self.fd_update(event_idx - 1)
             self.fd.propagation(dt, True)
+
+    ####################################################################
 
     def adjustment_function(self):
         """Adjustment of short rate transformation."""
@@ -340,6 +338,8 @@ class ZCBond(bonds.BondAnalytical1F):
                        time_dependence: str = "constant",
                        int_dt: float = 1 / 365):
         """Setup exact Monte-Carlo solver.
+
+        # TODO: Remove arguments. Use the ones from bond object.
 
         Args:
             time_dependence: Time dependence of model parameters.

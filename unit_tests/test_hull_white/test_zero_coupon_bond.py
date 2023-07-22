@@ -9,8 +9,8 @@ from unit_tests.test_hull_white import input
 from utils import data_types
 from utils import plots
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 
 class YFunction(unittest.TestCase):

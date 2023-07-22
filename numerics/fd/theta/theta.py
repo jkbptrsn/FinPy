@@ -225,6 +225,8 @@ def setup_solver(instrument,
         Finite difference solver.
     """
     solver = Theta(grid, band, equidistant, theta_parameter)
+
+    # TODO: Move updates below to update function.
     if instrument.model == global_types.Model.BACHELIER:
         drift = 0 * solver.grid
         diffusion = instrument.vol + 0 * solver.grid
@@ -263,8 +265,50 @@ def setup_solver(instrument,
 
     # Terminal solution to PDE.
     # TODO: Move to each instrument. Cannot generalize...
-    # TODO: What about call/put written on zero-coupon bond?
-    #  Terminal condition should depend on zero-coupon bond, not option payoff.
     solver.solution = instrument.payoff(solver.grid)
 
     return solver
+
+
+def update(instrument,
+           event_idx: int = -1):
+    """Update drift, diffusion and rate vectors.
+
+    Args:
+        instrument: Instrument object.
+        event_idx: Index on event grid. Default is -1.
+    """
+    if instrument.model == global_types.Model.BACHELIER:
+        drift = 0 * instrument.fd.grid
+        diffusion = instrument.vol + 0 * instrument.fd.grid
+        rate = instrument.rate + 0 * instrument.fd.grid
+    elif instrument.model == global_types.Model.BLACK_SCHOLES:
+        drift = instrument.rate * instrument.fd.grid
+        diffusion = instrument.vol * instrument.fd.grid
+        rate = instrument.rate + 0 * instrument.fd.grid
+    elif instrument.model == global_types.Model.CIR:
+        drift = instrument.kappa * (instrument.mean_rate - instrument.fd.grid)
+        diffusion = instrument.vol * np.sqrt(instrument.fd.grid)
+        rate = instrument.fd.grid
+    elif instrument.model == global_types.Model.HULL_WHITE_1F:
+        if instrument.transformation == global_types.Transformation.ANDERSEN:
+            drift = instrument.y_eg[event_idx] \
+                - instrument.kappa_eg[event_idx] * instrument.fd.grid
+            diffusion = instrument.vol_eg[event_idx] + 0 * instrument.fd.grid
+            rate = instrument.fd.grid + instrument.forward_rate_eg[event_idx]
+        elif instrument.transformation == global_types.Transformation.PELSSER:
+            drift = -instrument.kappa_eg[event_idx] * instrument.fd.grid
+            diffusion = instrument.vol_eg[event_idx] + 0 * instrument.fd.grid
+            rate = instrument.fd.grid
+        else:
+            raise ValueError(f"Transformation is unknown: "
+                             f"{instrument.transformation}")
+    elif instrument.model == global_types.Model.VASICEK:
+        drift = instrument.kappa * (instrument.mean_rate - instrument.fd.grid)
+        diffusion = instrument.vol + 0 * instrument.fd.grid
+        rate = instrument.fd.grid
+    else:
+        raise ValueError(f"Model is unknown: {instrument.model}")
+    instrument.fd.set_drift(drift)
+    instrument.fd.set_diffusion(diffusion)
+    instrument.fd.set_rate(rate)

@@ -155,10 +155,12 @@ class EuropeanOption(options.Option1FAnalytical):
         self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = self.zcbond.payoff(self.fd.grid)
+        # Update drift, diffusion and rate vectors.
+        self.fd_update()
         # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid))
         for idx, dt in enumerate(time_steps):
-            event_idx = self.event_grid.size - idx - 1
+            event_idx = (self.event_grid.size - 1) - idx
             # Expiry of option.
             if event_idx == self.expiry_idx:
                 self.fd.solution = self.payoff(self.fd.solution)
