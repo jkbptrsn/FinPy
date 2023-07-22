@@ -98,7 +98,7 @@ class ZCBond(bonds.BondAnalytical1F):
     def maturity(self) -> float:
         return self.event_grid[self.maturity_idx]
 
-########################################################################
+    ####################################################################
 
     @property
     def mat_idx(self) -> int:
@@ -109,7 +109,7 @@ class ZCBond(bonds.BondAnalytical1F):
         self.maturity_idx = idx
         self.gt_eg = misc_hw.g_function(idx, self.g_eg, self.int_kappa_eg)
 
-########################################################################
+    ####################################################################
 
     def initialization(self):
         """Initialization of object."""
@@ -189,18 +189,16 @@ class ZCBond(bonds.BondAnalytical1F):
                                              self.vol_ig,
                                              self.event_grid)
         else:
-            raise ValueError(f"Time dependence unknown: "
+            raise ValueError(f"Time dependence is unknown: "
                              f"{self.time_dependence}")
         # G-function, G(t,t_maturity), on event grid.
         self.gt_eg = misc_hw.g_function(self.maturity_idx,
                                         self.g_eg,
                                         self.int_kappa_eg)
 
-    ####################################################################
-
     def payoff(self,
-               spot: typing.Union[float, np.ndarray]) -> \
-            typing.Union[float, np.ndarray]:
+               spot: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
         Args:
@@ -267,7 +265,7 @@ class ZCBond(bonds.BondAnalytical1F):
                 Default is "price".
 
         Returns:
-            Zero-coupon bond price/delta/gamma.
+            Zero-coupon bond price, delta or gamma.
         """
         if event_idx > self.maturity_idx:
             raise ValueError("event_idx > maturity_idx")
@@ -302,7 +300,19 @@ class ZCBond(bonds.BondAnalytical1F):
         Returns:
             Theta.
         """
-        pass
+        # G(t,T): G-function.
+        g = self.gt_eg[event_idx]
+        # dG(t,T) / dt.
+        dg_dt = -1 + self.kappa_eg[event_idx] * g
+        # y(t): y-function.
+        y = self.y_eg[event_idx]
+        # dy(t) / dt.
+        dy_dt = self.vol_eg[event_idx] ** 2 - 2 * self.kappa_eg[event_idx] * y
+        theta = self._price_delta_gamma(spot, event_idx, "price")
+        theta *= (-spot * dg_dt - dy_dt * g ** 2 / 2 - y * g * dg_dt)
+        return theta
+
+    ####################################################################
 
     def fd_solve(self):
         """Run finite difference solver on event grid."""
@@ -354,7 +364,7 @@ class ZCBond(bonds.BondAnalytical1F):
                                             self.event_grid,
                                             int_dt)
         else:
-            raise ValueError(f"Time-dependence is unknown: {time_dependence}")
+            raise ValueError(f"Time dependence is unknown: {time_dependence}")
 
     def mc_exact_solve(self,
                        spot: float,
