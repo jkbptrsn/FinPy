@@ -13,7 +13,7 @@ class SdeExact:
     """SDE for pseudo short rate process in 1-factor Hull-White model.
 
     The pseudo short rate is defined by
-        dx_t = (y_t - kappa * x_t) * dt + vol * dW_t,
+        dx_t = (y_t - kappa_t * x_t) * dt + vol_t * dW_t,
     where kappa and mean_rate are the speed of mean reversion and mean
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
@@ -284,15 +284,12 @@ class SdeExact:
         return tmp.transpose()
 
 
-########################################################################
-
-
 class SdeExactConstant(SdeExact):
     """SDE class for 1-factor Hull-White model.
 
-    The speed of mean reversion and volatility is constant.
-
     Monte-Carlo paths constructed using exact discretization.
+
+    The speed of mean reversion and volatility is constant.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -322,7 +319,7 @@ class SdeExactConstant(SdeExact):
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
         # First term in Eq. (10.40).
-        self.rate_mean[0, :] = np.array([1, 0])
+        self.rate_mean[0, 0] = 1
         self.rate_mean[1:, 0] = np.exp(-kappa * np.diff(self.event_grid))
         # Second term in Eq. (10.40).
         self.rate_mean[:, 1] = \
@@ -331,7 +328,7 @@ class SdeExactConstant(SdeExact):
     def _calc_rate_variance(self):
         """Conditional variance of pseudo short rate process.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.41).
         """
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
@@ -343,24 +340,24 @@ class SdeExactConstant(SdeExact):
     def _calc_discount_mean(self):
         """Conditional mean of pseudo discount process.
 
-        The pseudo discount process is really -int_t^{t+dt} x_u du. See
-        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        The pseudo discount process is really -int_t^{t+dt} x_u du.
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
         """
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
         # First term in Eq. (10.42).
         self.discount_mean[0, :] = 0
         self.discount_mean[1:, 0] = \
-            (1 - np.exp(-kappa * np.diff(self.event_grid))) / kappa
+            (self.g_eg[1:] - self.g_eg[:-1]) * np.exp(self.int_kappa_eg[:-1])
         # Second term in Eq. (10.42).
         self.discount_mean[:, 1] = \
-            misc_hw.double_int_y_constant(kappa, vol, self.event_grid)
+            misc_hw.int_int_y_constant(kappa, vol, self.event_grid)
 
     def _calc_discount_variance(self):
         """Conditional variance of pseudo discount process.
 
-        The pseudo discount process is really -int_t^{t+dt} x_u du. See
-        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        The pseudo discount process is really -int_t^{t+dt} x_u du.
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
         """
         self.discount_variance[0] = 0
         self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
@@ -382,13 +379,13 @@ class SdeExactConstant(SdeExact):
 class SdeExactPiecewise(SdeExact):
     """SDE class for 1-factor Hull-White model.
 
-    The speed of mean reversion is constant and volatility is piecewise
-    constant.
-
     Monte-Carlo paths constructed using exact discretization.
 
+    The speed of mean reversion is constant and the volatility is
+    piecewise constant.
+
     TODO: Implicit assumption that all vol-strip events are represented
-     on the event grid.
+     on event grid.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -417,7 +414,7 @@ class SdeExactPiecewise(SdeExact):
         """
         kappa = self.kappa_eg[0]
         # First term in Eq. (10.40).
-        self.rate_mean[0, :] = np.array([1, 0])
+        self.rate_mean[0, 0] = 1
         self.rate_mean[1:, 0] = np.exp(-kappa * np.diff(self.event_grid))
         # Second term in Eq. (10.40).
         self.rate_mean[:, 1] = \
@@ -426,7 +423,7 @@ class SdeExactPiecewise(SdeExact):
     def _calc_rate_variance(self):
         """Conditional variance of pseudo short rate process.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.41).
         """
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[:-1]
@@ -445,10 +442,10 @@ class SdeExactPiecewise(SdeExact):
         # First term in Eq. (10.42).
         self.discount_mean[0, :] = 0
         self.discount_mean[1:, 0] = \
-            (1 - np.exp(-kappa * np.diff(self.event_grid))) / kappa
+            (self.g_eg[1:] - self.g_eg[:-1]) * np.exp(self.int_kappa_eg[:-1])
         # Second term in Eq. (10.42).
         self.discount_mean[:, 1] = \
-            misc_hw.double_int_y_piecewise(kappa, self.vol_eg, self.event_grid)
+            misc_hw.int_int_y_piecewise(kappa, self.vol_eg, self.event_grid)
 
     def _calc_discount_variance(self):
         """Conditional variance of pseudo discount process.
@@ -475,13 +472,13 @@ class SdeExactPiecewise(SdeExact):
 class SdeExactGeneral(SdeExact):
     """SDE class for 1-factor Hull-White model.
 
-    On assumption on the time dependence of the speed of mean reversion
-    and the volatility.
-
     Monte-Carlo paths constructed using exact discretization.
 
+    No assumption on the time dependence of the speed of mean reversion
+    and the volatility.
+
     TODO: Implicit assumption that all vol-strip events are represented
-     on the event grid.
+     on event grid.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -512,14 +509,8 @@ class SdeExactGeneral(SdeExact):
         See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
         """
         # First term in Eq. (10.40).
-        self.rate_mean[0, :] = np.array([1, 0])
-        for event_idx in range(1, self.event_grid.size):
-            # Integration indices of two adjacent events.
-            idx1 = self.int_event_idx[event_idx - 1]
-            idx2 = self.int_event_idx[event_idx] + 1
-            # Slice of time-integrated kappa for each integration step.
-            int_kappa = np.append(self.int_kappa_step_ig[idx1 + 1:idx2], 0)
-            self.rate_mean[event_idx, 0] = math.exp(-np.sum(int_kappa))
+        self.rate_mean[0, 0] = 1
+        self.rate_mean[1:, 0] = np.exp(-np.diff(self.int_kappa_eg))
         # Second term in Eq. (10.40).
         self.rate_mean[:, 1] = \
             misc_hw.int_y_general(self.int_grid, self.int_event_idx,
@@ -529,7 +520,7 @@ class SdeExactGeneral(SdeExact):
     def _calc_rate_variance(self):
         """Conditional variance of pseudo short rate process.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.41).
         """
         self.rate_variance[0] = 0
         for event_idx in range(1, self.event_grid.size):
@@ -537,47 +528,35 @@ class SdeExactGeneral(SdeExact):
             idx1 = self.int_event_idx[event_idx - 1]
             idx2 = self.int_event_idx[event_idx] + 1
             # Slice of integration grid.
-            int_grid = self.int_grid[idx1:idx2]
+            int_grid_tmp = self.int_grid[idx1:idx2]
             # Slice of time-integrated kappa for each integration step.
             int_kappa = np.append(self.int_kappa_step_ig[idx1 + 1:idx2], 0)
-            int_kappa = np.cumsum(int_kappa[::-1])[::-1]
-            integrand = np.exp(-int_kappa) * self.vol_ig[idx1:idx2]
-            integrand = integrand ** 2
-            variance = np.sum(misc.trapz(int_grid, integrand))
+            int_kappa = np.flip(np.cumsum(np.flip(int_kappa)))
+            integrand = (np.exp(-int_kappa) * self.vol_ig[idx1:idx2]) ** 2
+            variance = np.sum(misc.trapz(int_grid_tmp, integrand))
             self.rate_variance[event_idx] = variance
 
     def _calc_discount_mean(self):
         """Conditional mean of pseudo discount process.
 
-        The pseudo discount process is really -int_t^{t+dt} x_u du. See
-        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        The pseudo discount process is really -int_t^{t+dt} x_u du.
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
         """
-        self.discount_mean[0, :] = 0
         # First term in Eq. (10.42).
-        for event_idx in range(1, self.event_grid.size):
-            # Integration indices of two adjacent events.
-            idx1 = self.int_event_idx[event_idx - 1]
-            idx2 = self.int_event_idx[event_idx] + 1
-            # Slice of integration grid.
-            int_grid = self.int_grid[idx1:idx2]
-            # Slice of time-integrated kappa for each integration step.
-            int_kappa = np.append(0, self.int_kappa_step_ig[idx1 + 1:idx2])
-            # G-function in Eq. (10.18).
-            int_kappa = np.cumsum(int_kappa)
-            integrand = np.exp(-int_kappa)
-            self.discount_mean[event_idx, 0] = \
-                np.sum(misc.trapz(int_grid, integrand))
+        self.discount_mean[0, :] = 0
+        self.discount_mean[1:, 0] = \
+            (self.g_eg[1:] - self.g_eg[:-1]) * np.exp(self.int_kappa_eg[:-1])
         # Second term in Eq. (10.42).
         self.discount_mean[:, 1] = \
-            misc_hw.double_int_y_general(self.int_grid, self.int_event_idx,
-                                         self.int_kappa_step_ig, self.vol_ig,
-                                         self.event_grid)
+            misc_hw.int_int_y_general(self.int_grid, self.int_event_idx,
+                                      self.int_kappa_step_ig, self.vol_ig,
+                                      self.event_grid)
 
     def _calc_discount_variance(self):
         """Conditional variance of pseudo discount process.
 
-        The pseudo discount process is really -int_t^{t+dt} x_u du. See
-        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        The pseudo discount process is really -int_t^{t+dt} x_u du.
+        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
         """
         self.discount_variance[0] = 0
         self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
@@ -593,16 +572,20 @@ class SdeExactGeneral(SdeExact):
             # Integration indices of two adjacent events.
             idx1 = self.int_event_idx[event_idx - 1]
             idx2 = self.int_event_idx[event_idx] + 1
+
             # Slice of time-integrated kappa for each integration step.
-            int_kappa = np.append(0, self.int_kappa_step_ig[idx1 + 1:idx2])
-            int_kappa = np.cumsum(int_kappa[::-1])[::-1]
+            # TODO: Make unit tests!
+#            int_kappa = np.append(0, self.int_kappa_step_ig[idx1 + 1:idx2])
+            int_kappa = np.append(self.int_kappa_step_ig[idx1 + 1:idx2], 0)
+
+            int_kappa = np.flip(np.cumsum(np.flip(int_kappa)))
             exp_kappa = np.exp(-int_kappa)
             cov = np.array(0)
             for idx in range(idx1 + 1, idx2):
                 int_grid_tmp = self.int_grid[idx1:idx + 1]
                 int_kappa_tmp = \
                     np.append(self.int_kappa_step_ig[idx1 + 1:idx + 1], 0)
-                int_kappa_tmp = np.cumsum(int_kappa_tmp[::-1])[::-1]
+                int_kappa_tmp = np.flip(np.cumsum(np.flip(int_kappa_tmp)))
                 integrand = self.vol_ig[idx1:idx + 1] ** 2 * \
                     np.exp(-int_kappa_tmp) * exp_kappa[:idx + 1 - idx1]
                 cov = np.append(cov,

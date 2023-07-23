@@ -34,10 +34,10 @@ class JointDistributions(unittest.TestCase):
                                            self.vol,
                                            self.discount_curve,
                                            self.event_grid)
-        self.mc_p = mc_p.SdePiecewise(self.kappa,
-                                      self.vol,
-                                      self.discount_curve,
-                                      self.event_grid)
+        self.mc_p = mc_p.SdeExactPiecewise(self.kappa,
+                                           self.vol,
+                                           self.discount_curve,
+                                           self.event_grid)
         # Zero-coupon bond objects.
         mat = self.n_terms - 1
         self.bond_a = zcbond.ZCBond(self.kappa,

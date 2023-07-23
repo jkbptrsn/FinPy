@@ -449,21 +449,21 @@ class ZCBondPelsser(ZCBond):
     def mc_exact_setup(self):
         """Setup exact Monte-Carlo solver."""
         if self.time_dependence == "constant":
-            self.mc_exact = mc_p.SdeConstant(self.kappa,
-                                             self.vol,
-                                             self.discount_curve,
-                                             self.event_grid)
+            self.mc_exact = mc_p.SdeExactConstant(self.kappa,
+                                                  self.vol,
+                                                  self.discount_curve,
+                                                  self.event_grid)
         elif self.time_dependence == "piecewise":
-            self.mc_exact = mc_p.SdePiecewise(self.kappa,
-                                              self.vol,
-                                              self.discount_curve,
-                                              self.event_grid)
+            self.mc_exact = mc_p.SdeExactPiecewise(self.kappa,
+                                                   self.vol,
+                                                   self.discount_curve,
+                                                   self.event_grid)
         elif self.time_dependence == "general":
-            self.mc_exact = mc_p.SdeGeneral(self.kappa,
-                                            self.vol,
-                                            self.discount_curve,
-                                            self.event_grid,
-                                            self.int_dt)
+            self.mc_exact = mc_p.SdeExactGeneral(self.kappa,
+                                                 self.vol,
+                                                 self.discount_curve,
+                                                 self.event_grid,
+                                                 self.int_dt)
         else:
             raise ValueError(f"Time-dependence is unknown: "
                              f"{self.time_dependence}")
