@@ -18,40 +18,46 @@ class Misc(unittest.TestCase):
         # Event dates in year fractions.
         self.event_grid = np.arange(16)
         # Speed of mean reversion strip.
-        self.kappa_scalar = 0.15
+        self.kappa_scalar = 0.02
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
         self.kappa1 = \
             data_types.DiscreteFunc("kappa1", self.event_grid, self.kappa_vector1)
         # Volatility strip.
         self.vol_scalar = 0.05
         self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)
+        # Constant vol strip.
         self.vol1 = \
             data_types.DiscreteFunc("vol1", self.event_grid, self.vol_vector1)
         self.vol_vector2 = np.zeros(self.event_grid.size)
         for idx in range(self.event_grid.size):
-            if idx % 2 == 0:
-                self.vol_vector2[idx] = self.vol_vector1[idx]
-            else:
-                self.vol_vector2[idx] = 4 * self.vol_vector1[idx]
+            self.vol_vector2[idx] = (idx % 4 + 1) * self.vol_vector1[idx]
+        # Piecewise-constant vol strip.
         self.vol2 = \
             data_types.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
         self.discount_curve = \
             data_types.DiscreteFunc("discount", self.event_grid,
                                     np.ones(self.event_grid.size))
-        # SDE objects.
-        self.sde1 = sde.SdeExactGeneral(self.kappa1, self.vol1,
-                                        self.discount_curve, self.event_grid,
-                                        int_dt=1 / 12)
-        self.sde2 = sde.SdeExactGeneral(self.kappa1, self.vol2,
-                                        self.discount_curve, self.event_grid,
-                                        int_dt=1 / 100)
+        # SDE object, constant vol strip.
+        self.sde1 = sde.SdeExactGeneral(self.kappa1,
+                                        self.vol1,
+                                        self.discount_curve,
+                                        self.event_grid,
+                                        int_dt=1 / 10)
+        # SDE object, piecewise-constant vol strip.
+        self.sde2 = sde.SdeExactGeneral(self.kappa1,
+                                        self.vol2,
+                                        self.discount_curve,
+                                        self.event_grid,
+                                        int_dt=1 / 200)
 
     def test_y_constant(self):
         """Numerical evaluation of y-function."""
-        y_constant = misc_hw.y_constant(self.kappa_scalar, self.vol_scalar,
+        y_constant = misc_hw.y_constant(self.kappa_scalar,
+                                        self.vol_scalar,
                                         self.event_grid)
-        y_piecewise = misc_hw.y_piecewise(self.kappa_scalar, self.vol_vector1,
+        y_piecewise = misc_hw.y_piecewise(self.kappa_scalar,
+                                          self.vol_vector1,
                                           self.event_grid)
         y_general, _ = misc_hw.y_general(self.sde1.int_grid,
                                          self.sde1.int_event_idx,
@@ -74,11 +80,12 @@ class Misc(unittest.TestCase):
                 if print_results:
                     print(diff1, diff2)
                 self.assertTrue(diff1 < 1.0e-15)
-                self.assertTrue(diff2 < 6.0e-5)
+                self.assertTrue(diff2 < 1.4e-6)
 
     def test_y_piecewise(self):
         """Numerical evaluation of y-function."""
-        y_piecewise = misc_hw.y_piecewise(self.kappa_scalar, self.vol_vector2,
+        y_piecewise = misc_hw.y_piecewise(self.kappa_scalar,
+                                          self.vol_vector2,
                                           self.event_grid)
         y_general, _ = misc_hw.y_general(self.sde2.int_grid,
                                          self.sde2.int_event_idx,
@@ -97,16 +104,16 @@ class Misc(unittest.TestCase):
                 diff = abs(y1 - y2) / y1
                 if print_results:
                     print(y1, y2, diff)
-                self.assertTrue(diff < 6.0e-3)
+                self.assertTrue(diff < 4.1e-3)
 
     def test_int_y_constant(self):
         """Numerical evaluation of "integral" of y-function."""
-        y_constant = \
-            misc_hw.int_y_constant(self.kappa_scalar, self.vol_scalar,
-                                   self.event_grid)
-        y_piecewise = \
-            misc_hw.int_y_piecewise(self.kappa_scalar, self.vol_vector1,
-                                    self.event_grid)
+        y_constant = misc_hw.int_y_constant(self.kappa_scalar,
+                                            self.vol_scalar,
+                                            self.event_grid)
+        y_piecewise = misc_hw.int_y_piecewise(self.kappa_scalar,
+                                              self.vol_vector1,
+                                              self.event_grid)
         y_general = misc_hw.int_y_general(self.sde1.int_grid,
                                           self.sde1.int_event_idx,
                                           self.sde1.int_kappa_step_ig,
@@ -127,14 +134,14 @@ class Misc(unittest.TestCase):
                 diff2 = abs(y1 - y3) / y1
                 if print_results:
                     print(diff1, diff2)
-                self.assertTrue(diff1 < 5.0e-15)
-                self.assertTrue(diff2 < 7.0e-5)
+                self.assertTrue(diff1 < 3.0e-13)
+                self.assertTrue(diff2 < 1.7e-6)
 
     def test_int_y_piecewise(self):
         """Test numerical evaluation of "integral" of y-function."""
-        y_piecewise = \
-            misc_hw.int_y_piecewise(self.kappa_scalar, self.vol_vector2,
-                                    self.event_grid)
+        y_piecewise = misc_hw.int_y_piecewise(self.kappa_scalar,
+                                              self.vol_vector2,
+                                              self.event_grid)
         y_general = misc_hw.int_y_general(self.sde2.int_grid,
                                           self.sde2.int_event_idx,
                                           self.sde2.int_kappa_step_ig,
@@ -152,16 +159,16 @@ class Misc(unittest.TestCase):
                 diff = abs(y1 - y2) / y1
                 if print_results:
                     print(y1, y2, diff)
-                self.assertTrue(diff < 8.0e-3)
+                self.assertTrue(diff < 2.6e-3)
 
     def test_double_int_y_constant(self):
         """Numerical evaluation of "double integral" of y-function."""
-        y_constant = \
-            misc_hw.int_int_y_constant(self.kappa_scalar, self.vol_scalar,
-                                       self.event_grid)
-        y_piecewise = \
-            misc_hw.int_int_y_piecewise(self.kappa_scalar, self.vol_vector1,
-                                        self.event_grid)
+        y_constant = misc_hw.int_int_y_constant(self.kappa_scalar,
+                                                self.vol_scalar,
+                                                self.event_grid)
+        y_piecewise = misc_hw.int_int_y_piecewise(self.kappa_scalar,
+                                                  self.vol_vector1,
+                                                  self.event_grid)
         y_general = misc_hw.int_int_y_general(self.sde1.int_grid,
                                               self.sde1.int_event_idx,
                                               self.sde1.int_kappa_step_ig,
@@ -182,14 +189,14 @@ class Misc(unittest.TestCase):
                 diff2 = abs(y1 - y3) / y1
                 if print_results:
                     print(diff1, diff2)
-                self.assertTrue(diff1 < 2.0e-13)
-                self.assertTrue(diff2 < 4.0e-3)
+                self.assertTrue(diff1 < 9.0e-11)
+                self.assertTrue(diff2 < 5.0e-3)
 
     def test_double_int_y_piecewise(self):
         """Test numerical evaluation of "double integral" of y-function."""
-        y_piecewise = \
-            misc_hw.int_int_y_piecewise(self.kappa_scalar, self.vol_vector2,
-                                        self.event_grid)
+        y_piecewise = misc_hw.int_int_y_piecewise(self.kappa_scalar,
+                                                  self.vol_vector2,
+                                                  self.event_grid)
         y_general = misc_hw.int_int_y_general(self.sde2.int_grid,
                                               self.sde2.int_event_idx,
                                               self.sde2.int_kappa_step_ig,
@@ -207,7 +214,24 @@ class Misc(unittest.TestCase):
                 diff = abs(y1 - y2) / y1
                 if print_results:
                     print(y1, y2, diff)
-                self.assertTrue(diff < 4.0e-3)
+                self.assertTrue(diff < 2.6e-3)
+
+    def test_g_constant(self):
+        """Numerical evaluation of G-function, G(0,t)."""
+        g_constant = misc_hw.g_constant(self.kappa_scalar,
+                                        self.event_grid)
+        g_general = self.sde1.g_eg
+        diff = np.abs((g_constant[1:] - g_general[1:]) / g_constant[1:])
+        if plot_results:
+            plt.plot(self.event_grid, g_constant, "-b")
+            plt.plot(self.event_grid, g_general, "or")
+            plt.xlabel("t")
+            plt.ylabel("G(0,t)")
+            plt.show()
+        if print_results:
+            print("G-function with constant kappa.")
+            print(np.max(diff))
+        self.assertTrue(np.max(diff) < 3.4e-7)
 
 
 class SDE(unittest.TestCase):
@@ -219,12 +243,12 @@ class SDE(unittest.TestCase):
         # Speed of mean reversion strip.
         self.kappa_scalar = 0.15
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
-        self.kappa1 = \
-            data_types.DiscreteFunc("kappa1", self.event_grid,
-                                    self.kappa_vector1)
+        self.kappa1 = data_types.DiscreteFunc("kappa1", self.event_grid,
+                                              self.kappa_vector1)
         # Volatility strip.
         self.vol_scalar = 0.05
         self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)
+        # Constant vol strip.
         self.vol1 = \
             data_types.DiscreteFunc("vol1", self.event_grid, self.vol_vector1)
         self.vol_vector2 = np.zeros(self.event_grid.size)
@@ -233,6 +257,7 @@ class SDE(unittest.TestCase):
                 self.vol_vector2[idx] = self.vol_vector1[idx]
             else:
                 self.vol_vector2[idx] = 2 * self.vol_vector1[idx]
+        # Piecewise-constant vol strip.
         self.vol2 = \
             data_types.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
@@ -256,77 +281,55 @@ class SDE(unittest.TestCase):
                                                 self.vol1,
                                                 self.discount_curve,
                                                 self.event_grid,
-                                                int_dt=1 / 100)
+                                                int_dt=1 / 50)
         self.sde_general2 = sde.SdeExactGeneral(self.kappa1,
                                                 self.vol2,
                                                 self.discount_curve,
                                                 self.event_grid,
-                                                int_dt=1 / 100)
+                                                int_dt=1 / 50)
 
     def test_sde_constant_vol(self):
         """Test SDE classes for constant vol-strip."""
         # Number of Monte-Carlo paths.
-        n_paths = 100000
-
+        n_paths = 200000
         # Zero-coupon bond price at all events. Analytical results.
         price_a = self.discount_curve.values
-
         # SDE constant.
-#        rate, discount = \
-#            self.sde_constant.paths(0, n_paths, seed=0, antithetic=True)
-#        discount = self.sde_constant.discount_adjustment(discount,
-#            self.sde_constant.discount_curve_eg)
-
         self.sde_constant.paths(0, n_paths, seed=0, antithetic=True)
         discount = self.sde_constant.discount_adjustment(
             self.sde_constant.discount_paths,
             self.sde_constant.discount_curve_eg)
-
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
-        diff = np.abs((price_n - price_a) / price_a)
+        diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
         if print_results:
-            print(diff, np.max(diff))
-        self.assertTrue(np.max(diff) < 2.59e-3)
-
+            print(f"SDE constant: Diff = {np.max(diff)}")
+        self.assertTrue(np.max(diff) < 8.1e-4)
         # SDE piecewise.
-#        rate, discount = \
-#            self.sde_piecewise1.paths(0, n_paths, seed=0, antithetic=True)
-#        discount = self.sde_piecewise1.discount_adjustment(discount,
-#            self.sde_piecewise1.discount_curve_eg)
-
         self.sde_piecewise1.paths(0, n_paths, seed=0, antithetic=True)
         discount = self.sde_piecewise1.discount_adjustment(
             self.sde_piecewise1.discount_paths,
             self.sde_piecewise1.discount_curve_eg)
-
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
-        diff = np.abs((price_n - price_a) / price_a)
+        diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
         if print_results:
-            print(diff, np.max(diff))
-        self.assertTrue(np.max(diff) < 2.59e-3)
-
+            print(f"SDE piecewise: Diff = {np.max(diff)}")
+        self.assertTrue(np.max(diff) < 8.1e-4)
         # SDE general.
-#        rate, discount = \
-#            self.sde_general1.paths(0, n_paths, seed=0, antithetic=True)
-#        discount = self.sde_general1.discount_adjustment(discount,
-#            self.sde_general1.discount_curve_eg)
-
         self.sde_general1.paths(0, n_paths, seed=0, antithetic=True)
         discount = self.sde_general1.discount_adjustment(
             self.sde_general1.discount_paths,
             self.sde_general1.discount_curve_eg)
-
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
-        diff = np.abs((price_n - price_a) / price_a)
+        diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
         if print_results:
-            print(diff, np.max(diff))
-#        self.assertTrue(np.max(diff) < 2.50e-3)
+            print(f"SDE general: Diff = {np.max(diff)}")
+        self.assertTrue(np.max(diff) < 8.10e-3)
 
         if plot_results:
             plt.plot(self.event_grid, self.sde_constant.y_eg,
@@ -398,48 +401,33 @@ class SDE(unittest.TestCase):
     def test_sde_piecewise_vol(self):
         """Test SDE classes for piecewise-constant vol-strip."""
         # Number of Monte-Carlo paths.
-        n_paths = 100000
-
+        n_paths = 200000
         # Zero-coupon bond price at all events. Analytical results.
         price_a = self.discount_curve.values
-
         # SDE piecewise.
-#        rate, discount = \
-#            self.sde_piecewise2.paths(0, n_paths, seed=0, antithetic=True)
-#        discount = self.sde_piecewise2.discount_adjustment(discount,
-#            self.sde_piecewise2.discount_curve_eg)
-
         self.sde_piecewise2.paths(0, n_paths, seed=0, antithetic=True)
         discount = self.sde_piecewise2.discount_adjustment(
             self.sde_piecewise2.discount_paths,
             self.sde_piecewise2.discount_curve_eg)
-
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
-        diff = np.abs((price_n - price_a) / price_a)
+        diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
         if print_results:
-            print(diff, np.max(diff))
-        self.assertTrue(np.max(diff) < 9.1e-3)
-
+            print(f"SDE piecewise: Diff = {np.max(diff)}")
+        self.assertTrue(np.max(diff) < 1.8e-3)
         # SDE general.
-#        rate, discount = \
-#            self.sde_general2.paths(0, n_paths, seed=0, antithetic=True)
-#        discount = self.sde_general2.discount_adjustment(discount,
-#            self.sde_general2.discount_curve_eg)
-
         self.sde_general2.paths(0, n_paths, seed=0, antithetic=True)
         discount = self.sde_general2.discount_adjustment(
             self.sde_general2.discount_paths,
             self.sde_general2.discount_curve_eg)
-
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
-        diff = np.abs((price_n - price_a) / price_a)
+        diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
         if print_results:
-            print(diff, np.max(diff))
-#        self.assertTrue(np.max(diff) < 8.86e-3)
+            print(f"SDE general: Diff = {np.max(diff)}")
+        self.assertTrue(np.max(diff) < 1.8e-3)
 
         if plot_results:
             plt.plot(self.event_grid, self.sde_piecewise2.y_eg,

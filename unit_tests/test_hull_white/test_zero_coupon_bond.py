@@ -13,144 +13,11 @@ plot_results = False
 print_results = False
 
 
-class YFunction(unittest.TestCase):
-    """Calculation of y-function."""
-
-    def setUp(self) -> None:
-        # Speed of mean reversion strip.
-        time_grid = np.array([0, 2, 4, 6, 10, 20, 30])
-        kappa_grid = 0.03 * np.ones(7)
-        self.kappa_constant = \
-            data_types.DiscreteFunc("kappa", time_grid, kappa_grid)
-        # Volatility strips.
-        vol_grid = 0.017 * np.ones(7)
-        self.vol_constant = \
-            data_types.DiscreteFunc("vol", time_grid, vol_grid)
-        vol_grid = np.array([0.017, 0.015, 0.014, 0.006, 0.009, 0.008, 0.009])
-        self.vol_piecewise = \
-            data_types.DiscreteFunc("vol", time_grid, vol_grid)
-        # Discount curve.
-        self.discount_curve = input.disc_curve
-        # Bond maturity.
-        self.maturity = 25
-        # Event grid.
-        self.t_steps = 26
-        self.dt = self.maturity / (self.t_steps - 1)
-        self.event_grid = self.dt * np.arange(self.t_steps)
-        self.maturity_idx = self.t_steps - 1
-        # Functions on event grid.
-        self.kappa_constant_eg = \
-            self.kappa_constant.interpolation(self.event_grid)
-        self.vol_constant_eg = \
-            self.vol_constant.interpolation(self.event_grid)
-        self.vol_piecewise_eg = \
-            self.vol_piecewise.interpolation(self.event_grid)
-        # Bond object.
-        self.bond_constant = zcbond.ZCBond(self.kappa_constant,
-                                           self.vol_constant,
-                                           self.discount_curve,
-                                           self.maturity_idx,
-                                           self.event_grid,
-                                           "general",
-                                           1 / 10)
-        self.bond_piecewise = zcbond.ZCBond(self.kappa_constant,
-                                            self.vol_piecewise,
-                                            self.discount_curve,
-                                            self.maturity_idx,
-                                            self.event_grid,
-                                            "general",
-                                            1 / 100)
-
-    def test_constant(self):
-        """Calculation of y-function with constant vol."""
-        y_constant = misc_hw.y_constant(self.kappa_constant_eg[0],
-                                        self.vol_constant_eg[0],
-                                        self.event_grid)
-        y_piecewise = misc_hw.y_piecewise(self.kappa_constant_eg[0],
-                                          self.vol_constant_eg,
-                                          self.event_grid)
-        y_general = self.bond_constant.y_eg
-        diff_piecewise = \
-            np.abs((y_piecewise[1:] - y_constant[1:]) / y_constant[1:])
-        diff_general = \
-            np.abs((y_general[1:] - y_constant[1:]) / y_constant[1:])
-        if print_results:
-            print("y-function with constant vol.")
-            print("Diff, piecewise: ", np.max(diff_piecewise))
-        self.assertTrue(np.max(diff_piecewise) < 2.5e-16)
-        if print_results:
-            print("Diff, general  : ", np.max(diff_general))
-        self.assertTrue(np.max(diff_general) < 3.0e-6)
-
-    def test_piecewise(self):
-        """Calculation of y-function with piecewise constant vol."""
-        y_piecewise = misc_hw.y_piecewise(self.kappa_constant_eg[0],
-                                          self.vol_piecewise_eg,
-                                          self.event_grid)
-        y_general = self.bond_piecewise.y_eg
-        diff = np.abs((y_general[1:] - y_piecewise[1:]) / y_piecewise[1:])
-        if print_results:
-            print("y-function with piecewise-constant vol.")
-            print("Diff: ", np.max(diff))
-        self.assertTrue(np.max(diff) < 1.1e-3)
-
-
-class GFunction(unittest.TestCase):
-    """Calculation of G-function."""
-
-    def setUp(self) -> None:
-        # Speed of mean reversion strip.
-        time_grid = np.array([0, 2, 4, 6, 10, 20, 30])
-        kappa_grid = 0.03 * np.ones(7)
-        self.kappa_constant = \
-            data_types.DiscreteFunc("kappa", time_grid, kappa_grid)
-        # Volatility strips.
-        vol_grid = 0.017 * np.ones(7)
-        self.vol_constant = \
-            data_types.DiscreteFunc("vol", time_grid, vol_grid)
-        # Discount curve.
-        self.discount_curve = input.disc_curve
-        # Bond maturity.
-        self.maturity = 25
-        # Event grid.
-        self.t_steps = 26
-        self.dt = self.maturity / (self.t_steps - 1)
-        self.event_grid = self.dt * np.arange(self.t_steps)
-        self.maturity_idx = self.t_steps - 1
-        # Function on event grid.
-        self.kappa_constant_eg = \
-            self.kappa_constant.interpolation(self.event_grid)
-        # Bond object.
-        self.bond_constant = zcbond.ZCBond(self.kappa_constant,
-                                           self.vol_constant,
-                                           self.discount_curve,
-                                           self.maturity_idx,
-                                           self.event_grid,
-                                           "general",
-                                           1 / 10)
-
-    def test_constant(self):
-        """Calculation of G-function with constant kappa."""
-        g_constant = misc_hw.g_constant(self.kappa_constant_eg[0],
-                                        self.event_grid)
-        g_constant = misc_hw.g_function(self.maturity_idx, g_constant,
-                                        self.bond_constant.int_kappa_eg)
-        g_general = self.bond_constant.gt_eg
-        diff = np.abs((g_constant[:-1] - g_general[:-1]) / g_constant[:-1])
-        if plot_results:
-            plt.plot(self.event_grid, g_constant, "-b")
-            plt.plot(self.event_grid, g_general, "or")
-            plt.xlabel("t")
-            plt.ylabel("G(t,t_maturity)")
-            plt.show()
-        if print_results:
-            print("G-function with constant kappa.")
-            print(np.max(diff))
-        self.assertTrue(np.max(diff) < 7.5e-7)
-
-
 class AlphaFunction(unittest.TestCase):
-    """Calculation of alpha-function."""
+    """Calculation of alpha-function.
+
+    TODO: Move to mc_pelsser.py
+    """
 
     def setUp(self) -> None:
         # Speed of mean reversion strips.
@@ -239,7 +106,10 @@ class AlphaFunction(unittest.TestCase):
 
 
 class IntAlphaFunction(unittest.TestCase):
-    """Calculation of integral of alpha-function."""
+    """Calculation of integral of alpha-function.
+
+    TODO: Move to mc_pelsser.py
+    """
 
     def setUp(self) -> None:
         # Speed of mean reversion strips.
