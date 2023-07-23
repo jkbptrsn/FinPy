@@ -593,3 +593,212 @@ class SdeExactGeneral(SdeExact):
             # Slice of integration grid.
             int_grid = self.int_grid[idx1:idx2]
             self.covariance[event_idx] = -np.sum(misc.trapz(int_grid, cov))
+
+
+class SdeEuler:
+    """SDE for pseudo short rate process in 1-factor Hull-White model.
+
+    The pseudo short rate is defined by
+        dx_t = (y_t - kappa_t * x_t) * dt + vol_t * dW_t,
+    where kappa and mean_rate are the speed of mean reversion and mean
+    reversion level, respectively, and vol denotes the volatility. W_t
+    is a Brownian motion process under the risk-neutral measure Q.
+
+    The pseudo short rate is related to the short rate by
+        x_t = r_t - f(0,t) (f is the instantaneous forward rate).
+
+    See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
+
+    Monte-Carlo paths constructed using Euler-Maruyama discretization.
+
+    Attributes:
+        kappa: Speed of mean reversion.
+        vol: Volatility.
+        discount_curve: Discount curve represented on event grid.
+        event_grid: Event dates as year fractions from as-of date.
+        time_dependence: Time dependence of model parameters.
+            "constant": kappa and vol are constant.
+            "piecewise": kappa is constant and vol is piecewise
+                constant.
+            "general": General time dependence.
+            Default is "piecewise".
+        int_dt: Integration step size. Default is 1 / 52.
+    """
+
+    def __init__(self,
+                 kappa: data_types.DiscreteFunc,
+                 vol: data_types.DiscreteFunc,
+                 discount_curve: data_types.DiscreteFunc,
+                 event_grid: np.ndarray,
+                 time_dependence: str = "piecewise",
+                 int_dt: float = 1 / 52):
+        self.kappa = kappa
+        self.vol = vol
+        self.discount_curve = discount_curve
+        self.event_grid = event_grid
+        self.time_dependence = time_dependence
+        self.int_dt = int_dt
+
+        # Kappa on event grid.
+        self.kappa_eg = None
+        # Vol on event grid.
+        self.vol_eg = None
+        # Discount curve on event grid.
+        self.discount_curve_eg = None
+        # Instantaneous forward rate on event grid.
+        self.forward_rate_eg = None
+        # Integration of kappa on event_grid.
+        self.int_kappa_eg = None
+        # G-function, G(0,t), on event grid.
+        self.g_eg = None
+        # G-function, G(t,t_maturity), on event grid.
+        self.gt_eg = None
+        # y-function on event grid.
+        self.y_eg =  None
+
+        # Integration grid.
+        self.int_grid = None
+        # Indices of event dates on integration grid.
+        self.int_event_idx = None
+        # Kappa on integration grid.
+        self.kappa_ig = None
+        # Vol on integration grid.
+        self.vol_ig = None
+        # Step-wise integration of kappa on integration grid.
+        self.int_kappa_step_ig = None
+
+        self.model = global_types.Model.HULL_WHITE_1F
+        self.transformation = global_types.Transformation.ANDERSEN
+
+        self.initialization()
+
+        self.rate_paths = None
+        self.discount_paths = None
+        self.mc_estimate = None
+        self.mc_error = None
+
+    def initialization(self):
+        """Initialization of Monte-Carlo engine.
+
+        Calculate time-dependent mean and variance of the pseudo short
+        rate and pseudo discount processes, respectively.
+        """
+        if self.time_dependence == "general":
+            self._setup_int_grid()
+        self._setup_model_parameters()
+
+    def _setup_int_grid(self):
+        """Set up time grid for numerical integration."""
+        self.int_grid, self.int_event_idx = \
+            misc_hw.integration_grid(self.event_grid, self.int_dt)
+
+    def _setup_model_parameters(self):
+        """Set up model parameters on event and integration grids."""
+        misc_hw.setup_model_parameters(self)
+
+    def _rate_increment(self,
+                        spot: typing.Union[float, np.ndarray],
+                        event_idx: int,
+                        dt: float,
+                        normal_rand: typing.Union[float, np.ndarray]) \
+            -> typing.Union[float, np.ndarray]:
+        """Increment short rate process one time step.
+
+        Args:
+            spot: Short rate at event corresponding to event_idx.
+            event_idx: Index on event grid.
+            dt: Time step.
+            normal_rand: Realizations of independent standard normal
+                random variables.
+
+        Returns:
+            Increment of short rate process.
+        """
+        kappa = self.kappa_eg[event_idx]
+        exp_kappa = math.exp(-kappa * dt)
+        wiener_increment = math.sqrt(dt) * normal_rand
+        rate_increment = exp_kappa * spot \
+            + (1 - exp_kappa) * self.y_eg[event_idx] / kappa \
+            + self.vol_eg[event_idx] * wiener_increment - spot
+        return rate_increment
+
+    def paths(self,
+              spot: float,
+              n_paths: int,
+              rng: np.random.Generator = None,
+              seed: int = None,
+              antithetic: bool = False):
+        """Generation of Monte-Carlo paths using Euler discretization.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of short rate and discount processes
+            represented on event grid.
+        """
+        if rng is None:
+            rng = np.random.default_rng(seed)
+        # Paths of rate process.
+        r_paths = np.zeros((self.event_grid.size, n_paths))
+        r_paths[0] = spot
+        # Paths of discount process.
+        d_paths = np.zeros((self.event_grid.size, n_paths))
+        for idx, dt in enumerate(np.diff(self.event_grid)):
+            event_idx = idx + 1
+            # Realizations of standard normal random variables.
+            x_rate = misc.normal_realizations(n_paths, rng, antithetic)
+            # Increment of rate process, and update.
+            r_increment = \
+                self._rate_increment(r_paths[event_idx - 1],
+                                     event_idx - 1, dt, x_rate)
+            r_paths[event_idx] = r_paths[event_idx - 1] + r_increment
+            # Increment of discount process, and update.
+            d_increment = -r_paths[event_idx - 1] * dt
+            d_paths[event_idx] = d_paths[event_idx - 1] + d_increment
+        # Get actual discount factors on event_grid.
+        d_paths = np.exp(d_paths)
+        # Update.
+        self.rate_paths = r_paths
+        self.discount_paths = d_paths
+
+    @staticmethod
+    def rate_adjustment(rate_paths: np.ndarray,
+                        adjustment: np.ndarray) -> np.ndarray:
+        """Adjust pseudo rate paths.
+
+        Assume that pseudo rate paths and discount curve are represented
+        on identical event grids.
+
+        Args:
+            rate_paths: Pseudo short rate along Monte-Carlo paths.
+            adjustment: Instantaneous forward rate on event grid.
+
+        Returns:
+            Actual short rate paths.
+        """
+        return (rate_paths.transpose() + adjustment).transpose()
+
+    @staticmethod
+    def discount_adjustment(discount_paths: np.ndarray,
+                            adjustment: np.ndarray) -> np.ndarray:
+        """Adjust pseudo discount paths.
+
+        Assume that pseudo discount paths and discount curve are
+        represented on identical event grids.
+
+        Args:
+            discount_paths: Pseudo discount factor along Monte-Carlo
+                paths.
+            adjustment: Discount curve on event grid.
+
+        Returns:
+            Actual discount paths.
+        """
+        tmp = discount_paths.transpose() * adjustment
+        return tmp.transpose()

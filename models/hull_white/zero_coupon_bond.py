@@ -291,7 +291,7 @@ class ZCBond(bonds.BondAnalytical1F):
                        antithetic: bool = False):
         """Run Monte-Carlo solver on event grid.
 
-        Generation of Monte-Carlo paths using exact discretization.
+        Monte-Carlo paths constructed using exact discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -310,11 +310,14 @@ class ZCBond(bonds.BondAnalytical1F):
         self.mc_exact.mc_error = discount_paths[-1].std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
-    ####################################################################
-
     def mc_euler_setup(self):
         """Setup Euler Monte-Carlo solver."""
-        pass
+        self.mc_euler = mc_a.SdeEuler(self.kappa,
+                                      self.vol,
+                                      self.discount_curve,
+                                      self.event_grid,
+                                      self.time_dependence,
+                                      self.int_dt)
 
     def mc_euler_solve(self,
                        spot: float,
@@ -324,7 +327,7 @@ class ZCBond(bonds.BondAnalytical1F):
                        antithetic: bool = False):
         """Run Monte-Carlo solver on event grid.
 
-        Euler-Maruyama discretization.
+        Monte-Carlo paths constructed using Euler-Maruyama discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -333,12 +336,15 @@ class ZCBond(bonds.BondAnalytical1F):
             seed: Seed of random number generator. Default is None.
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
-        pass
+        self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
+        # Adjustment of discount paths.
+        discount_paths = \
+            self.mc_euler.discount_adjustment(self.mc_euler.discount_paths,
+                                              self.adjustment_discount)
+        self.mc_euler.mc_estimate = discount_paths[-1].mean()
+        self.mc_euler.mc_error = discount_paths[-1].std(ddof=1)
+        self.mc_euler.mc_error /= math.sqrt(n_paths)
 
 
 class ZCBondPelsser(ZCBond):
