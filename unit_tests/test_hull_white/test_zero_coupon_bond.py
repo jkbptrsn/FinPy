@@ -16,7 +16,7 @@ print_results = False
 class AlphaFunction(unittest.TestCase):
     """Calculation of alpha-function.
 
-    TODO: Move to mc_pelsser.py
+    TODO: Move to test_mc_pelsser.py
     """
 
     def setUp(self) -> None:
@@ -108,7 +108,7 @@ class AlphaFunction(unittest.TestCase):
 class IntAlphaFunction(unittest.TestCase):
     """Calculation of integral of alpha-function.
 
-    TODO: Move to mc_pelsser.py
+    TODO: Move to test_mc_pelsser.py
     """
 
     def setUp(self) -> None:
