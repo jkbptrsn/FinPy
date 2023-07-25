@@ -686,23 +686,21 @@ def int_alpha_general(int_grid: np.ndarray,
     return integral
 
 
-########################################################################
-
-
 def alpha_piecewise(kappa: float,
                     vol: np.ndarray,
                     event_grid: np.ndarray) -> np.ndarray:
     """Calculate alpha-function on event grid.
 
-    Assuming that speed of mean reversion is constant and volatility
-    strip is piecewise constant. The function doesn't include the
-    instantaneous forward rate. See Pelsser, section 5.3.
+    The speed of mean reversion is constant and volatility is piecewise
+    constant.
+
+    The function doesn't include the instantaneous forward rate.
+    See Pelsser, section 5.3.
 
     Args:
         kappa: Speed of mean reversion.
-        vol: Volatility strip on event grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
+        vol: Volatility.
+        event_grid: Event dates as year fractions from as-of date.
 
     Returns:
         alpha-function.
@@ -710,10 +708,11 @@ def alpha_piecewise(kappa: float,
     two_kappa_sq = 2 * kappa ** 2
     sum_array = np.zeros(event_grid.size)
     for idx in range(1, event_grid.size):
+        # See notes for "less than".
         event_filter = event_grid < event_grid[idx]
         vol_times = event_grid[event_filter]
         vol_values = vol[event_filter]
-        #
+        # Upper limit, see notes.
         delta_t = event_grid[idx] - 2 * vol_times
         tmp = np.exp(-kappa * delta_t[:-1]) - np.exp(-kappa * delta_t[1:])
         tmp *= vol_values[:-1] ** 2 / two_kappa_sq
@@ -721,7 +720,7 @@ def alpha_piecewise(kappa: float,
         delta_t = event_grid[idx] - 2 * vol_times[-1]
         tmp = math.exp(kappa * event_grid[idx]) + math.exp(-kappa * delta_t)
         sum_array[idx] += vol_values[-1] ** 2 * tmp / two_kappa_sq
-        #
+        # Lower limit, see notes.
         delta_t = event_grid[idx - 1] - 2 * vol_times
         tmp = np.exp(-kappa * delta_t[:-1]) - np.exp(-kappa * delta_t[1:])
         tmp *= vol_values[:-1] ** 2 / two_kappa_sq
@@ -730,11 +729,10 @@ def alpha_piecewise(kappa: float,
         tmp = \
             math.exp(kappa * event_grid[idx - 1]) + math.exp(-kappa * delta_t)
         sum_array[idx] -= vol_values[-1] ** 2 * tmp / two_kappa_sq
-    integral = np.zeros(event_grid.size)
-    for idx in range(1, event_grid.size):
-        factor = math.exp(-kappa * event_grid[idx])
-        integral[idx] = factor * np.sum(sum_array[:idx + 1])
-    return integral
+    return np.exp(-kappa * event_grid) * np.cumsum(sum_array)
+
+
+########################################################################
 
 
 def int_alpha_piecewise(kappa: float,
@@ -742,15 +740,16 @@ def int_alpha_piecewise(kappa: float,
                         event_grid: np.ndarray) -> np.ndarray:
     """Calculate integral of alpha-function on event grid.
 
-    Assuming that speed of mean reversion is constant and volatility
-    strip is piecewise constant. The integrand doesn't include the
-    instantaneous forward rate. See Pelsser, section 5.3.
+    The speed of mean reversion is constant and volatility is piecewise
+    constant.
+
+    The integrand doesn't include the instantaneous forward rate.
+    See Pelsser, section 5.3.
 
     Args:
         kappa: Speed of mean reversion.
-        vol: Volatility strip on event grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
+        vol: Volatility.
+        event_grid: Event dates as year fractions from as-of date.
 
     Returns:
         Integral of alpha-function.
