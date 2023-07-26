@@ -732,9 +732,6 @@ def alpha_piecewise(kappa: float,
     return np.exp(-kappa * event_grid) * np.cumsum(sum_array)
 
 
-########################################################################
-
-
 def int_alpha_piecewise(kappa: float,
                         vol: np.ndarray,
                         event_grid: np.ndarray) -> np.ndarray:
@@ -758,10 +755,11 @@ def int_alpha_piecewise(kappa: float,
     two_kappa_cubed = 2 * kappa ** 3
     sum_array = np.zeros(event_grid.size)
     for idx in range(1, event_grid.size):
+        # See notes for "less than".
         event_filter = event_grid < event_grid[idx]
         vol_times = event_grid[event_filter]
         vol_values = vol[event_filter]
-        #
+        # Upper limit, see notes.
         delta_t = event_grid[idx] - 2 * vol_times
         tmp = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
         tmp *= vol_values[:-1] ** 2 / two_kappa_cubed
@@ -769,7 +767,7 @@ def int_alpha_piecewise(kappa: float,
         delta_t = event_grid[idx] - 2 * vol_times[-1]
         tmp = math.exp(kappa * event_grid[idx]) + math.exp(-kappa * delta_t)
         sum_array[idx] -= vol_values[-1] ** 2 * tmp / two_kappa_cubed
-        #
+        # Lower limit, see notes.
         delta_t = event_grid[idx - 1] - 2 * vol_times
         tmp = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
         tmp *= vol_values[:-1] ** 2 / two_kappa_cubed
@@ -778,65 +776,61 @@ def int_alpha_piecewise(kappa: float,
         tmp = \
             math.exp(kappa * event_grid[idx - 1]) + math.exp(-kappa * delta_t)
         sum_array[idx] += vol_values[-1] ** 2 * tmp / two_kappa_cubed
-
     integral = np.zeros(event_grid.size)
-    for i_index in range(1, event_grid.size):
-
-        #
-        event_filter = event_grid < event_grid[i_index]
+    for idx in range(1, event_grid.size):
+        # See notes for "less than".
+        event_filter = event_grid < event_grid[idx]
         vol_times = event_grid[event_filter]
         vol_values = vol[event_filter]
 
-        factor = math.exp(-kappa * event_grid[i_index]) \
-            - math.exp(-kappa * event_grid[i_index - 1])
-        integral[i_index] = np.sum(factor * sum_array[:i_index])
+        # First kind of integral, see notes.
+        factor = math.exp(-kappa * event_grid[idx]) \
+            - math.exp(-kappa * event_grid[idx - 1])
+        integral[idx] = np.sum(factor * sum_array[:idx])
 
-        #
-        delta_t = event_grid[i_index] - vol_times
+        # Second kind of integral, see notes.
+        # Upper-upper limit, see notes.
+        delta_t = event_grid[idx] - vol_times
         y = np.exp(-two_kappa * delta_t[1:]) \
             - np.exp(-two_kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / (2 * two_kappa_cubed)
-        integral[i_index] += y.sum()
-        delta_t = event_grid[i_index] - event_grid[i_index - 1]
-        y = math.exp(-two_kappa * delta_t) - two_kappa * event_grid[i_index]
+        integral[idx] += y.sum()
+        delta_t = event_grid[idx] - event_grid[idx - 1]
+        y = math.exp(-two_kappa * delta_t) - two_kappa * event_grid[idx]
         y *= vol_values[-1] ** 2 / (2 * two_kappa_cubed)
-        integral[i_index] -= y
+        integral[idx] -= y
 
-        #
-        delta_t = event_grid[i_index - 1] - vol_times
+        # Upper-lower limit, see notes.
+        delta_t = event_grid[idx - 1] - vol_times
         y = np.exp(-two_kappa * delta_t[1:]) \
             - np.exp(-two_kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / (2 * two_kappa_cubed)
-        integral[i_index] -= y.sum()
-        y = 1 - two_kappa * event_grid[i_index - 1]
+        integral[idx] -= y.sum()
+        y = 1 - two_kappa * event_grid[idx - 1]
         y *= vol_values[-1] ** 2 / (2 * two_kappa_cubed)
-        integral[i_index] += y
+        integral[idx] += y
 
-        #
-        delta_t = event_grid[i_index] + event_grid[i_index - 1] - 2 * vol_times
+        # Lower-upper limit, see notes.
+        delta_t = event_grid[idx] + event_grid[idx - 1] - 2 * vol_times
         y = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / two_kappa_cubed
-        integral[i_index] -= y.sum()
-        delta_t = event_grid[i_index] - event_grid[i_index - 1]
+        integral[idx] -= y.sum()
+        delta_t = event_grid[idx] - event_grid[idx - 1]
         y = math.exp(-kappa * delta_t)
-        delta_t = event_grid[i_index] + event_grid[i_index - 1] - 2 * vol_times[-1]
-        y += math.exp(-kappa * delta_t)
-        y *= vol_values[-1] ** 2 / two_kappa_cubed
-        integral[i_index] += y
+        y *= 2 * vol_values[-1] ** 2 / two_kappa_cubed
+        integral[idx] += y
 
-        #
-        delta_t = event_grid[i_index - 1] + event_grid[i_index - 1] - 2 * vol_times
-        y = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
+        # Lower-lower limit, see notes.
+        delta_t = event_grid[idx - 1] - vol_times
+        y = np.exp(-two_kappa * delta_t[1:]) \
+            - np.exp(-two_kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / two_kappa_cubed
-        integral[i_index] += y.sum()
-        delta_t = event_grid[i_index - 1] - event_grid[i_index - 1]
-        y = math.exp(-kappa * delta_t)
-        delta_t = event_grid[i_index - 1] + event_grid[i_index - 1] - 2 * vol_times[-1]
-        y += math.exp(-kappa * delta_t)
-        y *= vol_values[-1] ** 2 / two_kappa_cubed
-        integral[i_index] -= y
-
+        integral[idx] += y.sum()
+        integral[idx] -= 2 * vol_values[-1] ** 2 / two_kappa_cubed
     return integral
+
+
+########################################################################
 
 
 def v_constant(kappa: float,

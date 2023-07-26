@@ -85,8 +85,19 @@ class AlphaFunction(unittest.TestCase):
                                  - alpha_constant[1:]) / alpha_constant[1:])
         diff_general = np.abs((alpha_general[1:]
                                - alpha_constant[1:]) / alpha_constant[1:])
-        self.assertTrue(np.max(diff_piecewise) < 8.e-13)
-        self.assertTrue(np.max(diff_general) < 3.e-6)
+        if plot_results:
+            plt.plot(self.event_grid, alpha_constant, "-b", label="Constant")
+            plt.plot(self.event_grid, alpha_piecewise, "or", label="Piecewise")
+            plt.plot(self.event_grid, alpha_general, "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("alpha-function")
+            plt.legend()
+            plt.show()
+        if print_results:
+            print(diff_piecewise)
+            print(diff_general)
+        self.assertTrue(np.max(diff_piecewise) < 7.6e-13)
+        self.assertTrue(np.max(diff_general) < 2.3e-6)
 
     def test_piecewise(self):
         """Calculation of alpha-function with piecewise constant vol."""
@@ -102,7 +113,16 @@ class AlphaFunction(unittest.TestCase):
                                   self.bond_piecewise.event_grid)
         diff = np.abs((alpha_general[1:]
                        - alpha_piecewise[1:]) / alpha_piecewise[1:])
-        self.assertTrue(np.max(diff) < 7.e-4)
+        if plot_results:
+            plt.plot(self.event_grid, alpha_piecewise, "or", label="Piecewise")
+            plt.plot(self.event_grid, alpha_general, "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("alpha-function")
+            plt.legend()
+            plt.show()
+        if print_results:
+            print(diff)
+        self.assertTrue(np.max(diff) < 6.3e-4)
 
 
 class IntAlphaFunction(unittest.TestCase):
@@ -179,8 +199,20 @@ class IntAlphaFunction(unittest.TestCase):
         diff_general = \
             np.abs((int_alpha_general[1:]
                     - int_alpha_constant[1:]) / int_alpha_constant[1:])
-        self.assertTrue(np.max(diff_piecewise) < 2.e-11)
-        self.assertTrue(np.max(diff_general) < 5.e-3)
+
+        if plot_results:
+            plt.plot(self.event_grid, int_alpha_constant, "-b", label="Constant")
+            plt.plot(self.event_grid, int_alpha_piecewise, "or", label="Piecewise")
+            plt.plot(self.event_grid, int_alpha_general, "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("alpha-function")
+            plt.legend()
+            plt.show()
+        if print_results:
+            print(diff_piecewise)
+            print(diff_general)
+        self.assertTrue(np.max(diff_piecewise) < 1.1e-11)
+        self.assertTrue(np.max(diff_general) < 5.0e-3)
 
     def test_piecewise(self):
         """Calculation of integral of alpha-function with piecewise constant vol."""
@@ -196,7 +228,16 @@ class IntAlphaFunction(unittest.TestCase):
                                       self.bond_piecewise.event_grid)
         diff = np.abs((int_alpha_general[1:]
                        - int_alpha_piecewise[1:]) / int_alpha_piecewise[1:])
-        self.assertTrue(np.max(diff) < 6.e-3)
+        if plot_results:
+            plt.plot(self.event_grid, int_alpha_piecewise, "or", label="Piecewise")
+            plt.plot(self.event_grid, int_alpha_general, "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("alpha-function")
+            plt.legend()
+            plt.show()
+        if print_results:
+            print(diff)
+        self.assertTrue(np.max(diff) < 5.4e-3)
 
 
 class ZeroCouponBond(unittest.TestCase):
