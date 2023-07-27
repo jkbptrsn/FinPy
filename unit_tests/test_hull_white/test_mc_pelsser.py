@@ -3,7 +3,7 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 
-from models.hull_white import mc_andersen as sde
+from models.hull_white import mc_pelsser as sde
 from models.hull_white import misc as misc_hw
 from utils import data_types
 
@@ -179,14 +179,12 @@ class Misc(unittest.TestCase):
 
 
 class SDE(unittest.TestCase):
-    """SDE classes in 1-factor Hull-White model.
-
-    TODO: Change to pelsser SDE!
-    """
+    """SDE classes in 1-factor Hull-White model."""
 
     def setUp(self) -> None:
         # Event dates in year fractions.
         self.event_grid = np.arange(16)
+        self.event_grid_mc = np.arange(151) / 10
         # Speed of mean reversion strip.
         self.kappa_scalar = 0.15
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
@@ -211,6 +209,9 @@ class SDE(unittest.TestCase):
         self.discount_curve = \
             data_types.DiscreteFunc("discount", self.event_grid,
                                     np.ones(self.event_grid.size))
+        self.discount_curve_mc = \
+            data_types.DiscreteFunc("discount", self.event_grid_mc,
+                                    np.ones(self.event_grid_mc.size))
         # SDE objects.
         self.sde_constant = sde.SdeExactConstant(self.kappa1,
                                                  self.vol1,
@@ -234,6 +235,34 @@ class SDE(unittest.TestCase):
                                                 self.discount_curve,
                                                 self.event_grid,
                                                 int_dt=1 / 50)
+        self.sde_euler1 = sde.SdeEuler(self.kappa1,
+                                       self.vol1,
+                                       self.discount_curve_mc,
+                                       self.event_grid_mc)
+        self.sde_euler2 = sde.SdeEuler(self.kappa1,
+                                       self.vol2,
+                                       self.discount_curve_mc,
+                                       self.event_grid_mc)
+
+        self.int_alpha1 = \
+            misc_hw.int_alpha_constant(self.kappa_scalar,
+                                       self.vol_scalar,
+                                       self.event_grid)
+        self.int_alpha1_mc = \
+            misc_hw.int_alpha_constant(self.kappa_scalar,
+                                       self.vol_scalar,
+                                       self.event_grid_mc)
+
+        vol_eg = self.vol2.interpolation(self.event_grid)
+        self.int_alpha2 = \
+            misc_hw.int_alpha_piecewise(self.kappa_scalar,
+                                        vol_eg,
+                                        self.event_grid)
+        vol_eg = self.vol2.interpolation(self.event_grid_mc)
+        self.int_alpha2_mc = \
+            misc_hw.int_alpha_piecewise(self.kappa_scalar,
+                                        vol_eg,
+                                        self.event_grid_mc)
 
     def test_sde_constant_vol(self):
         """Test SDE classes for constant vol-strip."""
@@ -243,9 +272,10 @@ class SDE(unittest.TestCase):
         price_a = self.discount_curve.values
         # SDE constant.
         self.sde_constant.paths(0, n_paths, seed=0, antithetic=True)
+        adjustment = np.cumprod(np.exp(-self.int_alpha1))
         discount = self.sde_constant.discount_adjustment(
             self.sde_constant.discount_paths,
-            self.sde_constant.discount_curve_eg)
+            self.sde_constant.discount_curve_eg * adjustment)
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
@@ -255,9 +285,10 @@ class SDE(unittest.TestCase):
         self.assertTrue(np.max(diff) < 8.1e-4)
         # SDE piecewise.
         self.sde_piecewise1.paths(0, n_paths, seed=0, antithetic=True)
+        adjustment = np.cumprod(np.exp(-self.int_alpha1))
         discount = self.sde_piecewise1.discount_adjustment(
             self.sde_piecewise1.discount_paths,
-            self.sde_piecewise1.discount_curve_eg)
+            self.sde_piecewise1.discount_curve_eg * adjustment)
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
@@ -267,9 +298,10 @@ class SDE(unittest.TestCase):
         self.assertTrue(np.max(diff) < 8.1e-4)
         # SDE general.
         self.sde_general1.paths(0, n_paths, seed=0, antithetic=True)
+        adjustment = np.cumprod(np.exp(-self.int_alpha1))
         discount = self.sde_general1.discount_adjustment(
             self.sde_general1.discount_paths,
-            self.sde_general1.discount_curve_eg)
+            self.sde_general1.discount_curve_eg * adjustment)
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
@@ -278,72 +310,21 @@ class SDE(unittest.TestCase):
             print(f"SDE general: Diff = {np.max(diff)}")
         self.assertTrue(np.max(diff) < 8.10e-3)
 
-        if plot_results:
-            plt.plot(self.event_grid, self.sde_constant.y_eg,
-                     "-b", label="Constant")
-            plt.plot(self.event_grid, self.sde_piecewise1.y_eg,
-                     "or", label="Piecewise")
-            plt.plot(self.event_grid, self.sde_general1.y_eg,
-                     "xk", label="General")
-            plt.xlabel("Time")
-            plt.ylabel("y-function")
-            plt.legend()
-            plt.show()
-
-            plt.plot(self.event_grid, self.sde_constant.rate_mean[:, 0],
-                     "-b", label="Constant")
-            plt.plot(self.event_grid, self.sde_piecewise1.rate_mean[:, 0],
-                     "or", label="Piecewise")
-            plt.plot(self.event_grid, self.sde_general1.rate_mean[:, 0],
-                     "xk", label="General")
-            plt.xlabel("Time")
-            plt.ylabel("Rate mean, 1")
-            plt.legend()
-            plt.show()
-
-            plt.plot(self.event_grid, self.sde_constant.rate_mean[:, 1],
-                     "-b", label="Constant")
-            plt.plot(self.event_grid, self.sde_piecewise1.rate_mean[:, 1],
-                     "or", label="Piecewise")
-            plt.plot(self.event_grid, self.sde_general1.rate_mean[:, 1],
-                     "xk", label="General")
-            plt.xlabel("Time")
-            plt.ylabel("Rate mean, 2")
-            plt.legend()
-            plt.show()
-
-            plt.plot(self.event_grid, self.sde_constant.discount_mean[:, 0],
-                     "-b", label="Constant")
-            plt.plot(self.event_grid, self.sde_piecewise1.discount_mean[:, 0],
-                     "or", label="Piecewise")
-            plt.plot(self.event_grid, self.sde_general1.discount_mean[:, 0],
-                     "xk", label="General")
-            plt.xlabel("Time")
-            plt.ylabel("Discount mean, 1")
-            plt.legend()
-            plt.show()
-
-            plt.plot(self.event_grid, self.sde_constant.discount_mean[:, 1],
-                     "-b", label="Constant")
-            plt.plot(self.event_grid, self.sde_piecewise1.discount_mean[:, 1],
-                     "or", label="Piecewise")
-            plt.plot(self.event_grid, self.sde_general1.discount_mean[:, 1],
-                     "xk", label="General")
-            plt.xlabel("Time")
-            plt.ylabel("Discount mean, 2")
-            plt.legend()
-            plt.show()
-
-            plt.plot(self.event_grid, self.sde_constant.covariance,
-                     "-b", label="Constant")
-            plt.plot(self.event_grid, self.sde_piecewise1.covariance,
-                     "or", label="Piecewise")
-            plt.plot(self.event_grid, self.sde_general1.covariance,
-                     "xk", label="General")
-            plt.xlabel("Time")
-            plt.ylabel("Covariance")
-            plt.legend()
-            plt.show()
+        # Zero-coupon bond price at all events. Analytical results.
+        price_a = self.discount_curve_mc.values
+        # SDE Euler.
+        self.sde_euler1.paths(0, n_paths, seed=0, antithetic=True)
+        adjustment = np.cumprod(np.exp(-self.int_alpha1_mc))
+        discount = self.sde_euler1.discount_adjustment(
+            self.sde_euler1.discount_paths,
+            self.sde_euler1.discount_curve_eg * adjustment)
+        # Zero-coupon bond price at all events. Monte-Carlo estimates.
+        price_n = np.mean(discount, axis=1)
+        # Maximum relative difference.
+        diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
+        if print_results:
+            print(f"SDE Euler: Diff = {np.max(diff)}")
+        self.assertTrue(np.max(diff) < 7.1e-3)
 
     def test_sde_piecewise_vol(self):
         """Test SDE classes for piecewise-constant vol-strip."""
@@ -353,9 +334,10 @@ class SDE(unittest.TestCase):
         price_a = self.discount_curve.values
         # SDE piecewise.
         self.sde_piecewise2.paths(0, n_paths, seed=0, antithetic=True)
+        adjustment = np.cumprod(np.exp(-self.int_alpha2))
         discount = self.sde_piecewise2.discount_adjustment(
             self.sde_piecewise2.discount_paths,
-            self.sde_piecewise2.discount_curve_eg)
+            self.sde_piecewise2.discount_curve_eg * adjustment)
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
@@ -365,9 +347,10 @@ class SDE(unittest.TestCase):
         self.assertTrue(np.max(diff) < 1.8e-3)
         # SDE general.
         self.sde_general2.paths(0, n_paths, seed=0, antithetic=True)
+        adjustment = np.cumprod(np.exp(-self.int_alpha2))
         discount = self.sde_general2.discount_adjustment(
             self.sde_general2.discount_paths,
-            self.sde_general2.discount_curve_eg)
+            self.sde_general2.discount_curve_eg * adjustment)
         # Zero-coupon bond price at all events. Monte-Carlo estimates.
         price_n = np.mean(discount, axis=1)
         # Maximum relative difference.
@@ -376,60 +359,21 @@ class SDE(unittest.TestCase):
             print(f"SDE general: Diff = {np.max(diff)}")
         self.assertTrue(np.max(diff) < 1.8e-3)
 
-        if plot_results:
-            plt.plot(self.event_grid, self.sde_piecewise2.y_eg,
-                     "-or", label="Piecewise")
-            plt.plot(self.event_grid, self.sde_general2.y_eg,
-                     "xk", label="General")
-            plt.xlabel("Time")
-            plt.ylabel("y-function")
-            plt.legend()
-            plt.show()
-
-            plt.plot(self.event_grid, self.sde_piecewise2.rate_mean[:, 0],
-                     "-or", label="Piecewise")
-            plt.plot(self.event_grid, self.sde_general2.rate_mean[:, 0],
-                     "xk", label="General")
-            plt.xlabel("Time")
-            plt.ylabel("Rate mean, 1")
-            plt.legend()
-            plt.show()
-
-            plt.plot(self.event_grid, self.sde_piecewise2.rate_mean[:, 1],
-                     "-or", label="Piecewise")
-            plt.plot(self.event_grid, self.sde_general2.rate_mean[:, 1],
-                     "xk", label="General")
-            plt.xlabel("Time")
-            plt.ylabel("Rate mean, 2")
-            plt.legend()
-            plt.show()
-
-            plt.plot(self.event_grid, self.sde_piecewise2.discount_mean[:, 0],
-                     "-or", label="Piecewise")
-            plt.plot(self.event_grid, self.sde_general2.discount_mean[:, 0],
-                     "xk", label="General")
-            plt.xlabel("Time")
-            plt.ylabel("Discount mean, 1")
-            plt.legend()
-            plt.show()
-
-            plt.plot(self.event_grid, self.sde_piecewise2.discount_mean[:, 1],
-                     "-or", label="Piecewise")
-            plt.plot(self.event_grid, self.sde_general2.discount_mean[:, 1],
-                     "xk", label="General")
-            plt.xlabel("Time")
-            plt.ylabel("Discount mean, 2")
-            plt.legend()
-            plt.show()
-
-            plt.plot(self.event_grid, self.sde_piecewise2.covariance,
-                     "-or", label="Piecewise")
-            plt.plot(self.event_grid, self.sde_general2.covariance,
-                     "xk", label="General")
-            plt.xlabel("Time")
-            plt.ylabel("Covariance")
-            plt.legend()
-            plt.show()
+        # Zero-coupon bond price at all events. Analytical results.
+        price_a = self.discount_curve_mc.values
+        # SDE Euler.
+        self.sde_euler2.paths(0, n_paths, seed=0, antithetic=True)
+        adjustment = np.cumprod(np.exp(-self.int_alpha2_mc))
+        discount = self.sde_euler2.discount_adjustment(
+            self.sde_euler2.discount_paths,
+            self.sde_euler2.discount_curve_eg * adjustment)
+        # Zero-coupon bond price at all events. Monte-Carlo estimates.
+        price_n = np.mean(discount, axis=1)
+        # Maximum relative difference.
+        diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
+        if print_results:
+            print(f"SDE Euler: Diff = {np.max(diff)}")
+        self.assertTrue(np.max(diff) < 1.9e-2)
 
 
 if __name__ == '__main__':

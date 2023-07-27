@@ -241,6 +241,7 @@ class SDE(unittest.TestCase):
     def setUp(self) -> None:
         # Event dates in year fractions.
         self.event_grid = np.arange(16)
+        self.event_grid_mc = np.arange(151) / 10
         # Speed of mean reversion strip.
         self.kappa_scalar = 0.15
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
@@ -265,6 +266,9 @@ class SDE(unittest.TestCase):
         self.discount_curve = \
             data_types.DiscreteFunc("discount", self.event_grid,
                                     np.ones(self.event_grid.size))
+        self.discount_curve_mc = \
+            data_types.DiscreteFunc("discount", self.event_grid_mc,
+                                    np.ones(self.event_grid_mc.size))
         # SDE objects.
         self.sde_constant = sde.SdeExactConstant(self.kappa1,
                                                  self.vol1,
@@ -288,6 +292,14 @@ class SDE(unittest.TestCase):
                                                 self.discount_curve,
                                                 self.event_grid,
                                                 int_dt=1 / 50)
+        self.sde_euler1 = sde.SdeEuler(self.kappa1,
+                                       self.vol1,
+                                       self.discount_curve_mc,
+                                       self.event_grid_mc)
+        self.sde_euler2 = sde.SdeEuler(self.kappa1,
+                                       self.vol2,
+                                       self.discount_curve_mc,
+                                       self.event_grid_mc)
 
     def test_sde_constant_vol(self):
         """Test SDE classes for constant vol-strip."""
@@ -331,6 +343,21 @@ class SDE(unittest.TestCase):
         if print_results:
             print(f"SDE general: Diff = {np.max(diff)}")
         self.assertTrue(np.max(diff) < 8.10e-3)
+
+        # Zero-coupon bond price at all events. Analytical results.
+        price_a = self.discount_curve_mc.values
+        # SDE Euler.
+        self.sde_euler1.paths(0, n_paths, seed=0, antithetic=True)
+        discount = self.sde_euler1.discount_adjustment(
+            self.sde_euler1.discount_paths,
+            self.sde_euler1.discount_curve_eg)
+        # Zero-coupon bond price at all events. Monte-Carlo estimates.
+        price_n = np.mean(discount, axis=1)
+        # Maximum relative difference.
+        diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
+        if print_results:
+            print(f"SDE Euler: Diff = {np.max(diff)}")
+        self.assertTrue(np.max(diff) < 7.1e-3)
 
         if plot_results:
             plt.plot(self.event_grid, self.sde_constant.y_eg,
@@ -429,6 +456,21 @@ class SDE(unittest.TestCase):
         if print_results:
             print(f"SDE general: Diff = {np.max(diff)}")
         self.assertTrue(np.max(diff) < 1.8e-3)
+
+        # Zero-coupon bond price at all events. Analytical results.
+        price_a = self.discount_curve_mc.values
+        # SDE Euler.
+        self.sde_euler2.paths(0, n_paths, seed=0, antithetic=True)
+        discount = self.sde_euler2.discount_adjustment(
+            self.sde_euler2.discount_paths,
+            self.sde_euler2.discount_curve_eg)
+        # Zero-coupon bond price at all events. Monte-Carlo estimates.
+        price_n = np.mean(discount, axis=1)
+        # Maximum relative difference.
+        diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
+        if print_results:
+            print(f"SDE Euler: Diff = {np.max(diff)}")
+        self.assertTrue(np.max(diff) < 1.9e-2)
 
         if plot_results:
             plt.plot(self.event_grid, self.sde_piecewise2.y_eg,

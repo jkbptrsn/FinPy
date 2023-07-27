@@ -9,6 +9,42 @@ from utils import global_types
 from utils import misc
 
 
+def rate_adjustment(rate_paths: np.ndarray,
+                    adjustment: np.ndarray) -> np.ndarray:
+    """Adjust pseudo rate paths.
+
+    Assume that pseudo rate paths and discount curve are represented
+    on identical event grids.
+
+    Args:
+        rate_paths: Pseudo short rate along Monte-Carlo paths.
+        adjustment: Instantaneous forward rate on event grid.
+
+    Returns:
+        Actual short rate paths.
+    """
+    return (rate_paths.transpose() + adjustment).transpose()
+
+
+def discount_adjustment(discount_paths: np.ndarray,
+                        adjustment: np.ndarray) -> np.ndarray:
+    """Adjust pseudo discount paths.
+
+    Assume that pseudo discount paths and discount curve are
+    represented on identical event grids.
+
+    Args:
+        discount_paths: Pseudo discount factor along Monte-Carlo
+            paths.
+        adjustment: Discount curve on event grid.
+
+    Returns:
+        Actual discount paths.
+    """
+    tmp = discount_paths.transpose() * adjustment
+    return tmp.transpose()
+
+
 class SdeExact:
     """SDE for pseudo short rate process in 1-factor Hull-White model.
 
@@ -19,7 +55,7 @@ class SdeExact:
     is a Brownian motion process under the risk-neutral measure Q.
 
     The pseudo short rate is related to the short rate by
-        x_t = r_t - f(0,t) (f is the instantaneous forward rate).
+        x_t = r_t - f(0,t).
 
     See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
 
@@ -250,38 +286,14 @@ class SdeExact:
     @staticmethod
     def rate_adjustment(rate_paths: np.ndarray,
                         adjustment: np.ndarray) -> np.ndarray:
-        """Adjust pseudo rate paths.
-
-        Assume that pseudo rate paths and discount curve are represented
-        on identical event grids.
-
-        Args:
-            rate_paths: Pseudo short rate along Monte-Carlo paths.
-            adjustment: Instantaneous forward rate on event grid.
-
-        Returns:
-            Actual short rate paths.
-        """
-        return (rate_paths.transpose() + adjustment).transpose()
+        """Adjust pseudo rate paths."""
+        return rate_adjustment(rate_paths, adjustment)
 
     @staticmethod
     def discount_adjustment(discount_paths: np.ndarray,
                             adjustment: np.ndarray) -> np.ndarray:
-        """Adjust pseudo discount paths.
-
-        Assume that pseudo discount paths and discount curve are
-        represented on identical event grids.
-
-        Args:
-            discount_paths: Pseudo discount factor along Monte-Carlo
-                paths.
-            adjustment: Discount curve on event grid.
-
-        Returns:
-            Actual discount paths.
-        """
-        tmp = discount_paths.transpose() * adjustment
-        return tmp.transpose()
+        """Adjust pseudo discount paths."""
+        return discount_adjustment(discount_paths, adjustment)
 
 
 class SdeExactConstant(SdeExact):
@@ -770,35 +782,11 @@ class SdeEuler:
     @staticmethod
     def rate_adjustment(rate_paths: np.ndarray,
                         adjustment: np.ndarray) -> np.ndarray:
-        """Adjust pseudo rate paths.
-
-        Assume that pseudo rate paths and discount curve are represented
-        on identical event grids.
-
-        Args:
-            rate_paths: Pseudo short rate along Monte-Carlo paths.
-            adjustment: Instantaneous forward rate on event grid.
-
-        Returns:
-            Actual short rate paths.
-        """
-        return (rate_paths.transpose() + adjustment).transpose()
+        """Adjust pseudo rate paths."""
+        return rate_adjustment(rate_paths, adjustment)
 
     @staticmethod
     def discount_adjustment(discount_paths: np.ndarray,
                             adjustment: np.ndarray) -> np.ndarray:
-        """Adjust pseudo discount paths.
-
-        Assume that pseudo discount paths and discount curve are
-        represented on identical event grids.
-
-        Args:
-            discount_paths: Pseudo discount factor along Monte-Carlo
-                paths.
-            adjustment: Discount curve on event grid.
-
-        Returns:
-            Actual discount paths.
-        """
-        tmp = discount_paths.transpose() * adjustment
-        return tmp.transpose()
+        """Adjust pseudo discount paths."""
+        return discount_adjustment(discount_paths, adjustment)

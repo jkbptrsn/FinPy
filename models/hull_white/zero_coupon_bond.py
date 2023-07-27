@@ -350,8 +350,8 @@ class ZCBond(bonds.BondAnalytical1F):
 class ZCBondPelsser(ZCBond):
     """Zero-coupon bond in 1-factor Hull-White model.
 
-    Zero-coupon bond dependent on pseudo short rate modelled by 1-factor
-    Hull-White SDE. See Pelsser, chapter 5.
+    Zero-coupon bond price dependent on pseudo short rate modelled by
+    1-factor Hull-White SDE. See A. Pelsser 2000, chapter 5.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -367,7 +367,7 @@ class ZCBondPelsser(ZCBond):
             Default is "piecewise".
         int_dt: Integration/propagation step size represented as
             a year fraction. Default is 1 / 365.
-        """
+    """
 
     def __init__(self,
                  kappa: data_types.DiscreteFunc,
