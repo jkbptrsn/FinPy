@@ -9,6 +9,7 @@ from models.hull_white import mc_pelsser as mc_p
 from unit_tests.test_hull_white import input
 
 plot_results = False
+print_results = False
 
 
 class JointDistributions(unittest.TestCase):
@@ -61,19 +62,19 @@ class JointDistributions(unittest.TestCase):
 
         self.mc_a.paths(0, self.n_paths, seed=0)
         r_a_adj = self.mc_a.rate_adjustment(self.mc_a.rate_paths,
-                                            self.bond_a.adjustment_rate)
+                                            self.bond_a.adjust_rate)
         d_a_adj = \
             self.mc_a.discount_adjustment(self.mc_a.discount_paths,
-                                          self.bond_a.adjustment_discount)
+                                          self.bond_a.adjust_discount)
 
         # MC paths using the Pelsser transformation.
 #        r_p, d_p = self.mc_p.paths(0, self.n_paths, seed=0)
         self.mc_p.paths(0, self.n_paths, seed=0)
         r_p = self.mc_p.rate_paths
         d_p = self.mc_p.discount_paths
-        r_p_adj = self.mc_p.rate_adjustment(r_p, self.bond_p.adjustment_rate)
-        tmp = np.cumprod(self.bond_p.adjustment_discount)
-        d_p_adj = self.mc_p.discount_adjustment(d_p, tmp)
+        r_p_adj = self.mc_p.rate_adjustment(r_p, self.bond_p.adjust_rate)
+        d_p_adj = \
+            self.mc_p.discount_adjustment(d_p, self.bond_p.adjust_discount)
 
         if plot_results:
             bin_numbers = (50, 50)
@@ -135,8 +136,10 @@ class JointDistributions(unittest.TestCase):
         # Compare paths.
         r_diff = np.abs(r_a_adj - r_p_adj)
         d_diff = np.abs(d_a_adj - d_p_adj)
-        self.assertTrue(np.max(r_diff) < 4e-14)
-        self.assertTrue(np.max(d_diff) < 3e-14)
+        if print_results:
+            print(np.max(r_diff), np.max(d_diff))
+        self.assertTrue(np.max(r_diff) < 3.7e-16)
+        self.assertTrue(np.max(d_diff) < 2.2e-14)
 
 
 if __name__ == '__main__':

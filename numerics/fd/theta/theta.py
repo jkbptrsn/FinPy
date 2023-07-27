@@ -295,7 +295,7 @@ def update(instrument,
             drift = instrument.y_eg[event_idx] \
                 - instrument.kappa_eg[event_idx] * instrument.fd.grid
             diffusion = instrument.vol_eg[event_idx] + 0 * instrument.fd.grid
-            rate = instrument.fd.grid + instrument.forward_rate_eg[event_idx]
+            rate = instrument.fd.grid
         elif instrument.transformation == global_types.Transformation.PELSSER:
             drift = -instrument.kappa_eg[event_idx] * instrument.fd.grid
             diffusion = instrument.vol_eg[event_idx] + 0 * instrument.fd.grid

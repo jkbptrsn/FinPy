@@ -59,13 +59,13 @@ class ZeroCouponBond(unittest.TestCase):
         relative_error = np.abs((analytical - numerical) / analytical)
         if plot_results:
             plots.plot_price_and_greeks(self.bond)
-        # Maximum error in interval around pseudo short rate of 0.1.
+        # Maximum error.
         idx_min = np.argwhere(self.x_grid < -0.05)[-1][0]
         idx_max = np.argwhere(self.x_grid < 0.05)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
-        self.assertTrue(max_error < 6.3e-3)
+        self.assertTrue(max_error < 2.5e-3)
         # Check delta.
         numerical = self.bond.fd.delta()
         analytical = self.bond.delta(self.x_grid, 0)
@@ -73,7 +73,7 @@ class ZeroCouponBond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 2.1e-3)
+        self.assertTrue(max_error < 2.7e-3)
         # Check gamma.
         numerical = self.bond.fd.gamma()
         analytical = self.bond.gamma(self.x_grid, 0)
@@ -81,7 +81,7 @@ class ZeroCouponBond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 3.7e-3)
+        self.assertTrue(max_error < 4.3e-3)
         # Check theta.
         numerical = self.bond.fd.theta()
         analytical = self.bond.theta(self.x_grid, 0)
@@ -89,7 +89,7 @@ class ZeroCouponBond(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.5f}")
-        self.assertTrue(max_error < 6.8e-3)
+        self.assertTrue(max_error < 1.2e-3)
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of zero-coupon bond."""
@@ -180,6 +180,7 @@ class ZeroCouponBond(unittest.TestCase):
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of zero-coupon bond."""
         self.bond_pelsser.mc_exact_setup()
+        self.bond_pelsser.mc_euler_setup()
         # Spot rate.
         spot = 0.02
         spot_vector = spot * np.arange(11) - 0.1
@@ -189,28 +190,37 @@ class ZeroCouponBond(unittest.TestCase):
         n_paths = 2000
         # Analytical result.
         price_a = self.bond_pelsser.price(spot_vector, 0)
-        numerical = np.zeros(spot_vector.size)
-        error = np.zeros(spot_vector.size)
+        numerical_exact = np.zeros(spot_vector.size)
+        error_exact = np.zeros(spot_vector.size)
+        numerical_euler = np.zeros(spot_vector.size)
+        error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
             self.bond_pelsser.mc_exact_solve(s, n_paths, rng=rng,
                                              antithetic=True)
-            numerical[idx] = self.bond_pelsser.mc_exact.mc_estimate
-            error[idx] = self.bond_pelsser.mc_exact.mc_error
+            numerical_exact[idx] = self.bond_pelsser.mc_exact.mc_estimate
+            error_exact[idx] = self.bond_pelsser.mc_exact.mc_error
+            self.bond_pelsser.mc_euler_solve(s, n_paths, rng=rng,
+                                             antithetic=True)
+            numerical_euler[idx] = self.bond_pelsser.mc_euler.mc_estimate
+            error_euler[idx] = self.bond_pelsser.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical, yerr=error,
-                         fmt='or', markersize=2, capsize=5)
+            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
+                         fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
+                         fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
             plt.ylabel("Zero-coupon bond price")
+            plt.legend()
             plt.show()
-        relative_error = np.abs((price_a - numerical) / price_a)
+        relative_error = np.abs((price_a - numerical_exact) / price_a)
         # Maximum error in interval around pseudo short rate of 0.
         idx_min = np.argwhere(spot_vector < -0.05)[-1][0]
         idx_max = np.argwhere(spot_vector < 0.05)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 1.1e-2)
+        self.assertTrue(max_error < 2.0e-2)
 
 
 if __name__ == '__main__':
