@@ -8,7 +8,7 @@ class SdeExactConstant(mc_a.SdeExactConstant):
     """SDE class for 1-factor Hull-White model.
 
     The pseudo short rate is defined by
-        dx_t = -kappa_t * x_t) * dt + vol_t * dW_t,
+        dx_t = -kappa_t * x_t * dt + vol_t * dW_t,
     where kappa and mean_rate are the speed of mean reversion and mean
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.

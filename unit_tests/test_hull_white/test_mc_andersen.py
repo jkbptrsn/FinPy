@@ -20,8 +20,9 @@ class Misc(unittest.TestCase):
         # Speed of mean reversion strip.
         self.kappa_scalar = 0.02
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
-        self.kappa1 = \
-            data_types.DiscreteFunc("kappa1", self.event_grid, self.kappa_vector1)
+        self.kappa1 = data_types.DiscreteFunc("kappa1",
+                                              self.event_grid,
+                                              self.kappa_vector1)
         # Volatility strip.
         self.vol_scalar = 0.05
         self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)

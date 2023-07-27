@@ -52,8 +52,67 @@ class Misc(unittest.TestCase):
                                         self.event_grid,
                                         int_dt=1 / 200)
 
+    def test_alpha_constant(self):
+        """Alpha-function with constant vol."""
+        alpha_constant = \
+            misc_hw.alpha_constant(self.kappa_scalar,
+                                   self.vol_scalar,
+                                   self.event_grid)
+        alpha_piecewise = \
+            misc_hw.alpha_piecewise(self.kappa_scalar,
+                                    self.vol_vector1,
+                                    self.event_grid)
+        alpha_general = \
+            misc_hw.alpha_general(self.sde1.int_grid,
+                                  self.sde1.int_event_idx,
+                                  self.sde1.int_kappa_step_ig,
+                                  self.sde1.vol_ig,
+                                  self.sde1.event_grid)
+        diff_piecewise = np.abs((alpha_piecewise[1:]
+                                 - alpha_constant[1:]) / alpha_constant[1:])
+        diff_general = np.abs((alpha_general[1:]
+                               - alpha_constant[1:]) / alpha_constant[1:])
+        if plot_results:
+            plt.plot(self.event_grid, alpha_constant, "-b", label="Constant")
+            plt.plot(self.event_grid, alpha_piecewise, "or", label="Piecewise")
+            plt.plot(self.event_grid, alpha_general, "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("alpha-function")
+            plt.legend()
+            plt.show()
+        if print_results:
+            print(diff_piecewise)
+            print(diff_general)
+        self.assertTrue(np.max(diff_piecewise) < 1.5e-13)
+        self.assertTrue(np.max(diff_general) < 1.7e-8)
+
+    def test_alpha_piecewise(self):
+        """Alpha-function with piecewise constant vol."""
+        alpha_piecewise = \
+            misc_hw.alpha_piecewise(self.kappa_scalar,
+                                    self.vol_vector2,
+                                    self.event_grid)
+        alpha_general = \
+            misc_hw.alpha_general(self.sde2.int_grid,
+                                  self.sde2.int_event_idx,
+                                  self.sde2.int_kappa_step_ig,
+                                  self.sde2.vol_ig,
+                                  self.sde2.event_grid)
+        diff = np.abs((alpha_general[1:]
+                       - alpha_piecewise[1:]) / alpha_piecewise[1:])
+        if plot_results:
+            plt.plot(self.event_grid, alpha_piecewise, "or", label="Piecewise")
+            plt.plot(self.event_grid, alpha_general, "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("alpha-function")
+            plt.legend()
+            plt.show()
+        if print_results:
+            print(diff)
+        self.assertTrue(np.max(diff) < 2.2e-3)
+
     def test_int_alpha_constant(self):
-        """Integral alpha-function with constant vol."""
+        """Integral of alpha-function with constant vol."""
         int_alpha_constant = \
             misc_hw.int_alpha_constant(self.kappa_scalar,
                                        self.vol_scalar,
@@ -82,7 +141,7 @@ class Misc(unittest.TestCase):
             plt.plot(self.event_grid, int_alpha_general,
                      "xk", label="General")
             plt.xlabel("Time")
-            plt.ylabel("alpha-function")
+            plt.ylabel("int_alpha-function")
             plt.legend()
             plt.show()
         if print_results:
@@ -111,7 +170,7 @@ class Misc(unittest.TestCase):
             plt.plot(self.event_grid, int_alpha_general,
                      "xk", label="General")
             plt.xlabel("Time")
-            plt.ylabel("alpha-function")
+            plt.ylabel("int_alpha-function")
             plt.legend()
             plt.show()
         if print_results:
