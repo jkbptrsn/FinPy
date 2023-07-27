@@ -120,6 +120,8 @@ class ZCBond(bonds.BondAnalytical1F):
         self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = self.payoff(self.fd.grid)
+        # Update drift, diffusion and rate vectors.
+        self.fd_update()
         # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid))
         for dt in time_steps:

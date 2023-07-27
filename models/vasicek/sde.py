@@ -17,6 +17,8 @@ class Sde(metaclass=abc.ABCMeta):
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
 
+    See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
+
     Attributes:
         kappa: Speed of mean reversion.
         mean_rate: Mean reversion level.
@@ -69,6 +71,8 @@ class SdeExact(Sde):
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
 
+    See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
+
     Monte-Carlo paths constructed using exact discretization.
 
     Attributes:
@@ -85,6 +89,7 @@ class SdeExact(Sde):
                  event_grid: np.ndarray):
         super().__init__(kappa, mean_rate, vol, event_grid)
 
+        # Arrays used for discretization.
         self.rate_mean = np.zeros((self.event_grid.size, 2))
         self.rate_variance = np.zeros(self.event_grid.size)
         self.discount_mean = np.zeros((self.event_grid.size, 2))
@@ -282,6 +287,8 @@ class SdeEuler(Sde):
     where kappa and mean_rate are the speed of mean reversion and mean
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
+
+    See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
 
     Monte-Carlo paths constructed using Euler-Maruyama discretization.
 

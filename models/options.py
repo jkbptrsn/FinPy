@@ -173,6 +173,15 @@ class Option1FAnalytical(metaclass=abc.ABCMeta):
                                         theta_value)
         self.fd.initialization()
 
+    def fd_update(self,
+                  event_idx: int = -1):
+        """Update drift, diffusion and rate vectors.
+
+        Args:
+            event_idx: Index on event grid. Default is -1.
+        """
+        fd_theta.update(self, event_idx)
+
     @abc.abstractmethod
     def fd_solve(self):
         """Run finite difference solver on event grid."""
