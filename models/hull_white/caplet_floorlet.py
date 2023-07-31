@@ -117,6 +117,7 @@ class CapletFloorlet(options.Option1FAnalytical):
                                            self.zcbond.vol_eg[0],
                                            self.fixing_idx,
                                            self.payment_idx,
+                                           self.zcbond.g_eg,
                                            self.event_grid)
         # Kappa is constant and vol is piecewise constant.
         elif self.time_dependence == "piecewise":
@@ -125,6 +126,7 @@ class CapletFloorlet(options.Option1FAnalytical):
                                             self.zcbond.vol_eg,
                                             self.fixing_idx,
                                             self.payment_idx,
+                                            self.zcbond.g_eg,
                                             self.event_grid)
         else:
             raise ValueError(f"Time dependence unknown: "

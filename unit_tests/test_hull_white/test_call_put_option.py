@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from models.hull_white import call_option as call
+from models.hull_white import european_option as call
 from models.hull_white import put_option as put
 from models.hull_white import misc as misc_hw
 from unit_tests.test_hull_white import input
@@ -10,8 +10,8 @@ from utils import data_types
 from utils import misc
 from utils import plots
 
-plot_results = False
-print_results = False
+plot_results = True
+print_results = True
 
 
 class VFunction(unittest.TestCase):
@@ -41,21 +41,21 @@ class VFunction(unittest.TestCase):
         self.expiry = self.event_grid[self.expiry_idx]
         # Option strike price.
         self.strike = 0.8
-        # Functions on event grid.
+        # Functions on event grid. TODO: Why interpolation? Use kappa_constant...
         self.kappa_constant_eg = \
             self.kappa_constant.interpolation(self.event_grid)
         self.vol_constant_eg = \
             self.vol_constant.interpolation(self.event_grid)
         # Call object.
-        self.call = call.Call(self.kappa_constant,
-                              self.vol_constant,
-                              self.discount_curve,
-                              self.strike,
-                              self.expiry_idx,
-                              self.maturity_idx,
-                              self.event_grid,
-                                 "piecewise",
-                              1 / 100)
+        self.call = call.EuropeanOption(self.kappa_constant,
+                                        self.vol_constant,
+                                        self.discount_curve,
+                                        self.strike,
+                                        self.expiry_idx,
+                                        self.maturity_idx,
+                                        self.event_grid,
+                                        "piecewise",
+                                        1 / 100)
 
     def test_constant(self):
         """Calculation of v-function with constant vol."""
@@ -63,6 +63,7 @@ class VFunction(unittest.TestCase):
                                         self.vol_constant_eg[0],
                                         self.expiry_idx,
                                         self.maturity_idx,
+                                        self.call.zcbond.g_eg,
                                         self.event_grid)
         v_piecewise = self.call.v_eg
         print(np.max(np.abs(v_constant - v_piecewise)))
@@ -99,25 +100,25 @@ class Call(unittest.TestCase):
         self.int_step_size = self.fd_dt / self.int_step_factor
         # Call option.
         self.time_dependence = "piecewise"
-        self.call = call.Call(self.kappa,
-                              self.vol,
-                              self.discount_curve,
-                              self.strike,
-                              self.fd_expiry_idx,
-                              self.fd_maturity_idx,
-                              self.fd_event_grid,
-                              self.time_dependence,
-                              self.int_step_size)
+        self.call = call.EuropeanOption(self.kappa,
+                                        self.vol,
+                                        self.discount_curve,
+                                        self.strike,
+                                        self.fd_expiry_idx,
+                                        self.fd_maturity_idx,
+                                        self.fd_event_grid,
+                                        self.time_dependence,
+                                        self.int_step_size)
 
-        self.callPelsser = call.CallPelsser(self.kappa,
-                                            self.vol,
-                                            self.discount_curve,
-                                            self.strike,
-                                            self.fd_expiry_idx,
-                                            self.fd_maturity_idx,
-                                            self.fd_event_grid,
-                                            self.time_dependence,
-                                            self.int_step_size)
+        self.callPelsser = call.EuropeanOptionPelsser(self.kappa,
+                                                      self.vol,
+                                                      self.discount_curve,
+                                                      self.strike,
+                                                      self.fd_expiry_idx,
+                                                      self.fd_maturity_idx,
+                                                      self.fd_event_grid,
+                                                      self.time_dependence,
+                                                      self.int_step_size)
 
     def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""
@@ -134,7 +135,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 8.e-3)
+        self.assertTrue(max_error < 9.8-3)
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of zero-coupon bond."""

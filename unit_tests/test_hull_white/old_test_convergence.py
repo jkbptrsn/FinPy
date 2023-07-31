@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from unit_tests.test_hull_white import input
-from models.hull_white import call_option
+from models.hull_white import european_option
 from models.hull_white import caplet_floorlet
 from models.hull_white import put_option
 from models.hull_white import sde
@@ -426,8 +426,8 @@ if __name__ == '__main__':
     expiry_idx = 1
     maturity_idx = event_grid.size - 1
     strike = 0.7
-    call = call_option.Call(kappa, vol, discount_curve, event_grid, strike,
-                            expiry_idx, maturity_idx, int_step_size)
+    call = call_option.EuropeanOption(kappa, vol, discount_curve, event_grid, strike,
+                                      expiry_idx, maturity_idx, int_step_size)
 
     # European put option object.
     expiry_idx = 1

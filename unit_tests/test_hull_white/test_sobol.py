@@ -7,7 +7,7 @@ import numpy as np
 import scipy
 
 from unit_tests.test_hull_white import input
-from models.hull_white import call_option
+from models.hull_white import european_option
 from models.hull_white import sde
 from models.hull_white import zero_coupon_bond
 from utils import misc
@@ -69,9 +69,9 @@ if __name__ == "__main__":
     strike = 0.5
     expiry_idx = 60
     maturity_idx = event_grid.size - 1
-    call = call_option.Call(kappa, vol, discount_curve, event_grid,
-                            strike, expiry_idx, maturity_idx,
-                            int_step_size=int_step_size)
+    call = call_option.EuropeanOption(kappa, vol, discount_curve, event_grid,
+                                      strike, expiry_idx, maturity_idx,
+                                      int_step_size=int_step_size)
 
     # Instrument type.
 #    instrument = "ZCBond"
