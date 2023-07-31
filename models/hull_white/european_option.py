@@ -222,9 +222,9 @@ class EuropeanOption(options.Option1FAnalytical):
         Returns:
             Price.
         """
-        return misc_hw.european_option_price(spot, self.strike, event_idx,
-                                             self.expiry_idx, self.maturity_idx,
-                                             self.zcbond, self.v_eg, self.type)
+        return misc_hw.option_price(spot, self.strike, event_idx,
+                                    self.expiry_idx, self.maturity_idx,
+                                    self.zcbond, self.v_eg, self.type)
 
     def delta(self,
               spot: typing.Union[float, np.ndarray],
@@ -238,9 +238,9 @@ class EuropeanOption(options.Option1FAnalytical):
         Returns:
             Delta.
         """
-        return misc_hw.european_option_delta(spot, self.strike, event_idx,
-                                             self.expiry_idx, self.maturity_idx,
-                                             self.zcbond, self.v_eg, self.type)
+        return misc_hw.option_delta(spot, self.strike, event_idx,
+                                    self.expiry_idx, self.maturity_idx,
+                                    self.zcbond, self.v_eg, self.type)
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
@@ -254,9 +254,9 @@ class EuropeanOption(options.Option1FAnalytical):
         Returns:
             Gamma.
         """
-        return misc_hw.european_option_gamma(spot, self.strike, event_idx,
-                                             self.expiry_idx, self.maturity_idx,
-                                             self.zcbond, self.v_eg, self.type)
+        return misc_hw.option_gamma(spot, self.strike, event_idx,
+                                    self.expiry_idx, self.maturity_idx,
+                                    self.zcbond, self.v_eg, self.type)
 
     def theta(self,
               spot: typing.Union[float, np.ndarray],
@@ -270,10 +270,10 @@ class EuropeanOption(options.Option1FAnalytical):
         Returns:
             Theta.
         """
-        return misc_hw.european_option_theta(spot, self.strike, event_idx,
-                                             self.expiry_idx, self.maturity_idx,
-                                             self.zcbond, self.v_eg,
-                                             self.dv_dt_eg, self.type)
+        return misc_hw.option_theta(spot, self.strike, event_idx,
+                                    self.expiry_idx, self.maturity_idx,
+                                    self.zcbond, self.v_eg,
+                                    self.dv_dt_eg, self.type)
 
     def fd_solve(self):
         """Run finite difference solver on event grid."""

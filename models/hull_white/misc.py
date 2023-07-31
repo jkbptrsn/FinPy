@@ -1040,14 +1040,14 @@ def dv_dt_general(int_event_idx: np.ndarray,
     return v_return
 
 
-def european_option_price(spot: typing.Union[float, np.ndarray],
-                          strike: float,
-                          event_idx: int,
-                          expiry_idx: int,
-                          maturity_idx: int,
-                          zcbond,
-                          v_eg: np.ndarray,
-                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def option_price(spot: typing.Union[float, np.ndarray],
+                 strike: float,
+                 event_idx: int,
+                 expiry_idx: int,
+                 maturity_idx: int,
+                 zcbond,
+                 v_eg: np.ndarray,
+                 option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option price.
 
@@ -1091,14 +1091,14 @@ def european_option_price(spot: typing.Union[float, np.ndarray],
                     - strike * price1 * norm.cdf(omega * d_minus))
 
 
-def european_option_delta(spot: typing.Union[float, np.ndarray],
-                          strike: float,
-                          event_idx: int,
-                          expiry_idx: int,
-                          maturity_idx: int,
-                          zcbond,
-                          v_eg: np.ndarray,
-                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def option_delta(spot: typing.Union[float, np.ndarray],
+                 strike: float,
+                 event_idx: int,
+                 expiry_idx: int,
+                 maturity_idx: int,
+                 zcbond,
+                 v_eg: np.ndarray,
+                 option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option delta.
 
@@ -1150,14 +1150,14 @@ def european_option_delta(spot: typing.Union[float, np.ndarray],
     return omega * first_term + omega ** 2 * second_term
 
 
-def european_option_gamma(spot: typing.Union[float, np.ndarray],
-                          strike: float,
-                          event_idx: int,
-                          expiry_idx: int,
-                          maturity_idx: int,
-                          zcbond,
-                          v_eg: np.ndarray,
-                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def option_gamma(spot: typing.Union[float, np.ndarray],
+                 strike: float,
+                 event_idx: int,
+                 expiry_idx: int,
+                 maturity_idx: int,
+                 zcbond,
+                 v_eg: np.ndarray,
+                 option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option gamma.
 
@@ -1220,15 +1220,15 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
     return omega * first_term + omega ** 2 * second_term
 
 
-def european_option_theta(spot: typing.Union[float, np.ndarray],
-                          strike: float,
-                          event_idx: int,
-                          expiry_idx: int,
-                          maturity_idx: int,
-                          zcbond,
-                          v_eg: np.ndarray,
-                          dv_dt_eg: np.ndarray,
-                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def option_theta(spot: typing.Union[float, np.ndarray],
+                 strike: float,
+                 event_idx: int,
+                 expiry_idx: int,
+                 maturity_idx: int,
+                 zcbond,
+                 v_eg: np.ndarray,
+                 dv_dt_eg: np.ndarray,
+                 option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option theta.
 
@@ -1268,7 +1268,6 @@ def european_option_theta(spot: typing.Union[float, np.ndarray],
 
     # v-function.
     v = v_eg[event_idx]
-
     dv_dt = dv_dt_eg[event_idx]
 
     # d-function.

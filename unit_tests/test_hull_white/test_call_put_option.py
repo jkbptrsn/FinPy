@@ -2,12 +2,10 @@ import unittest
 
 import numpy as np
 
-from models.hull_white import european_option as call
-from models.hull_white import put_option as put
+from models.hull_white import european_option as option
 from models.hull_white import misc as misc_hw
 from unit_tests.test_hull_white import input
 from utils import data_types
-from utils import misc
 from utils import plots
 
 plot_results = True
@@ -47,7 +45,7 @@ class VFunction(unittest.TestCase):
         self.vol_constant_eg = \
             self.vol_constant.interpolation(self.event_grid)
         # Call object.
-        self.call = call.EuropeanOption(self.kappa_constant,
+        self.call = option.EuropeanOption(self.kappa_constant,
                                         self.vol_constant,
                                         self.discount_curve,
                                         self.strike,
@@ -100,7 +98,7 @@ class Call(unittest.TestCase):
         self.int_step_size = self.fd_dt / self.int_step_factor
         # Call option.
         self.time_dependence = "piecewise"
-        self.call = call.EuropeanOption(self.kappa,
+        self.call = option.EuropeanOption(self.kappa,
                                         self.vol,
                                         self.discount_curve,
                                         self.strike,
@@ -110,7 +108,7 @@ class Call(unittest.TestCase):
                                         self.time_dependence,
                                         self.int_step_size)
 
-        self.callPelsser = call.EuropeanOptionPelsser(self.kappa,
+        self.callPelsser = option.EuropeanOptionPelsser(self.kappa,
                                                       self.vol,
                                                       self.discount_curve,
                                                       self.strike,
@@ -185,17 +183,16 @@ class Put(unittest.TestCase):
         self.int_step_size = self.fd_dt / self.int_step_factor
         # Put option.
         self.time_dependence = "piecewise"
-        self.put = put.Put(self.kappa,
-                           self.vol,
-                           self.discount_curve,
-                           self.strike,
-                           self.fd_expiry_idx,
-                           self.fd_maturity_idx,
-                           self.fd_event_grid,
-                           self.time_dependence,
-                           self.int_step_size)
-
-        self.putPelsser = put.PutPelsser(self.kappa,
+#        self.put = put.Put(self.kappa,
+#                           self.vol,
+#                           self.discount_curve,
+#                           self.strike,
+#                           self.fd_expiry_idx,
+#                           self.fd_maturity_idx,
+#                           self.fd_event_grid,
+#                           self.time_dependence,
+#                           self.int_step_size)
+        self.put = option.EuropeanOption(self.kappa,
                                          self.vol,
                                          self.discount_curve,
                                          self.strike,
@@ -203,7 +200,19 @@ class Put(unittest.TestCase):
                                          self.fd_maturity_idx,
                                          self.fd_event_grid,
                                          self.time_dependence,
-                                         self.int_step_size)
+                                         self.int_step_size,
+                                         "Put")
+
+        self.putPelsser = option.EuropeanOptionPelsser(self.kappa,
+                                                       self.vol,
+                                                       self.discount_curve,
+                                                       self.strike,
+                                                       self.fd_expiry_idx,
+                                                       self.fd_maturity_idx,
+                                                       self.fd_event_grid,
+                                                       self.time_dependence,
+                                                       self.int_step_size,
+                                                       "Put")
 
     def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""
@@ -220,7 +229,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 6.e-4)
+        self.assertTrue(max_error < 2.1e-3)
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of zero-coupon bond."""

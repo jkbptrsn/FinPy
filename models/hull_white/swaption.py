@@ -5,6 +5,7 @@ from scipy.optimize import brentq
 
 from models import options
 from models.hull_white import put_option
+from models.hull_white import european_option as option
 from models.hull_white import swap
 from models.hull_white import zero_coupon_bond as zcbond
 from utils import data_types
@@ -67,9 +68,10 @@ class Payer(options.Option1FAnalytical):
                           event_grid, time_dependence, int_step_size)
         # Put option written on zero-coupon bond.
         self.put = \
-            put_option.Put(kappa, vol, discount_curve, 1,
-                           fixing_schedule[0], payment_schedule[-1],
-                           event_grid, time_dependence, int_step_size)
+            option.EuropeanOption(kappa, vol, discount_curve, 1,
+                                  fixing_schedule[0], payment_schedule[-1],
+                                  event_grid, time_dependence, int_step_size,
+                                  "Put")
         # Swap.
         self.swap = \
             swap.Swap(kappa, vol, discount_curve, fixed_rate,
