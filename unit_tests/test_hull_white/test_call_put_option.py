@@ -4,6 +4,7 @@ import numpy as np
 
 from models.hull_white import european_option as option
 from models.hull_white import misc as misc_hw
+from models.hull_white import misc_european_option as misc_ep
 from unit_tests.test_hull_white import input
 from utils import data_types
 from utils import plots
@@ -57,7 +58,7 @@ class VFunction(unittest.TestCase):
 
     def test_constant(self):
         """Calculation of v-function with constant vol."""
-        v_constant = misc_hw.v_constant(self.kappa_constant_eg[0],
+        v_constant = misc_ep.v_constant(self.kappa_constant_eg[0],
                                         self.vol_constant_eg[0],
                                         self.expiry_idx,
                                         self.maturity_idx,

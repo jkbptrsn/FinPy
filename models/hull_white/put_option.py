@@ -4,6 +4,7 @@ import numpy as np
 
 from models import options
 from models.hull_white import misc as misc_hw
+from models.hull_white import misc_european_option as misc_ep
 from models.hull_white import zero_coupon_bond as zcbond
 from utils import data_types
 from utils import global_types
@@ -101,7 +102,7 @@ class Put(options.Option1FAnalytical):
         # Kappa and vol are constant.
         if self.time_dependence == "constant":
             # v-function on event grid.
-            self.v_eg = misc_hw.v_constant(self.zcbond.kappa_eg[0],
+            self.v_eg = misc_ep.v_constant(self.zcbond.kappa_eg[0],
                                            self.zcbond.vol_eg[0],
                                            self.expiry_idx,
                                            self.maturity_idx,
@@ -109,7 +110,7 @@ class Put(options.Option1FAnalytical):
                                            self.event_grid)
 
             # dv_dt-function on event grid.
-            self.dv_dt_eg = misc_hw.dv_dt_constant(self.zcbond.kappa_eg[0],
+            self.dv_dt_eg = misc_ep.dv_dt_constant(self.zcbond.kappa_eg[0],
                                                    self.zcbond.vol_eg[0],
                                                    self.expiry_idx,
                                                    self.maturity_idx,
@@ -119,7 +120,7 @@ class Put(options.Option1FAnalytical):
         # Kappa is constant and vol is piecewise constant.
         elif self.time_dependence == "piecewise":
             # v-function on event grid.
-            self.v_eg = misc_hw.v_piecewise(self.zcbond.kappa_eg[0],
+            self.v_eg = misc_ep.v_piecewise(self.zcbond.kappa_eg[0],
                                             self.zcbond.vol_eg,
                                             self.expiry_idx,
                                             self.maturity_idx,
@@ -127,7 +128,7 @@ class Put(options.Option1FAnalytical):
                                             self.event_grid)
 
             # dv_dt-function on event grid.
-            self.dv_dt_eg = misc_hw.dv_dt_piecewise(self.zcbond.kappa_eg[0],
+            self.dv_dt_eg = misc_ep.dv_dt_piecewise(self.zcbond.kappa_eg[0],
                                                     self.zcbond.vol_eg,
                                                     self.expiry_idx,
                                                     self.maturity_idx,
@@ -163,7 +164,7 @@ class Put(options.Option1FAnalytical):
         Returns:
             Price.
         """
-        return misc_hw.option_price(spot, self.strike, event_idx,
+        return misc_ep.option_price(spot, self.strike, event_idx,
                                     self.expiry_idx, self.maturity_idx,
                                     self.zcbond, self.v_eg, self.type)
 
@@ -179,7 +180,7 @@ class Put(options.Option1FAnalytical):
         Returns:
             Delta.
         """
-        return misc_hw.option_delta(spot, self.strike, event_idx,
+        return misc_ep.option_delta(spot, self.strike, event_idx,
                                     self.expiry_idx, self.maturity_idx,
                                     self.zcbond, self.v_eg, self.type)
 
@@ -195,7 +196,7 @@ class Put(options.Option1FAnalytical):
         Returns:
             Gamma.
         """
-        return misc_hw.option_gamma(spot, self.strike, event_idx,
+        return misc_ep.option_gamma(spot, self.strike, event_idx,
                                     self.expiry_idx, self.maturity_idx,
                                     self.zcbond, self.v_eg, self.type)
 
@@ -211,7 +212,7 @@ class Put(options.Option1FAnalytical):
         Returns:
             Theta.
         """
-        return misc_hw.option_theta(spot, self.strike, event_idx,
+        return misc_ep.option_theta(spot, self.strike, event_idx,
                                     self.expiry_idx, self.maturity_idx,
                                     self.zcbond, self.v_eg,
                                     self.dv_dt_eg, self.type)
