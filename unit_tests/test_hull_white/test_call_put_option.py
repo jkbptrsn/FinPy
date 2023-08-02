@@ -1,5 +1,6 @@
 import unittest
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from models.hull_white import european_option as option
@@ -9,66 +10,261 @@ from unit_tests.test_hull_white import input
 from utils import data_types
 from utils import plots
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 
 class VFunction(unittest.TestCase):
-    """Calculation of v-function."""
+    """Calculation of v- and dv_dt-functions."""
 
     def setUp(self) -> None:
+        # Number of years
+        self.n_years = 15
+        # Event dates in year fractions.
+        self.event_grid = np.arange(self.n_years + 1)
         # Speed of mean reversion strip.
-        time_grid = np.array([0, 2, 4, 6, 10, 20, 30])
-        kappa_grid = 0.023 * np.array([1] * 7)
-        self.kappa_constant = \
-            data_types.DiscreteFunc("kappa", time_grid, kappa_grid)
+        self.kappa_scalar = 0.02
+        self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
+        self.kappa1 = data_types.DiscreteFunc("kappa1",
+                                              self.event_grid,
+                                              self.kappa_vector1)
         # Volatility strip.
-        vol_grid = 0.0165 * np.array([1] * 7)
-        self.vol_constant = \
-            data_types.DiscreteFunc("vol", time_grid, vol_grid)
+        self.vol_scalar = 0.05
+        self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)
+        # Constant vol strip.
+        self.vol1 = \
+            data_types.DiscreteFunc("vol1", self.event_grid, self.vol_vector1)
+        self.vol_vector2 = np.zeros(self.event_grid.size)
+        for idx in range(self.event_grid.size):
+            self.vol_vector2[idx] = (idx % 4 + 1) * self.vol_vector1[idx]
+        # Piecewise-constant vol strip.
+        self.vol2 = \
+            data_types.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
-        self.discount_curve = input.disc_curve
+        self.discount_curve = \
+            data_types.DiscreteFunc("discount", self.event_grid,
+                                    np.ones(self.event_grid.size))
         # Bond maturity.
-        self.maturity = 25
-        # Event grid.
-        self.t_steps = 26
-        self.dt = self.maturity / (self.t_steps - 1)
-        self.event_grid = self.dt * np.arange(self.t_steps)
-        self.maturity_idx = self.t_steps - 1
+        self.maturity_idx = self.event_grid.size - 1
+        self.maturity = self.event_grid[self.maturity_idx]
         # Option expiry.
-        self.expiry_idx = (self.t_steps - 1) // 2 + 1
+        self.expiry_idx = (self.event_grid.size - 1) // 2 + 1
         self.expiry = self.event_grid[self.expiry_idx]
         # Option strike price.
         self.strike = 0.8
-        # Functions on event grid. TODO: Why interpolation? Use kappa_constant...
-        self.kappa_constant_eg = \
-            self.kappa_constant.interpolation(self.event_grid)
-        self.vol_constant_eg = \
-            self.vol_constant.interpolation(self.event_grid)
-        # Call object.
-        self.call = option.EuropeanOption(self.kappa_constant,
-                                        self.vol_constant,
-                                        self.discount_curve,
-                                        self.strike,
-                                        self.expiry_idx,
-                                        self.maturity_idx,
-                                        self.event_grid,
-                                        "piecewise",
-                                        1 / 100)
+        # Call objects.
+        self.call_constant1 = \
+            option.EuropeanOption(self.kappa1,
+                                  self.vol1,
+                                  self.discount_curve,
+                                  self.strike,
+                                  self.expiry_idx,
+                                  self.maturity_idx,
+                                  self.event_grid,
+                                  "constant",
+                                  1 / 10)
+        self.call_piecewise2 = \
+            option.EuropeanOption(self.kappa1,
+                                  self.vol2,
+                                  self.discount_curve,
+                                  self.strike,
+                                  self.expiry_idx,
+                                  self.maturity_idx,
+                                  self.event_grid,
+                                  "piecewise",
+                                  1 / 10)
+        self.call_general1 = \
+            option.EuropeanOption(self.kappa1,
+                                  self.vol1,
+                                  self.discount_curve,
+                                  self.strike,
+                                  self.expiry_idx,
+                                  self.maturity_idx,
+                                  self.event_grid,
+                                  "general",
+                                  1 / 100)
+        self.call_general2 = \
+            option.EuropeanOption(self.kappa1,
+                                  self.vol2,
+                                  self.discount_curve,
+                                  self.strike,
+                                  self.expiry_idx,
+                                  self.maturity_idx,
+                                  self.event_grid,
+                                  "general",
+                                  1 / 100)
 
     def test_constant(self):
-        """Calculation of v-function with constant vol."""
-        v_constant = misc_ep.v_constant(self.kappa_constant_eg[0],
-                                        self.vol_constant_eg[0],
-                                        self.expiry_idx,
-                                        self.event_grid)
-        v_constant = misc_ep.v_function(self.expiry_idx,
-                                        self.maturity_idx,
-                                        self.call.zcbond.g_eg,
-                                        v_constant)
-        v_piecewise = self.call.v_eg
-        print(np.max(np.abs(v_constant - v_piecewise)))
-        self.assertTrue(np.max(np.abs(v_constant - v_piecewise)) < 5.e-3)
+        """Constant vol strip."""
+        v_constant = \
+            misc_ep.v_constant(self.kappa_scalar,
+                               self.vol_scalar,
+                               self.expiry_idx,
+                               self.event_grid)
+        v_constant = \
+            misc_ep.v_function(self.expiry_idx,
+                               self.maturity_idx,
+                               self.call_constant1.zcbond.g_eg,
+                               v_constant)
+        dv_dt_constant = \
+            misc_ep.dv_dt_constant(self.kappa_scalar,
+                                   self.vol_scalar,
+                                   self.expiry_idx,
+                                   self.event_grid)
+        dv_dt_constant = \
+            misc_ep.v_function(self.expiry_idx,
+                               self.maturity_idx,
+                               self.call_constant1.zcbond.g_eg,
+                               dv_dt_constant)
+        v_piecewise = \
+            misc_ep.v_piecewise(self.kappa_scalar,
+                                self.call_constant1.vol_eg,
+                                self.expiry_idx,
+                                self.event_grid)
+        v_piecewise = \
+            misc_ep.v_function(self.expiry_idx,
+                               self.maturity_idx,
+                               self.call_constant1.zcbond.g_eg,
+                               v_piecewise)
+        dv_dt_piecewise = \
+            misc_ep.dv_dt_piecewise(self.kappa_scalar,
+                                    self.call_constant1.vol_eg,
+                                    self.expiry_idx,
+                                    self.event_grid)
+        dv_dt_piecewise = \
+            misc_ep.v_function(self.expiry_idx,
+                               self.maturity_idx,
+                               self.call_constant1.zcbond.g_eg,
+                               dv_dt_piecewise)
+        v_general = \
+            misc_ep.v_general(self.call_general1.zcbond.int_grid,
+                              self.call_general1.zcbond.int_event_idx,
+                              self.call_general1.zcbond.int_kappa_step_ig,
+                              self.call_general1.zcbond.vol_ig,
+                              self.expiry_idx)
+        v_general = \
+            misc_ep.v_function(self.expiry_idx,
+                               self.maturity_idx,
+                               self.call_constant1.zcbond.g_eg,
+                               v_general)
+        dv_dt_general = \
+            misc_ep.dv_dt_general(self.call_general1.zcbond.int_event_idx,
+                                  self.call_general1.zcbond.int_kappa_step_ig,
+                                  self.call_general1.zcbond.vol_ig,
+                                  self.expiry_idx)
+        dv_dt_general = \
+            misc_ep.v_function(self.expiry_idx,
+                               self.maturity_idx,
+                               self.call_constant1.zcbond.g_eg,
+                               dv_dt_general)
+        if plot_results:
+            event_grid_plot = self.event_grid[:self.expiry_idx + 1]
+            plt.plot(event_grid_plot, v_constant, "-b", label="Constant")
+            plt.plot(event_grid_plot, v_piecewise, "or", label="Piecewise")
+            plt.plot(event_grid_plot, v_general, "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("v-function")
+            plt.legend()
+            plt.show()
+            event_grid_plot = self.event_grid[:self.expiry_idx + 1]
+            plt.plot(event_grid_plot, dv_dt_constant, "-b", label="Constant")
+            plt.plot(event_grid_plot, dv_dt_piecewise, "or", label="Piecewise")
+            plt.plot(event_grid_plot, dv_dt_general, "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("dv_dt-function")
+            plt.legend()
+            plt.show()
+        for idx, (v1, v2, v3) in \
+                enumerate(zip(v_constant, v_piecewise, v_general)):
+            if idx != v_constant.size - 1:
+                diff1 = abs(abs(v1 - v2) / v1)
+                diff2 = abs(abs(v1 - v3) / v1)
+                if print_results:
+                    print(diff1, diff2)
+                self.assertTrue(diff1 < 1.0e-15)
+                self.assertTrue(diff2 < 1.4e-8)
+        for idx, (v1, v2, v3) in \
+                enumerate(zip(dv_dt_constant, dv_dt_piecewise, dv_dt_general)):
+            if idx != v_constant.size - 1:
+                diff1 = abs(abs(v1 - v2) / v1)
+                diff2 = abs(abs(v1 - v3) / v1)
+                if print_results:
+                    print(diff1, diff2)
+                self.assertTrue(diff1 < 1.0e-15)
+                self.assertTrue(diff2 < 1.0e-15)
+
+    def test_piecewise(self):
+        """Piecewise constant vol strip."""
+        v_piecewise = \
+            misc_ep.v_piecewise(self.kappa_scalar,
+                                self.call_piecewise2.vol_eg,
+                                self.expiry_idx,
+                                self.event_grid)
+        v_piecewise = \
+            misc_ep.v_function(self.expiry_idx,
+                               self.maturity_idx,
+                               self.call_piecewise2.zcbond.g_eg,
+                               v_piecewise)
+        dv_dt_piecewise = \
+            misc_ep.dv_dt_piecewise(self.kappa_scalar,
+                                    self.call_piecewise2.vol_eg,
+                                    self.expiry_idx,
+                                    self.event_grid)
+        dv_dt_piecewise = \
+            misc_ep.v_function(self.expiry_idx,
+                               self.maturity_idx,
+                               self.call_piecewise2.zcbond.g_eg,
+                               dv_dt_piecewise)
+        v_general = \
+            misc_ep.v_general(self.call_general2.zcbond.int_grid,
+                              self.call_general2.zcbond.int_event_idx,
+                              self.call_general2.zcbond.int_kappa_step_ig,
+                              self.call_general2.zcbond.vol_ig,
+                              self.expiry_idx)
+        v_general = \
+            misc_ep.v_function(self.expiry_idx,
+                               self.maturity_idx,
+                               self.call_general2.zcbond.g_eg,
+                               v_general)
+        dv_dt_general = \
+            misc_ep.dv_dt_general(self.call_general2.zcbond.int_event_idx,
+                                  self.call_general2.zcbond.int_kappa_step_ig,
+                                  self.call_general2.zcbond.vol_ig,
+                                  self.expiry_idx)
+        dv_dt_general = \
+            misc_ep.v_function(self.expiry_idx,
+                               self.maturity_idx,
+                               self.call_general2.zcbond.g_eg,
+                               dv_dt_general)
+        if plot_results:
+            event_grid_plot = self.event_grid[:self.expiry_idx + 1]
+            plt.plot(event_grid_plot, v_piecewise, "or", label="Piecewise")
+            plt.plot(event_grid_plot, v_general, "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("v-function")
+            plt.legend()
+            plt.show()
+            event_grid_plot = self.event_grid[:self.expiry_idx + 1]
+            plt.plot(event_grid_plot, dv_dt_piecewise, "or", label="Piecewise")
+            plt.plot(event_grid_plot, dv_dt_general, "xk", label="General")
+            plt.xlabel("Time")
+            plt.ylabel("dv_dt-function")
+            plt.legend()
+            plt.show()
+        for idx, (v1, v2) in \
+                enumerate(zip(v_piecewise, v_general)):
+            if idx != v_general.size - 1:
+                diff = abs(abs(v1 - v2) / v1)
+                if print_results:
+                    print(diff)
+                self.assertTrue(diff < 4.8e-3)
+        for idx, (v1, v2) in \
+                enumerate(zip(dv_dt_piecewise, dv_dt_general)):
+            if idx != v_general.size - 1:
+                diff = abs(abs(v1 - v2) / v1)
+                if print_results:
+                    print(diff)
+                self.assertTrue(diff < 6.7e-9)
 
 
 class Call(unittest.TestCase):

@@ -12,7 +12,7 @@ def v_function(expiry_idx: int,
                maturity_idx: int,
                g_eg: np.ndarray,
                v_eg: np.ndarray) -> np.ndarray:
-    """Calculate v-function, v(t,T,T*), on event grid until expiry.
+    """Calculate v- or dv_dt-function on event grid until expiry.
 
     See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
 
@@ -23,7 +23,7 @@ def v_function(expiry_idx: int,
         v_eg: "v-function" on event grid until expiry. See notes.
 
     Returns:
-        G-function.
+        v- og dv_dt-function. See notes.
     """
     return (g_eg[maturity_idx] - g_eg[expiry_idx]) ** 2 * v_eg
 
@@ -32,7 +32,7 @@ def v_constant(kappa: float,
                vol: float,
                expiry_idx: int,
                event_grid: np.ndarray) -> np.ndarray:
-    """Calculate "v-function" on event grid until expiry. See notes.
+    """Calculate "v-function" on event grid until expiry.
 
     The speed of mean reversion is constant and volatility is constant.
 
@@ -45,7 +45,7 @@ def v_constant(kappa: float,
         event_grid: Event dates as year fractions from as-of date.
 
     Returns:
-        "v-function".
+        "v-function". See notes.
     """
     two_kappa = 2 * kappa
     exp_kappa1 = math.exp(two_kappa * event_grid[expiry_idx])
@@ -57,7 +57,7 @@ def dv_dt_constant(kappa: float,
                    vol: float,
                    expiry_idx: int,
                    event_grid: np.ndarray) -> np.ndarray:
-    """Calculate 1st order time derivative of v-function.
+    """Calculate 1st order time derivative of "v-function".
 
     The speed of mean reversion is constant and volatility is constant.
 
@@ -70,7 +70,7 @@ def dv_dt_constant(kappa: float,
         event_grid: Event dates as year fractions from as-of date.
 
     Returns:
-        1st order time derivative of v-function.
+        1st order time derivative of "v-function". See notes.
     """
     return -vol ** 2 * np.exp(2 * kappa * event_grid[:expiry_idx + 1])
 
@@ -79,7 +79,7 @@ def v_piecewise(kappa: float,
                 vol: np.ndarray,
                 expiry_idx: int,
                 event_grid: np.ndarray) -> np.ndarray:
-    """Calculate "v-function" on event grid until expiry. See notes.
+    """Calculate "v-function" on event grid until expiry.
 
     The speed of mean reversion is constant and volatility is piecewise
     constant.
@@ -93,11 +93,11 @@ def v_piecewise(kappa: float,
         event_grid: Event dates as year fractions from as-of date.
 
     Returns:
-        "v-function".
+        "v-function". See notes.
     """
     two_kappa = 2 * kappa
     v_return = np.zeros(expiry_idx + 1)
-    for idx in range(expiry_idx + 1):
+    for idx in range(expiry_idx):
         vol_times = event_grid[idx:expiry_idx + 1]
         vol_values = vol[idx:expiry_idx + 1]
         v = np.exp(two_kappa * vol_times[1:]) \
@@ -111,7 +111,7 @@ def dv_dt_piecewise(kappa: float,
                     vol: np.ndarray,
                     expiry_idx: int,
                     event_grid: np.ndarray) -> np.ndarray:
-    """Calculate 1st order time derivative of v-function.
+    """Calculate 1st order time derivative of "v-function".
 
     The speed of mean reversion is constant and volatility is piecewise
     constant.
@@ -125,7 +125,7 @@ def dv_dt_piecewise(kappa: float,
         event_grid: Event dates as year fractions from as-of date.
 
     Returns:
-        1st order time derivative of v-function.
+        1st order time derivative of "v-function". See notes.
     """
     return -vol[:expiry_idx + 1] ** 2 \
         * np.exp(2 * kappa * event_grid[:expiry_idx + 1])
@@ -136,7 +136,7 @@ def v_general(int_grid: np.ndarray,
               int_kappa_step_ig: np.ndarray,
               vol_ig: np.ndarray,
               expiry_idx: int) -> np.ndarray:
-    """Calculate "v-function" on event grid until expiry. See notes.
+    """Calculate "v-function" on event grid until expiry.
 
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
@@ -152,11 +152,11 @@ def v_general(int_grid: np.ndarray,
         expiry_idx: Expiry index on event grid.
 
     Returns:
-        "v-function".
+        "v-function". See notes.
     """
     int_kappa = np.cumsum(int_kappa_step_ig[:int_event_idx[expiry_idx] + 1])
     v_return = np.zeros(expiry_idx + 1)
-    for event_idx in range(expiry_idx + 1):
+    for event_idx in range(expiry_idx):
         # Integration index of event.
         idx = int_event_idx[event_idx]
         # Integration index of expiry (+1).
@@ -174,7 +174,7 @@ def dv_dt_general(int_event_idx: np.ndarray,
                   int_kappa_step_ig: np.ndarray,
                   vol_ig: np.ndarray,
                   expiry_idx: int) -> np.ndarray:
-    """Calculate 1st order time derivative of v-function.
+    """Calculate 1st order time derivative of "v-function".
 
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
@@ -189,17 +189,18 @@ def dv_dt_general(int_event_idx: np.ndarray,
         expiry_idx: Expiry index on event grid.
 
     Returns:
-        1st order time derivative of v-function.
+        1st order time derivative of "v-function". See notes.
     """
     int_kappa = np.cumsum(int_kappa_step_ig[:int_event_idx[expiry_idx] + 1])
     v_return = np.zeros(expiry_idx + 1)
     for event_idx in range(expiry_idx + 1):
-        # Integration index of event (+1).
-        idx = int_event_idx[event_idx] + 1
-        # Slice of time-integrated kappa for each integration step.
-        int_kappa_tmp = int_kappa[:idx]
-        v_return[event_idx] = vol_ig[idx - 1] ** 2 * np.exp(2 * int_kappa_tmp)
+        # Integration index of event.
+        idx = int_event_idx[event_idx]
+        v_return[event_idx] = -vol_ig[idx] ** 2 * np.exp(2 * int_kappa[idx])
     return v_return
+
+
+########################################################################
 
 
 def option_price(spot: typing.Union[float, np.ndarray],
