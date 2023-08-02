@@ -28,8 +28,8 @@ class EuropeanOption(options.Option1FAnalytical):
         vol: Volatility.
         discount_curve: Discount curve represented on event grid.
         strike: Strike value of underlying zero-coupon bond.
-        expiry_idx: Expiry index on event grid.
-        maturity_idx: Maturity index on event grid.
+        expiry_idx: Option expiry index on event grid.
+        maturity_idx: Bond maturity index on event grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
             "constant": kappa and vol are constant.
@@ -177,7 +177,7 @@ class EuropeanOption(options.Option1FAnalytical):
         self.update_v_function()
 
     def update_v_function(self):
-        """..."""
+        """Update v- and dv_dt-function."""
         # v-function on event grid until expiry.
         self.v_eg = \
             misc_ep.v_function(self.expiry_idx,
@@ -197,7 +197,7 @@ class EuropeanOption(options.Option1FAnalytical):
         """Payoff function.
 
         Args:
-            spot: Current value of underlying zero-coupon bond.
+            spot: Spot value of underlying zero-coupon bond.
 
         Returns:
             Payoff.
@@ -213,7 +213,7 @@ class EuropeanOption(options.Option1FAnalytical):
         """Price function.
 
         Args:
-            spot: Current value of pseudo short rate.
+            spot: Spot pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -226,10 +226,10 @@ class EuropeanOption(options.Option1FAnalytical):
     def delta(self,
               spot: typing.Union[float, np.ndarray],
               event_idx: int) -> typing.Union[float, np.ndarray]:
-        """1st order price sensitivity wrt value of underlying.
+        """1st order price sensitivity wrt short rate.
 
         Args:
-            spot: Current value of pseudo short rate.
+            spot: Spot pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -242,10 +242,10 @@ class EuropeanOption(options.Option1FAnalytical):
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
               event_idx: int) -> typing.Union[float, np.ndarray]:
-        """2nd order price sensitivity wrt value of underlying.
+        """2nd order price sensitivity wrt short rate.
 
         Args:
-            spot: Current value of pseudo short rate.
+            spot: Spot pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -261,7 +261,7 @@ class EuropeanOption(options.Option1FAnalytical):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Current value of pseudo short rate.
+            spot: Spot pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
@@ -285,7 +285,7 @@ class EuropeanOption(options.Option1FAnalytical):
             event_idx = (self.event_grid.size - 1) - counter
             # Update drift, diffusion and rate vectors at previous event.
             self.fd_update(event_idx - 1)
-            # Option payoff at expiry.
+            # Payoff at option expiry.
             if event_idx == self.expiry_idx:
                 self.fd.solution = self.payoff(self.fd.solution)
             self.fd.propagation(dt, True)
@@ -322,16 +322,15 @@ class EuropeanOption(options.Option1FAnalytical):
         discount_paths = \
             self.mc_exact.discount_adjustment(self.mc_exact.discount_paths,
                                               self.adjust_discount)
-
         # Spot pseudo short rate at expiry.
         spot = self.mc_exact.rate_paths[self.expiry_idx]
         # Zero-coupon bond price at expiry.
         zcbond_price = self.zcbond.price(spot, self.expiry_idx)
-        # Option payoff at expiry.
+        # Payoff at option expiry.
         option_payoff = self.payoff(zcbond_price)
         # Discounted option payoff.
-        option_payoff *= discount_paths[0] / discount_paths[self.expiry_idx]
-
+        option_payoff *= discount_paths[self.expiry_idx]
+        # Monte-Carlo estimate.
         self.mc_exact.mc_estimate = option_payoff.mean()
         self.mc_exact.mc_error = option_payoff.std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
@@ -364,7 +363,6 @@ class EuropeanOption(options.Option1FAnalytical):
         discount_paths = \
             self.mc_euler.discount_adjustment(self.mc_euler.discount_paths,
                                               self.adjust_discount)
-
         # Spot pseudo short rate at expiry.
         spot = self.mc_euler.rate_paths[self.expiry_idx]
         # Zero-coupon bond price at expiry.
@@ -372,8 +370,8 @@ class EuropeanOption(options.Option1FAnalytical):
         # Option payoff at expiry.
         option_payoff = self.payoff(zcbond_price)
         # Discounted option payoff.
-        option_payoff *= discount_paths[0] / discount_paths[self.expiry_idx]
-
+        option_payoff *= discount_paths[self.expiry_idx]
+        # Monte-Carlo estimate.
         self.mc_euler.mc_estimate = option_payoff.mean()
         self.mc_euler.mc_error = option_payoff.std(ddof=1)
         self.mc_euler.mc_error /= math.sqrt(n_paths)
@@ -383,15 +381,15 @@ class EuropeanOptionPelsser(EuropeanOption):
     """European call/put option in 1-factor Hull-White model.
 
     Price of European call/put option written on zero-coupon bond. See
-    Pelsser, chapter 5.
+    A. Pelsser, chapter 5.
 
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
         discount_curve: Discount curve represented on event grid.
         strike: Strike value of underlying zero-coupon bond.
-        expiry_idx: Expiry index on event grid.
-        maturity_idx: Maturity index on event grid.
+        expiry_idx: Option expiry index on event grid.
+        maturity_idx: Bond maturity index on event grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
             "constant": kappa and vol are constant.
@@ -429,6 +427,16 @@ class EuropeanOptionPelsser(EuropeanOption):
         self.zcbond = \
             zcbond.ZCBondPelsser(kappa, vol, discount_curve, maturity_idx,
                                  event_grid, time_dependence, int_dt)
+        # Speed of mean reversion on event grid.
+        self.kappa_eg = self.zcbond.kappa_eg
+        # Volatility on event grid.
+        self.vol_eg = self.zcbond.vol_eg
+        # Discount curve on event grid.
+        self.discount_curve_eg = self.zcbond.discount_curve_eg
+        # Instantaneous forward rate on event grid.
+        self.forward_rate_eg = self.zcbond.forward_rate_eg
+        # y-function on event grid.
+        self.y_eg = self.zcbond.y_eg
 
         self.transformation = global_types.Transformation.PELSSER
 
@@ -438,22 +446,86 @@ class EuropeanOptionPelsser(EuropeanOption):
         self.adjust_discount_steps = self.zcbond.adjust_discount_steps
         self.adjust_discount = self.zcbond.adjust_discount
 
-    def fd_solve(self):
-        """Run finite difference solver on event grid."""
-        self.fd.set_propagator()
-        # Set terminal condition.
-        self.fd.solution = self.zcbond.payoff(self.fd.grid)
-        # Update drift, diffusion and rate vectors.
-        self.fd_update(self.event_grid.size - 1)
-        # Backward propagation.
-        time_steps = np.flip(np.diff(self.event_grid))
-        for counter, dt in enumerate(time_steps):
-            event_idx = (self.event_grid.size - 1) - counter
-            # Update drift, diffusion and rate vectors at previous event.
-            self.fd_update(event_idx - 1)
-            # Option payoff at expiry.
-            if event_idx == self.expiry_idx:
-                self.fd.solution = self.payoff(self.fd.solution)
-            self.fd.propagation(dt, True)
-            # Transformation adjustment.
-            self.fd.solution *= self.adjust_discount_steps[event_idx]
+    def mc_exact_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+
+        Returns:
+            Realizations of short rate and discount processes
+            represented on event grid.
+        """
+        self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        # Adjustment of discount paths.
+        discount_paths = \
+            self.mc_exact.discount_adjustment(self.mc_exact.discount_paths,
+                                              self.adjust_discount)
+
+        # TODO: Adjustment of pseudo short rate to pseudo short rate...
+        # Spot pseudo short rate at expiry.
+        spot = self.mc_exact.rate_paths[self.expiry_idx]
+        spot += self.adjust_rate[self.expiry_idx] \
+            - self.forward_rate_eg[self.expiry_idx]
+
+        # Zero-coupon bond price at expiry.
+        zcbond_price = self.zcbond.price(spot, self.expiry_idx)
+        # Payoff at option expiry.
+        option_payoff = self.payoff(zcbond_price)
+        # Discounted option payoff.
+        option_payoff *= discount_paths[self.expiry_idx]
+        # Monte-Carlo estimate.
+        self.mc_exact.mc_estimate = option_payoff.mean()
+        self.mc_exact.mc_error = option_payoff.std(ddof=1)
+        self.mc_exact.mc_error /= math.sqrt(n_paths)
+
+    def mc_euler_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
+
+        Monte-Carlo paths constructed using Euler-Maruyama discretization.
+
+        Args:
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
+        """
+        self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
+        # Adjustment of discount paths.
+        discount_paths = \
+            self.mc_euler.discount_adjustment(self.mc_euler.discount_paths,
+                                              self.adjust_discount)
+
+        # TODO: Adjustment of pseudo short rate to pseudo short rate...
+        # Spot pseudo short rate at expiry.
+        spot = self.mc_euler.rate_paths[self.expiry_idx]
+        spot += self.adjust_rate[self.expiry_idx] \
+            - self.forward_rate_eg[self.expiry_idx]
+
+        # Zero-coupon bond price at expiry.
+        zcbond_price = self.zcbond.price(spot, self.expiry_idx)
+        # Option payoff at expiry.
+        option_payoff = self.payoff(zcbond_price)
+        # Discounted option payoff.
+        option_payoff *= discount_paths[self.expiry_idx]
+        # Monte-Carlo estimate.
+        self.mc_euler.mc_estimate = option_payoff.mean()
+        self.mc_euler.mc_error = option_payoff.std(ddof=1)
+        self.mc_euler.mc_error /= math.sqrt(n_paths)

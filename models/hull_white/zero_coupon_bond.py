@@ -312,6 +312,7 @@ class ZCBond(bonds.BondAnalytical1F):
         discount_paths = \
             self.mc_exact.discount_adjustment(self.mc_exact.discount_paths,
                                               self.adjust_discount)
+        # Monte-Carlo estimate.
         self.mc_exact.mc_estimate = discount_paths[-1].mean()
         self.mc_exact.mc_error = discount_paths[-1].std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
@@ -348,6 +349,7 @@ class ZCBond(bonds.BondAnalytical1F):
         discount_paths = \
             self.mc_euler.discount_adjustment(self.mc_euler.discount_paths,
                                               self.adjust_discount)
+        # Monte-Carlo estimate.
         self.mc_euler.mc_estimate = discount_paths[-1].mean()
         self.mc_euler.mc_error = discount_paths[-1].std(ddof=1)
         self.mc_euler.mc_error /= math.sqrt(n_paths)
