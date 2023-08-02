@@ -61,9 +61,11 @@ class VFunction(unittest.TestCase):
         v_constant = misc_ep.v_constant(self.kappa_constant_eg[0],
                                         self.vol_constant_eg[0],
                                         self.expiry_idx,
+                                        self.event_grid)
+        v_constant = misc_ep.v_function(self.expiry_idx,
                                         self.maturity_idx,
                                         self.call.zcbond.g_eg,
-                                        self.event_grid)
+                                        v_constant)
         v_piecewise = self.call.v_eg
         print(np.max(np.abs(v_constant - v_piecewise)))
         self.assertTrue(np.max(np.abs(v_constant - v_piecewise)) < 5.e-3)

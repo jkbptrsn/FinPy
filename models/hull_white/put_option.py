@@ -65,10 +65,12 @@ class Put(options.Option1FAnalytical):
         self.forward_rate_eg = None
         # y-function on event grid.
         self.y_eg = None
-        # v-function on event grid.
-        self.v_eg = None
 
-        # dv_dt-function on event grid.
+        # v-function on event grid until expiry.
+        self.v_eg_tmp = None
+        self.v_eg = None
+        # dv_dt-function on event grid until expiry.
+        self.dv_dt_eg_tmp = None
         self.dv_dt_eg = None
 
         # Underlying zero-coupon bond.
@@ -101,43 +103,40 @@ class Put(options.Option1FAnalytical):
 
         # Kappa and vol are constant.
         if self.time_dependence == "constant":
-            # v-function on event grid.
-            self.v_eg = misc_ep.v_constant(self.zcbond.kappa_eg[0],
-                                           self.zcbond.vol_eg[0],
-                                           self.expiry_idx,
-                                           self.maturity_idx,
-                                           self.zcbond.g_eg,
-                                           self.event_grid)
-
-            # dv_dt-function on event grid.
-            self.dv_dt_eg = misc_ep.dv_dt_constant(self.zcbond.kappa_eg[0],
-                                                   self.zcbond.vol_eg[0],
-                                                   self.expiry_idx,
-                                                   self.maturity_idx,
-                                                   self.zcbond.g_eg,
-                                                   self.event_grid)
+            # v-function on event grid until expiry.
+            self.v_eg_tmp = misc_ep.v_constant(self.zcbond.kappa_eg[0],
+                                               self.zcbond.vol_eg[0],
+                                               self.expiry_idx,
+                                               self.event_grid)
+            # dv_dt-function on event grid until expiry.
+            self.dv_dt_eg_tmp = misc_ep.dv_dt_constant(self.zcbond.kappa_eg[0],
+                                                       self.zcbond.vol_eg[0],
+                                                       self.expiry_idx,
+                                                       self.event_grid)
 
         # Kappa is constant and vol is piecewise constant.
         elif self.time_dependence == "piecewise":
-            # v-function on event grid.
-            self.v_eg = misc_ep.v_piecewise(self.zcbond.kappa_eg[0],
-                                            self.zcbond.vol_eg,
-                                            self.expiry_idx,
-                                            self.maturity_idx,
-                                            self.zcbond.g_eg,
-                                            self.event_grid)
-
-            # dv_dt-function on event grid.
-            self.dv_dt_eg = misc_ep.dv_dt_piecewise(self.zcbond.kappa_eg[0],
-                                                    self.zcbond.vol_eg,
-                                                    self.expiry_idx,
-                                                    self.maturity_idx,
-                                                    self.zcbond.g_eg,
-                                                    self.event_grid)
-
+            # v-function on event grid until expiry.
+            self.v_eg_tmp = misc_ep.v_piecewise(self.zcbond.kappa_eg[0],
+                                                self.zcbond.vol_eg,
+                                                self.expiry_idx,
+                                                self.event_grid)
+            # dv_dt-function on event grid until expiry.
+            self.dv_dt_eg_tmp = misc_ep.dv_dt_piecewise(self.zcbond.kappa_eg[0],
+                                                        self.zcbond.vol_eg,
+                                                        self.expiry_idx,
+                                                        self.event_grid)
         else:
             raise ValueError(f"Time dependence unknown: "
                              f"{self.time_dependence}")
+        self.v_eg = misc_ep.v_function(self.expiry_idx,
+                                       self.maturity_idx,
+                                       self.zcbond.g_eg,
+                                       self.v_eg_tmp)
+        self.dv_dt_eg = misc_ep.v_function(self.expiry_idx,
+                                           self.maturity_idx,
+                                           self.zcbond.g_eg,
+                                           self.dv_dt_eg_tmp)
 
     def payoff(self,
                spot: typing.Union[float, np.ndarray]) \

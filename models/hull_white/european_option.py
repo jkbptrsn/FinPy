@@ -23,8 +23,6 @@ class EuropeanOption(options.Option1FAnalytical):
     L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
     D. Brigo & F. Mercurio 2007, section 3.3.
 
-    TODO: The speed of mean reversion is assumed to be constant!
-
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
@@ -40,7 +38,7 @@ class EuropeanOption(options.Option1FAnalytical):
             "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
-        type_: Option type. Default is call.
+        option_type: Option type. Default is call.
     """
 
     def __init__(self,
@@ -53,7 +51,7 @@ class EuropeanOption(options.Option1FAnalytical):
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
                  int_dt: float = 1 / 52,
-                 type_: str = "Call"):
+                 option_type: str = "Call"):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
@@ -65,35 +63,36 @@ class EuropeanOption(options.Option1FAnalytical):
         self.time_dependence = time_dependence
         self.int_dt = int_dt
 
-        # Speed of mean reversion on event grid.
-        self.kappa_eg = None
-        # Volatility on event grid.
-        self.vol_eg = None
-        # Discount curve on event grid.
-        self.discount_curve_eg = None
-        # Instantaneous forward rate on event grid.
-        self.forward_rate_eg = None
-        # y-function on event grid.
-        self.y_eg = None
-        # v-function on event grid.
-        self.v_eg = None
-
-        # dv_dt-function on event grid.
-        self.dv_dt_eg = None
-
         # Underlying zero-coupon bond.
         self.zcbond = \
             zcbond.ZCBond(kappa, vol, discount_curve, maturity_idx,
                           event_grid, time_dependence, int_dt)
+        # Speed of mean reversion on event grid.
+        self.kappa_eg = self.zcbond.kappa_eg
+        # Volatility on event grid.
+        self.vol_eg = self.zcbond.vol_eg
+        # Discount curve on event grid.
+        self.discount_curve_eg = self.zcbond.discount_curve_eg
+        # Instantaneous forward rate on event grid.
+        self.forward_rate_eg = self.zcbond.forward_rate_eg
+        # y-function on event grid.
+        self.y_eg = self.zcbond.y_eg
+
+        # v-function on event grid until expiry.
+        self.v_eg_tmp = None
+        self.v_eg = None
+        # dv_dt-function on event grid until expiry.
+        self.dv_dt_eg_tmp = None
+        self.dv_dt_eg = None
 
         self.model = Model.HULL_WHITE_1F
         self.transformation = global_types.Transformation.ANDERSEN
-        if type_ == "Call":
+        if option_type == "Call":
             self.type = Instrument.EUROPEAN_CALL
-        elif type_ == "Put":
+        elif option_type == "Put":
             self.type = Instrument.EUROPEAN_PUT
         else:
-            raise ValueError(f"Option type is unknown: {type_}")
+            raise ValueError(f"Option type is unknown: {option_type}")
 
         self.initialization()
 
@@ -112,6 +111,15 @@ class EuropeanOption(options.Option1FAnalytical):
     ####################################################################
 
     @property
+    def exp_idx(self) -> int:
+        return self.expiry_idx
+
+    @exp_idx.setter
+    def exp_idx(self, idx: int):
+        self.expiry_idx = idx
+        self.initialization()
+
+    @property
     def mat_idx(self) -> int:
         return self.maturity_idx
 
@@ -119,80 +127,69 @@ class EuropeanOption(options.Option1FAnalytical):
     def mat_idx(self, idx: int):
         self.maturity_idx = idx
         self.zcbond.maturity_idx = idx
-        self.zcbond.gt_eg = misc_hw.g_function(idx,
-                                               self.zcbond.g_eg,
-                                               self.zcbond.int_kappa_eg)
-        # TODO: What about updating v-function?
-        # TODO: Change v-function
-        #  Not as a function of t, but calculated at time zero with
-        #  different expiry times on event grid.
+        self.zcbond.gt_eg = \
+            misc_hw.g_function(idx,
+                               self.zcbond.g_eg,
+                               self.zcbond.int_kappa_eg)
+        self.update_v_function()
 
     ####################################################################
 
     def initialization(self):
         """Initialization of instrument object."""
-
-        self.kappa_eg = self.zcbond.kappa_eg
-        self.vol_eg = self.zcbond.vol_eg
-        self.discount_curve_eg = self.zcbond.discount_curve_eg
-        self.forward_rate_eg = self.zcbond.forward_rate_eg
-        self.y_eg = self.zcbond.y_eg
-
         if self.time_dependence == "constant":
-            # v-function on event grid.
-            self.v_eg = misc_ep.v_constant(self.zcbond.kappa_eg[0],
-                                           self.zcbond.vol_eg[0],
-                                           self.expiry_idx,
-                                           self.maturity_idx,
-                                           self.zcbond.g_eg,
-                                           self.event_grid)
-
-            # dv_dt-function on event grid.
-            self.dv_dt_eg = misc_ep.dv_dt_constant(self.zcbond.kappa_eg[0],
-                                                   self.zcbond.vol_eg[0],
-                                                   self.expiry_idx,
-                                                   self.maturity_idx,
-                                                   self.zcbond.g_eg,
-                                                   self.event_grid)
-
+            self.v_eg_tmp = \
+                misc_ep.v_constant(self.zcbond.kappa_eg[0],
+                                   self.zcbond.vol_eg[0],
+                                   self.expiry_idx,
+                                   self.event_grid)
+            self.dv_dt_eg_tmp = \
+                misc_ep.dv_dt_constant(self.zcbond.kappa_eg[0],
+                                       self.zcbond.vol_eg[0],
+                                       self.expiry_idx,
+                                       self.event_grid)
         elif self.time_dependence == "piecewise":
-            # v-function on event grid.
-            self.v_eg = misc_ep.v_piecewise(self.zcbond.kappa_eg[0],
-                                            self.zcbond.vol_eg,
-                                            self.expiry_idx,
-                                            self.maturity_idx,
-                                            self.zcbond.g_eg,
-                                            self.event_grid)
-
-            # dv_dt-function on event grid.
-            self.dv_dt_eg = misc_ep.dv_dt_piecewise(self.zcbond.kappa_eg[0],
-                                                    self.zcbond.vol_eg,
-                                                    self.expiry_idx,
-                                                    self.maturity_idx,
-                                                    self.zcbond.g_eg,
-                                                    self.event_grid)
-
+            self.v_eg_tmp = \
+                misc_ep.v_piecewise(self.zcbond.kappa_eg[0],
+                                    self.zcbond.vol_eg,
+                                    self.expiry_idx,
+                                    self.event_grid)
+            self.dv_dt_eg_tmp = \
+                misc_ep.dv_dt_piecewise(self.zcbond.kappa_eg[0],
+                                        self.zcbond.vol_eg,
+                                        self.expiry_idx,
+                                        self.event_grid)
         elif self.time_dependence == "general":
-            # v-function on event grid.
-            self.v_eg = misc_ep.v_general(self.zcbond.int_grid,
-                                          self.zcbond.int_event_idx,
-                                          self.zcbond.int_kappa_step_ig,
-                                          self.zcbond.vol_ig,
-                                          self.expiry_idx,
-                                          self.maturity_idx,
-                                          self.zcbond.g_eg)
-
-            # dv_dt-function on event grid.
-            self.dv_dt_eg = misc_ep.dv_dt_general(self.zcbond.int_event_idx,
-                                                  self.zcbond.int_kappa_step_ig,
-                                                  self.zcbond.vol_ig,
-                                                  self.expiry_idx,
-                                                  self.maturity_idx,
-                                                  self.zcbond.g_eg)
-
+            self.v_eg_tmp = \
+                misc_ep.v_general(self.zcbond.int_grid,
+                                  self.zcbond.int_event_idx,
+                                  self.zcbond.int_kappa_step_ig,
+                                  self.zcbond.vol_ig,
+                                  self.expiry_idx)
+            self.dv_dt_eg_tmp = \
+                misc_ep.dv_dt_general(self.zcbond.int_event_idx,
+                                      self.zcbond.int_kappa_step_ig,
+                                      self.zcbond.vol_ig,
+                                      self.expiry_idx)
         else:
             raise ValueError(f"Time dependence unknown: "
                              f"{self.time_dependence}")
+        self.update_v_function()
+
+    def update_v_function(self):
+        """..."""
+        # v-function on event grid until expiry.
+        self.v_eg = \
+            misc_ep.v_function(self.expiry_idx,
+                               self.maturity_idx,
+                               self.zcbond.g_eg,
+                               self.v_eg_tmp)
+        # dv_dt-function on event grid until expiry.
+        self.dv_dt_eg = \
+            misc_ep.v_function(self.expiry_idx,
+                               self.maturity_idx,
+                               self.zcbond.g_eg,
+                               self.dv_dt_eg_tmp)
 
     def payoff(self,
                spot: typing.Union[float, np.ndarray]) \
@@ -388,8 +385,6 @@ class EuropeanOptionPelsser(EuropeanOption):
     Price of European call/put option written on zero-coupon bond. See
     Pelsser, chapter 5.
 
-    TODO: Note: The speed of mean reversion is assumed to be constant!
-
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
@@ -405,7 +400,7 @@ class EuropeanOptionPelsser(EuropeanOption):
             "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
-        type_: Option type. Default is call.
+        option_type: Option type. Default is call.
     """
 
     def __init__(self,
@@ -418,7 +413,7 @@ class EuropeanOptionPelsser(EuropeanOption):
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
                  int_dt: float = 1 / 52,
-                 type_: str = "Call"):
+                 option_type: str = "Call"):
         super().__init__(kappa,
                          vol,
                          discount_curve,
@@ -428,7 +423,7 @@ class EuropeanOptionPelsser(EuropeanOption):
                          event_grid,
                          time_dependence,
                          int_dt,
-                         type_)
+                         option_type)
 
         # Underlying zero-coupon bond.
         self.zcbond = \
