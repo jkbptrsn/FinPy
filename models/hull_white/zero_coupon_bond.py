@@ -94,8 +94,6 @@ class ZCBond(bonds.BondAnalytical1F):
     def maturity(self) -> float:
         return self.event_grid[self.maturity_idx]
 
-    ####################################################################
-
     @property
     def mat_idx(self) -> int:
         return self.maturity_idx
@@ -104,8 +102,6 @@ class ZCBond(bonds.BondAnalytical1F):
     def mat_idx(self, idx: int):
         self.maturity_idx = idx
         self.gt_eg = misc_hw.g_function(idx, self.g_eg, self.int_kappa_eg)
-
-    ####################################################################
 
     def initialization(self):
         """Initialization of object."""
@@ -308,13 +304,9 @@ class ZCBond(bonds.BondAnalytical1F):
                 Default is False.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
-        # Adjustment of discount paths.
-        discount_paths = \
-            self.mc_exact.discount_adjustment(self.mc_exact.discount_paths,
-                                              self.adjust_discount)
-        # Monte-Carlo estimate.
-        self.mc_exact.mc_estimate = discount_paths[-1].mean()
-        self.mc_exact.mc_error = discount_paths[-1].std(ddof=1)
+        price = self.mc_present_value(self.mc_exact)
+        self.mc_exact.mc_estimate = price.mean()
+        self.mc_exact.mc_error = price.std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
     def mc_euler_setup(self):
@@ -345,14 +337,20 @@ class ZCBond(bonds.BondAnalytical1F):
                 Default is False.
         """
         self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
+        price = self.mc_present_value(self.mc_euler)
+        self.mc_euler.mc_estimate = price.mean()
+        self.mc_euler.mc_error = price.std(ddof=1)
+        self.mc_euler.mc_error /= math.sqrt(n_paths)
+
+    def mc_present_value(self,
+                         mc_object):
+        """Present value for each Monte-Carlo path."""
         # Adjustment of discount paths.
         discount_paths = \
-            self.mc_euler.discount_adjustment(self.mc_euler.discount_paths,
-                                              self.adjust_discount)
-        # Monte-Carlo estimate.
-        self.mc_euler.mc_estimate = discount_paths[-1].mean()
-        self.mc_euler.mc_error = discount_paths[-1].std(ddof=1)
-        self.mc_euler.mc_error /= math.sqrt(n_paths)
+            mc_object.discount_adjustment(mc_object.discount_paths,
+                                          self.adjust_discount)
+        # Discount factors at maturity.
+        return discount_paths[-1]
 
 
 class ZCBondPelsser(ZCBond):
