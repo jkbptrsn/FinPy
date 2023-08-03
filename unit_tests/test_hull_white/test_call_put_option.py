@@ -9,8 +9,8 @@ from unit_tests.test_hull_white import input
 from utils import data_types
 from utils import plots
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 
 class VFunction(unittest.TestCase):
@@ -504,7 +504,7 @@ class Put(unittest.TestCase):
         # Bond maturity.
         self.maturity = 30
         # FD event grid.
-        self.fd_t_steps = 361
+        self.fd_t_steps = 721
         self.fd_dt = self.maturity / (self.fd_t_steps - 1)
         self.fd_event_grid = self.fd_dt * np.arange(self.fd_t_steps)
         self.fd_maturity_idx = self.fd_t_steps - 1
@@ -521,18 +521,22 @@ class Put(unittest.TestCase):
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         self.int_step_factor = 3
         self.int_step_size = self.fd_dt / self.int_step_factor
-        # Put option.
+        # Call option.
         self.time_dependence = "piecewise"
-#        self.put = put.Put(self.kappa,
-#                           self.vol,
-#                           self.discount_curve,
-#                           self.strike,
-#                           self.fd_expiry_idx,
-#                           self.fd_maturity_idx,
-#                           self.fd_event_grid,
-#                           self.time_dependence,
-#                           self.int_step_size)
-        self.put = option.EuropeanOption(self.kappa,
+        self.put = \
+            option.EuropeanOption(self.kappa,
+                                  self.vol,
+                                  self.discount_curve,
+                                  self.strike,
+                                  self.fd_expiry_idx,
+                                  self.fd_maturity_idx,
+                                  self.fd_event_grid,
+                                  self.time_dependence,
+                                  self.int_step_size,
+                                  option_type="Put")
+
+        self.putPelsser = \
+            option.EuropeanOptionPelsser(self.kappa,
                                          self.vol,
                                          self.discount_curve,
                                          self.strike,
@@ -541,52 +545,181 @@ class Put(unittest.TestCase):
                                          self.fd_event_grid,
                                          self.time_dependence,
                                          self.int_step_size,
-                                         "Put")
-
-        self.putPelsser = option.EuropeanOptionPelsser(self.kappa,
-                                                       self.vol,
-                                                       self.discount_curve,
-                                                       self.strike,
-                                                       self.fd_expiry_idx,
-                                                       self.fd_maturity_idx,
-                                                       self.fd_event_grid,
-                                                       self.time_dependence,
-                                                       self.int_step_size,
-                                                       "Put")
+                                         option_type="Put")
 
     def test_theta_method(self):
-        """Finite difference pricing of zero-coupon bond."""
+        """Finite difference pricing of European call option."""
+        print(self.put.transformation)
         self.put.fd_setup(self.x_grid, equidistant=True)
         self.put.fd_solve()
+        # Check price.
         numerical = self.put.fd.solution
         analytical = self.put.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
         if plot_results:
             plots.plot_price_and_greeks(self.put)
-        # Maximum error in interval around pseudo short rate of 0.
-        idx_min = np.argwhere(self.x_grid < -0.002)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.002)[-1][0]
+        # Maximum error.
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
-            print("max error: ", max_error)
-        self.assertTrue(max_error < 2.1e-3)
+            print(f"Maximum error of price: {max_error:2.5f}")
+        self.assertTrue(max_error < 1.1e-3)
+        # Check delta.
+        numerical = self.put.fd.delta()
+        analytical = self.put.delta(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print(f"Maximum error of delta: {max_error:2.5f}")
+        self.assertTrue(max_error < 1.3e-3)
+        # Check gamma.
+        numerical = self.put.fd.gamma()
+        analytical = self.put.gamma(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print(f"Maximum error of gamma: {max_error:2.5f}")
+        self.assertTrue(max_error < 2.7e-3)
+        # Check theta.
+        numerical = self.put.fd.theta()
+        analytical = self.put.theta(self.x_grid, 0)
+        error = np.abs((analytical - numerical))
+        max_error = np.max(error[idx_min:idx_max + 1])
+        if print_results:
+            print(f"Maximum error of theta: {max_error:2.5f}")
+        self.assertTrue(max_error < 3.0e-5)
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of zero-coupon bond."""
+        print(self.putPelsser.transformation)
         self.putPelsser.fd_setup(self.x_grid, equidistant=True)
         self.putPelsser.fd_solve()
+        # Check price.
         numerical = self.putPelsser.fd.solution
         analytical = self.putPelsser.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
         if plot_results:
             plots.plot_price_and_greeks(self.putPelsser)
+        # Maximum error.
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print(f"Maximum error of price: {max_error:2.5f}")
+        self.assertTrue(max_error < 4.4e-4)
+        # Check delta.
+        numerical = self.putPelsser.fd.delta()
+        analytical = self.putPelsser.delta(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print(f"Maximum error of delta: {max_error:2.5f}")
+        self.assertTrue(max_error < 1.1e-3)
+        # Check gamma.
+        numerical = self.putPelsser.fd.gamma()
+        analytical = self.putPelsser.gamma(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print(f"Maximum error of gamma: {max_error:2.5f}")
+        self.assertTrue(max_error < 1.9e-3)
+        # Check theta.
+        numerical = self.putPelsser.fd.theta()
+        analytical = self.putPelsser.theta(self.x_grid, 0)
+        error = np.abs((analytical - numerical))
+        max_error = np.max(error[idx_min:idx_max + 1])
+        if print_results:
+            print(f"Maximum error of theta: {max_error:2.5f}")
+        self.assertTrue(max_error < 3.0e-5)
+
+    def test_monte_carlo(self):
+        """Monte-Carlo pricing of European call option."""
+        self.put.mc_exact_setup()
+        self.put.mc_euler_setup()
+        # Spot rate.
+        spot = 0.02
+        spot_vector = spot * np.arange(11) - 0.1
+        # Initialize random number generator.
+        rng = np.random.default_rng(0)
+        # Number of paths for each Monte-Carlo estimate.
+        n_paths = 10000
+        # Analytical result.
+        price_a = self.put.price(spot_vector, 0)
+        numerical_exact = np.zeros(spot_vector.size)
+        error_exact = np.zeros(spot_vector.size)
+        numerical_euler = np.zeros(spot_vector.size)
+        error_euler = np.zeros(spot_vector.size)
+        for idx, s in enumerate(spot_vector):
+            self.put.mc_exact_solve(s, n_paths, rng=rng, antithetic=True)
+            numerical_exact[idx] = self.put.mc_exact.mc_estimate
+            error_exact[idx] = self.put.mc_exact.mc_error
+            self.put.mc_euler_solve(s, n_paths, rng=rng, antithetic=True)
+            numerical_euler[idx] = self.put.mc_euler.mc_estimate
+            error_euler[idx] = self.put.mc_euler.mc_error
+        if plot_results:
+            plt.plot(spot_vector, price_a, "-b")
+            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
+                         fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
+                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.xlabel("Initial pseudo short rate")
+            plt.ylabel("Call option price")
+            plt.legend()
+            plt.show()
+        relative_error = np.abs((price_a - numerical_exact) / price_a)
         # Maximum error in interval around pseudo short rate of 0.
-        idx_min = np.argwhere(self.x_grid < -0.002)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.002)[-1][0]
+        idx_min = np.argwhere(spot_vector < -0.05)[-1][0]
+        idx_max = np.argwhere(spot_vector < 0.05)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 7.e-4)
+        self.assertTrue(max_error < 3.1e-2)
+
+    def test_monte_carlo_pelsser(self):
+        """Monte-Carlo pricing of European call option."""
+        self.putPelsser.mc_exact_setup()
+        self.putPelsser.mc_euler_setup()
+        # Spot rate.
+        spot = 0.02
+        spot_vector = spot * np.arange(11) - 0.1
+        # Initialize random number generator.
+        rng = np.random.default_rng(0)
+        # Number of paths for each Monte-Carlo estimate.
+        n_paths = 10000
+        # Analytical result.
+        price_a = self.putPelsser.price(spot_vector, 0)
+        numerical_exact = np.zeros(spot_vector.size)
+        error_exact = np.zeros(spot_vector.size)
+        numerical_euler = np.zeros(spot_vector.size)
+        error_euler = np.zeros(spot_vector.size)
+        for idx, s in enumerate(spot_vector):
+            self.putPelsser.mc_exact_solve(s, n_paths, rng=rng,
+                                           antithetic=True)
+            numerical_exact[idx] = self.putPelsser.mc_exact.mc_estimate
+            error_exact[idx] = self.putPelsser.mc_exact.mc_error
+            self.putPelsser.mc_euler_solve(s, n_paths, rng=rng,
+                                           antithetic=True)
+            numerical_euler[idx] = self.putPelsser.mc_euler.mc_estimate
+            error_euler[idx] = self.putPelsser.mc_euler.mc_error
+        if plot_results:
+            plt.plot(spot_vector, price_a, "-b")
+            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
+                         fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
+                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.xlabel("Initial pseudo short rate")
+            plt.ylabel("Call option price")
+            plt.legend()
+            plt.show()
+        relative_error = np.abs((price_a - numerical_exact) / price_a)
+        # Maximum error in interval around pseudo short rate of 0.
+        idx_min = np.argwhere(spot_vector < -0.05)[-1][0]
+        idx_max = np.argwhere(spot_vector < 0.05)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        if print_results:
+            print("max error: ", max_error)
+        self.assertTrue(max_error < 3.1e-2)
 
 
 if __name__ == '__main__':

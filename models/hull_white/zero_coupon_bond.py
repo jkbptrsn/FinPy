@@ -349,7 +349,7 @@ class ZCBond(bonds.BondAnalytical1F):
         discount_paths = \
             mc_object.discount_adjustment(mc_object.discount_paths,
                                           self.adjust_discount)
-        # Discount factors at maturity.
+        # Zero-coupon bond payoff discounted back to present time.
         return discount_paths[-1]
 
 
