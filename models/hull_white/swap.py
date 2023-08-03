@@ -13,9 +13,10 @@ from utils import misc
 class Swap(bonds.BondAnalytical1F):
     """Fixed-for-floating swap in 1-factor Hull-White model.
 
-    Fixed-for-floating swap based on "simple rate" fixing. Priced from
-    the point of view of the fixed rate payer. See
-    L.B.G. Andersen & V.V. Piterbarg 2010, section 5.5.
+    Price of fixed-for-floating swap based on "simple rate" fixing.
+    Priced from the point of view of the fixed rate payer.
+
+    See L.B.G. Andersen & V.V. Piterbarg 2010, section 5.5.
 
     TODO: Call self.zcbond.mat_idx = "updated maturity index" before pricing
 
@@ -23,13 +24,20 @@ class Swap(bonds.BondAnalytical1F):
         kappa: Speed of mean reversion.
         vol: Volatility.
         discount_curve: Discount curve represented on event grid.
+
         fixed_rate: Fixed rate.
+        spread: Spread to floating rate. TODO!
         fixing_schedule: Fixing indices on event grid.
         payment_schedule: Payment indices on event grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-        int_step_size: Integration/propagation step size represented as
-            a year fraction. Default is 1 / 365.
+
+        event_grid: Event dates as year fractions from as-of date.
+        time_dependence: Time dependence of model parameters.
+            "constant": kappa and vol are constant.
+            "piecewise": kappa is constant and vol is piecewise
+                constant.
+            "general": General time dependence.
+            Default is "piecewise".
+        int_dt: Integration step size. Default is 1 / 52.
     """
 
     def __init__(self,
@@ -41,28 +49,21 @@ class Swap(bonds.BondAnalytical1F):
                  payment_schedule: np.ndarray,
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
-                 int_step_size: float = 1 / 365):
+                 int_dt: float = 1 / 52):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
         self.discount_curve = discount_curve
+
+        self.spread = None
+
         self.fixed_rate = fixed_rate
         self.fixing_schedule = fixing_schedule
         self.payment_schedule = payment_schedule
+
         self.event_grid = event_grid
         self.time_dependence = time_dependence
-        self.int_step_size = int_step_size
-
-        # Speed of mean reversion on event grid.
-        self.kappa_eg = None
-        # Volatility on event grid.
-        self.vol_eg = None
-        # Discount curve on event grid.
-        self.discount_curve_eg = None
-        # Instantaneous forward rate on event grid.
-        self.forward_rate_eg = None
-        # y-function on event grid.
-        self.y_eg = None
+        self.int_dt = int_dt
 
         # Remaining fixing dates.
         self.fixing_remaining = None
@@ -74,24 +75,29 @@ class Swap(bonds.BondAnalytical1F):
         # Zero-coupon bond object used in analytical pricing.
         self.zcbond = \
             zcbond.ZCBond(kappa, vol, discount_curve, event_grid.size - 1,
-                          event_grid, time_dependence, int_step_size)
+                          event_grid, time_dependence, int_dt)
 
-        self.initialization()
+        # Kappa on event grid.
+        self.kappa_eg = self.zcbond.kappa_eg
+        # Vol on event grid.
+        self.vol_eg = self.zcbond.vol_eg
+        # Discount curve on event grid.
+        self.discount_curve_eg = self.zcbond.discount_curve_eg
+        # Instantaneous forward rate on event grid.
+        self.forward_rate_eg = self.zcbond.forward_rate_eg
+        # y-function on event grid.
+        self.y_eg = self.zcbond.y_eg
 
-        self.model = global_types.Model.HULL_WHITE_1F
-        self.transformation = global_types.Transformation.ANDERSEN
+        self.model = self.zcbond.model
+        self.transformation = self.zcbond.transformation
         self.type = global_types.Instrument.SWAP
+
+    ####################################################################
 
     def maturity(self) -> float:
         return self.event_grid[self.payment_schedule[-1]]
 
-    def initialization(self):
-        """Initialization of instrument object."""
-        self.kappa_eg = self.zcbond.kappa_eg
-        self.vol_eg = self.zcbond.vol_eg
-        self.discount_curve_eg = self.zcbond.discount_curve_eg
-        self.forward_rate_eg = self.zcbond.forward_rate_eg
-        self.y_eg = self.zcbond.y_eg
+    ####################################################################
 
     def payoff(self,
                spot: typing.Union[float, np.ndarray],
@@ -527,7 +533,7 @@ class SwapPelsser(Swap):
         payment_schedule: Payment indices on event grid.
         event_grid: Event dates represented as year fractions from as-of
             date.
-        int_step_size: Integration/propagation step size represented as
+        int_dt: Integration/propagation step size represented as
             a year fraction. Default is 1 / 365.
     """
 
@@ -540,7 +546,7 @@ class SwapPelsser(Swap):
                  payment_schedule: np.ndarray,
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
-                 int_step_size: float = 1 / 365):
+                 int_dt: float = 1 / 365):
         super().__init__(kappa,
                          vol,
                          discount_curve,
@@ -549,7 +555,7 @@ class SwapPelsser(Swap):
                          payment_schedule,
                          event_grid,
                          time_dependence,
-                         int_step_size)
+                         int_dt)
 
         # Integration grid.
         self.int_grid = None
@@ -593,7 +599,7 @@ class SwapPelsser(Swap):
                                             self.event_grid)
         elif self.time_dependence == "general":
             self.int_grid, self.int_event_idx = \
-                misc_hw.integration_grid(self.event_grid, self.int_step_size)
+                misc_hw.integration_grid(self.event_grid, self.int_dt)
             # Speed of mean reversion interpolated on integration grid.
             self.kappa_ig = self.kappa.interpolation(self.int_grid)
             # Volatility interpolated on integration grid.

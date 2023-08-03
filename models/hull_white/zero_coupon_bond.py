@@ -15,9 +15,10 @@ from utils import payoffs
 class ZCBond(bonds.BondAnalytical1F):
     """Zero-coupon bond in 1-factor Hull-White model.
 
-    Zero-coupon bond price dependent on pseudo short rate modelled by
-    1-factor Hull-White SDE. See L.B.G. Andersen & V.V. Piterbarg 2010,
-    proposition 10.1.7.
+    Price of Zero-coupon bond dependent on pseudo short rate modelled by
+    1-factor Hull-White SDE.
+
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -356,8 +357,10 @@ class ZCBond(bonds.BondAnalytical1F):
 class ZCBondPelsser(ZCBond):
     """Zero-coupon bond in 1-factor Hull-White model.
 
-    Zero-coupon bond price dependent on pseudo short rate modelled by
-    1-factor Hull-White SDE. See A. Pelsser 2000, chapter 5.
+    Price of zero-coupon bond dependent on pseudo short rate modelled by
+    1-factor Hull-White SDE.
+
+    See A. Pelsser 2000, chapter 5.
 
     Attributes:
         kappa: Speed of mean reversion.

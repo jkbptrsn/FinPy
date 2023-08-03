@@ -2,11 +2,9 @@ import unittest
 
 import numpy as np
 
-from models.hull_white import misc as misc_hw
 from models.hull_white import misc_swap as misc_sw
 from models.hull_white import swap
 from unit_tests.test_hull_white import input
-from utils import misc
 from utils import plots
 
 plot_results = False
@@ -71,16 +69,16 @@ class Swap(unittest.TestCase):
         self.swap.fd_solve()
         numerical = self.swap.fd.solution
         analytical = self.swap.price(self.x_grid, 0)
-        relative_error = np.abs((analytical - numerical) / analytical)
+        error = np.abs(analytical - numerical)
         if plot_results:
             plots.plot_price_and_greeks(self.swap)
         # Maximum error in interval around pseudo short rate of 0.
         idx_min = np.argwhere(self.x_grid < -0.05)[-1][0]
         idx_max = np.argwhere(self.x_grid < 0.05)[-1][0]
-        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 3.e-3)
+        self.assertTrue(max_error < 6.4e-6)
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of zero-coupon bond."""
@@ -88,16 +86,16 @@ class Swap(unittest.TestCase):
         self.swap_pelsser.fd_solve()
         numerical = self.swap_pelsser.fd.solution
         analytical = self.swap_pelsser.price(self.x_grid, 0)
-        relative_error = np.abs((analytical - numerical) / analytical)
+        error = np.abs(analytical - numerical)
         if plot_results:
             plots.plot_price_and_greeks(self.swap_pelsser)
         # Maximum error in interval around pseudo short rate of 0.
         idx_min = np.argwhere(self.x_grid < -0.05)[-1][0]
         idx_max = np.argwhere(self.x_grid < 0.05)[-1][0]
-        max_error = np.max(relative_error[idx_min:idx_max + 1])
+        max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 2.e0)
+        self.assertTrue(max_error < 3.5e-3)
 
 
 if __name__ == '__main__':
