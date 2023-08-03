@@ -4,9 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from unit_tests.test_hull_white import input
-from models.hull_white import call_option
+from models.hull_white import european_option
 from models.hull_white import caplet_floorlet
-from models.hull_white import put_option
 from models.hull_white import sde
 from models.hull_white import swap
 from models.hull_white import swaption
@@ -248,9 +247,9 @@ class SDE(unittest.TestCase):
         # Strike value.
         strike = 0.65
         # Call option object.
-        call = call_option.Call(kappa, vol, discount_curve, event_grid,
-                                strike, expiry_idx, maturity_idx,
-                                int_step_size=1 / 52)
+        call = call_option.EuropeanOption(kappa, vol, discount_curve, event_grid,
+                                          strike, expiry_idx, maturity_idx,
+                                          int_step_size=1 / 52)
         # Zero-coupon bond object.
         bond = zero_coupon_bond.ZCBond(kappa, vol, discount_curve, event_grid,
                                        maturity_idx, int_step_size=1 / 52)
@@ -333,8 +332,8 @@ class SDE(unittest.TestCase):
         # Strike value.
         strike = 0.65
         # Call option object.
-        call = call_option.Call(kappa, vol, discount_curve, event_grid, strike,
-                                expiry_idx, maturity_idx, int_step_size=1 / 52)
+        call = call_option.EuropeanOption(kappa, vol, discount_curve, event_grid, strike,
+                                          expiry_idx, maturity_idx, int_step_size=1 / 52)
         # Zero-coupon bond object.
         bond = zero_coupon_bond.ZCBond(kappa, vol, discount_curve, event_grid,
                                        maturity_idx, int_step_size=1 / 52)
@@ -405,8 +404,9 @@ class SDE(unittest.TestCase):
         # Strike value.
         strike = 0.8
         # Put option object.
-        put = put_option.Put(kappa, vol, discount_curve, event_grid, strike,
-                             expiry_idx, maturity_idx, int_step_size=1 / 52)
+        put = european_option.EuropeanOption(
+            kappa, vol, discount_curve, strike,
+            expiry_idx, maturity_idx, event_grid, option_type="Put")
         # Zero-coupon bond object.
         bond = zero_coupon_bond.ZCBond(kappa, vol, discount_curve, event_grid,
                                        maturity_idx, int_step_size=1 / 52)

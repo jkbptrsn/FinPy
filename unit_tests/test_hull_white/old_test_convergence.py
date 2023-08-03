@@ -6,9 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from unit_tests.test_hull_white import input
-from models.hull_white import call_option
+from models.hull_white import european_option
 from models.hull_white import caplet_floorlet
-from models.hull_white import put_option
 from models.hull_white import sde
 from models.hull_white import swap
 from models.hull_white import swaption
@@ -426,15 +425,17 @@ if __name__ == '__main__':
     expiry_idx = 1
     maturity_idx = event_grid.size - 1
     strike = 0.7
-    call = call_option.Call(kappa, vol, discount_curve, event_grid, strike,
-                            expiry_idx, maturity_idx, int_step_size)
+    call = european_option.EuropeanOption(
+        kappa, vol, discount_curve, strike,
+        expiry_idx, maturity_idx, event_grid, option_type="Call")
 
     # European put option object.
     expiry_idx = 1
     maturity_idx = event_grid.size - 1
     strike = 0.8
-    put = put_option.Put(kappa, vol, discount_curve, event_grid, strike,
-                         expiry_idx, maturity_idx, int_step_size)
+    put = european_option.EuropeanOption(
+        kappa, vol, discount_curve, strike,
+        expiry_idx, maturity_idx, event_grid, option_type="Put")
 
     # Swap object.
     fixed_rate = 0.05

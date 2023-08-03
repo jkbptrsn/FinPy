@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 
 from models.hull_white import misc as misc_hw
+from models.hull_white import misc_swap as misc_sw
 from models.hull_white import swap
 from models.hull_white import swaption
 from unit_tests.test_hull_white import input
@@ -25,7 +26,7 @@ class Swaption(unittest.TestCase):
         self.fixed_rate = 0.02
 
         self.event_grid, self.fixing_schedule, self.payment_schedule = \
-            misc_hw.swap_schedule(1, 5, 2, 50)
+            misc_sw.swap_schedule(1, 5, 2, 50)
 
         # FD spatial grid.
         self.x_min = -0.15
