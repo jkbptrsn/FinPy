@@ -4,7 +4,6 @@ import numpy as np
 from scipy.optimize import brentq
 
 from models import options
-from models.hull_white import put_option
 from models.hull_white import european_option as option
 from models.hull_white import swap
 from models.hull_white import zero_coupon_bond as zcbond

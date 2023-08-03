@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from unit_tests.test_hull_white import input
-from models.hull_white import sde
 from models.hull_white import zero_coupon_bond
 from utils import misc
 
