@@ -1,4 +1,29 @@
+import typing
+
 import numpy as np
+
+
+def simple_forward_rate(bond_price_t2: typing.Union[float, np.ndarray],
+                        tau: float,
+                        bond_price_t1: typing.Union[float, np.ndarray] = 1.0) \
+        -> typing.Union[float, np.ndarray]:
+    """Calculate simple forward rate.
+
+    The simple forward rate at time t in (t1, t2) is defined as:
+        (1 + (t2 - t1) * forward_rate(t, t1, t2)) =
+            bond_price_t1(t) / bond_price_t2(t).
+    See L.B.G. Andersen & V.V. Piterbarg 2010, section 4.1.
+
+    Args:
+        bond_price_t2: Price of zero-coupon bond with maturity t2.
+        tau: Time interval between t1 and t2.
+        bond_price_t1: Price of zero-coupon bond with maturity t1.
+            Default is 1, in case that t = t1.
+
+    Returns:
+        Simple forward rate.
+    """
+    return (bond_price_t1 / bond_price_t2 - 1) / tau
 
 
 def swap_schedule(fixing_start: int,
@@ -6,7 +31,7 @@ def swap_schedule(fixing_start: int,
                   fixing_frequency: int,
                   events_per_fixing: int) \
         -> (np.ndarray, np.ndarray, np.ndarray):
-    """...
+    """Equidistant schedules for fixing, payment and event grids.
 
     Args:
         fixing_start: Year in which fixing starts.
@@ -15,7 +40,7 @@ def swap_schedule(fixing_start: int,
         events_per_fixing: Events per fixing period.
 
     Returns:
-        ...
+        Fixing, payment and event schedules.
     """
     # Number of events from time zero to fixing_end, both included.
     n_events = fixing_end * fixing_frequency * events_per_fixing + 1

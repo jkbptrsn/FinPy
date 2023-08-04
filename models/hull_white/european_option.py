@@ -14,8 +14,9 @@ from utils import payoffs
 class EuropeanOption(options.Option1FAnalytical):
     """European call/put option in 1-factor Hull-White model.
 
-    Price of European call/put option written on zero-coupon bond. See
-    L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
+    Price of European call/put option written on zero-coupon bond.
+
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
     D. Brigo & F. Mercurio 2007, section 3.3.
 
     Attributes:
@@ -79,8 +80,8 @@ class EuropeanOption(options.Option1FAnalytical):
         self.dv_dt_eg_tmp = None
         self.dv_dt_eg = None
 
-        self.model = global_types.Model.HULL_WHITE_1F
-        self.transformation = global_types.Transformation.ANDERSEN
+        self.model = self.zcbond.model
+        self.transformation = self.zcbond.transformation
         if option_type == "Call":
             self.type = global_types.Instrument.EUROPEAN_CALL
         elif option_type == "Put":
@@ -359,8 +360,9 @@ class EuropeanOption(options.Option1FAnalytical):
 class EuropeanOptionPelsser(EuropeanOption):
     """European call/put option in 1-factor Hull-White model.
 
-    Price of European call/put option written on zero-coupon bond. See
-    A. Pelsser, chapter 5.
+    Price of European call/put option written on zero-coupon bond.
+
+    See A. Pelsser, chapter 5.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -407,7 +409,7 @@ class EuropeanOptionPelsser(EuropeanOption):
             zcbond.ZCBondPelsser(kappa, vol, discount_curve, maturity_idx,
                                  event_grid, time_dependence, int_dt)
 
-        self.transformation = global_types.Transformation.PELSSER
+        self.transformation = self.zcbond.transformation
 
         self.adjust_rate = self.zcbond.adjust_rate
         self.adjust_discount_steps = self.zcbond.adjust_discount_steps
