@@ -6,6 +6,7 @@ from scipy.optimize import brentq
 from models import options
 from models.hull_white import european_option as option
 from models.hull_white import swap
+from models.hull_white import misc_swap as misc_sw
 from models.hull_white import zero_coupon_bond as zcbond
 from utils import data_types
 from utils import global_types
@@ -179,12 +180,14 @@ class Payer(options.Option1FAnalytical):
                 zip(self.fixing_schedule, self.payment_schedule):
 
             # "Strike" of put option
-            self.zcbond.maturity_idx = pay_idx
+#            self.zcbond.maturity_idx = pay_idx
+            self.zcbond.mat_idx = pay_idx
             #            self.zcbond.initialization()
             self.put.strike = self.zcbond.price(rate_star, event_idx)
 
             # Maturity of put option
-            self.put.maturity_idx = pay_idx
+#            self.put.maturity_idx = pay_idx
+            self.put.mat_idx = pay_idx
             #            self.put.initialization()
             put_delta = self.put.delta(spot, event_idx)
 
@@ -258,8 +261,9 @@ class Payer(options.Option1FAnalytical):
                 # Tenor.
                 tenor = self.event_grid[idx_pay] - self.event_grid[idx_fix]
                 # Simple forward rate at t_fixing for (t_fixing, t_payment).
-                simple_rate = \
-                    self.swap.simple_forward_rate(bond_price, tenor)
+#                simple_rate = \
+#                    self.swap.simple_forward_rate(bond_price, tenor)
+                simple_rate = misc_sw.simple_forward_rate(bond_price, tenor)
                 # Payment.
                 payment = tenor * (simple_rate - self.fixed_rate)
                 # Analytical discounting from payment date to fixing date.
