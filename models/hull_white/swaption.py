@@ -148,15 +148,7 @@ class Payer(options.Option1FAnalytical):
             self.zcbond.mat_idx = pay_idx
             self.put.strike = self.zcbond.price(rate_star, expiry_idx)
             self.put.mat_idx = pay_idx
-
-            # TODO: Adjust spot short rate.
-            spot_tmp = spot
-            if self.transformation == global_types.Transformation.PELSSER:
-                spot_tmp = \
-                    spot + self.adjust_rate[expiry_idx] \
-                    - self.forward_rate_eg[expiry_idx]
-            put_price = self.put.price(spot_tmp, event_idx)
-
+            put_price = self.put.price(spot, event_idx)
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
             swaption_price += self.fixed_rate * tenor * put_price
             if pay_idx == self.event_grid.size - 1:
@@ -185,15 +177,7 @@ class Payer(options.Option1FAnalytical):
             self.zcbond.mat_idx = pay_idx
             self.put.strike = self.zcbond.price(rate_star, expiry_idx)
             self.put.mat_idx = pay_idx
-
-            # TODO: Adjust spot short rate.
-            spot_tmp = spot
-            if self.transformation == global_types.Transformation.PELSSER:
-                spot_tmp = \
-                    spot + self.adjust_rate[expiry_idx] \
-                    - self.forward_rate_eg[expiry_idx]
-            put_delta = self.put.delta(spot_tmp, event_idx)
-
+            put_delta = self.put.delta(spot, event_idx)
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
             swaption_delta += self.fixed_rate * tenor * put_delta
             if pay_idx == self.event_grid.size - 1:
@@ -222,15 +206,7 @@ class Payer(options.Option1FAnalytical):
             self.zcbond.mat_idx = pay_idx
             self.put.strike = self.zcbond.price(rate_star, expiry_idx)
             self.put.mat_idx = pay_idx
-
-            # TODO: Adjust spot short rate.
-            spot_tmp = spot
-            if self.transformation == global_types.Transformation.PELSSER:
-                spot_tmp = \
-                    spot + self.adjust_rate[expiry_idx] \
-                    - self.forward_rate_eg[expiry_idx]
-            put_gamma = self.put.gamma(spot_tmp, event_idx)
-
+            put_gamma = self.put.gamma(spot, event_idx)
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
             swaption_gamma += self.fixed_rate * tenor * put_gamma
             if pay_idx == self.event_grid.size - 1:
@@ -259,15 +235,7 @@ class Payer(options.Option1FAnalytical):
             self.zcbond.mat_idx = pay_idx
             self.put.strike = self.zcbond.price(rate_star, expiry_idx)
             self.put.mat_idx = pay_idx
-
-            # TODO: Adjust spot short rate.
-            spot_tmp = spot
-            if self.transformation == global_types.Transformation.PELSSER:
-                spot_tmp = \
-                    spot + self.adjust_rate[expiry_idx] \
-                    - self.forward_rate_eg[expiry_idx]
-            put_theta = self.put.theta(spot_tmp, event_idx)
-
+            put_theta = self.put.theta(spot, event_idx)
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
             swaption_theta += self.fixed_rate * tenor * put_theta
             if pay_idx == self.event_grid.size - 1:
@@ -292,17 +260,9 @@ class Payer(options.Option1FAnalytical):
                 idx_fix = event_idx
                 which_fix = np.where(self.fixing_schedule == idx_fix)
                 idx_pay = self.payment_schedule[which_fix][0]
-
-                # TODO: Adjust grid.
-                grid_tmp = self.fd.grid
-                if self.transformation == global_types.Transformation.PELSSER:
-                    grid_tmp = \
-                        self.fd.grid + self.adjust_rate[idx_fix] \
-                        - self.forward_rate_eg[idx_fix]
                 # P(t_fixing, t_payment).
                 bond_price = \
-                    self.swap.zcbond_price(grid_tmp, idx_fix, idx_pay)
-
+                    self.swap.zcbond_price(self.fd.grid, idx_fix, idx_pay)
                 # Tenor.
                 tenor = self.event_grid[idx_pay] - self.event_grid[idx_fix]
                 # Simple rate at t_fixing for (t_fixing, t_payment).
@@ -476,22 +436,3 @@ class PayerPelsser(Payer):
         self.adjust_rate = self.zcbond.adjust_rate
         self.adjust_discount_steps = self.zcbond.adjust_discount_steps
         self.adjust_discount = self.zcbond.adjust_discount
-
-    def mc_present_value(self,
-                         mc_object) -> np.ndarray:
-        """Present value for each Monte-Carlo path."""
-        # Adjustment of discount paths.
-        discount_paths = \
-            mc_object.discount_adjustment(mc_object.discount_paths,
-                                          self.adjust_discount)
-        # Pseudo short rate (Andersen transformation) at expiry.
-        expiry_idx = self.fixing_schedule[0]
-        spot = mc_object.rate_paths[expiry_idx]
-        spot += self.adjust_rate[expiry_idx] - self.forward_rate_eg[expiry_idx]
-        # Swap price at expiry.
-        swap_price = self.swap.price(spot, expiry_idx)
-        # Option payoff at expiry.
-        option_payoff = self.payoff(swap_price)
-        # Option payoff discounted back to present time.
-        option_payoff *= discount_paths[expiry_idx]
-        return option_payoff

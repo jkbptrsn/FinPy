@@ -156,7 +156,14 @@ class ZCBond(bonds.BondAnalytical1F):
         Returns:
             Price.
         """
-        return self._price_delta_gamma(spot, event_idx, "price")
+
+        spot_tmp = spot
+        if self.transformation == global_types.Transformation.PELSSER:
+            spot_tmp = spot \
+                + self.adjust_rate[event_idx] \
+                - self.forward_rate_eg[event_idx]
+
+        return self._price_delta_gamma(spot_tmp, event_idx, "price")
 
     def delta(self,
               spot: typing.Union[float, np.ndarray],
@@ -170,7 +177,14 @@ class ZCBond(bonds.BondAnalytical1F):
         Returns:
             Delta.
         """
-        return self._price_delta_gamma(spot, event_idx, "delta")
+
+        spot_tmp = spot
+        if self.transformation == global_types.Transformation.PELSSER:
+            spot_tmp = spot \
+                + self.adjust_rate[event_idx] \
+                - self.forward_rate_eg[event_idx]
+
+        return self._price_delta_gamma(spot_tmp, event_idx, "delta")
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
@@ -184,7 +198,14 @@ class ZCBond(bonds.BondAnalytical1F):
         Returns:
             Gamma.
         """
-        return self._price_delta_gamma(spot, event_idx, "gamma")
+
+        spot_tmp = spot
+        if self.transformation == global_types.Transformation.PELSSER:
+            spot_tmp = spot \
+                + self.adjust_rate[event_idx] \
+                - self.forward_rate_eg[event_idx]
+
+        return self._price_delta_gamma(spot_tmp, event_idx, "gamma")
 
     def _price_delta_gamma(self,
                            spot: typing.Union[float, np.ndarray],
@@ -235,6 +256,13 @@ class ZCBond(bonds.BondAnalytical1F):
         Returns:
             Theta.
         """
+
+        spot_tmp = spot
+        if self.transformation == global_types.Transformation.PELSSER:
+            spot_tmp = spot \
+                + self.adjust_rate[event_idx] \
+                - self.forward_rate_eg[event_idx]
+
         # G(t,T): G-function.
         g = self.gt_eg[event_idx]
         # dG(t,T) / dt.
@@ -243,7 +271,7 @@ class ZCBond(bonds.BondAnalytical1F):
         y = self.y_eg[event_idx]
         # dy(t) / dt.
         dy_dt = self.vol_eg[event_idx] ** 2 - 2 * self.kappa_eg[event_idx] * y
-        theta = self._price_delta_gamma(spot, event_idx, "price")
+        theta = self._price_delta_gamma(spot_tmp, event_idx, "price")
         theta *= (-spot * dg_dt - dy_dt * g ** 2 / 2 - y * g * dg_dt)
         return theta
 

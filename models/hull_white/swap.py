@@ -618,29 +618,3 @@ class SwapPelsser(Swap):
         self.adjust_rate = self.zcbond.adjust_rate
         self.adjust_discount_steps = self.zcbond.adjust_discount_steps
         self.adjust_discount = self.zcbond.adjust_discount
-
-    def mc_present_value(self,
-                         mc_object):
-        """Present value for each Monte-Carlo path."""
-        # Adjustment of discount paths.
-        discount_paths = \
-            mc_object.discount_adjustment(mc_object.discount_paths,
-                                          self.adjust_discount)
-        swap_payoff = np.zeros(mc_object.discount_paths.shape[1])
-        for idx_fix, idx_pay in \
-                zip(self.fixing_schedule, self.payment_schedule):
-            # Pseudo short rate (Andersen transformation) at expiry.
-            spot = mc_object.rate_paths[idx_fix]
-            spot += self.adjust_rate[idx_fix] - self.forward_rate_eg[idx_fix]
-            # P(t_fixing, t_payment).
-            bond_price = self.zcbond_price(spot, idx_fix, idx_pay)
-            # Tenor.
-            tenor = self.event_grid[idx_pay] - self.event_grid[idx_fix]
-            # Simple rate at t_fixing for (t_fixing, t_payment).
-            simple_rate = misc_sw.simple_forward_rate(bond_price, tenor)
-            # Payment.
-            payment = tenor * (simple_rate - self.fixed_rate)
-            # Discounting from payment date to present time.
-            payment *= discount_paths[idx_pay]
-            swap_payoff += payment
-        return swap_payoff
