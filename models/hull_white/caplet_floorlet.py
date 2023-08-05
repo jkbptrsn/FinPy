@@ -2,7 +2,6 @@ import math
 import typing
 
 import numpy as np
-from scipy.stats import norm
 
 from models import options
 from models.hull_white import misc_caplet as misc_cf
