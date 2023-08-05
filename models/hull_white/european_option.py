@@ -87,7 +87,7 @@ class EuropeanOption(options.Option1FAnalytical):
         elif option_type == "Put":
             self.type = global_types.Instrument.EUROPEAN_PUT
         else:
-            raise ValueError(f"Option type is unknown: {option_type}")
+            raise ValueError(f"Unknown instrument type: {option_type}")
 
         self.initialization()
 
@@ -406,8 +406,13 @@ class EuropeanOptionPelsser(EuropeanOption):
 
         # Underlying zero-coupon bond.
         self.zcbond = \
-            zcbond.ZCBondPelsser(kappa, vol, discount_curve, maturity_idx,
-                                 event_grid, time_dependence, int_dt)
+            zcbond.ZCBondPelsser(kappa,
+                                 vol,
+                                 discount_curve,
+                                 maturity_idx,
+                                 event_grid,
+                                 time_dependence,
+                                 int_dt)
 
         self.transformation = self.zcbond.transformation
 
