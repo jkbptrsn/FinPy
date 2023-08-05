@@ -4,28 +4,26 @@ import typing
 import numpy as np
 
 from models import options
-from models.hull_white import misc_european_option as misc_ep
-from models.hull_white import zero_coupon_bond as zcbond
+from models.hull_white import caplet
 from utils import data_types
 from utils import global_types
-from utils import payoffs
 
 
-class EuropeanOption(options.Option1FAnalytical):
-    """European call/put option in 1-factor Hull-White model.
+class Cap(options.Option1FAnalytical):
+    """Cap or floor in 1-factor Hull-White model.
 
-    Price of European call/put option written on zero-coupon bond.
+    Price of cap of floor.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
     D. Brigo & F. Mercurio 2007, section 3.3.
 
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
         discount_curve: Discount curve represented on event grid.
-        strike: Strike value of underlying zero-coupon bond.
-        expiry_idx: Option expiry index on event grid.
-        maturity_idx: Bond maturity index on event grid.
+        strike_rate: Cap or floor rate.
+        fixing_schedule: Fixing indices on event grid.
+        payment_schedule: Payment indices on event grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
             "constant": kappa and vol are constant.
@@ -34,35 +32,45 @@ class EuropeanOption(options.Option1FAnalytical):
             "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
-        option_type: Option type. Default is call.
+        option_type: Cap or floor. Default is cap.
     """
 
     def __init__(self,
                  kappa: data_types.DiscreteFunc,
                  vol: data_types.DiscreteFunc,
                  discount_curve: data_types.DiscreteFunc,
-                 strike: float,
-                 expiry_idx: int,
-                 maturity_idx: int,
+                 strike_rate: float,
+                 fixing_schedule: np.ndarray,
+                 payment_schedule: np.ndarray,
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
                  int_dt: float = 1 / 52,
-                 option_type: str = "Call"):
+                 option_type: str = "cap"):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
         self.discount_curve = discount_curve
-        self.strike = strike
-        self.expiry_idx = expiry_idx
-        self.maturity_idx = maturity_idx
+        self.strike_rate = strike_rate
+        self.fixing_schedule = fixing_schedule
+        self.payment_schedule = payment_schedule
         self.event_grid = event_grid
         self.time_dependence = time_dependence
         self.int_dt = int_dt
 
-        # Underlying zero-coupon bond.
-        self.zcbond = \
-            zcbond.ZCBond(kappa, vol, discount_curve, maturity_idx,
-                          event_grid, time_dependence, int_dt)
+        # Caplet/floorlet.
+        self.xlet = \
+            caplet.Caplet(kappa,
+                          vol,
+                          discount_curve,
+                          strike_rate,
+                          fixing_schedule[0],
+                          payment_schedule[0],
+                          event_grid,
+                          time_dependence,
+                          int_dt,
+                          option_type + "let")
+        # Zero-coupon bond.
+        self.zcbond = self.xlet.zcbond
         # Kappa on event grid.
         self.kappa_eg = self.zcbond.kappa_eg
         # Vol on event grid.
@@ -73,126 +81,44 @@ class EuropeanOption(options.Option1FAnalytical):
         self.forward_rate_eg = self.zcbond.forward_rate_eg
         # y-function on event grid.
         self.y_eg = self.zcbond.y_eg
-        # v-function on event grid until expiry.
-        self.v_eg_tmp = None
-        self.v_eg = None
-        # dv_dt-function on event grid until expiry.
-        self.dv_dt_eg_tmp = None
-        self.dv_dt_eg = None
 
         self.model = self.zcbond.model
         self.transformation = self.zcbond.transformation
-        if option_type == "Call":
-            self.type = global_types.Instrument.EUROPEAN_CALL
-        elif option_type == "Put":
-            self.type = global_types.Instrument.EUROPEAN_PUT
+        if option_type == "cap":
+            self.type = global_types.Instrument.CAP
+        elif option_type == "floor":
+            self.type = global_types.Instrument.FLOOR
         else:
             raise ValueError(f"Unknown instrument type: {option_type}")
-
-        self.initialization()
 
         self.adjust_rate = self.zcbond.adjust_rate
         self.adjust_discount_steps = self.zcbond.adjust_discount_steps
         self.adjust_discount = self.zcbond.adjust_discount
 
-    @property
-    def expiry(self) -> float:
-        return self.event_grid[self.expiry_idx]
-
-    @property
-    def maturity(self) -> float:
-        return self.zcbond.maturity
-
-    @property
-    def exp_idx(self) -> int:
-        return self.expiry_idx
-
-    @exp_idx.setter
-    def exp_idx(self, idx: int):
-        self.expiry_idx = idx
-        self.initialization()
-
-    @property
-    def mat_idx(self) -> int:
-        return self.maturity_idx
-
-    @mat_idx.setter
-    def mat_idx(self, idx: int):
-        self.maturity_idx = idx
-        self.zcbond.mat_idx = idx
-        self.update_v_function()
-
-    def initialization(self):
-        """Initialization of object."""
-        if self.time_dependence == "constant":
-            self.v_eg_tmp = \
-                misc_ep.v_constant(self.zcbond.kappa_eg[0],
-                                   self.zcbond.vol_eg[0],
-                                   self.expiry_idx,
-                                   self.event_grid)
-            self.dv_dt_eg_tmp = \
-                misc_ep.dv_dt_constant(self.zcbond.kappa_eg[0],
-                                       self.zcbond.vol_eg[0],
-                                       self.expiry_idx,
-                                       self.event_grid)
-        elif self.time_dependence == "piecewise":
-            self.v_eg_tmp = \
-                misc_ep.v_piecewise(self.zcbond.kappa_eg[0],
-                                    self.zcbond.vol_eg,
-                                    self.expiry_idx,
-                                    self.event_grid)
-            self.dv_dt_eg_tmp = \
-                misc_ep.dv_dt_piecewise(self.zcbond.kappa_eg[0],
-                                        self.zcbond.vol_eg,
-                                        self.expiry_idx,
-                                        self.event_grid)
-        elif self.time_dependence == "general":
-            self.v_eg_tmp = \
-                misc_ep.v_general(self.zcbond.int_grid,
-                                  self.zcbond.int_event_idx,
-                                  self.zcbond.int_kappa_step_ig,
-                                  self.zcbond.vol_ig,
-                                  self.expiry_idx)
-            self.dv_dt_eg_tmp = \
-                misc_ep.dv_dt_general(self.zcbond.int_event_idx,
-                                      self.zcbond.int_kappa_step_ig,
-                                      self.zcbond.vol_ig,
-                                      self.expiry_idx)
-        else:
-            raise ValueError(f"Time dependence unknown: "
-                             f"{self.time_dependence}")
-        self.update_v_function()
-
-    def update_v_function(self):
-        """Update v- and dv_dt-function."""
-        # v-function on event grid until expiry.
-        self.v_eg = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.zcbond.g_eg,
-                               self.v_eg_tmp)
-        # dv_dt-function on event grid until expiry.
-        self.dv_dt_eg = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.zcbond.g_eg,
-                               self.dv_dt_eg_tmp)
-
     def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+               spot: typing.Union[float, np.ndarray],
+               discounting: bool = False) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
         Args:
-            spot: Spot value of underlying zero-coupon bond.
+            spot: Spot pseudo short rate.
+            discounting: Do analytical discounting from payment date to
+                fixing date. Default is false.
 
         Returns:
             Payoff.
         """
-        if self.type == global_types.Instrument.EUROPEAN_CALL:
-            return payoffs.call(spot, self.strike)
-        else:
-            return payoffs.put(spot, self.strike)
+        return 0 * spot
+
+    def xlet_payoff(self,
+                    spot: typing.Union[float, np.ndarray],
+                    fixing_idx: int,
+                    payment_idx: int) -> typing.Union[float, np.ndarray]:
+        """Payoff function for caplet or floorlet."""
+        self.xlet.fix_idx = fixing_idx
+        self.xlet.pay_idx = payment_idx
+        return self.xlet.payoff(spot, discounting=True)
 
     def price(self,
               spot: typing.Union[float, np.ndarray],
@@ -206,9 +132,13 @@ class EuropeanOption(options.Option1FAnalytical):
         Returns:
             Price.
         """
-        return misc_ep.option_price(spot, self.strike, event_idx,
-                                    self.expiry_idx, self.maturity_idx,
-                                    self.zcbond, self.v_eg, self.type)
+        _price = 0
+        # Assuming that event_idx <= self.fixing_schedule[0]
+        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
+            self.xlet.fix_idx = idx_fix
+            self.xlet.pay_idx = idx_pay
+            _price += self.xlet.price(spot, event_idx)
+        return _price
 
     def delta(self,
               spot: typing.Union[float, np.ndarray],
@@ -222,9 +152,13 @@ class EuropeanOption(options.Option1FAnalytical):
         Returns:
             Delta.
         """
-        return misc_ep.option_delta(spot, self.strike, event_idx,
-                                    self.expiry_idx, self.maturity_idx,
-                                    self.zcbond, self.v_eg, self.type)
+        _delta = 0
+        # Assuming that event_idx <= self.fixing_schedule[0]
+        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
+            self.xlet.fix_idx = idx_fix
+            self.xlet.pay_idx = idx_pay
+            _delta += self.xlet.delta(spot, event_idx)
+        return _delta
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
@@ -238,9 +172,13 @@ class EuropeanOption(options.Option1FAnalytical):
         Returns:
             Gamma.
         """
-        return misc_ep.option_gamma(spot, self.strike, event_idx,
-                                    self.expiry_idx, self.maturity_idx,
-                                    self.zcbond, self.v_eg, self.type)
+        _gamma = 0
+        # Assuming that event_idx <= self.fixing_schedule[0]
+        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
+            self.xlet.fix_idx = idx_fix
+            self.xlet.pay_idx = idx_pay
+            _gamma += self.xlet.gamma(spot, event_idx)
+        return _gamma
 
     def theta(self,
               spot: typing.Union[float, np.ndarray],
@@ -254,27 +192,34 @@ class EuropeanOption(options.Option1FAnalytical):
         Returns:
             Theta.
         """
-        return misc_ep.option_theta(spot, self.strike, event_idx,
-                                    self.expiry_idx, self.maturity_idx,
-                                    self.zcbond, self.v_eg,
-                                    self.dv_dt_eg, self.type)
+        _theta = 0
+        # Assuming that event_idx <= self.fixing_schedule[0]
+        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
+            self.xlet.fix_idx = idx_fix
+            self.xlet.pay_idx = idx_pay
+            _theta += self.xlet.theta(spot, event_idx)
+        return _theta
 
     def fd_solve(self):
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
         # Set terminal condition.
-        self.fd.solution = self.zcbond.payoff(self.fd.grid)
+        self.fd.solution = np.zeros(self.fd.grid.size)
         # Update drift, diffusion and rate vectors.
         self.fd_update(self.event_grid.size - 1)
         # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid))
-        for counter, dt in enumerate(time_steps):
-            event_idx = (self.event_grid.size - 1) - counter
+        for count, dt in enumerate(time_steps):
+            event_idx = (self.event_grid.size - 1) - count
             # Update drift, diffusion and rate vectors at previous event.
             self.fd_update(event_idx - 1)
-            # Payoff at option expiry.
-            if event_idx == self.expiry_idx:
-                self.fd.solution = self.payoff(self.fd.solution)
+            # Payoff at payment event, discounted to fixing event.
+            if event_idx in self.fixing_schedule:
+                idx_fix = event_idx
+                which_fix = np.where(self.fixing_schedule == idx_fix)
+                idx_pay = self.payment_schedule[which_fix][0]
+                self.fd.solution += \
+                    self.xlet_payoff(self.fd.grid, idx_fix, idx_pay)
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
@@ -346,31 +291,33 @@ class EuropeanOption(options.Option1FAnalytical):
         discount_paths = \
             mc_object.discount_adjustment(mc_object.discount_paths,
                                           self.adjust_discount)
-        # Pseudo short rate at expiry.
-        spot = mc_object.rate_paths[self.expiry_idx]
-        # Zero-coupon bond price at expiry.
-        zcbond_price = self.zcbond.price(spot, self.expiry_idx)
-        # Option payoff at expiry.
-        option_payoff = self.payoff(zcbond_price)
-        # Option payoff discounted back to present time.
-        option_payoff *= discount_paths[self.expiry_idx]
-        return option_payoff
+        payoff = np.zeros(mc_object.discount_paths.shape[1])
+        for idx_fix, idx_pay in \
+                zip(self.fixing_schedule, self.payment_schedule):
+            spot = mc_object.rate_paths[idx_fix]
+            # Payoff discounted back to present time.
+            payoff += self.xlet_payoff(spot, idx_fix, idx_pay) \
+                * discount_paths[idx_fix]
+        return payoff
 
 
-class EuropeanOptionPelsser(EuropeanOption):
-    """European call/put option in 1-factor Hull-White model.
+class CapPelsser(Cap):
+    """Cap or floor in 1-factor Hull-White model.
 
-    Price of European call/put option written on zero-coupon bond.
+    Price of cap of floor.
 
     See A. Pelsser, chapter 5.
+
+    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
+    D. Brigo & F. Mercurio 2007, section 3.3.
 
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
         discount_curve: Discount curve represented on event grid.
-        strike: Strike value of underlying zero-coupon bond.
-        expiry_idx: Option expiry index on event grid.
-        maturity_idx: Bond maturity index on event grid.
+        strike_rate: Cap or floor rate.
+        fixing_schedule: Fixing indices on event grid.
+        payment_schedule: Payment indices on event grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
             "constant": kappa and vol are constant.
@@ -379,40 +326,45 @@ class EuropeanOptionPelsser(EuropeanOption):
             "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
-        option_type: Option type. Default is call.
+        option_type: Cap or floor. Default is cap.
     """
 
     def __init__(self,
                  kappa: data_types.DiscreteFunc,
                  vol: data_types.DiscreteFunc,
                  discount_curve: data_types.DiscreteFunc,
-                 strike: float,
-                 expiry_idx: int,
-                 maturity_idx: int,
+                 strike_rate: float,
+                 fixing_schedule: np.ndarray,
+                 payment_schedule: np.ndarray,
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
                  int_dt: float = 1 / 52,
-                 option_type: str = "Call"):
+                 option_type: str = "cap"):
         super().__init__(kappa,
                          vol,
                          discount_curve,
-                         strike,
-                         expiry_idx,
-                         maturity_idx,
+                         strike_rate,
+                         fixing_schedule,
+                         payment_schedule,
                          event_grid,
                          time_dependence,
                          int_dt,
                          option_type)
 
-        # Underlying zero-coupon bond.
-        self.zcbond = \
-            zcbond.ZCBondPelsser(kappa,
+        # Caplet/floorlet.
+        self.xlet = \
+            caplet.CapletPelsser(kappa,
                                  vol,
                                  discount_curve,
-                                 maturity_idx,
+                                 strike_rate,
+                                 fixing_schedule[0],
+                                 payment_schedule[0],
                                  event_grid,
                                  time_dependence,
-                                 int_dt)
+                                 int_dt,
+                                 option_type + "let")
+        # Zero-coupon bond.
+        self.zcbond = self.xlet.zcbond
 
         self.transformation = self.zcbond.transformation
 

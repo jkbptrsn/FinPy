@@ -5,7 +5,7 @@ import numpy as np
 
 from unit_tests.test_hull_white import input
 from models.hull_white import european_option
-from models.hull_white import caplet_floorlet
+from models.hull_white import caplet
 from models.hull_white import sde
 from models.hull_white import swap
 from models.hull_white import swaption

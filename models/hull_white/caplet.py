@@ -102,8 +102,6 @@ class Caplet(options.Option1FAnalytical):
         self.adjust_discount_steps = self.zcbond.adjust_discount_steps
         self.adjust_discount = self.zcbond.adjust_discount
 
-    ####################################################################
-
     @property
     def fixing_event(self) -> float:
         return self.event_grid[self.fixing_idx]
@@ -191,8 +189,6 @@ class Caplet(options.Option1FAnalytical):
                                self.zcbond.g_eg,
                                self.dv_dt_eg_tmp)
 
-    ####################################################################
-
     def payoff(self,
                spot: typing.Union[float, np.ndarray],
                discounting: bool = False) \
@@ -207,16 +203,8 @@ class Caplet(options.Option1FAnalytical):
         Returns:
             Payoff.
         """
-
-        # TODO: Adjust spot short rate.
-        spot_tmp = spot
-        if self.transformation == global_types.Transformation.PELSSER:
-            spot_tmp = \
-                spot + self.adjust_rate[self.fix_idx] \
-                - self.forward_rate_eg[self.fix_idx]
-
         # P(t_fix, t_pay).
-        price = self.zcbond_price(spot_tmp, self.fix_idx, self.pay_idx)
+        price = self.zcbond_price(spot, self.fix_idx, self.pay_idx)
         # Simple rate at t_fix for (t_fix, t_pay).
         simple_rate = misc_sw.simple_forward_rate(price, self.tenor)
         # Payoff.
@@ -229,8 +217,6 @@ class Caplet(options.Option1FAnalytical):
             return _payoff * price
         else:
             return _payoff
-
-    ####################################################################
 
     def price(self,
               spot: typing.Union[float, np.ndarray],
@@ -297,24 +283,22 @@ class Caplet(options.Option1FAnalytical):
                                     self.zcbond, self.v_eg, self.dv_dt_eg,
                                     self.type)
 
-    ####################################################################
-
     def fd_solve(self):
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
         # Set terminal condition.
-
-        # Payoff at payment event, discount to fixing event.
-        self.fd.solution = self.payoff(self.fd.grid, True)
-
+        self.fd.solution = np.zeros(self.fd.grid.size)
         # Update drift, diffusion and rate vectors.
-        self.fd_update(self.fixing_idx)
+        self.fd_update(self.event_grid.size - 1)
         # Backward propagation.
-        time_steps = np.flip(np.diff(self.event_grid[:self.fixing_idx + 1]))
+        time_steps = np.flip(np.diff(self.event_grid))
         for counter, dt in enumerate(time_steps):
-            event_idx = self.fixing_idx - counter
+            event_idx = (self.event_grid.size - 1) - counter
             # Update drift, diffusion and rate vectors at previous event.
             self.fd_update(event_idx - 1)
+            # Payoff at payment event, discounted to fixing event.
+            if event_idx == self.fix_idx:
+                self.fd.solution += self.payoff(self.fd.grid, True)
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
@@ -390,8 +374,6 @@ class Caplet(options.Option1FAnalytical):
         if self.zcbond.mat_idx != maturity_idx:
             self.zcbond.mat_idx = maturity_idx
         return self.zcbond.theta(spot, event_idx)
-
-    ####################################################################
 
     def mc_exact_setup(self):
         """Setup exact Monte-Carlo solver."""
@@ -531,18 +513,3 @@ class CapletPelsser(Caplet):
         self.adjust_rate = self.zcbond.adjust_rate
         self.adjust_discount_steps = self.zcbond.adjust_discount_steps
         self.adjust_discount = self.zcbond.adjust_discount
-
-    def mc_present_value(self,
-                         mc_object):
-        """Present value for each Monte-Carlo path."""
-        # Adjustment of discount paths.
-        discount_paths = \
-            mc_object.discount_adjustment(mc_object.discount_paths,
-                                          self.adjust_discount)
-        # Pseudo short rate at fixing event.
-        spot = mc_object.rate_paths[self.fix_idx]
-        # Option payoff at fixing event.
-        option_payoff = self.payoff(spot, True)
-        # Option payoff discounted back to present time.
-        option_payoff *= discount_paths[self.fix_idx]
-        return option_payoff
