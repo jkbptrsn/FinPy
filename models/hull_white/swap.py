@@ -503,7 +503,6 @@ class Swap(bonds.BondAnalytical1F):
         Returns:
             Zero-coupon bond price.
         """
-
         if self.zcbond.mat_idx != maturity_idx:
             self.zcbond.mat_idx = maturity_idx
         return self.zcbond.price(spot, event_idx)

@@ -79,10 +79,10 @@ class CapFloor(options.Option1FAnalytical):
 
         # Caplet/floorlet object used in analytical pricing.
         self.xlet = \
-            xlet.CapletFloorlet(kappa, vol, discount_curve, strike_rate,
-                                fixing_schedule[0], payment_schedule[0],
-                                event_grid, caplet_floorlet,
-                                time_dependence, int_step_size)
+            xlet.Caplet(kappa, vol, discount_curve, strike_rate,
+                        fixing_schedule[0], payment_schedule[0],
+                        event_grid, time_dependence, int_step_size,
+                        caplet_floorlet)
 
         self.initialization()
 

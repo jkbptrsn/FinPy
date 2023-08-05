@@ -73,10 +73,10 @@ class Option1FAnalytical(metaclass=abc.ABCMeta):
         self.mc_exact = None
         self.mc_euler = None
 
-    @property
-    @abc.abstractmethod
-    def expiry(self) -> float:
-        pass
+#    @property
+#    @abc.abstractmethod
+#    def expiry(self) -> float:
+#        pass
 
     @abc.abstractmethod
     def payoff(self,

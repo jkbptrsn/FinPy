@@ -2,37 +2,41 @@ import math
 import typing
 
 import numpy as np
-from scipy.stats import norm
 
 from models import options
-from models.hull_white import misc as misc_hw
+from models.hull_white import misc_caplet as misc_cf
 from models.hull_white import misc_european_option as misc_ep
+from models.hull_white import misc_swap as misc_sw
 from models.hull_white import zero_coupon_bond as zcbond
 from utils import data_types
 from utils import global_types
-from utils import misc
+from utils import payoffs
 
 
-class CapletFloorlet(options.Option1FAnalytical):
+class Caplet(options.Option1FAnalytical):
     """Caplet or floorlet in 1-factor Hull-White model.
+
+    Price of caplet of floorlet.
 
     See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
     D. Brigo & F. Mercurio 2007, section 3.3.
-
-    Note: The speed of mean reversion is assumed to be constant!
 
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
         discount_curve: Discount curve represented on event grid.
-        strike_rate: Cap or floor rate.
+        strike_rate: Caplet or floorlet rate.
         fixing_idx: Fixing index on event grid.
         payment_idx: Payment index on event grid.
-        cap_or_floor: Caplet or floorlet. Default is caplet.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-        int_step_size: Integration/propagation step size represented as
-            a year fraction. Default is 1 / 365.
+        event_grid: Event dates as year fractions from as-of date.
+        time_dependence: Time dependence of model parameters.
+            "constant": kappa and vol are constant.
+            "piecewise": kappa is constant and vol is piecewise
+                constant.
+            "general": General time dependence.
+            Default is "piecewise".
+        int_dt: Integration step size. Default is 1 / 52.
+        option_type: Caplet or floorlet. Default is caplet.
     """
 
     def __init__(self,
@@ -43,9 +47,9 @@ class CapletFloorlet(options.Option1FAnalytical):
                  fixing_idx: int,
                  payment_idx: int,
                  event_grid: np.ndarray,
-                 cap_or_floor: str = "caplet",
                  time_dependence: str = "piecewise",
-                 int_step_size: float = 1 / 365):
+                 int_dt: float = 1 / 52,
+                 option_type: str = "caplet"):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
@@ -54,46 +58,51 @@ class CapletFloorlet(options.Option1FAnalytical):
         self.fixing_idx = fixing_idx
         self.payment_idx = payment_idx
         self.event_grid = event_grid
-        self.cap_or_floor = cap_or_floor
         self.time_dependence = time_dependence
-        self.int_step_size = int_step_size
+        self.int_dt = int_dt
 
-        # Speed of mean reversion on event grid.
-        self.kappa_eg = None
-        # Volatility on event grid.
-        self.vol_eg = None
+        # Zero-coupon bond.
+        self.zcbond = \
+            zcbond.ZCBond(kappa,
+                          vol,
+                          discount_curve,
+                          payment_idx,
+                          event_grid,
+                          time_dependence,
+                          int_dt)
+        # Kappa on event grid.
+        self.kappa_eg = self.zcbond.kappa_eg
+        # Vol on event grid.
+        self.vol_eg = self.zcbond.vol_eg
         # Discount curve on event grid.
-        self.discount_curve_eg = None
+        self.discount_curve_eg = self.zcbond.discount_curve_eg
         # Instantaneous forward rate on event grid.
-        self.forward_rate_eg = None
+        self.forward_rate_eg = self.zcbond.forward_rate_eg
         # y-function on event grid.
-        self.y_eg = None
-
+        self.y_eg = self.zcbond.y_eg
         # v-function on event grid until expiry.
         self.v_eg_tmp = None
         self.v_eg = None
+        # dv_dt-function on event grid until expiry.
+        self.dv_dt_eg_tmp = None
+        self.dv_dt_eg = None
 
-        # Zero-coupon bond object used in analytical pricing.
-        self.zcbond = \
-            zcbond.ZCBond(kappa, vol, discount_curve, fixing_idx,
-                          event_grid, time_dependence, int_step_size)
+        self.model = self.zcbond.model
+        self.transformation = self.zcbond.transformation
+        if option_type == "caplet":
+            self.type = global_types.Instrument.CAPLET
+        elif option_type == "floorlet":
+            self.type = global_types.Instrument.FLOORLET
+        else:
+            raise ValueError(f"Unknown instrument type: {option_type}")
 
         self.initialization()
 
-        self.model = global_types.Model.HULL_WHITE_1F
-        self.transformation = global_types.Transformation.ANDERSEN
-        if self.cap_or_floor == "caplet":
-            self.type = global_types.Instrument.CAPLET
-        elif self.cap_or_floor == "floorlet":
-            self.type = global_types.Instrument.FLOORLET
-        else:
-            raise ValueError(f"Unknown instrument type: {self.cap_or_floor}")
+        self.adjust_rate = self.zcbond.adjust_rate
+        self.adjust_discount_steps = self.zcbond.adjust_discount_steps
+        self.adjust_discount = self.zcbond.adjust_discount
 
-    # TODO: Expiry corresponds actually to the payment date.
-    #  Maybe a new base call for options?
-    @property
-    def expiry(self) -> float:
-        return self.event_grid[self.fixing_idx]
+    ####################################################################
 
     @property
     def fixing_event(self) -> float:
@@ -107,34 +116,82 @@ class CapletFloorlet(options.Option1FAnalytical):
     def tenor(self) -> float:
         return self.payment_event - self.fixing_event
 
+    @property
+    def fix_idx(self) -> int:
+        return self.fixing_idx
+
+    @fix_idx.setter
+    def fix_idx(self, idx: int):
+        self.fixing_idx = idx
+        self.initialization()
+
+    @property
+    def pay_idx(self) -> int:
+        return self.payment_idx
+
+    @pay_idx.setter
+    def pay_idx(self, idx: int):
+        self.payment_idx = idx
+        self.zcbond.mat_idx = idx
+        self.update_v_function()
+
     def initialization(self):
-        """Initialization of instrument object."""
-        self.kappa_eg = self.zcbond.kappa_eg
-        self.vol_eg = self.zcbond.vol_eg
-        self.discount_curve_eg = self.zcbond.discount_curve_eg
-        self.forward_rate_eg = self.zcbond.forward_rate_eg
-        self.y_eg = self.zcbond.y_eg
-        # Kappa and vol are constant.
+        """Initialization of object."""
         if self.time_dependence == "constant":
-            # v-function on event grid until expiry.
-            self.v_eg_tmp = misc_ep.v_constant(self.zcbond.kappa_eg[0],
-                                               self.zcbond.vol_eg[0],
-                                               self.fixing_idx,
-                                               self.event_grid)
-        # Kappa is constant and vol is piecewise constant.
+            self.v_eg_tmp = \
+                misc_ep.v_constant(self.zcbond.kappa_eg[0],
+                                   self.zcbond.vol_eg[0],
+                                   self.fixing_idx,
+                                   self.event_grid)
+            self.dv_dt_eg_tmp = \
+                misc_ep.dv_dt_constant(self.zcbond.kappa_eg[0],
+                                       self.zcbond.vol_eg[0],
+                                       self.fixing_idx,
+                                       self.event_grid)
         elif self.time_dependence == "piecewise":
-            # v-function on event grid until expiry.
-            self.v_eg_tmp = misc_ep.v_piecewise(self.zcbond.kappa_eg[0],
-                                                self.zcbond.vol_eg,
-                                                self.fixing_idx,
-                                                self.event_grid)
+            self.v_eg_tmp = \
+                misc_ep.v_piecewise(self.zcbond.kappa_eg[0],
+                                    self.zcbond.vol_eg,
+                                    self.fixing_idx,
+                                    self.event_grid)
+            self.dv_dt_eg_tmp = \
+                misc_ep.dv_dt_piecewise(self.zcbond.kappa_eg[0],
+                                        self.zcbond.vol_eg,
+                                        self.fixing_idx,
+                                        self.event_grid)
+        elif self.time_dependence == "general":
+            self.v_eg_tmp = \
+                misc_ep.v_general(self.zcbond.int_grid,
+                                  self.zcbond.int_event_idx,
+                                  self.zcbond.int_kappa_step_ig,
+                                  self.zcbond.vol_ig,
+                                  self.fixing_idx)
+            self.dv_dt_eg_tmp = \
+                misc_ep.dv_dt_general(self.zcbond.int_event_idx,
+                                      self.zcbond.int_kappa_step_ig,
+                                      self.zcbond.vol_ig,
+                                      self.fixing_idx)
         else:
             raise ValueError(f"Time dependence unknown: "
                              f"{self.time_dependence}")
-        self.v_eg = misc_ep.v_function(self.fixing_idx,
-                                       self.payment_idx,
-                                       self.zcbond.g_eg,
-                                       self.v_eg_tmp)
+        self.update_v_function()
+
+    def update_v_function(self):
+        """Update v- and dv_dt-function."""
+        # v-function on event grid until expiry.
+        self.v_eg = \
+            misc_ep.v_function(self.fixing_idx,
+                               self.payment_idx,
+                               self.zcbond.g_eg,
+                               self.v_eg_tmp)
+        # dv_dt-function on event grid until expiry.
+        self.dv_dt_eg = \
+            misc_ep.v_function(self.fixing_idx,
+                               self.payment_idx,
+                               self.zcbond.g_eg,
+                               self.dv_dt_eg_tmp)
+
+    ####################################################################
 
     def payoff(self,
                spot: typing.Union[float, np.ndarray],
@@ -143,29 +200,37 @@ class CapletFloorlet(options.Option1FAnalytical):
         """Payoff function.
 
         Args:
-            spot: Current value of pseudo short rate.
+            spot: Spot pseudo short rate.
             discounting: Do analytical discounting from payment date to
                 fixing date. Default is false.
 
         Returns:
             Payoff.
         """
-        # P(t_fixing, t_payment).
-        price = self.zcbond_price(spot, self.fixing_idx, self.payment_idx)
-        # Simple forward rate at t_fixing for (t_fixing, t_payment).
-        simple_rate = self.simple_forward_rate(price, self.tenor)
+
+        # TODO: Adjust spot short rate.
+        spot_tmp = spot
+        if self.transformation == global_types.Transformation.PELSSER:
+            spot_tmp = \
+                spot + self.adjust_rate[self.fix_idx] \
+                - self.forward_rate_eg[self.fix_idx]
+
+        # P(t_fix, t_pay).
+        price = self.zcbond_price(spot_tmp, self.fix_idx, self.pay_idx)
+        # Simple rate at t_fix for (t_fix, t_pay).
+        simple_rate = misc_sw.simple_forward_rate(price, self.tenor)
         # Payoff.
-        if self.cap_or_floor == "caplet":
-            _payoff = \
-                self.tenor * np.maximum(simple_rate - self.strike_rate, 0)
+        if self.type == global_types.Instrument.CAPLET:
+            _payoff = self.tenor * payoffs.call(simple_rate, self.strike_rate)
         else:
-            _payoff = \
-                self.tenor * np.maximum(self.strike_rate - simple_rate, 0)
+            _payoff = self.tenor * payoffs.put(simple_rate, self.strike_rate)
         # Do analytical discounting from payment date to fixing date.
         if discounting:
             return _payoff * price
         else:
             return _payoff
+
+    ####################################################################
 
     def price(self,
               spot: typing.Union[float, np.ndarray],
@@ -173,81 +238,47 @@ class CapletFloorlet(options.Option1FAnalytical):
         """Price function.
 
         Args:
-            spot: Current value of pseudo short rate.
+            spot: Spot pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
             Price.
         """
-        # P(t, t_fixing).
-        price1 = self.zcbond_price(spot, event_idx, self.fixing_idx)
-        # P(t, t_payment).
-        price2 = self.zcbond_price(spot, event_idx, self.payment_idx)
-        # v-function.
-        v = self.v_eg[event_idx]
-        # d-function.
-        d = np.log((1 + self.strike_rate * self.tenor) * price2 / price1)
-        d_plus = (d + v / 2) / math.sqrt(v)
-        d_minus = (d - v / 2) / math.sqrt(v)
-        if self.cap_or_floor == "caplet":
-            sign = 1
-        else:
-            sign = -1
-        factor = (1 + self.strike_rate * self.tenor)
-        return sign * price1 * norm.cdf(-sign * d_minus) \
-            - sign * factor * price2 * norm.cdf(-sign * d_plus)
+        return misc_cf.caplet_price(spot, self.strike_rate, self.tenor,
+                                    event_idx, self.fix_idx, self.pay_idx,
+                                    self.zcbond, self.v_eg, self.type)
 
     def delta(self,
               spot: typing.Union[float, np.ndarray],
               event_idx: int) -> typing.Union[float, np.ndarray]:
-        """1st order price sensitivity wrt value of underlying.
+        """1st order price sensitivity wrt short rate.
 
         Args:
-            spot: Current value of pseudo short rate.
+            spot: Spot pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
             Delta.
         """
-        # P(t, t_fixing).
-        price1 = self.zcbond_price(spot, event_idx, self.fixing_idx)
-        delta1 = self.zcbond_delta(spot, event_idx, self.fixing_idx)
-        # P(t, t_payment).
-        price2 = self.zcbond_price(spot, event_idx, self.payment_idx)
-        delta2 = self.zcbond_delta(spot, event_idx, self.payment_idx)
-        # v-function.
-        v = self.v_eg[event_idx]
-        # d-function.
-        d = np.log((1 + self.strike_rate * self.tenor) * price2 / price1)
-        d_plus = (d + v / 2) / math.sqrt(v)
-        d_minus = (d - v / 2) / math.sqrt(v)
-        # Derivative of d-function.
-        d_delta = (delta2 / price2 - delta1 / price1) / math.sqrt(v)
-        if self.cap_or_floor == "caplet":
-            sign = 1
-        else:
-            sign = -1
-        factor = (1 + self.strike_rate * self.tenor)
-        first_terms = sign * delta1 * norm.cdf(-sign * d_minus) \
-            - sign * factor * delta2 * norm.cdf(-sign * d_plus)
-        last_terms = sign * price1 * norm.pdf(-sign * d_minus) \
-            - sign * factor * price2 * norm.pdf(-sign * d_plus)
-        last_terms *= sign * d_delta
-        return first_terms + last_terms
+        return misc_cf.caplet_delta(spot, self.strike_rate, self.tenor,
+                                    event_idx, self.fix_idx, self.pay_idx,
+                                    self.zcbond, self.v_eg, self.type)
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
               event_idx: int) -> typing.Union[float, np.ndarray]:
-        """2nd order price sensitivity wrt value of underlying.
+        """2nd order price sensitivity wrt short rate.
 
         Args:
-            spot: Current value of pseudo short rate.
+            spot: Spot pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
             Gamma.
         """
-        pass
+        return misc_cf.caplet_gamma(spot, self.strike_rate, self.tenor,
+                                    event_idx, self.fix_idx, self.pay_idx,
+                                    self.zcbond, self.v_eg, self.type)
 
     def theta(self,
               spot: typing.Union[float, np.ndarray],
@@ -255,39 +286,117 @@ class CapletFloorlet(options.Option1FAnalytical):
         """1st order price sensitivity wrt time.
 
         Args:
-            spot: Current value of pseudo short rate.
+            spot: Spot pseudo short rate.
             event_idx: Index on event grid.
 
         Returns:
             Theta.
         """
-        pass
+        return misc_cf.caplet_theta(spot, self.strike_rate, self.tenor,
+                                    event_idx, self.fix_idx, self.pay_idx,
+                                    self.zcbond, self.v_eg, self.dv_dt_eg,
+                                    self.type)
+
+    ####################################################################
 
     def fd_solve(self):
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
+        # Set terminal condition.
+
         # Payoff at payment event, discount to fixing event.
         self.fd.solution = self.payoff(self.fd.grid, True)
-        # Numerical propagation from fixing event.
+
+        # Update drift, diffusion and rate vectors.
+        self.fd_update(self.fixing_idx)
+        # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid[:self.fixing_idx + 1]))
-        for count, dt in enumerate(time_steps):
-            # Event index before propagation with time step -dt.
-            event_idx = self.fixing_idx - count
-            # Update drift, diffusion, and rate functions.
-            update_idx = event_idx - 1
-            drift = self.y_eg[update_idx] \
-                - self.kappa_eg[update_idx] * self.fd.grid
-            diffusion = self.vol_eg[update_idx] + 0 * self.fd.grid
-            rate = self.fd.grid + self.forward_rate_eg[update_idx]
-            self.fd.set_drift(drift)
-            self.fd.set_diffusion(diffusion)
-            self.fd.set_rate(rate)
-            # Propagation for one time step dt.
+        for counter, dt in enumerate(time_steps):
+            event_idx = self.fixing_idx - counter
+            # Update drift, diffusion and rate vectors at previous event.
+            self.fd_update(event_idx - 1)
             self.fd.propagation(dt, True)
+            # Transformation adjustment.
+            self.fd.solution *= self.adjust_discount_steps[event_idx]
+
+    def zcbond_price(self,
+                     spot: typing.Union[float, np.ndarray],
+                     event_idx: int,
+                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+        """Price of zero-coupon bond.
+
+        Args:
+            spot: Spot pseudo short rate.
+            event_idx: Index on event grid.
+            maturity_idx: Maturity index on event grid.
+
+        Returns:
+            Zero-coupon bond price.
+        """
+        if self.zcbond.mat_idx != maturity_idx:
+            self.zcbond.mat_idx = maturity_idx
+        return self.zcbond.price(spot, event_idx)
+
+    def zcbond_delta(self,
+                     spot: typing.Union[float, np.ndarray],
+                     event_idx: int,
+                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+        """Delta of zero-coupon bond.
+
+        Args:
+            spot: Spot pseudo short rate.
+            event_idx: Index on event grid.
+            maturity_idx: Maturity index on event grid.
+
+        Returns:
+            Zero-coupon bond delta.
+        """
+        if self.zcbond.mat_idx != maturity_idx:
+            self.zcbond.mat_idx = maturity_idx
+        return self.zcbond.delta(spot, event_idx)
+
+    def zcbond_gamma(self,
+                     spot: typing.Union[float, np.ndarray],
+                     event_idx: int,
+                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+        """Gamma of zero-coupon bond.
+
+        Args:
+            spot: Spot pseudo short rate.
+            event_idx: Index on event grid.
+            maturity_idx: Maturity index on event grid.
+
+        Returns:
+            Zero-coupon bond gamma.
+        """
+        if self.zcbond.mat_idx != maturity_idx:
+            self.zcbond.mat_idx = maturity_idx
+        return self.zcbond.gamma(spot, event_idx)
+
+    def zcbond_theta(self,
+                     spot: typing.Union[float, np.ndarray],
+                     event_idx: int,
+                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+        """Theta of zero-coupon bond.
+
+        Args:
+            spot: Spot pseudo short rate.
+            event_idx: Index on event grid.
+            maturity_idx: Maturity index on event grid.
+
+        Returns:
+            Zero-coupon bond delta.
+        """
+        if self.zcbond.mat_idx != maturity_idx:
+            self.zcbond.mat_idx = maturity_idx
+        return self.zcbond.theta(spot, event_idx)
+
+    ####################################################################
 
     def mc_exact_setup(self):
         """Setup exact Monte-Carlo solver."""
-        pass
+        self.zcbond.mc_exact_setup()
+        self.mc_exact = self.zcbond.mc_exact
 
     def mc_exact_solve(self,
                        spot: float,
@@ -309,90 +418,80 @@ class CapletFloorlet(options.Option1FAnalytical):
             Realizations of short rate and discount processes
             represented on event grid.
         """
-        pass
+        self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        present_value = self.mc_present_value(self.mc_exact)
+        self.mc_exact.mc_estimate = present_value.mean()
+        self.mc_exact.mc_error = present_value.std(ddof=1)
+        self.mc_exact.mc_error /= math.sqrt(n_paths)
 
-    def zcbond_price(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
-        """Price of zero-coupon bond.
+    def mc_euler_setup(self):
+        """Setup Euler Monte-Carlo solver."""
+        self.zcbond.mc_euler_setup()
+        self.mc_euler = self.zcbond.mc_euler
 
-        Args:
-            spot: Current value of pseudo short rate.
-            event_idx: Index on event grid.
-            maturity_idx: Maturity index on event grid.
+    def mc_euler_solve(self,
+                       spot: float,
+                       n_paths: int,
+                       rng: np.random.Generator = None,
+                       seed: int = None,
+                       antithetic: bool = False):
+        """Run Monte-Carlo solver on event grid.
 
-        Returns:
-            Zero-coupon bond price.
-        """
-        if self.zcbond.maturity_idx != maturity_idx:
-            self.zcbond.maturity_idx = maturity_idx
-            self.zcbond.initialization()
-        return self.zcbond.price(spot, event_idx)
-
-    def zcbond_delta(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
-        """Delta of zero-coupon bond.
+        Monte-Carlo paths constructed using Euler-Maruyama discretization.
 
         Args:
-            spot: Current value of pseudo short rate.
-            event_idx: Index on event grid.
-            maturity_idx: Maturity index on event grid.
-
-        Returns:
-            Zero-coupon bond delta.
+            spot: Short rate at as-of date.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Antithetic sampling for variance reduction.
+                Default is False.
         """
-        if self.zcbond.maturity_idx != maturity_idx:
-            self.zcbond.maturity_idx = maturity_idx
-            self.zcbond.initialization()
-        return self.zcbond.delta(spot, event_idx)
+        self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
+        present_value = self.mc_present_value(self.mc_euler)
+        self.mc_euler.mc_estimate = present_value.mean()
+        self.mc_euler.mc_error = present_value.std(ddof=1)
+        self.mc_euler.mc_error /= math.sqrt(n_paths)
 
-    @staticmethod
-    def simple_forward_rate(bond_price_t2: typing.Union[float, np.ndarray],
-                            tau: float,
-                            bond_price_t1:
-                            typing.Union[float, np.ndarray] = 1.0) \
-            -> typing.Union[float, np.ndarray]:
-        """Calculate simple forward rate.
-
-        The simple forward rate at time t in (t1, t2) is defined as:
-            (1 + (t2 - t1) * forward_rate(t, t1, t2)) =
-                bond_price_t1(t) / bond_price_t2(t).
-        See L.B.G. Andersen & V.V. Piterbarg 2010, section 4.1.
-
-        Args:
-            bond_price_t2: Price of zero-coupon bond with maturity t2.
-            tau: Time interval between t1 and t2.
-            bond_price_t1: Price of zero-coupon bond with maturity t1.
-                Default is 1, in case that t > t1.
-
-        Returns:
-            Simple forward rate.
-        """
-        return (bond_price_t1 / bond_price_t2 - 1) / tau
+    def mc_present_value(self,
+                         mc_object):
+        """Present value for each Monte-Carlo path."""
+        # Adjustment of discount paths.
+        discount_paths = \
+            mc_object.discount_adjustment(mc_object.discount_paths,
+                                          self.adjust_discount)
+        # Pseudo short rate at fixing event.
+        spot = mc_object.rate_paths[self.fix_idx]
+        # Option payoff at fixing event.
+        option_payoff = self.payoff(spot, True)
+        # Option payoff discounted back to present time.
+        option_payoff *= discount_paths[self.fix_idx]
+        return option_payoff
 
 
-class CapletFloorletPelsser(CapletFloorlet):
+class CapletPelsser(Caplet):
     """Caplet or floorlet in 1-factor Hull-White model.
 
-    See Pelsser, chapter 5.
+    Price of caplet of floorlet.
 
-    Note: The speed of mean reversion is assumed to be constant!
+    See A. Pelsser, chapter 5.
 
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
         discount_curve: Discount curve represented on event grid.
-        strike_rate: Cap or floor rate.
+        strike_rate: Caplet or floorlet rate.
         fixing_idx: Fixing index on event grid.
         payment_idx: Payment index on event grid.
-        cap_or_floor: Caplet or floorlet. Default is caplet.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-        int_step_size: Integration/propagation step size represented as
-            a year fraction. Default is 1 / 365.
+        event_grid: Event dates as year fractions from as-of date.
+        time_dependence: Time dependence of model parameters.
+            "constant": kappa and vol are constant.
+            "piecewise": kappa is constant and vol is piecewise
+                constant.
+            "general": General time dependence.
+            Default is "piecewise".
+        int_dt: Integration step size. Default is 1 / 52.
+        option_type: Caplet or floorlet. Default is caplet.
     """
 
     def __init__(self,
@@ -403,9 +502,9 @@ class CapletFloorletPelsser(CapletFloorlet):
                  fixing_idx: int,
                  payment_idx: int,
                  event_grid: np.ndarray,
-                 cap_or_floor: str = "caplet",
                  time_dependence: str = "piecewise",
-                 int_step_size: float = 1 / 365):
+                 int_dt: float = 1 / 52,
+                 option_type: str = "caplet"):
         super().__init__(kappa,
                          vol,
                          discount_curve,
@@ -413,104 +512,37 @@ class CapletFloorletPelsser(CapletFloorlet):
                          fixing_idx,
                          payment_idx,
                          event_grid,
-                         cap_or_floor,
                          time_dependence,
-                         int_step_size)
+                         int_dt,
+                         option_type)
 
-        # Integration grid.
-        self.int_grid = None
-        # Indices of event dates on integration grid.
-        self.int_event_idx = None
-        # Speed of mean reversion on integration grid.
-        self.kappa_ig = None
-        # Step-wise integration of kappa on integration grid.
-        self.int_kappa_step = None
-        # Volatility on integration grid.
-        self.vol_ig = None
+        # Zero-coupon bond.
+        self.zcbond = \
+            zcbond.ZCBondPelsser(kappa,
+                                 vol,
+                                 discount_curve,
+                                 fixing_idx,
+                                 event_grid,
+                                 time_dependence,
+                                 int_dt)
 
-        self.transformation = global_types.Transformation.PELSSER
+        self.transformation = self.zcbond.transformation
 
-        self.adjustment_rate = None
-        self.adjustment_discount = None
-        self.adjustment_function()
+        self.adjust_rate = self.zcbond.adjust_rate
+        self.adjust_discount_steps = self.zcbond.adjust_discount_steps
+        self.adjust_discount = self.zcbond.adjust_discount
 
-    def adjustment_function(self):
-        """Adjustment of short rate transformation."""
-        # P(0, t_{i+1}) / P(0, t_i)
-        discount_steps = \
-            self.discount_curve_eg[1:] / self.discount_curve_eg[:-1]
-        discount_steps = np.append(1, discount_steps)
-        # alpha_t_i - f(0,t_i), see Pelsser Eq (5.30).
-        if self.time_dependence == "constant":
-            alpha = misc_hw.alpha_constant(self.kappa_eg[0],
-                                           self.vol_eg[0],
-                                           self.event_grid)
-            int_alpha = \
-                misc_hw.int_alpha_constant(self.kappa_eg[0],
-                                           self.vol_eg[0],
-                                           self.event_grid)
-        elif self.time_dependence == "piecewise":
-            alpha = misc_hw.alpha_piecewise(self.kappa_eg[0],
-                                            self.vol_eg,
-                                            self.event_grid)
-            int_alpha = \
-                misc_hw.int_alpha_piecewise(self.kappa_eg[0],
-                                            self.vol_eg,
-                                            self.event_grid)
-        elif self.time_dependence == "general":
-            self.int_grid, self.int_event_idx = \
-                misc_hw.integration_grid(self.event_grid, self.int_step_size)
-            # Speed of mean reversion interpolated on integration grid.
-            self.kappa_ig = self.kappa.interpolation(self.int_grid)
-            # Volatility interpolated on integration grid.
-            self.vol_ig = self.vol.interpolation(self.int_grid)
-            # Integration of speed of mean reversion using trapezoidal rule.
-            self.int_kappa_step = \
-                np.append(0, misc.trapz(self.int_grid, self.kappa_ig))
-            alpha = \
-                misc_hw.alpha_general(self.int_grid,
-                                      self.int_event_idx,
-                                      self.int_kappa_step,
-                                      self.vol_ig,
-                                      self.event_grid)
-            int_alpha = \
-                misc_hw.int_alpha_general(self.int_grid,
-                                          self.int_event_idx,
-                                          self.int_kappa_step,
-                                          self.vol_ig,
-                                          self.event_grid)
-        else:
-            raise ValueError(f"Time-dependence is unknown: "
-                             f"{self.time_dependence}")
-        # TODO: Adjustment from Pelsser to Andersen.
-        self.adjustment_rate = alpha
-        # Adjustment to real discount factor.
-        self.adjustment_discount = discount_steps * np.exp(-int_alpha)
-
-    def fd_solve(self):
-        """Run finite difference solver on event grid."""
-        self.fd.set_propagator()
-
-        # TODO: Transformation adjustment is incorrect!
-
-        # Payoff at payment event.
-        grid = self.fd.grid + self.adjustment_rate[self.fixing_idx]
-        self.fd.solution = self.payoff(grid, False)
-
-        # Numerical propagation from payment event.
-        time_steps = np.flip(np.diff(self.event_grid[:self.payment_idx + 1]))
-        for count, dt in enumerate(time_steps):
-            # Event index before propagation with time step -dt.
-            event_idx = self.payment_idx - count
-            # Update drift, diffusion, and rate functions.
-            update_idx = event_idx - 1
-            drift = -self.kappa_eg[update_idx] * self.fd.grid
-            diffusion = self.vol_eg[update_idx] + 0 * self.fd.grid
-            rate = self.fd.grid
-            self.fd.set_drift(drift)
-            self.fd.set_diffusion(diffusion)
-            self.fd.set_rate(rate)
-            # Propagation for one time step dt.
-            self.fd.propagation(dt, True)
-            # Transformation adjustment.
-            self.fd.solution *= self.adjustment_discount[event_idx]
+    def mc_present_value(self,
+                         mc_object):
+        """Present value for each Monte-Carlo path."""
+        # Adjustment of discount paths.
+        discount_paths = \
+            mc_object.discount_adjustment(mc_object.discount_paths,
+                                          self.adjust_discount)
+        # Pseudo short rate at fixing event.
+        spot = mc_object.rate_paths[self.fix_idx]
+        # Option payoff at fixing event.
+        option_payoff = self.payoff(spot, True)
+        # Option payoff discounted back to present time.
+        option_payoff *= discount_paths[self.fix_idx]
+        return option_payoff
