@@ -144,12 +144,16 @@ def set_cash_flow_grid_issuance(t_initial: float,
         'Cash flow' grid.
     """
     cf = set_cash_flow_grid(t_initial, t_final, frequency)
-    issuance_period = np.arange(-(issuance_terms - 2), 1) / frequency
+
+#    issuance_period = np.arange(-(issuance_terms - 2), 1) / frequency
+    issuance_period = np.arange(-(issuance_terms - 1), 1) / frequency
+
     return np.append(issuance_period, cf)
 
 
 def set_event_grid(cf_grid: np.ndarray,
-                   time_step: float = 0.01) -> (np.ndarray, np.ndarray):
+                   time_step: float = 0.01) \
+        -> (np.ndarray, np.ndarray):
     """Set up event grid, and cash flow schedule.
 
     Args:
@@ -157,22 +161,58 @@ def set_event_grid(cf_grid: np.ndarray,
         time_step: Time step between events. Default is 0.01.
 
     Returns:
-        Event grid, cash flow schedule.
+        Event grid, cash flow schedule, deadline schedule.
     """
     event_grid = np.zeros(1)
     cash_flow_schedule = np.zeros(cf_grid.size, dtype=int)
-    cf_schedule_append = np.append(0, cf_grid)
-    for idx, cf_time_step in enumerate(np.diff(cf_schedule_append)):
-        n_steps = math.floor(cf_time_step / time_step)
+
+    # Deadline grid.
+    deadline_grid = np.zeros(cf_grid.size)
+    # Time step between deadline and corresponding cash flow event.
+    deadline_step = 1 / 6
+    for counter, cf_event in enumerate(cf_grid):
+        deadline_grid[counter] = cf_event - deadline_step
+    # If first deadline is passed, set deadline equal to time zero.
+    if deadline_grid[0] < 0:
+        deadline_grid[0] = 0
+    deadline_schedule = np.zeros(deadline_grid.size, dtype=int)
+
+    for idx, (d_time, cf_time) in enumerate(zip(deadline_grid, cf_grid)):
+
+        # Time of previous event.
+        if idx == 0:
+            previous_event = 0
+        else:
+            previous_event = cf_grid[idx - 1]
+
+        # Time steps to current deadline from previous event.
+        delta_time = d_time - previous_event
+        n_steps = math.floor(delta_time / time_step)
         event_grid_tmp = event_grid[-1] + time_step * np.arange(1, n_steps + 1)
         event_grid = np.append(event_grid, event_grid_tmp)
-        if cf_time_step - n_steps * time_step > 1.0e-12:
-            dt = cf_time_step - n_steps * time_step
+        if delta_time - n_steps * time_step > 1.0e-12:
+            dt = delta_time - n_steps * time_step
             event_grid = np.append(event_grid, event_grid[-1] + dt)
-            cash_flow_schedule[idx] = n_steps + 1
-        else:
-            cash_flow_schedule[idx] = n_steps
-    return event_grid, np.cumsum(cash_flow_schedule)
+            n_steps += 1
+        deadline_schedule[idx:] += n_steps
+        cash_flow_schedule[idx:] += n_steps
+
+        # Update time of previous event.
+        previous_event = d_time
+
+        # Time steps to current cash flow event from previous event.
+        delta_time = cf_time - previous_event
+        n_steps = math.floor(delta_time / time_step)
+        event_grid_tmp = event_grid[-1] + time_step * np.arange(1, n_steps + 1)
+        event_grid = np.append(event_grid, event_grid_tmp)
+        if delta_time - n_steps * time_step > 1.0e-12:
+            dt = delta_time - n_steps * time_step
+            event_grid = np.append(event_grid, event_grid[-1] + dt)
+            n_steps += 1
+        deadline_schedule[idx + 1:] += n_steps
+        cash_flow_schedule[idx:] += n_steps
+
+    return event_grid, cash_flow_schedule, deadline_schedule
 
 
 def annuity_factor(n_terms: int,

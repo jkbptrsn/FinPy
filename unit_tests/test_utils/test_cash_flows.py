@@ -5,8 +5,8 @@ import numpy as np
 
 from utils import cash_flows
 
-plot_results = False
-print_results = False
+plot_results = True
+print_results = True
 
 
 class CashFlows(unittest.TestCase):
@@ -30,19 +30,30 @@ class CashFlows(unittest.TestCase):
         self.issuance_terms = 12
         # Cash flow.
         self.payment_grid = \
-            cash_flows.set_cash_flow_grid(self.t_i, self.t_f, self.frequency)
+            cash_flows.set_cash_flow_grid(self.t_i,
+                                          self.t_f,
+                                          self.frequency)
         self.cash_flow = \
-            cash_flows.cash_flow_split(
-                self.coupon, self.frequency, self.payment_grid, self.principal,
-                self.type, self.io)
+            cash_flows.cash_flow_split(self.coupon,
+                                       self.frequency,
+                                       self.payment_grid,
+                                       self.principal,
+                                       self.type,
+                                       self.io)
         # Cash flow grid with issuance period.
         self.payment_grid_issuance = \
-            cash_flows.set_cash_flow_grid_issuance(
-                self.t_i, self.t_f, self.frequency, self.issuance_terms)
+            cash_flows.set_cash_flow_grid_issuance(self.t_i,
+                                                   self.t_f,
+                                                   self.frequency,
+                                                   self.issuance_terms)
         self.cash_flow_issuance = \
-            cash_flows.cash_flow_split_issuance(
-                self.coupon, self.frequency, self.payment_grid_issuance,
-                self.issuance_terms, self.principal, self.type, self.io)
+            cash_flows.cash_flow_split_issuance(self.coupon,
+                                                self.frequency,
+                                                self.payment_grid_issuance,
+                                                self.issuance_terms,
+                                                self.principal,
+                                                self.type,
+                                                self.io)
 
     def test_normalization(self):
         """Test normalization of installments."""
@@ -83,18 +94,21 @@ class CashFlows(unittest.TestCase):
         # Calculating redemptions backwards.
         cf_test = np.zeros(self.cash_flow.shape)
         for n in range(cf_test.shape[1] - 1, -1, -1):
+            # Redemption rate of sum of remaining installments.
             redemption_rate = \
-                self.cash_flow[0, n] / np.sum(self.cash_flow[0, n:])
-            cf_test[0, n] = 100 * redemption_rate
-            cf_test[1, n] = 100 * self.coupon / self.frequency
+                self.cash_flow[0, n] / self.cash_flow[0, n:].sum()
+            cf_test[0, n] = redemption_rate
+            cf_test[1, n] = self.coupon / self.frequency
             cf_test[:, n + 1:] *= (1 - redemption_rate)
         for n in range(cf_test.shape[1]):
-            self.assertTrue(abs(cf_test[0, n] - self.cash_flow[0, n]) < 1.e-13)
-            self.assertTrue(abs(cf_test[1, n] - self.cash_flow[1, n]) < 1.e-13)
+            diff1 = abs(100 * cf_test[0, n] - self.cash_flow[0, n])
+            diff2 = abs(100 * cf_test[1, n] - self.cash_flow[1, n])
+            self.assertTrue(diff1 < 1.e-13)
+            self.assertTrue(diff2 < 1.e-13)
             if print_results:
                 print(n,
-                      cf_test[0, n], self.cash_flow[0, n],
-                      cf_test[1, n], self.cash_flow[1, n])
+                      100 * cf_test[0, n], self.cash_flow[0, n],
+                      100 * cf_test[1, n], self.cash_flow[1, n])
 
 
 if __name__ == '__main__':

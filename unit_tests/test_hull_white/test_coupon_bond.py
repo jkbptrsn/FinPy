@@ -36,7 +36,7 @@ class Bond(unittest.TestCase):
                                  self.cf_type)
         # Event grid
         event_dt = 0.01
-        self.event_grid, self.cash_flow_schedule = \
+        self.event_grid, self.cash_flow_schedule, _ = \
             cash_flows.set_event_grid(self.cash_flow_grid, event_dt)
 
         # FD spatial grid.
