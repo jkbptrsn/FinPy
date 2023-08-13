@@ -8,8 +8,8 @@ from unit_tests.test_hull_white import input
 from utils import cash_flows
 from utils import plots
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 
 class FixedRate(unittest.TestCase):

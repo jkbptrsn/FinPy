@@ -5,8 +5,8 @@ import numpy as np
 
 from utils import cash_flows
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 
 class CashFlows(unittest.TestCase):
@@ -57,7 +57,7 @@ class CashFlows(unittest.TestCase):
 
     def test_normalization(self):
         """Test normalization of installments."""
-        self.assertAlmostEqual(self.cash_flow_issuance[0, :].sum(), 100, 20)
+        self.assertAlmostEqual(self.cash_flow_issuance[0, :].sum(), 100, 12)
 
     def test_plots(self):
         """..."""

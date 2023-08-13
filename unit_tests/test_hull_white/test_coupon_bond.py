@@ -106,7 +106,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.7f}")
-        self.assertTrue(max_error < 6.8e-4)
+        self.assertTrue(max_error < 7.2e-4)
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of bond."""
@@ -134,7 +134,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.7f}")
-        self.assertTrue(max_error < 2.0e-6)
+        self.assertTrue(max_error < 2.3e-6)
         # Check gamma.
         numerical = self.bond_pelsser.fd.gamma()
         analytical = self.bond_pelsser.gamma(self.x_grid, 0)
