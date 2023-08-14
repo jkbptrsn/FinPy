@@ -16,29 +16,38 @@ class Bond(unittest.TestCase):
     """Bond in 1-factor Hull-White model."""
 
     def setUp(self) -> None:
-        # Model parameters.
+        # Parameters of term structure model.
         self.kappa = input.kappa_strip
         self.vol = input.vol_strip
         self.discount_curve = input.disc_curve
-
-        self.t_initial = 0
-        self.t_final = 5
-        self.principal = 100
-        self.coupon = 0.05
-        self.frequency = 1
+        # Cash flow type.
         self.cf_type = "annuity"
+        # Initial time of first payment period.
+        self.t_i = 0
+        # Final time of last payment period.
+        self.t_f = 5
+        # Principal at time zero.
+        self.principal = 100
+        # Fixed yearly coupon.
+        self.coupon = 0.05
+        # Term frequency per year.
+        self.frequency = 1
+        # Cash flows.
         self.cash_flow_grid = \
-            cash_flows.set_payment_grid(self.t_initial, self.t_final,
+            cash_flows.set_payment_grid(self.t_i,
+                                        self.t_f,
                                         self.frequency)
         self.cash_flow = \
-            cash_flows.cash_flow(self.coupon, self.frequency,
-                                 self.cash_flow_grid, self.principal,
+            cash_flows.cash_flow(self.coupon,
+                                 self.frequency,
+                                 self.cash_flow_grid,
+                                 self.principal,
                                  self.cf_type)
         # Event grid
         event_dt = 0.01
         self.event_grid, self.cash_flow_schedule, _ = \
-            cash_flows.set_event_grid(self.cash_flow_grid, event_dt)
-
+            cash_flows.set_event_grid(self.cash_flow_grid,
+                                      event_dt)
         # FD spatial grid.
         self.x_min = -0.15
         self.x_max = 0.15
