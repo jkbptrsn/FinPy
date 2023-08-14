@@ -249,9 +249,8 @@ class FixedRate(bonds.BondAnalytical1F):
         zcbond_pv_tmp *= oas_adjustment
         if self.callable_bond:
 
-            # TODO: Prepayment function...
-            # Constant prepayment rate.
-            prepayment_rate = 0.2
+            prepayment_rate = \
+                prepayment_function(self.fd.grid, event_idx, self.zcbond)
 
             # Present value of bond with notional of 100.
             zcbond_pv_tmp *= 100
@@ -360,10 +359,10 @@ class FixedRate(bonds.BondAnalytical1F):
             zcbond_pv_tmp = discount_paths[idx_payment, :] \
                 / discount_paths[idx_deadline, :]
             if self.callable_bond:
+                rate_paths = mc_object.rate_paths[idx_deadline]
 
-                # TODO: Prepayment function...
-                # Constant prepayment rate.
-                prepayment_rate = 0.2
+                prepayment_rate = \
+                    prepayment_function(rate_paths, idx_deadline, self.zcbond)
 
                 # Notional of 100 discounted along each path.
                 zcbond_pv_tmp *= 100
@@ -371,7 +370,6 @@ class FixedRate(bonds.BondAnalytical1F):
                 bond_payoff *= discount_paths_steps[counter]
                 # Value of prepayment option.
                 if idx_deadline != 0:
-                    rate_paths = mc_object.rate_paths[idx_deadline]
                     option_value = \
                         lsm.prepayment_option(rate_paths,
                                               bond_payoff,
@@ -538,3 +536,20 @@ class FixedRatePelsser(FixedRate):
         self.adjust_rate = self.zcbond.adjust_rate
         self.adjust_discount_steps = self.zcbond.adjust_discount_steps
         self.adjust_discount = self.zcbond.adjust_discount
+
+
+def prepayment_function(short_rate: (float, np.ndarray),
+                        event_idx: int,
+                        _zcbond: zcbond.ZCBond) -> (float, np.ndarray):
+    """Prepayment function.
+
+    Args:
+        short_rate: Pseudo short rate(s).
+        event_idx: Index on event grid.
+        _zcbond: Zero-coupon bond object.
+
+    Returns:
+        Prepayment function.
+    """
+    # Constant prepayment rate.
+    return 0.2
