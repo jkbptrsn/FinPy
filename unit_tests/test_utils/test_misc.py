@@ -15,7 +15,7 @@ class Integration(unittest.TestCase):
         """
         time_grid = np.arange(10)
         values = np.array([1, 2, 3, 1, 1, 5, 6, 6, 3, 3])
-        vol_constant = misc.DiscreteFunc("vol", time_grid, values)
+        vol_constant = data_types.DiscreteFunc("vol", time_grid, values)
         vol_linear = \
             data_types.DiscreteFunc("vol", time_grid, values,
                                     interp_scheme="linear")

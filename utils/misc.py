@@ -75,56 +75,7 @@ def trapz(grid: np.ndarray,
     return dx * (function[1:] + function[:-1]) / 2
 
 
-###############################################################################
-
-
-class DiscreteFunc:
-    """Interpolation and extrapolation of a discrete function.
-
-    # TODO: Moved to data_types.py . Can the class be deleted?
-
-    Attributes:
-        name: Name of the function.
-        time_grid: Time grid in year fractions.
-        values: Function value at each point on time grid.
-        interp_scheme: Interpolation scheme.
-            Default is flat interpolation ("zero"). Some other
-            interpolation schemes are "linear", "quadratic", "cubic",
-            etc. For more information, see the scipy documentation.
-        extrap_scheme: Use corresponding extrapolation scheme. Default
-            is True.
-    """
-
-    def __init__(self,
-                 name: str,
-                 time_grid: np.ndarray,
-                 values: np.ndarray,
-                 interp_scheme: str = "zero",
-                 extrap_scheme: bool = True):
-        self.name = name
-        self.time_grid = time_grid
-        self.values = values
-        self.interp_scheme = interp_scheme
-        self.extrap_scheme = extrap_scheme
-
-    def interpolation(self,
-                      interp_time_grid: (float, np.ndarray)) \
-            -> (float, np.ndarray):
-        """Interpolate (and extrapolate) on interp_time_grid.
-
-        Args:
-            interp_time_grid: Interpolation time grid in year fractions.
-
-        Returns:
-            Function values on interpolation time grid.
-        """
-        if self.extrap_scheme:
-            extrap = "extrapolate"
-        else:
-            extrap = None
-        f = interp1d(self.time_grid, self.values, kind=self.interp_scheme,
-                     fill_value=extrap)
-        return f(interp_time_grid)
+########################################################################
 
 
 def monte_carlo_error(realizations: np.ndarray) -> float:
