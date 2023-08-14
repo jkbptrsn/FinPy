@@ -35,7 +35,7 @@ def normal_realizations(n_realizations: int,
 def cholesky_2d(correlation: float,
                 n_sets: int,
                 rng: np.random.Generator,
-                antithetic: bool = False) -> tuple[np.ndarray, np.ndarray]:
+                antithetic: bool = False) -> (np.ndarray, np.ndarray):
     """Cholesky decomposition of correlation matrix in 2-D.
 
     In the 2-D case, the transformation is simply:
@@ -167,7 +167,7 @@ def sobol_init(event_grid_size: int):
 
 def cholesky_2d_sobol_test(correlation: float,
                            sobol_norm,
-                           time_idx) -> tuple[np.ndarray, np.ndarray]:
+                           time_idx) -> (np.ndarray, np.ndarray):
     """..."""
     corr_matrix = np.array([[1, correlation], [correlation, 1]])
     corr_matrix = np.linalg.cholesky(corr_matrix)

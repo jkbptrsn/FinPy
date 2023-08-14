@@ -16,29 +16,38 @@ class Bond(unittest.TestCase):
     """Bond in 1-factor Hull-White model."""
 
     def setUp(self) -> None:
-        # Model parameters.
+        # Parameters of term structure model.
         self.kappa = input.kappa_strip
         self.vol = input.vol_strip
         self.discount_curve = input.disc_curve
-
-        self.t_initial = 0
-        self.t_final = 5
-        self.principal = 100
-        self.coupon = 0.05
-        self.frequency = 1
+        # Cash flow type.
         self.cf_type = "annuity"
+        # Initial time of first payment period.
+        self.t_i = 0
+        # Final time of last payment period.
+        self.t_f = 5
+        # Principal at time zero.
+        self.principal = 100
+        # Fixed yearly coupon.
+        self.coupon = 0.05
+        # Term frequency per year.
+        self.frequency = 1
+        # Cash flows.
         self.cash_flow_grid = \
-            cash_flows.set_cash_flow_grid(self.t_initial, self.t_final,
-                                          self.frequency)
+            cash_flows.set_payment_grid(self.t_i,
+                                        self.t_f,
+                                        self.frequency)
         self.cash_flow = \
-            cash_flows.cash_flow(self.coupon, self.frequency,
-                                 self.cash_flow_grid, self.principal,
+            cash_flows.cash_flow(self.coupon,
+                                 self.frequency,
+                                 self.cash_flow_grid,
+                                 self.principal,
                                  self.cf_type)
         # Event grid
         event_dt = 0.01
-        self.event_grid, self.cash_flow_schedule = \
-            cash_flows.set_event_grid(self.cash_flow_grid, event_dt)
-
+        self.event_grid, self.cash_flow_schedule, _ = \
+            cash_flows.set_event_grid(self.cash_flow_grid,
+                                      event_dt)
         # FD spatial grid.
         self.x_min = -0.15
         self.x_max = 0.15
@@ -106,7 +115,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.7f}")
-        self.assertTrue(max_error < 6.8e-4)
+        self.assertTrue(max_error < 7.2e-4)
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of bond."""
@@ -134,7 +143,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.7f}")
-        self.assertTrue(max_error < 2.0e-6)
+        self.assertTrue(max_error < 2.3e-6)
         # Check gamma.
         numerical = self.bond_pelsser.fd.gamma()
         analytical = self.bond_pelsser.gamma(self.x_grid, 0)

@@ -12,5 +12,5 @@ class SDE(metaclass=abc.ABCMeta):
               n_paths: int,
               rng: np.random.Generator = None,
               seed: int = None,
-              antithetic: bool = False) -> tuple[np.ndarray, np.ndarray]:
+              antithetic: bool = False) -> (np.ndarray, np.ndarray):
         pass

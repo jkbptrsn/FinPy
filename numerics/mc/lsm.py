@@ -95,3 +95,61 @@ def american_option(instrument,
     mc_average *= discount_grid[exercise_grid[-1]] / discount_grid[0]
 
     return mc_average
+
+
+def prepayment_option(paths,
+                      bond_payoff,
+                      strike_price: float = 100,
+                      basis_set: str = "Power",
+                      degree: int = 4):
+    """Pricing prepayment option using Longstaff-Schwartz method.
+
+    Args:
+        paths: ...
+        bond_payoff: ...
+        strike_price: ...
+        basis_set: Type of polynomial basis set. Default is Power.
+            * Power
+            * Chebyshev
+            * Legendre
+            * Laguerre
+            * Hermite
+        degree: Degree of series based on basis set. Default is 4.
+
+    Returns:
+        Prepayment option price.
+    """
+    plot_regression = False
+
+    # Get fitting function.
+    if basis_set == "Power":
+        fit_function = poly.Polynomial.fit
+    elif basis_set == "Chebyshev":
+        fit_function = poly.Chebyshev.fit
+    elif basis_set == "Legendre":
+        fit_function = poly.Legendre.fit
+    elif basis_set == "Laguerre":
+        fit_function = poly.Laguerre.fit
+    elif basis_set == "Hermite":
+        fit_function = poly.Hermite.fit
+    else:
+        raise ValueError(f"Unknown basis set: {basis_set}")
+
+    # Least squares fit.
+    ls_fit = fit_function(paths, bond_payoff, deg=degree)
+    # LSM estimate of expected continuation value.
+    cont_value_lsm = ls_fit(paths)
+
+    # The polynomial fit can give negative continuation values.
+    # These are truncated at zero. TODO: Important!
+    cont_value_lsm = np.maximum(cont_value_lsm, 0)
+
+    if plot_regression:
+        x_grid = np.linspace(-0.25, 0.15)
+        plt.plot(paths, bond_payoff, "ob")
+        plt.plot(x_grid, ls_fit(x_grid), "-r")
+        plt.plot(x_grid, np.maximum(ls_fit(x_grid), 0), "-k")
+        plt.pause(0.5)
+        plt.cla()
+
+    return np.maximum(cont_value_lsm - strike_price, 0)
