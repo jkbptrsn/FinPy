@@ -15,10 +15,6 @@ from utils import smoothing
 class FixedRate(bonds.BondAnalytical1F):
     """Fixed rate callable bond in 1-factor Hull-White model.
 
-    TODO:
-     * wrapper for calculating OAS based on price.
-     * price-rate plots.
-
     Fixed rate callable bond with pre-specified cash flow.
 
     Attributes:

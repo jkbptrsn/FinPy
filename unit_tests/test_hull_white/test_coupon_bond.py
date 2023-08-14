@@ -28,8 +28,8 @@ class Bond(unittest.TestCase):
         self.frequency = 1
         self.cf_type = "annuity"
         self.cash_flow_grid = \
-            cash_flows.set_cash_flow_grid(self.t_initial, self.t_final,
-                                          self.frequency)
+            cash_flows.set_payment_grid(self.t_initial, self.t_final,
+                                        self.frequency)
         self.cash_flow = \
             cash_flows.cash_flow(self.coupon, self.frequency,
                                  self.cash_flow_grid, self.principal,

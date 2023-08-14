@@ -40,7 +40,7 @@ class FixedRate(unittest.TestCase):
 
         # Cash flow with issuance period.
         self.cash_flow_grid = \
-            cash_flows.set_cash_flow_grid_issuance(
+            cash_flows.set_payment_grid_issuance(
                 self.t_i, self.t_f, self.frequency, self.issuance_terms)
         self.cash_flow = \
             cash_flows.cash_flow_split_issuance(
