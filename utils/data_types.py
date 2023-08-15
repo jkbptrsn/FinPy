@@ -9,12 +9,15 @@ class DiscreteFunc:
 
     Attributes:
         name: Name of the function.
-        event_grid: Event grid in year fractions.
+        event_grid: Event dates as year fractions from as-of date.
         values: Function value at each point on event grid.
         interp_scheme: Interpolation scheme.
-            Default is flat interpolation ("zero"). Some other
-            interpolation schemes are "linear", "quadratic", "cubic",
-            etc. For more information, see the scipy documentation.
+            * zero
+            * linear
+            * quadratic
+            * cubic
+            Default is flat interpolation ("zero").For more information,
+            see the scipy documentation.
         extrap_scheme: Use corresponding extrapolation scheme.
             Default is True.
     """
@@ -22,30 +25,37 @@ class DiscreteFunc:
     def __init__(self,
                  name: str,
                  event_grid: np.ndarray,
-                 func_grid: np.ndarray,
+                 values: np.ndarray,
                  interp_scheme: str = "zero",
                  extrap_scheme: bool = True):
         self.name = name
         self.event_grid = event_grid
-        self.values = func_grid
+        self.values = values
         self.interp_scheme = interp_scheme
         self.extrap_scheme = extrap_scheme
+
+        self.f_interpolation = None
+        self._initialization()
+
+    def _initialization(self):
+        """Set up interpolation function."""
+        if self.extrap_scheme:
+            extrap = "extrapolate"
+        else:
+            extrap = None
+        self.f_interpolation = \
+            interp1d(self.event_grid, self.values,
+                     kind=self.interp_scheme, fill_value=extrap)
 
     def interpolation(self,
                       interp_grid: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
-        """Interpolate (and extrapolate) on interp_event_grid.
+        """Interpolate (and extrapolate) on interp_grid.
 
         Args:
             interp_grid: Interpolation grid in year fractions.
 
         Returns:
-            Function values on interpolation grid.
+            Interpolated values.
         """
-        if self.extrap_scheme:
-            extrap = "extrapolate"
-        else:
-            extrap = None
-        f = interp1d(self.event_grid, self.values,
-                     kind=self.interp_scheme, fill_value=extrap)
-        return f(interp_grid)
+        return self.f_interpolation(interp_grid)
