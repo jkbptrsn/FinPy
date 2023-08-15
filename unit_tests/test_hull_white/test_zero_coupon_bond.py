@@ -50,7 +50,8 @@ class ZeroCouponBond(unittest.TestCase):
 
     def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""
-        print(self.bond.transformation)
+        if print_results:
+            print(self.bond.transformation)
         self.bond.fd_setup(self.x_grid, equidistant=True)
         self.bond.fd_solve()
         # Check price.
@@ -93,7 +94,8 @@ class ZeroCouponBond(unittest.TestCase):
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of zero-coupon bond."""
-        print(self.bond_pelsser.transformation)
+        if print_results:
+            print(self.bond_pelsser.transformation)
         self.bond_pelsser.fd_setup(self.x_grid, equidistant=True)
         self.bond_pelsser.fd_solve()
         # Check price.

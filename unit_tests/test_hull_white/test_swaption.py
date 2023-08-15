@@ -72,7 +72,8 @@ class Swaption(unittest.TestCase):
 
     def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""
-        print(self.swaption.transformation)
+        if print_results:
+            print(self.swaption.transformation)
         self.swaption.fd_setup(self.x_grid, equidistant=True)
         self.swaption.fd_solve()
         # Check price.
@@ -115,7 +116,8 @@ class Swaption(unittest.TestCase):
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of zero-coupon bond."""
-        print(self.swaptionPelsser.transformation)
+        if print_results:
+            print(self.swaptionPelsser.transformation)
         self.swaptionPelsser.fd_setup(self.x_grid, equidistant=True)
         self.swaptionPelsser.fd_solve()
         # Check price.

@@ -320,7 +320,8 @@ class Call(unittest.TestCase):
 
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
-        print(self.call.transformation)
+        if print_results:
+            print(self.call.transformation)
         self.call.fd_setup(self.x_grid, equidistant=True)
         self.call.fd_solve()
         # Check price.
@@ -363,7 +364,8 @@ class Call(unittest.TestCase):
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of zero-coupon bond."""
-        print(self.callPelsser.transformation)
+        if print_results:
+            print(self.callPelsser.transformation)
         self.callPelsser.fd_setup(self.x_grid, equidistant=True)
         self.callPelsser.fd_solve()
         # Check price.
@@ -549,7 +551,8 @@ class Put(unittest.TestCase):
 
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
-        print(self.put.transformation)
+        if print_results:
+            print(self.put.transformation)
         self.put.fd_setup(self.x_grid, equidistant=True)
         self.put.fd_solve()
         # Check price.
@@ -592,7 +595,8 @@ class Put(unittest.TestCase):
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of zero-coupon bond."""
-        print(self.putPelsser.transformation)
+        if print_results:
+            print(self.putPelsser.transformation)
         self.putPelsser.fd_setup(self.x_grid, equidistant=True)
         self.putPelsser.fd_solve()
         # Check price.

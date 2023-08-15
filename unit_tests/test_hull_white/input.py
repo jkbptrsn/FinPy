@@ -5,41 +5,106 @@ from scipy.interpolate import UnivariateSpline
 from utils import data_types
 
 
-# Yield curve. Continuous compounded yield y(0,0,t).
-time_grid = np.array([0.09, 0.26, 0.5, 1, 1.5, 2, 3, 4,
-                      5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30])
-yield_grid = np.array([-0.0034, 0.0005, 0.0061, 0.0135, 0.0179,
-                       0.0202, 0.0224, 0.0237, 0.0246, 0.0252,
-                       0.0256, 0.0261, 0.0265, 0.0270, 0.0277,
-                       0.0281, 0.0267, 0.0249, 0.0233])
-yield_curve = data_types.DiscreteFunc("yield", time_grid, yield_grid, "cubic")
+# Yield curve. Continuously compounded yield y(0,0,t).
+event_grid = \
+    np.array([0.09,
+              0.26,
+              0.5,
+              1,
+              1.5,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              12,
+              15,
+              20,
+              25,
+              30])
+yield_grid = \
+    np.array([-0.0034,
+              0.0005,
+              0.0061,
+              0.0135,
+              0.0179,
+              0.0202,
+              0.0224,
+              0.0237,
+              0.0246,
+              0.0252,
+              0.0256,
+              0.0261,
+              0.0265,
+              0.0270,
+              0.0277,
+              0.0281,
+              0.0267,
+              0.0249,
+              0.0233])
+yield_curve = \
+    data_types.DiscreteFunc("yield",
+                            event_grid,
+                            yield_grid,
+                            "cubic")
 
 # Discount curve.
-disc_grid = np.exp(-yield_grid * time_grid)
-# Time-grid extended to zero to avoid extrapolation error.
-time_grid = np.append(0, time_grid)
+disc_grid = np.exp(-yield_grid * event_grid)
+# Event grid extended to zero to avoid extrapolation error.
+event_grid = np.append(0, event_grid)
 disc_grid = np.append(1, disc_grid)
-disc_curve = data_types.DiscreteFunc("discount", time_grid, disc_grid, "cubic")
+disc_curve = \
+    data_types.DiscreteFunc("discount",
+                            event_grid,
+                            disc_grid,
+                            "cubic")
 
 # Speed of mean reversion strip.
-time_grid = np.array([0, 10])
+event_grid = np.array([0, 10])
 kappa_grid = 0.023 * np.array([1, 1])
-kappa_strip = data_types.DiscreteFunc("kappa", time_grid, kappa_grid)
+kappa_strip = data_types.DiscreteFunc("kappa", event_grid, kappa_grid)
 
 # Volatility strip.
-time_grid = np.array([0, 0.25, 0.5, 1, 2, 3, 4, 5, 7, 10, 20])
-vol_grid = np.array([0.0165, 0.0143, 0.0140, 0.0132, 0.0128, 0.0103,
-                     0.0067, 0.0096, 0.0087, 0.0091, 0.0098])
-vol_strip = data_types.DiscreteFunc("vol", time_grid, vol_grid)
+event_grid = \
+    np.array([0,
+              0.25,
+              0.5,
+              1,
+              2,
+              3,
+              4,
+              5,
+              7,
+              10,
+              20])
+vol_grid = \
+    np.array([0.0165,
+              0.0143,
+              0.0140,
+              0.0132,
+              0.0128,
+              0.0103,
+              0.0067,
+              0.0096,
+              0.0087,
+              0.0091,
+              0.0098])
+vol_strip = data_types.DiscreteFunc("vol", event_grid, vol_grid)
 
 # Constant volatility strip.
-time_grid = np.array([0, 10])
+event_grid = np.array([0, 10])
 vol_grid_constant = 0.01 * np.array([1, 1])
 vol_strip_constant = \
-    data_types.DiscreteFunc("vol", time_grid, vol_grid_constant)
+    data_types.DiscreteFunc("vol",
+                            event_grid,
+                            vol_grid_constant)
 
 # Extended yield curve.
-time_grid = np.array(
+event_grid = np.array(
     [0.025,
      0.282,
      0.531,
@@ -270,17 +335,23 @@ yield_grid = np.array([
     0.02391,
     0.02383])
 yield_curve_ext = \
-    data_types.DiscreteFunc("yield", time_grid, yield_grid, "cubic")
+    data_types.DiscreteFunc("yield",
+                            event_grid,
+                            yield_grid,
+                            "cubic")
 
-# Discount curve.
-disc_grid = np.exp(-yield_grid * time_grid)
-# Time-grid extended to zero to avoid extrapolation error.
-time_grid_ext = np.append(0, time_grid)
-disc_grid_ext = np.append(1, disc_grid)
+# Extended discount curve.
+disc_grid = np.exp(-yield_grid * event_grid)
+# Event grid extended to zero to avoid extrapolation error.
+event_grid_ext = np.append(0, event_grid)
+disc_grid = np.append(1, disc_grid)
 disc_curve_ext = \
-    data_types.DiscreteFunc("discount", time_grid_ext, disc_grid_ext, "cubic")
+    data_types.DiscreteFunc("discount",
+                            event_grid_ext,
+                            disc_grid,
+                            "cubic")
 
-# Instantaneous forward rate curve. f(0,t).
+# Extended instantaneous forward rate curve f(0,t).
 forward_rate_grid = np.array([
     -0.00435,
     0.00731,
@@ -397,63 +468,63 @@ forward_rate_grid = np.array([
     0.01509,
     0.01504])
 forward_rate_ext = \
-    data_types.DiscreteFunc("forward rate", time_grid, forward_rate_grid,
+    data_types.DiscreteFunc("forward rate",
+                            event_grid,
+                            forward_rate_grid,
                             "cubic")
 
 
 if __name__ == '__main__':
 
-    # Plot yield curve.
+    # Plot yield curves.
     plt.plot(yield_curve.event_grid, 100 * yield_curve.values, "ob")
     plt.plot(yield_curve_ext.event_grid, 100 * yield_curve_ext.values, "-b")
     plt.xlabel("t [years]")
     plt.ylabel("y(0,0,t) [%]")
     plt.show()
 
-    # Compare interpolation schemes for the yield curve...
+    # Plot yield curves. Compare interpolation scheme with extended version.
     yield_interpolation = yield_curve.interpolation(yield_curve_ext.event_grid)
     yield_diff = yield_interpolation - yield_curve_ext.values
     plt.plot(yield_curve_ext.event_grid, 100 * yield_diff, "-b")
     plt.xlabel("t [years]")
-    plt.ylabel("y_interpolated(0,0,t) - y(0,0,t) [%]")
+    plt.ylabel("Difference between yield curves [%]")
     plt.show()
 
-    # Compare curves
-    time_grid_plot = 0.025 * np.arange(1201)
-
-    yield_curve_plot = yield_curve.interpolation(time_grid_plot)
-
+    # Plot instantaneous forward rate curves.
+    event_grid_plot = forward_rate_ext.event_grid
+    yield_curve_plot = yield_curve.interpolation(event_grid_plot)
     yield_spline = \
         UnivariateSpline(yield_curve.event_grid, yield_curve.values, s=0)
     yield_spline = yield_spline.derivative()
     forward_rate_plot = \
-        yield_curve_plot + time_grid_plot * yield_spline(time_grid_plot)
+        yield_curve_plot + event_grid_plot * yield_spline(event_grid_plot)
+    plt.plot(event_grid_plot, 100 * forward_rate_plot, "ob")
+    plt.plot(event_grid_plot, 100 * forward_rate_ext.values, "-b")
+    plt.xlabel("t [years]")
+    plt.ylabel("Instantaneous forward rate [%]")
+    plt.show()
 
+    # Compare yield, instantaneous forward rate and discount curves.
+    event_grid_plot = 0.025 * np.arange(1201)
     ax1 = plt.subplot()
     plt.xlabel("t [years]")
     plt.xlim([0, 30])
-
-    yield_curve_plot *= 100
-    p1 = ax1.plot(time_grid_plot, yield_curve_plot,
+    yield_curve_ext_plot = yield_curve_ext.interpolation(event_grid_plot)
+    yield_curve_ext_plot *= 100
+    p1 = ax1.plot(event_grid_plot, yield_curve_ext_plot,
                   "-b", label="y(0,0,t): Yield curve")
-
-    forward_rate_ext_plot = forward_rate_ext.interpolation(time_grid_plot)
+    forward_rate_ext_plot = forward_rate_ext.interpolation(event_grid_plot)
     forward_rate_ext_plot *= 100
-#    p2 = ax1.plot(time_grid_plot, forward_rate_ext_plot, "-r", label="f(0,t)")
-
-    forward_rate_plot *= 100
-    p2 = ax1.plot(time_grid_plot, forward_rate_plot,
+    p2 = ax1.plot(event_grid_plot, forward_rate_ext_plot,
                   "-r", label="f(0,t): Instantaneous forward rate curve")
     plt.ylabel("y(0,0,t) and f(0,t) [%]")
-
     ax2 = ax1.twinx()
-    disc_curve_plot = disc_curve.interpolation(time_grid_plot)
-    p3 = ax2.plot(time_grid_plot, disc_curve_plot,
+    disc_curve_ext_plot = disc_curve_ext.interpolation(event_grid_plot)
+    p3 = ax2.plot(event_grid_plot, disc_curve_ext_plot,
                   "-k", label="P(0,t): Discount curve")
     plt.ylabel("P(0,t)")
     plt.ylim([0, 1.05])
-
     plots = p1 + p2 + p3
     ax2.legend(plots, [legend.get_label() for legend in plots], loc=4)
-
     plt.show()
