@@ -3,9 +3,9 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 
-from models.hull_white import european_option as option
-from models.hull_white import misc_european_option as misc_ep
-from unit_tests.test_hull_white import input
+from models.hull_white_1F import european_option as option
+from models.hull_white_1F import misc_european_option as misc_ep
+from unit_tests.test_hull_white_1F import input
 from utils import data_types
 from utils import plots
 

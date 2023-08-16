@@ -5,8 +5,8 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 
-from unit_tests.test_hull_white import input
-from models.hull_white import zero_coupon_bond
+from unit_tests.test_hull_white_1F import input
+from models.hull_white_1F import zero_coupon_bond
 from utils import misc
 
 

@@ -3,7 +3,7 @@ import typing
 
 import numpy as np
 
-from models.hull_white import mc_andersen as mc_a
+from models.hull_white_1F import mc_andersen as mc_a
 from utils import data_types
 from utils import global_types
 

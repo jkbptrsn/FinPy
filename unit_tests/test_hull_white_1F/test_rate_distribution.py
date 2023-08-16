@@ -3,10 +3,10 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 
-from models.hull_white import zero_coupon_bond as zcbond
-from models.hull_white import mc_andersen as mc_a
-from models.hull_white import mc_pelsser as mc_p
-from unit_tests.test_hull_white import input
+from models.hull_white_1F import zero_coupon_bond as zcbond
+from models.hull_white_1F import mc_andersen as mc_a
+from models.hull_white_1F import mc_pelsser as mc_p
+from unit_tests.test_hull_white_1F import input
 
 plot_results = False
 print_results = False

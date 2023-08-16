@@ -3,10 +3,10 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 
-from models.hull_white import misc_swap as misc_sw
-from models.hull_white import swap
-from models.hull_white import swaption
-from unit_tests.test_hull_white import input
+from models.hull_white_1F import misc_swap as misc_sw
+from models.hull_white_1F import swap
+from models.hull_white_1F import swaption
+from unit_tests.test_hull_white_1F import input
 from utils import plots
 
 plot_results = False

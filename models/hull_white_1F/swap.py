@@ -4,8 +4,8 @@ import typing
 import numpy as np
 
 from models import bonds
-from models.hull_white import misc_swap as misc_sw
-from models.hull_white import zero_coupon_bond as zcbond
+from models.hull_white_1F import misc_swap as misc_sw
+from models.hull_white_1F import zero_coupon_bond as zcbond
 from utils import data_types
 from utils import global_types
 

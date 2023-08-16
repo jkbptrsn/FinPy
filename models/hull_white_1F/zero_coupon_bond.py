@@ -4,9 +4,9 @@ import typing
 import numpy as np
 
 from models import bonds
-from models.hull_white import mc_andersen as mc_a
-from models.hull_white import mc_pelsser as mc_p
-from models.hull_white import misc as misc_hw
+from models.hull_white_1F import mc_andersen as mc_a
+from models.hull_white_1F import mc_pelsser as mc_p
+from models.hull_white_1F import misc as misc_hw
 from utils import data_types
 from utils import global_types
 from utils import payoffs
@@ -15,7 +15,7 @@ from utils import payoffs
 class ZCBond(bonds.BondAnalytical1F):
     """Zero-coupon bond in 1-factor Hull-White model.
 
-    Price of Zero-coupon bond dependent on pseudo short rate modelled by
+    Price of zero-coupon bond dependent on pseudo short rate modelled by
     1-factor Hull-White SDE.
 
     See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.

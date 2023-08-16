@@ -3,8 +3,8 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 
-from models.hull_white import cap as cf_hw
-from unit_tests.test_hull_white import input
+from models.hull_white_1F import cap as cf_hw
+from unit_tests.test_hull_white_1F import input
 from utils import plots
 
 plot_results = False

@@ -3,7 +3,7 @@ import typing
 
 import numpy as np
 
-from models.hull_white import misc as misc_hw
+from models.hull_white_1F import misc as misc_hw
 from utils import data_types
 from utils import global_types
 from utils import misc

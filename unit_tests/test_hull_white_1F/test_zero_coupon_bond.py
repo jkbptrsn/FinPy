@@ -3,8 +3,8 @@ import unittest
 from matplotlib import pyplot as plt
 import numpy as np
 
-from models.hull_white import zero_coupon_bond as zcbond
-from unit_tests.test_hull_white import input
+from models.hull_white_1F import zero_coupon_bond as zcbond
+from unit_tests.test_hull_white_1F import input
 from utils import plots
 
 plot_results = False

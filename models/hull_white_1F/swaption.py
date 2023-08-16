@@ -1,27 +1,31 @@
-import math
 import typing
+import math
 
 import numpy as np
+from scipy.optimize import brentq
 
 from models import options
-from models.hull_white import caplet
+from models.hull_white_1F import european_option as option
+from models.hull_white_1F import misc_swap as misc_sw
+from models.hull_white_1F import swap
 from utils import data_types
 from utils import global_types
+from utils import payoffs
 
 
-class Cap(options.Option1FAnalytical):
-    """Cap or floor in 1-factor Hull-White model.
+class Payer(options.Option1FAnalytical):
+    """European payer swaption in 1-factor Hull-White model.
 
-    Price of cap of floor.
+    Price of European payer swaption based on a fixed-for-floating swap
+    (based on "simple rate" fixing).
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See L.B.G. Andersen & V.V. Piterbarg 2010, section 5.10 and 10.1.3.
 
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
         discount_curve: Discount curve represented on event grid.
-        strike_rate: Cap or floor rate.
+        fixed_rate: Fixed rate.
         fixing_schedule: Fixing indices on event grid.
         payment_schedule: Payment indices on event grid.
         event_grid: Event dates as year fractions from as-of date.
@@ -32,45 +36,56 @@ class Cap(options.Option1FAnalytical):
             "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
-        option_type: Cap or floor. Default is cap.
     """
 
     def __init__(self,
                  kappa: data_types.DiscreteFunc,
                  vol: data_types.DiscreteFunc,
                  discount_curve: data_types.DiscreteFunc,
-                 strike_rate: float,
+                 fixed_rate: float,
                  fixing_schedule: np.ndarray,
                  payment_schedule: np.ndarray,
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52,
-                 option_type: str = "cap"):
+                 int_dt: float = 1 / 52):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
         self.discount_curve = discount_curve
-        self.strike_rate = strike_rate
+        self.fixed_rate = fixed_rate
         self.fixing_schedule = fixing_schedule
         self.payment_schedule = payment_schedule
         self.event_grid = event_grid
         self.time_dependence = time_dependence
         self.int_dt = int_dt
 
-        # Caplet/floorlet.
-        self.xlet = \
-            caplet.Caplet(kappa,
-                          vol,
-                          discount_curve,
-                          strike_rate,
-                          fixing_schedule[0],
-                          payment_schedule[0],
-                          event_grid,
-                          time_dependence,
-                          int_dt,
-                          option_type + "let")
+        # Underlying fixed-for-floating Swap.
+        self.swap = \
+            swap.Swap(kappa,
+                      vol,
+                      discount_curve,
+                      fixed_rate,
+                      fixing_schedule,
+                      payment_schedule,
+                      event_grid,
+                      time_dependence,
+                      int_dt)
         # Zero-coupon bond.
-        self.zcbond = self.xlet.zcbond
+        self.zcbond = self.swap.zcbond
+
+        # Put option written on zero-coupon bond.
+        self.put = \
+            option.EuropeanOption(kappa,
+                                  vol,
+                                  discount_curve,
+                                  0,
+                                  fixing_schedule[0],
+                                  payment_schedule[-1],
+                                  event_grid,
+                                  time_dependence,
+                                  int_dt,
+                                  "Put")
+
         # Kappa on event grid.
         self.kappa_eg = self.zcbond.kappa_eg
         # Vol on event grid.
@@ -84,45 +99,36 @@ class Cap(options.Option1FAnalytical):
 
         self.model = self.zcbond.model
         self.transformation = self.zcbond.transformation
-        if option_type == "cap":
-            self.type = global_types.Instrument.CAP
-        elif option_type == "floor":
-            self.type = global_types.Instrument.FLOOR
-        else:
-            raise ValueError(f"Unknown instrument type: {option_type}")
+        self.type = global_types.Instrument.SWAPTION
 
         self.adjust_rate = self.zcbond.adjust_rate
         self.adjust_discount_steps = self.zcbond.adjust_discount_steps
         self.adjust_discount = self.zcbond.adjust_discount
 
+    @property
+    def expiry(self) -> float:
+        return self.event_grid[self.fixing_schedule[0]]
+
+    @property
+    def maturity(self) -> float:
+        return self.event_grid[self.payment_schedule[-1]]
+
     def payoff(self,
-               spot: typing.Union[float, np.ndarray],
-               discounting: bool = False) \
+               spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
         Args:
-            spot: Spot pseudo short rate.
-            discounting: Do analytical discounting from payment date to
-                fixing date. Default is false.
+            spot: Spot value of underlying fixed-for-floating swap.
 
         Returns:
             Payoff.
         """
-        return 0 * spot
-
-    def xlet_payoff(self,
-                    spot: typing.Union[float, np.ndarray],
-                    fixing_idx: int,
-                    payment_idx: int) -> typing.Union[float, np.ndarray]:
-        """Payoff function for caplet or floorlet."""
-        self.xlet.fix_idx = fixing_idx
-        self.xlet.pay_idx = payment_idx
-        return self.xlet.payoff(spot, discounting=True)
+        return payoffs.call(spot, 0)
 
     def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+              spot: (float, np.ndarray),
+              event_idx: int) -> (float, np.ndarray):
         """Price function.
 
         Args:
@@ -132,13 +138,22 @@ class Cap(options.Option1FAnalytical):
         Returns:
             Price.
         """
-        _price = 0
-        # Assuming that event_idx <= self.fixing_schedule[0]
-        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
-            self.xlet.fix_idx = idx_fix
-            self.xlet.pay_idx = idx_pay
-            _price += self.xlet.price(spot, event_idx)
-        return _price
+        swaption_price = 0
+        # Pseudo short rate corresponding to zero swap value.
+        expiry_idx = self.fixing_schedule[0]
+        rate_star = brentq(self.swap.price, -0.9, 0.9, args=(expiry_idx,))
+        for fix_idx, pay_idx in \
+                zip(self.fixing_schedule, self.payment_schedule):
+            # "Strike" of put option.
+            self.zcbond.mat_idx = pay_idx
+            self.put.strike = self.zcbond.price(rate_star, expiry_idx)
+            self.put.mat_idx = pay_idx
+            put_price = self.put.price(spot, event_idx)
+            tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
+            swaption_price += self.fixed_rate * tenor * put_price
+            if pay_idx == self.event_grid.size - 1:
+                swaption_price += put_price
+        return swaption_price
 
     def delta(self,
               spot: typing.Union[float, np.ndarray],
@@ -152,13 +167,22 @@ class Cap(options.Option1FAnalytical):
         Returns:
             Delta.
         """
-        _delta = 0
-        # Assuming that event_idx <= self.fixing_schedule[0]
-        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
-            self.xlet.fix_idx = idx_fix
-            self.xlet.pay_idx = idx_pay
-            _delta += self.xlet.delta(spot, event_idx)
-        return _delta
+        swaption_delta = 0
+        # Pseudo short rate corresponding to zero swap value.
+        expiry_idx = self.fixing_schedule[0]
+        rate_star = brentq(self.swap.price, -0.9, 0.9, args=(expiry_idx,))
+        for fix_idx, pay_idx in \
+                zip(self.fixing_schedule, self.payment_schedule):
+            # "Strike" of put option.
+            self.zcbond.mat_idx = pay_idx
+            self.put.strike = self.zcbond.price(rate_star, expiry_idx)
+            self.put.mat_idx = pay_idx
+            put_delta = self.put.delta(spot, event_idx)
+            tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
+            swaption_delta += self.fixed_rate * tenor * put_delta
+            if pay_idx == self.event_grid.size - 1:
+                swaption_delta += put_delta
+        return swaption_delta
 
     def gamma(self,
               spot: typing.Union[float, np.ndarray],
@@ -172,13 +196,22 @@ class Cap(options.Option1FAnalytical):
         Returns:
             Gamma.
         """
-        _gamma = 0
-        # Assuming that event_idx <= self.fixing_schedule[0]
-        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
-            self.xlet.fix_idx = idx_fix
-            self.xlet.pay_idx = idx_pay
-            _gamma += self.xlet.gamma(spot, event_idx)
-        return _gamma
+        swaption_gamma = 0
+        # Pseudo short rate corresponding to zero swap value.
+        expiry_idx = self.fixing_schedule[0]
+        rate_star = brentq(self.swap.price, -0.9, 0.9, args=(expiry_idx,))
+        for fix_idx, pay_idx in \
+                zip(self.fixing_schedule, self.payment_schedule):
+            # "Strike" of put option.
+            self.zcbond.mat_idx = pay_idx
+            self.put.strike = self.zcbond.price(rate_star, expiry_idx)
+            self.put.mat_idx = pay_idx
+            put_gamma = self.put.gamma(spot, event_idx)
+            tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
+            swaption_gamma += self.fixed_rate * tenor * put_gamma
+            if pay_idx == self.event_grid.size - 1:
+                swaption_gamma += put_gamma
+        return swaption_gamma
 
     def theta(self,
               spot: typing.Union[float, np.ndarray],
@@ -192,13 +225,22 @@ class Cap(options.Option1FAnalytical):
         Returns:
             Theta.
         """
-        _theta = 0
-        # Assuming that event_idx <= self.fixing_schedule[0]
-        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
-            self.xlet.fix_idx = idx_fix
-            self.xlet.pay_idx = idx_pay
-            _theta += self.xlet.theta(spot, event_idx)
-        return _theta
+        swaption_theta = 0
+        # Pseudo short rate corresponding to zero swap value.
+        expiry_idx = self.fixing_schedule[0]
+        rate_star = brentq(self.swap.price, -0.9, 0.9, args=(expiry_idx,))
+        for fix_idx, pay_idx in \
+                zip(self.fixing_schedule, self.payment_schedule):
+            # "Strike" of put option.
+            self.zcbond.mat_idx = pay_idx
+            self.put.strike = self.zcbond.price(rate_star, expiry_idx)
+            self.put.mat_idx = pay_idx
+            put_theta = self.put.theta(spot, event_idx)
+            tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
+            swaption_theta += self.fixed_rate * tenor * put_theta
+            if pay_idx == self.event_grid.size - 1:
+                swaption_theta += put_theta
+        return swaption_theta
 
     def fd_solve(self):
         """Run finite difference solver on event grid."""
@@ -213,13 +255,27 @@ class Cap(options.Option1FAnalytical):
             event_idx = (self.event_grid.size - 1) - count
             # Update drift, diffusion and rate vectors at previous event.
             self.fd_update(event_idx - 1)
-            # Payoff at payment event, discounted to fixing event.
+            # Swap payments.
             if event_idx in self.fixing_schedule:
                 idx_fix = event_idx
                 which_fix = np.where(self.fixing_schedule == idx_fix)
                 idx_pay = self.payment_schedule[which_fix][0]
-                self.fd.solution += \
-                    self.xlet_payoff(self.fd.grid, idx_fix, idx_pay)
+                # P(t_fixing, t_payment).
+                bond_price = \
+                    self.swap.zcbond_price(self.fd.grid, idx_fix, idx_pay)
+                # Tenor.
+                tenor = self.event_grid[idx_pay] - self.event_grid[idx_fix]
+                # Simple rate at t_fixing for (t_fixing, t_payment).
+                simple_rate = misc_sw.simple_forward_rate(bond_price, tenor)
+                # Payment.
+                payment = tenor * (simple_rate - self.fixed_rate)
+                # Analytical discounting from payment date to fixing date.
+                payment *= bond_price
+                self.fd.solution += payment
+            # Option payoff.
+            if event_idx == self.fixing_schedule[0]:
+                self.fd.solution = self.payoff(self.fd.solution)
+            # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
@@ -285,37 +341,37 @@ class Cap(options.Option1FAnalytical):
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
     def mc_present_value(self,
-                         mc_object):
+                         mc_object) -> np.ndarray:
         """Present value for each Monte-Carlo path."""
         # Adjustment of discount paths.
         discount_paths = \
             mc_object.discount_adjustment(mc_object.discount_paths,
                                           self.adjust_discount)
-        payoff = np.zeros(mc_object.discount_paths.shape[1])
-        for idx_fix, idx_pay in \
-                zip(self.fixing_schedule, self.payment_schedule):
-            spot = mc_object.rate_paths[idx_fix]
-            # Payoff discounted back to present time.
-            payoff += self.xlet_payoff(spot, idx_fix, idx_pay) \
-                * discount_paths[idx_fix]
-        return payoff
+        # Pseudo short rate at expiry.
+        expiry_idx = self.fixing_schedule[0]
+        spot = mc_object.rate_paths[expiry_idx]
+        # Swap price at expiry.
+        swap_price = self.swap.price(spot, expiry_idx)
+        # Option payoff at expiry.
+        option_payoff = self.payoff(swap_price)
+        # Option payoff discounted back to present time.
+        option_payoff *= discount_paths[expiry_idx]
+        return option_payoff
 
 
-class CapPelsser(Cap):
-    """Cap or floor in 1-factor Hull-White model.
+class PayerPelsser(Payer):
+    """European payer swaption in 1-factor Hull-White model.
 
-    Price of cap of floor.
+    Price of European payer swaption based on a fixed-for-floating swap
+    (based on "simple rate" fixing).
 
     See A. Pelsser, chapter 5.
-
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
 
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
         discount_curve: Discount curve represented on event grid.
-        strike_rate: Cap or floor rate.
+        fixed_rate: Fixed rate.
         fixing_schedule: Fixing indices on event grid.
         payment_schedule: Payment indices on event grid.
         event_grid: Event dates as year fractions from as-of date.
@@ -326,45 +382,54 @@ class CapPelsser(Cap):
             "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
-        option_type: Cap or floor. Default is cap.
     """
 
     def __init__(self,
                  kappa: data_types.DiscreteFunc,
                  vol: data_types.DiscreteFunc,
                  discount_curve: data_types.DiscreteFunc,
-                 strike_rate: float,
+                 fixed_rate: float,
                  fixing_schedule: np.ndarray,
                  payment_schedule: np.ndarray,
                  event_grid: np.ndarray,
                  time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52,
-                 option_type: str = "cap"):
+                 int_dt: float = 1 / 52):
         super().__init__(kappa,
                          vol,
                          discount_curve,
-                         strike_rate,
+                         fixed_rate,
                          fixing_schedule,
                          payment_schedule,
                          event_grid,
                          time_dependence,
-                         int_dt,
-                         option_type)
+                         int_dt)
 
-        # Caplet/floorlet.
-        self.xlet = \
-            caplet.CapletPelsser(kappa,
-                                 vol,
-                                 discount_curve,
-                                 strike_rate,
-                                 fixing_schedule[0],
-                                 payment_schedule[0],
-                                 event_grid,
-                                 time_dependence,
-                                 int_dt,
-                                 option_type + "let")
+        # Underlying fixed-for-floating Swap.
+        self.swap = \
+            swap.SwapPelsser(kappa,
+                             vol,
+                             discount_curve,
+                             fixed_rate,
+                             fixing_schedule,
+                             payment_schedule,
+                             event_grid,
+                             time_dependence,
+                             int_dt)
         # Zero-coupon bond.
-        self.zcbond = self.xlet.zcbond
+        self.zcbond = self.swap.zcbond
+
+        # Put option written on zero-coupon bond.
+        self.put = \
+            option.EuropeanOptionPelsser(kappa,
+                                         vol,
+                                         discount_curve,
+                                         0,
+                                         fixing_schedule[0],
+                                         payment_schedule[-1],
+                                         event_grid,
+                                         time_dependence,
+                                         int_dt,
+                                         "Put")
 
         self.transformation = self.zcbond.transformation
 
