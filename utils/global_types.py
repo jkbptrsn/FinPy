@@ -28,6 +28,8 @@ class Model(enum.Enum):
     CIR = enum.auto()
     HESTON = enum.auto()
     HULL_WHITE_1F = enum.auto()
+    HULL_WHITE_2F = enum.auto()
+    HULL_WHITE_NF = enum.auto()
     SABR = enum.auto()
     VASICEK = enum.auto()
 
