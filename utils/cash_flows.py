@@ -218,7 +218,9 @@ def set_deadline_grid(payment_grid: np.ndarray,
 
 
 def set_event_grid(payment_grid: np.ndarray,
-                   time_step: float = 0.01) \
+                   time_step: float = 0.01,
+                   *,
+                   deadline_grid: np.ndarray = None) \
         -> (np.ndarray, np.ndarray, np.ndarray):
     """Set up event grid, and payment and deadline schedules.
 
@@ -226,13 +228,15 @@ def set_event_grid(payment_grid: np.ndarray,
         payment_grid: Grid of payment events.
         time_step: Time step between propagation events.
             Default is 0.01.
+        deadline_grid: Grid of deadline event.s
 
     Returns:
         Event grid, payment schedule, deadline schedule.
     """
     event_grid = np.zeros(1)
     payment_schedule = np.zeros(payment_grid.size, dtype=int)
-    deadline_grid = set_deadline_grid(payment_grid)
+    if deadline_grid is None:
+        deadline_grid = set_deadline_grid(payment_grid)
     deadline_schedule = np.zeros(deadline_grid.size, dtype=int)
     for idx, (deadline_time, payment_time) in \
             enumerate(zip(deadline_grid, payment_grid)):

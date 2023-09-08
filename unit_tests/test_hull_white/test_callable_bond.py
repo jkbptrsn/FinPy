@@ -271,8 +271,9 @@ class FixedRate(unittest.TestCase):
         self.bond.mc_exact_setup()
         self.bond.mc_euler_setup()
         # Spot rate.
+        spot_start = 40
         spot_steps = 20
-        spot_vector = self.x_grid[::spot_steps]
+        spot_vector = self.x_grid[spot_start:-spot_start:spot_steps]
         # Initialize random number generator.
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate.
@@ -302,12 +303,12 @@ class FixedRate(unittest.TestCase):
             plt.ylabel("Bond price")
             plt.legend()
             plt.show()
-        relative_error = np.abs((price_a[::spot_steps] - numerical_exact)
-                                / price_a[::spot_steps])
+        price_a_tmp = price_a[spot_start:-spot_start:spot_steps]
+        relative_error = np.abs((price_a_tmp - numerical_exact) / price_a_tmp)
         max_error = np.max(relative_error)
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 1.2e-2)
+        self.assertTrue(max_error < 8.4e-4)
 
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of bond."""
@@ -357,8 +358,9 @@ class FixedRate(unittest.TestCase):
         self.bond_pelsser.mc_exact_setup()
         self.bond_pelsser.mc_euler_setup()
         # Spot rate.
+        spot_start = 40
         spot_steps = 20
-        spot_vector = self.x_grid[::spot_steps]
+        spot_vector = self.x_grid[spot_start:-spot_start:spot_steps]
         # Initialize random number generator.
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate.
@@ -390,12 +392,12 @@ class FixedRate(unittest.TestCase):
             plt.ylabel("Bond price")
             plt.legend()
             plt.show()
-        relative_error = np.abs((price_a[::spot_steps] - numerical_exact)
-                                / price_a[::spot_steps])
+        price_a_tmp = price_a[spot_start:-spot_start:spot_steps]
+        relative_error = np.abs((price_a_tmp - numerical_exact) / price_a_tmp)
         max_error = np.max(relative_error)
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 1.1e-2)
+        self.assertTrue(max_error < 8.3e-4)
 
 
 if __name__ == '__main__':
