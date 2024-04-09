@@ -15,7 +15,7 @@ def a_function(time1: float,
                vol: float) -> float:
     """Calculate A-function.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
+    See Andersen & Piterbarg (2010), Proposition 10.1.4.
 
     Args:
         time1: Initial time.
@@ -39,7 +39,7 @@ def b_function(time1: float,
                kappa: float) -> float:
     """Calculate B-function.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
+    See Andersen & Piterbarg (2010), Proposition 10.1.4.
 
     Args:
         time1: Initial time.
@@ -59,7 +59,7 @@ def dadt(time1: float,
          vol: float) -> float:
     """Calculate 1st order partial derivative of A-function wrt time1.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
+    See Andersen & Piterbarg (2010), Proposition 10.1.4.
 
     Args:
         time1: Initial time.
@@ -83,7 +83,7 @@ def dbdt(time1: float,
          kappa: float) -> float:
     """Calculate 1st order partial derivative of B-function wrt time1.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
+    See Andersen & Piterbarg (2010), Proposition 10.1.4.
 
     Args:
         time1: Initial time.
@@ -103,7 +103,7 @@ def sigma_p(time1: float,
             vol: float) -> float:
     """Calculate sigma_p function.
 
-    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
+    See Brigo & Mercurio (2007), Eq. (3.10).
 
     Args:
         time1: Initial time.
@@ -127,7 +127,7 @@ def h_function(zc1_price: typing.Union[float, np.ndarray],
                strike: float) -> typing.Union[float, np.ndarray]:
     """Calculate h function.
 
-    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
+    See Brigo & Mercurio (2007), Eq. (3.10).
 
     Args:
         zc1_price: Price of zero-coupon bond with maturity at
@@ -156,7 +156,7 @@ def european_option_price(spot: typing.Union[float, np.ndarray],
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option price.
 
-    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
+    See Brigo & Mercurio (2007), Eq. (3.10).
 
     Args:
         spot: Spot short rate.
@@ -178,7 +178,7 @@ def european_option_price(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # Bond prices.
     zc1 = zcbond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
     zc1_price = zc1.price(spot, event_idx)
@@ -208,7 +208,7 @@ def european_option_delta(spot: typing.Union[float, np.ndarray],
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option delta.
 
-    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
+    See Brigo & Mercurio (2007), Eq. (3.10).
 
     Args:
         spot: Spot short rate.
@@ -230,7 +230,7 @@ def european_option_delta(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # Bond prices and deltas.
     zc1 = zcbond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
     zc1_price = zc1.price(spot, event_idx)
@@ -267,7 +267,7 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option gamma.
 
-    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
+    See Brigo & Mercurio (2007), Eq. (3.10).
 
     Args:
         spot: Spot short rate.
@@ -289,7 +289,7 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # Bond prices, deltas and gammas.
     zc1 = zcbond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
     zc1_price = zc1.price(spot, event_idx)
@@ -337,7 +337,7 @@ def european_option_theta(spot: typing.Union[float, np.ndarray],
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option theta.
 
-    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
+    See Brigo & Mercurio (2007), Eq. (3.10).
 
     Args:
         spot: Spot short rate.
@@ -359,7 +359,7 @@ def european_option_theta(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # Bond prices and deltas.
     zc1 = zcbond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
     zc1_price = zc1.price(spot, event_idx)
