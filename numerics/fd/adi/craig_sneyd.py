@@ -124,14 +124,16 @@ class CraigSneyd2D(base_class.ADI2D):
     # TODO: What about correlation (and diffusion product)?
     def d2dxdy(self, function: np.ndarray) -> np.ndarray:
         """2nd order mixed derivative of function."""
-        if self.equidistant:
-            dx = self.grid_x[1] - self.grid_x[0]
-            dy = self.grid_y[1] - self.grid_y[0]
-            do.d2dxdy_equidistant(function, dx, dy)
-            return np.zeros(function.shape)
-        else:
-            do.d2dxdy(function, self.grid_x, self.grid_y)
-            return np.zeros(function.shape)
+#         if self.equidistant:
+#             dx = self.grid_x[1] - self.grid_x[0]
+#             dy = self.grid_y[1] - self.grid_y[0]
+#             return do.d2dxdy_equidistant(function, dx, dy)
+# #            return np.zeros(function.shape)
+#         else:
+#             return do.d2dxdy(function, self.grid_x, self.grid_y)
+# #            return np.zeros(function.shape)
+#        return do.d2dxdy_new(function, self.ddx, self.ddy, self.band, self.band)
+        return np.zeros(function.shape)
 
     def propagation(self, dt: float) -> None:
         """Propagation of solution matrix for one time step dt."""

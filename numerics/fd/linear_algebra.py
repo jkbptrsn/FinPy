@@ -1,5 +1,6 @@
 import numpy as np
 
+
 info = """
     Banded matrix as 2-dimensional numpy array.
 

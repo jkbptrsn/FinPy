@@ -1,5 +1,8 @@
 import numpy as np
 
+from numerics.fd import linear_algebra as la
+
+
 info = """
     Banded matrix as 2-dimensional numpy array.
 
@@ -81,8 +84,7 @@ def ddx(grid: np.ndarray,
     on non-equidistant grid. At the boundaries, 1st order
     forward/backward difference is used. Assuming ascending grid.
 
-    Same approximation is used for tri- and pentadiagonal form, see
-    H. Sundqvist & G. Veronis, Tellus XXII (1970).
+    See Sundqvist & Veronis (1970).
 
     Args:
         grid: Grid points.
@@ -99,12 +101,12 @@ def ddx(grid: np.ndarray,
         matrix[0, 1] = 1 / dx
         matrix[1, 0] = -1 / dx
         # "2nd" order central difference.
-        dx_plus = grid[2:] - grid[1:-1]
-        dx_minus = grid[1:-1] - grid[:-2]
-        factor = 1 / (dx_plus * (1 + dx_plus / dx_minus))
+        dx_p1 = grid[2:] - grid[1:-1]
+        dx_m1 = grid[1:-1] - grid[:-2]
+        factor = 1 / (dx_p1 * (1 + dx_p1 / dx_m1))
         matrix[0, 2:] = factor
-        matrix[1, 1:-1] = (np.square(dx_plus / dx_minus) - 1) * factor
-        matrix[2, :-2] = - np.square(dx_plus / dx_minus) * factor
+        matrix[1, 1:-1] = (np.square(dx_p1 / dx_m1) - 1) * factor
+        matrix[2, :-2] = -np.square(dx_p1 / dx_m1) * factor
         # 1st order backward difference at upper boundary.
         dx = grid[-1] - grid[-2]
         matrix[1, -1] = 1 / dx
@@ -115,13 +117,35 @@ def ddx(grid: np.ndarray,
         dx = grid[1] - grid[0]
         matrix[1, 1] = 1 / dx
         matrix[2, 0] = -1 / dx
-        # "2nd" order central difference.
-        dx_plus = grid[2:] - grid[1:-1]
-        dx_minus = grid[1:-1] - grid[:-2]
-        factor = 1 / (dx_plus * (1 + dx_plus / dx_minus))
-        matrix[1, 2:] = factor
-        matrix[2, 1:-1] = (np.square(dx_plus / dx_minus) - 1) * factor
-        matrix[3, :-2] = - np.square(dx_plus / dx_minus) * factor
+        # "2nd" order central difference at next-to lower boundary.
+        dx_p1 = grid[2] - grid[1]
+        dx_m1 = grid[1] - grid[0]
+        factor = 1 / (dx_p1 * (1 + dx_p1 / dx_m1))
+        matrix[1, 2] = factor
+        matrix[2, 1] = (np.square(dx_p1 / dx_m1) - 1) * factor
+        matrix[3, 0] = -np.square(dx_p1 / dx_m1) * factor
+        # "4th" order central difference.
+        dx_p2 = grid[4:] - grid[3:-1]
+        dx_p1 = grid[3:-1] - grid[2:-2]
+        dx_m1 = grid[2:-2] - grid[1:-3]
+        dx_m2 = grid[1:-3] - grid[:-4]
+        factor = ((dx_m1 + dx_m2) ** 2 * (dx_p1 + dx_p2)
+                  - 32 * dx_p1 * dx_m1 ** 2 - 32 * dx_p1 ** 2 * dx_m1
+                  + (dx_m1 + dx_m2) * (dx_p1 + dx_p2) ** 2)
+        matrix[0, 4:] = np.square(dx_m1 + dx_m2) * factor
+        matrix[1, 3:-1] = -32 * np.square(dx_m1) * factor
+        matrix[2, 2:-2] = -(np.square(dx_m1 + dx_m2)
+                            - 32 * np.square(dx_m1) + 32 * np.square(dx_p1)
+                            - np.square(dx_p1 + dx_p2)) * factor
+        matrix[3, 1:-3] = 32 * np.square(dx_p1) * factor
+        matrix[4, :-4] = -np.square(dx_p1 + dx_p2) * factor
+        # 2nd order central difference at next-to upper boundary.
+        dx_p1 = grid[-1] - grid[-2]
+        dx_m1 = grid[-2] - grid[-3]
+        factor = 1 / (dx_p1 * (1 + dx_p1 / dx_m1))
+        matrix[1, -1] = factor
+        matrix[2, -2] = (np.square(dx_p1 / dx_m1) - 1) * factor
+        matrix[3, -3] = -np.square(dx_p1 / dx_m1) * factor
         # 1st order backward difference at upper boundary.
         dx = grid[-1] - grid[-2]
         matrix[2, -1] = 1 / dx
@@ -184,8 +208,7 @@ def d2dx2(grid: np.ndarray,
     on non-equidistant grid. Linear boundary conditions are used.
     Assuming ascending grid.
 
-    Same approximation is used for tri- and pentadiagonal form, see
-    Sundqvist & Veronis (1970).
+    See Sundqvist & Veronis (1970).
 
     Args:
         grid: Grid points.
@@ -198,21 +221,44 @@ def d2dx2(grid: np.ndarray,
     if band == "tri":
         matrix = np.zeros((3, grid.size))
         # "2nd" order central difference.
-        dx_plus = grid[2:] - grid[1:-1]
-        dx_minus = grid[1:-1] - grid[:-2]
-        factor = 1 / (dx_plus * dx_minus * (1 + dx_plus / dx_minus))
+        dx_p1 = grid[2:] - grid[1:-1]
+        dx_m1 = grid[1:-1] - grid[:-2]
+        factor = 1 / (dx_p1 * dx_m1 * (1 + dx_p1 / dx_m1))
         matrix[0, 2:] = 2 * factor
-        matrix[1, 1:-1] = - 2 * (1 + dx_plus / dx_minus) * factor
-        matrix[2, :-2] = 2 * (dx_plus / dx_minus) * factor
+        matrix[1, 1:-1] = -2 * (1 + dx_p1 / dx_m1) * factor
+        matrix[2, :-2] = 2 * (dx_p1 / dx_m1) * factor
     elif band == "penta":
         matrix = np.zeros((5, grid.size))
-        # "2nd" order central difference.
-        dx_plus = grid[2:] - grid[1:-1]
-        dx_minus = grid[1:-1] - grid[:-2]
-        factor = 1 / (dx_plus * dx_minus * (1 + dx_plus / dx_minus))
-        matrix[1, 2:] = 2 * factor
-        matrix[2, 1:-1] = - 2 * (1 + dx_plus / dx_minus) * factor
-        matrix[3, :-2] = 2 * (dx_plus / dx_minus) * factor
+        # "2nd" order central difference at next-to lower boundary.
+        dx_p1 = grid[2] - grid[1]
+        dx_m1 = grid[1] - grid[0]
+        factor = 1 / (dx_p1 * dx_m1 * (1 + dx_p1 / dx_m1))
+        matrix[1, 2] = 2 * factor
+        matrix[2, 1] = -2 * (1 + dx_p1 / dx_m1) * factor
+        matrix[3, 0] = 2 * (dx_p1 / dx_m1) * factor
+        # "4th" order central difference.
+        dx_p2 = grid[4:] - grid[3:-1]
+        dx_p1 = grid[3:-1] - grid[2:-2]
+        dx_m1 = grid[2:-2] - grid[1:-3]
+        dx_m2 = grid[1:-3] - grid[:-4]
+        factor = 1 / ((dx_m1 + dx_m2) * np.square(dx_p1 + dx_p2) / 2
+                      - 16 * np.square(dx_p1) * dx_m1
+                      - 16 * dx_p1 * np.square(dx_m1)
+                      + np.square(dx_m1 + dx_m2) * (dx_p1 + dx_p2) / 2)
+        matrix[0, 4:] = -(dx_m1 + dx_m2) * factor
+        matrix[1, 3:-1] = 32 * dx_m1 * factor
+        matrix[2, 2:-2] = -(-(dx_m1 + dx_m2)
+                            + 32 * dx_m1 + 32 * dx_p1
+                            - (dx_p1 + dx_p2)) * factor
+        matrix[3, 1:-3] = 32 * dx_p1 * factor
+        matrix[4, :-4] = -(dx_p1 + dx_p2) * factor
+        # "2nd" order central difference at next-to upper boundary.
+        dx_p1 = grid[-1] - grid[-2]
+        dx_m1 = grid[-2] - grid[-3]
+        factor = 1 / (dx_p1 * dx_m1 * (1 + dx_p1 / dx_m1))
+        matrix[1, -3] = 2 * factor
+        matrix[2, -2] = -2 * (1 + dx_p1 / dx_m1) * factor
+        matrix[3, -1] = 2 * (dx_p1 / dx_m1) * factor
     else:
         raise ValueError(f"{band}: Unknown banded matrix. Use tri or penta.")
     return matrix
@@ -354,4 +400,33 @@ def d2dxdy(func: np.ndarray,
     matrix[-1, -1] = \
         func[-1, -1] - func[-1, -2] - (func[-2, -1] - func[-2, -2])
     matrix[-1, -1] /= dx[-1] * dy[-1]
+    return matrix
+
+
+def d2dxdy_new(func: np.ndarray,
+               ddx_x: np.ndarray,
+               ddx_y: np.ndarray,
+               band_x: str = "tri",
+               band_y: str = "tri") -> np.ndarray:
+    """FD approximation of 2nd order mixed differential operator.
+
+    Args:
+        func: Function values on 2-dimensional grid.
+        ddx_x: FD approximation of 1st order differential operator in x
+            dimension.
+        ddx_y: FD approximation of 1st order differential operator in y
+            dimension.
+        band_x: Tri- or pentadiagonal matrix representation of
+            operators in x dimension. Default is tridiagonal.
+        band_y: Tri- or pentadiagonal matrix representation of
+            operators in y dimension. Default is tridiagonal.
+
+    Returns:
+        Discrete 2nd order mixed differential operator.
+    """
+    matrix = np.zeros(func.shape)
+    for idx_y in range(func.shape[1]):
+        matrix[:, idx_y] = la.matrix_col_prod(ddx_x, func[:, idx_y], band_x)
+    for idx_x in range(func.shape[0]):
+        matrix[idx_x, :] += la.matrix_col_prod(ddx_y, matrix[idx_x, :], band_y)
     return matrix
