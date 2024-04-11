@@ -1,21 +1,22 @@
 import numpy as np
 
-info = """Banded matrix as 2-dimensional numpy array.
+info = """
+    Banded matrix as 2-dimensional numpy array.
 
-    Structure of numpy array consistent matrix diagonal ordered form 
-    used in scipy.linalg.solve_banded function.
+    Structure of numpy array consistent with "matrix diagonal ordered 
+    form" used in scipy.linalg.solve_banded function.
 
     Tridiagonal form:
-        - 1st row: Superdiagonal (exclude first element).
+        - 1st row: Superdiagonal (excl. first element).
         - 2nd row: Main diagonal.
-        - 3rd row: Subdiagonal (exclude last element).
+        - 3rd row: Subdiagonal (excl. last element).
 
     Pentadiagonal form:
-        - 1st row: 2nd superdiagonal (exclude first two elements).
-        - 2nd row: 1st superdiagonal (exclude first element).
+        - 1st row: 2nd superdiagonal (excl. first two elements).
+        - 2nd row: 1st superdiagonal (excl. first element).
         - 3rd row: Main diagonal.
-        - 4th row: 1st subdiagonal (exclude last element).
-        - 5th row: 2nd subdiagonal (exclude last two elements).
+        - 4th row: 1st subdiagonal (excl. last element).
+        - 5th row: 2nd subdiagonal (excl. last two elements).
 """
 
 
@@ -68,8 +69,7 @@ def ddx_equidistant(size: int,
         matrix[2, -1] = 1
         matrix[3, -2] = -1
     else:
-        raise ValueError(
-            f"{band}: Unknown form of banded matrix. Use tri or penta.")
+        raise ValueError(f"{band}: Unknown banded matrix. Use tri or penta.")
     return matrix / dx
 
 
@@ -127,8 +127,7 @@ def ddx(grid: np.ndarray,
         matrix[2, -1] = 1 / dx
         matrix[3, -2] = -1 / dx
     else:
-        raise ValueError(
-            f"{band}: Unknown form of banded matrix. Use tri or penta.")
+        raise ValueError(f"{band}: Unknown banded matrix. Use tri or penta.")
     return matrix
 
 
@@ -173,8 +172,7 @@ def d2dx2_equidistant(size: int,
         matrix[2, -2] = -2
         matrix[3, -3] = 1
     else:
-        raise ValueError(
-            f"{band}: Unknown form of banded matrix. Use tri or penta.")
+        raise ValueError(f"{band}: Unknown banded matrix. Use tri or penta.")
     return matrix / (dx ** 2)
 
 
@@ -187,7 +185,7 @@ def d2dx2(grid: np.ndarray,
     Assuming ascending grid.
 
     Same approximation is used for tri- and pentadiagonal form, see
-    H. Sundqvist & G. Veronis, Tellus XXII (1970).
+    Sundqvist & Veronis (1970).
 
     Args:
         grid: Grid points.
@@ -216,8 +214,7 @@ def d2dx2(grid: np.ndarray,
         matrix[2, 1:-1] = - 2 * (1 + dx_plus / dx_minus) * factor
         matrix[3, :-2] = 2 * (dx_plus / dx_minus) * factor
     else:
-        raise ValueError(
-            f"{band}: Unknown form of banded matrix. Use tri or penta.")
+        raise ValueError(f"{band}: Unknown banded matrix. Use tri or penta.")
     return matrix
 
 

@@ -4,7 +4,7 @@ import numpy as np
 
 def equidistant(x_min: float,
                 x_max: float,
-                n_states: int):
+                n_states: int) -> np.ndarray:
     """Equidistant grid in one dimension.
 
     Args:
@@ -23,7 +23,7 @@ def hyperbolic(x_min: float,
                x_max: float,
                n_states: int,
                x_center: float,
-               shape: float = None):
+               shape: float = None) -> (np.ndarray, np.ndarray):
     """Non-equidistant grid in one dimension.
 
     Hyperbolic sine transformation. See In 'T Hout and Foulon (2010).
