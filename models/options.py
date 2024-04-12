@@ -54,8 +54,7 @@ class AmericanOption(metaclass=abc.ABCMeta):
                 0.5 : Crank-Nicolson method (default).
                 1   : Fully implicit method.
         """
-        self.fd = fd_theta.setup_solver(self, x_grid, form, equidistant,
-                                        theta_value)
+        fd_theta.setup_solver(self, x_grid, form, equidistant, theta_value)
         self.fd.initialization()
 
     @abc.abstractmethod
@@ -164,8 +163,7 @@ class Option1FAnalytical(metaclass=abc.ABCMeta):
                 0.5 : Crank-Nicolson method (default).
                 1   : Fully implicit method.
         """
-        self.fd = fd_theta.setup_solver(self, x_grid, form, equidistant,
-                                        theta_value)
+        fd_theta.setup_solver(self, x_grid, form, equidistant, theta_value)
         self.fd.initialization()
 
     def fd_update(self,

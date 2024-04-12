@@ -23,12 +23,15 @@ class Instrument(enum.Enum):
 
 class Model(enum.Enum):
     """Type of underlying stochastic model."""
-    BACHELIER = enum.auto()
     BLACK_SCHOLES = enum.auto()
+
+    # TODO: NM delete
+    BACHELIER = enum.auto()
     CIR = enum.auto()
+    SABR = enum.auto()
+
     HESTON = enum.auto()
     HULL_WHITE_1F = enum.auto()
-    SABR = enum.auto()
     VASICEK = enum.auto()
 
 

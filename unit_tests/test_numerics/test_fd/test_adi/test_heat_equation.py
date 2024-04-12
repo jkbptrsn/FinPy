@@ -189,7 +189,7 @@ class HeatEquation2DPeacemanRachford(unittest.TestCase):
                     step_array[counter] = np.log(self.dx)
                     norm_array[:, counter] = \
                         misc.norms_2d(solution_old, solution, (dx_old, dy_old),
-                                      direction="x")
+                                      dimension="x")
 #                    step_array[counter] = np.log(self.dy)
 #                    norm_array[:, counter] = \
 #                        misc.norms_2d(solution_old, solution, (dx_old, dy_old),
@@ -270,7 +270,7 @@ class HeatEquation2DPeacemanRachford(unittest.TestCase):
                     step_array[counter] = np.log(dt)
                     norm_array[:, counter] = \
                         misc.norms_2d(solution_old, solution, (dx_old, dy_old),
-                                      direction="x", slice_nr=1)
+                                      dimension="x", slice_nr=1)
 
                     norm_array[:, counter] = np.log(norm_array[:, counter])
                     counter += 1
