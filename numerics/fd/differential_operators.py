@@ -264,6 +264,7 @@ def d2dx2(grid: np.ndarray,
     return matrix
 
 
+# TODO: Remove and use d2dxdy_new
 def d2dxdy_equidistant(func: np.ndarray,
                        dx: float,
                        dy: float) -> np.ndarray:
@@ -320,6 +321,7 @@ def d2dxdy_equidistant(func: np.ndarray,
     return matrix / (dx * dy)
 
 
+# TODO: Remove and use d2dxdy_new
 def d2dxdy(func: np.ndarray,
            grid_x: np.ndarray,
            grid_y: np.ndarray) -> np.ndarray:
@@ -403,6 +405,7 @@ def d2dxdy(func: np.ndarray,
     return matrix
 
 
+# TODO: Remove d2dxdy and rename
 def d2dxdy_new(func: np.ndarray,
                ddx_x: np.ndarray,
                ddx_y: np.ndarray,
