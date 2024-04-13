@@ -131,5 +131,5 @@ class Call(options.EuropeanOption2D):
     def fd_solve(self):
         """Run solver on event_grid..."""
         for dt in np.flip(np.diff(self.event_grid)):
-            self.fd.set_propagator()
+#            self.fd.set_propagator()
             self.fd.propagation(dt)

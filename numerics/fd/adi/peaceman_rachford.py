@@ -17,6 +17,8 @@ class PeachmanRachford2D(base_class.ADI2D):
         L_y = drift_y * d/dy + 1/2 * diffusion_y^2 * d^2/dy^2
             - 1/2 * rate.
 
+    See Andersen & Piterbarg (2010).
+
     Attributes:
         grid_x: 1D grid for x-dimension. Assumed ascending.
         grid_y: 1D grid for y-dimension. Assumed ascending.
@@ -46,10 +48,6 @@ class PeachmanRachford2D(base_class.ADI2D):
         """Initialization of identity and propagator matrices."""
         self.identity_x = la.identity_matrix(self.nstates[0], self.band)
         self.identity_y = la.identity_matrix(self.nstates[1], self.band)
-        self.set_propagator()
-
-    def set_propagator(self) -> None:
-        """Propagator as banded matrix."""
         if self.equidistant:
             dx = self.grid_x[1] - self.grid_x[0]
             dy = self.grid_y[1] - self.grid_y[0]
@@ -91,8 +89,7 @@ class PeachmanRachford2D(base_class.ADI2D):
             dimension = (2, 2)
         else:
             raise ValueError(
-                f"{self.band}: "
-                f"Unknown form of banded matrix. Use tri or penta.")
+                f"{self.band}: Unknown banded matrix. Use tri or penta.")
         factor = dt / 2
         rhs = np.zeros(self.nstates)
         # First split; right-hand side.

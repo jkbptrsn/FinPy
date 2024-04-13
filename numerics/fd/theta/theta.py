@@ -193,7 +193,8 @@ class Theta(ThetaBase):
         elif self.band == "penta":
             self.vec_solution = solve_banded((2, 2), lhs, rhs)
         else:
-            raise ValueError("Unknown banded matrix.")
+            raise ValueError(
+                f"{self.band}: Unknown banded matrix. Use tri or penta.")
         # Last used time step.
         self.dt_last = dt
 
