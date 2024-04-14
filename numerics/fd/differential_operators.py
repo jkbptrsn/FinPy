@@ -264,153 +264,11 @@ def d2dx2(grid: np.ndarray,
     return matrix
 
 
-# TODO: Remove and use d2dxdy_new
-def d2dxdy_equidistant(func: np.ndarray,
-                       dx: float,
-                       dy: float) -> np.ndarray:
-    """FD approximation of 2nd order mixed differential operator.
-
-    Central finite difference approximation of 2nd order mixed
-    differential operator on equidistant grid. At the boundaries, 1st
-    order forward/backward difference is used. Assuming ascending grid.
-
-    Args:
-        func: Function values on 2-dimensional grid.
-        dx: Constant grid spacing in x-dimension.
-        dy: Constant grid spacing in y-dimension.
-
-    Returns:
-        Discrete 2nd order mixed differential operator.
-    """
-    matrix = np.zeros(func.shape)
-    # Interior points.
-    for idx_y in range(1, func.shape[1] - 1):
-        # (jxpjyp - jxmjyp - (jxpjym - jxmjym)) / (4 * dx * dy).
-        matrix[1:-1, idx_y] = \
-            (func[2:, idx_y + 1] - func[:-2, idx_y + 1]
-             - (func[2:, idx_y - 1] - func[:-2, idx_y - 1])) / 4
-    # Boundary points, jx = 0.
-    # (jxpjyp - jxjyp - (jxpjym - jxjym)) / (2 * dx * dy).
-    matrix[0, 1:-1] = \
-        (func[1, 2:] - func[0, 2:] - (func[1, :-2] - func[0, :-2])) / 2
-    # Boundary points, jx = -1.
-    # (jxjyp - jxmjyp - (jxjym - jxmjym)) / (2 * dx * dy).
-    matrix[-1, 1:-1] = \
-        (func[-1, 2:] - func[-2, 2:] - (func[-1, :-2] - func[-2, :-2])) / 2
-    # Boundary points, jy = 0.
-    # (jxpjyp - jxpjy - (jxmjyp - jxmjy)) / (2 * dx * dy).
-    matrix[1:-1, 0] = \
-        (func[2:, 1] - func[2:, 0] - (func[:-2, 1] - func[:-2, 0])) / 2
-    # Boundary points, jy = -1.
-    # (jxpjy - jxpjym - (jxmjy - jxmjym)) / (2 * dx * dy).
-    matrix[1:-1, -1] = \
-        (func[2:, -1] - func[2:, -2] - (func[:-2, -1] - func[:-2, -2])) / 2
-    # Corner points, jx = 0 and jy = 0.
-    # (jxpjyp - jxjyp - (jxpjy - jxjy)) / (dx * dy).
-    matrix[0, 0] = func[1, 1] - func[0, 1] - (func[1, 0] - func[0, 0])
-    # Corner points, jx = 0 and jy = -1.
-    # (jxpjy - jxjy - (jxpjym - jxjym)) / (dx * dy).
-    matrix[0, -1] = func[1, -1] - func[0, -1] - (func[1, -2] - func[0, -2])
-    # Corner points, jx = -1 and jy = 0.
-    # (jxjyp - jxjy - (jxmjyp - jxmjy)) / (dx * dy).
-    matrix[-1, 0] = func[-1, 1] - func[-1, 0] - (func[-2, 1] - func[-2, 0])
-    # Corner points, jx = -1 and jy = -1.
-    # (jxjy - jxjym - (jxmjy - jxmjym)) / (dx * dy).
-    matrix[-1, -1] = \
-        func[-1, -1] - func[-1, -2] - (func[-2, -1] - func[-2, -2])
-    return matrix / (dx * dy)
-
-
-# TODO: Remove and use d2dxdy_new
 def d2dxdy(func: np.ndarray,
-           grid_x: np.ndarray,
-           grid_y: np.ndarray) -> np.ndarray:
-    """FD approximation of 2nd order mixed differential operator.
-
-    Finite difference approximation of 2nd order mixed differential
-    operator on non-equidistant grid. At the boundaries, 1st order
-    forward/backward difference is used. Assuming ascending grid.
-
-    Args:
-        func: Function values on 2-dimensional grid.
-        grid_x: Grid points in x dimension.
-        grid_y: Grid points in x dimension.
-
-    Returns:
-        Discrete 2nd order mixed differential operator.
-    """
-    # Setting up finite difference factors.
-    dx = grid_x[1:] - grid_x[0]
-    dy = grid_y[1:] - grid_y[0]
-    dxm = dx[:-1]
-    dxp = dx[1:]
-    dym = dy[:-1]
-    dyp = dy[1:]
-    ax = dxm / (dxp * (dxm + dxp))
-    bx = - ax * (1 - (dxp / dxm) ** 2)
-    cx = - ax * (dxp / dxm) ** 2
-    ay = dym / (dyp * (dym + dyp))
-    by = - ay * (1 - (dyp / dym) ** 2)
-    cy = - ay * (dyp / dym) ** 2
-    # Interior points.
-    matrix = np.zeros(func.shape)
-    for idx_y in range(1, func.shape[1] - 1):
-        matrix[1:-1, idx_y] = \
-            ax * ay[idx_y - 1] * func[2:, idx_y + 1] \
-            + ax * by[idx_y - 1] * func[2:, idx_y] \
-            + ax * cy[idx_y - 1] * func[2:, idx_y - 1] \
-            + bx * ay[idx_y - 1] * func[1:-1, idx_y + 1] \
-            + bx * by[idx_y - 1] * func[1:-1, idx_y] \
-            + bx * cy[idx_y - 1] * func[1:-1, idx_y - 1] \
-            + cx * ay[idx_y - 1] * func[:-2, idx_y + 1] \
-            + cx * by[idx_y - 1] * func[:-2, idx_y] \
-            + cx * cy[idx_y - 1] * func[:-2, idx_y - 1]
-    # Boundary points, jx = 0.
-    matrix[0, 1:-1] = \
-        ay * (func[1, 2:] - func[0, 2:]) / dx[0] \
-        + by * (func[1, 1:-1] - func[0, 1:-1]) / dx[0] \
-        + cy * (func[1, :-2] - func[0, :-2]) / dx[0]
-    # Boundary points, jx = -1.
-    matrix[-1, 1:-1] = \
-        ay * (func[-1, 2:] - func[-2, 2:]) / dx[-1] \
-        + by * (func[-1, 1:-1] - func[-2, 1:-1]) / dx[-1] \
-        + cy * (func[-1, :-2] - func[-2, :-2]) / dx[-1]
-    # Boundary points, jy = 0.
-    matrix[1:-1, 0] = \
-        ax * (func[2:, 1] - func[2:, 0]) / dy[0] \
-        + bx * (func[1:-1, 1] - func[1:-1, 0]) / dy[0] \
-        + cx * (func[:-2, 1] - func[:-2, 0]) / dy[0]
-    # Boundary points, jy = -1.
-    matrix[1:-1, -1] = \
-        ax * (func[2:, -1] - func[2:, -2]) / dy[-1] \
-        + bx * (func[1:-1, -1] - func[1:-1, -2]) / dy[-1] \
-        + cx * (func[:-2, -1] - func[:-2, -2]) / dy[-1]
-    # Corner points, jx = 0 and jy = 0.
-    # (jxpjyp - jxjyp - (jxpjy - jxjy)) / (dx * dy).
-    matrix[0, 0] = func[1, 1] - func[0, 1] - (func[1, 0] - func[0, 0])
-    matrix[0, 0] /= dx[0] * dy[0]
-    # Corner points, jx = 0 and jy = -1.
-    # (jxpjy - jxjy - (jxpjym - jxjym)) / (dx * dy).
-    matrix[0, -1] = func[1, -1] - func[0, -1] - (func[1, -2] - func[0, -2])
-    matrix[0, -1] /= dx[0] * dy[-1]
-    # Corner points, jx = -1 and jy = 0.
-    # (jxjyp - jxjy - (jxmjyp - jxmjy)) / (dx * dy).
-    matrix[-1, 0] = func[-1, 1] - func[-1, 0] - (func[-2, 1] - func[-2, 0])
-    matrix[-1, 0] /= dx[-1] * dy[0]
-    # Corner points, jx = -1 and jy = -1.
-    # (jxjy - jxjym - (jxmjy - jxmjym)) / (dx * dy).
-    matrix[-1, -1] = \
-        func[-1, -1] - func[-1, -2] - (func[-2, -1] - func[-2, -2])
-    matrix[-1, -1] /= dx[-1] * dy[-1]
-    return matrix
-
-
-# TODO: Remove d2dxdy and rename
-def d2dxdy_new(func: np.ndarray,
-               ddx_x: np.ndarray,
-               ddx_y: np.ndarray,
-               band_x: str = "tri",
-               band_y: str = "tri") -> np.ndarray:
+           ddx_x: np.ndarray,
+           ddx_y: np.ndarray,
+           band_x: str = "tri",
+           band_y: str = "tri") -> np.ndarray:
     """FD approximation of 2nd order mixed differential operator.
 
     Args:
@@ -431,5 +289,5 @@ def d2dxdy_new(func: np.ndarray,
     for idx_y in range(func.shape[1]):
         matrix[:, idx_y] = la.matrix_col_prod(ddx_x, func[:, idx_y], band_x)
     for idx_x in range(func.shape[0]):
-        matrix[idx_x, :] += la.matrix_col_prod(ddx_y, matrix[idx_x, :], band_y)
+        matrix[idx_x, :] = la.matrix_col_prod(ddx_y, matrix[idx_x, :], band_y)
     return matrix

@@ -91,16 +91,9 @@ class CraigSneyd2D(base_class.ADI2D):
             la.dia_matrix_prod(self.rate_y[idx, :], self.identity_y, self.band)
         self.propagator_y = term_1 + term_2 / 2 - term_3 / 2
 
-    # TODO: Remove comment block
     def d2dxdy(self, function: np.ndarray) -> np.ndarray:
         """2nd order mixed derivative of function."""
-        # if self.equidistant:
-        #     dx = self.grid_x[1] - self.grid_x[0]
-        #     dy = self.grid_y[1] - self.grid_y[0]
-        #     return do.d2dxdy_equidistant(function, dx, dy)
-        # else:
-        #     return do.d2dxdy(function, self.grid_x, self.grid_y)
-        return do.d2dxdy_new(function, self.ddx, self.ddy, self.band, self.band)
+        return do.d2dxdy(function, self.ddx, self.ddy, self.band, self.band)
 
     def propagation(self, dt: float) -> None:
         """Propagation of solution matrix for one time step dt."""
@@ -171,7 +164,7 @@ def setup_solver(instrument,
                  y_grid: np.ndarray,
                  band: str = "tri",
                  equidistant: bool = False,
-                 theta_parameter: float = 0.5) -> CraigSneyd2D:
+                 theta_parameter: float = 0.5):
     """Setting up finite difference solver.
 
     Args:
@@ -186,57 +179,61 @@ def setup_solver(instrument,
     Returns:
         Finite difference solver.
     """
-    solver = CraigSneyd2D(x_grid, y_grid, band, equidistant, theta_parameter)
-    # Model specifications.
+    instrument.fd = (
+        CraigSneyd2D(x_grid, y_grid, band, equidistant, theta_parameter))
+    update(instrument)
+    # Terminal solution to PDE. TODO: Use payoff method of instrument object?
+    if instrument.type == global_types.Instrument.EUROPEAN_CALL:
+        solution = payoffs.call(instrument.fd.grid_x, instrument.strike)
+        instrument.fd.solution = (
+            np.outer(solution, np.ones(instrument.fd.grid_y.size)))
+    else:
+        raise ValueError("Unknown instrument.")
+
+
+def update(instrument,
+           event_idx: int = -1):
+    """Update drift, diffusion and rate vectors.
+
+    Args:
+        instrument: Instrument object.
+        event_idx: Index on event grid. Default is -1.
+    """
     if instrument.model == global_types.Model.HESTON:
+        drift_x = instrument.rate * instrument.fd.grid_x
+        drift_x = np.outer(drift_x, np.ones(instrument.fd.grid_y.size))
+        drift_y = instrument.kappa * (instrument.eta - instrument.fd.grid_y)
+        drift_y = np.outer(np.ones(instrument.fd.grid_x.size), drift_y)
+        diffusion_x = np.outer(instrument.fd.grid_x, np.sqrt(instrument.fd.grid_y))
+        diffusion_y = instrument.vol * np.sqrt(instrument.fd.grid_y)
+        diffusion_y = np.outer(np.ones(instrument.fd.grid_x.size), diffusion_y)
+        rate_x = instrument.rate + 0 * instrument.fd.grid_x
+        rate_x = np.outer(rate_x, np.ones(instrument.fd.grid_y.size))
+        rate_y = instrument.rate + 0 * instrument.fd.grid_y
+        rate_y = np.outer(np.ones(instrument.fd.grid_x.size), rate_y)
+        instrument.fd.coupling = instrument.correlation
 
-        drift_x = instrument.rate * solver.grid_x
-        drift_x = np.outer(drift_x, np.ones(solver.grid_y.size))
-        drift_y = instrument.kappa * (instrument.eta - solver.grid_y)
-        drift_y = np.outer(np.ones(solver.grid_x.size), drift_y)
-
-        diffusion_x = np.outer(solver.grid_x, np.sqrt(solver.grid_y))
-        diffusion_y = instrument.vol * np.sqrt(solver.grid_y)
-        diffusion_y = np.outer(np.ones(solver.grid_x.size), diffusion_y)
-
-        # Should rate matrix every be x- or y-dependent?
-        rate_x = instrument.rate + 0 * solver.grid_x
-        rate_x = np.outer(rate_x, np.ones(solver.grid_y.size))
-        rate_y = instrument.rate + 0 * solver.grid_y
-        rate_y = np.outer(np.ones(solver.grid_x.size), rate_y)
-
-        solver.coupling = instrument.correlation
-
+    # TODO: NM delete
     elif instrument.model == global_types.Model.SABR:
-
-        drift_x = instrument.rate * solver.grid_x
-        drift_x = np.outer(drift_x, np.ones(solver.grid_y.size))
-        drift_y = 0 * solver.grid_y
-        drift_y = np.outer(np.ones(solver.grid_x.size), drift_y)
+        drift_x = instrument.rate * instrument.fd.grid_x
+        drift_x = np.outer(drift_x, np.ones(instrument.fd.grid_y.size))
+        drift_y = 0 * instrument.fd.grid_y
+        drift_y = np.outer(np.ones(instrument.fd.grid_x.size), drift_y)
 
         # Remember discount factor, D^(1-beta)...
-        diffusion_x = np.power(solver.grid_x, instrument.beta)
-        diffusion_x = np.outer(diffusion_x, solver.grid_y)
-        diffusion_y = instrument.vol * solver.grid_y
-        diffusion_y = np.outer(np.ones(solver.grid_x.size), diffusion_y)
+        diffusion_x = np.power(instrument.fd.grid_x, instrument.beta)
+        diffusion_x = np.outer(diffusion_x, instrument.fd.grid_y)
+        diffusion_y = instrument.vol * instrument.fd.grid_y
+        diffusion_y = np.outer(np.ones(instrument.fd.grid_x.size), diffusion_y)
 
-        # Should rate matrix every be x- or y-dependent?
-        rate_x = instrument.rate + 0 * solver.grid_x
-        rate_x = np.outer(rate_x, np.ones(solver.grid_y.size))
-        rate_y = instrument.rate + 0 * solver.grid_y
-        rate_y = np.outer(np.ones(solver.grid_x.size), rate_y)
-
-        solver.coupling = instrument.correlation
+        rate_x = instrument.rate + 0 * instrument.fd.grid_x
+        rate_x = np.outer(rate_x, np.ones(instrument.fd.grid_y.size))
+        rate_y = instrument.rate + 0 * instrument.fd.grid_y
+        rate_y = np.outer(np.ones(instrument.fd.grid_x.size), rate_y)
+        instrument.fd.coupling = instrument.correlation
 
     else:
-        raise ValueError("Model is not recognized.")
-    solver.set_drift(drift_x, drift_y)
-    solver.set_diffusion(diffusion_x, diffusion_y)
-    solver.set_rate(rate_x, rate_y)
-    # Terminal solution to PDE. TODO: Use payoff method of instrument object...
-    if instrument.type == global_types.Instrument.EUROPEAN_CALL:
-        solution = payoffs.call(solver.grid_x, instrument.strike)
-        solver.solution = np.outer(solution, np.ones(solver.grid_y.size))
-    else:
-        raise ValueError("Instrument is not recognized.")
-    return solver
+        raise ValueError(f"Unknown model: {instrument.model}")
+    instrument.fd.set_drift(drift_x, drift_y)
+    instrument.fd.set_diffusion(diffusion_x, diffusion_y)
+    instrument.fd.set_rate(rate_x, rate_y)
