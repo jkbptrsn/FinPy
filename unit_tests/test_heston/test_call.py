@@ -7,7 +7,7 @@ import numpy as np
 
 from models.heston import call_option as call
 
-plot_result = True
+plot_result = False
 print_result = False
 
 
