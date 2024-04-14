@@ -82,15 +82,18 @@ class CallOption(unittest.TestCase):
 
         for idx_x, x in enumerate(self.instrument.fd.grid_x):
             for idx_y, y in enumerate(self.instrument.fd.grid_y):
-                a_result[idx_x, idx_y] = self.instrument.price(x, y, 0)
+                a_result[idx_x, idx_y] = (
+                    self.instrument.price(x, y, 0))
                 a_result_zero[idx_x, idx_y] = (
                     self.instrument_zero.price(x, y, 0))
 
         if plot_result:
             fig = plt.figure(figsize=plt.figaspect(0.5))
+
             ax = fig.add_subplot(1, 2, 1, projection='3d')
             plot_x, plot_y = np.meshgrid(self.y_grid, self.x_grid)
-            diff = self.instrument.fd.solution - self.instrument_zero.fd.solution
+            diff = (self.instrument.fd.solution
+                    - self.instrument_zero.fd.solution)
             ax.plot_surface(plot_x, plot_y, diff, cmap=cm.jet)
             ax.set_xlabel("Variance")
             ax.set_ylabel("Stock Price")
@@ -107,8 +110,7 @@ class CallOption(unittest.TestCase):
             ax.set_zlabel("Diff zero corr")
             ax.set_xlim([self.y_min, self.y_max])
             ax.set_ylim([self.x_min, self.x_max])
-            plt.pause(10)
-            plt.clf()
+            plt.show()
 
 
 if __name__ == '__main__':
