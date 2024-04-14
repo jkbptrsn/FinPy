@@ -14,7 +14,7 @@ class ZCBond(bonds.BondAnalytical1F):
     """Zero-coupon bond in Vasicek model.
 
     Zero-coupon bond price dependent on short rate modelled by Vasicek
-    SDE. See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
+    SDE. See Andersen & Piterbarg (2010), proposition 10.1.4.
 
     Attributes:
         kappa: Speed of mean reversion.

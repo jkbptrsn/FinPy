@@ -24,15 +24,14 @@ class Instrument(enum.Enum):
 class Model(enum.Enum):
     """Type of underlying stochastic model."""
     BLACK_SCHOLES = enum.auto()
+    HESTON = enum.auto()
+    HULL_WHITE_1F = enum.auto()
+    VASICEK = enum.auto()
 
     # TODO: NM delete
     BACHELIER = enum.auto()
     CIR = enum.auto()
     SABR = enum.auto()
-
-    HESTON = enum.auto()
-    HULL_WHITE_1F = enum.auto()
-    VASICEK = enum.auto()
 
 
 class Transformation(enum.Enum):

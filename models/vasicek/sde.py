@@ -17,7 +17,7 @@ class Sde(metaclass=abc.ABCMeta):
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
+    See Andersen & Piterbarg (2010), section 10.1.
 
     Attributes:
         kappa: Speed of mean reversion.
