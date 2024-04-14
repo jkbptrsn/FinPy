@@ -284,8 +284,8 @@ class EuropeanOption2D(metaclass=abc.ABCMeta):
             equidistant: Is grid equidistant? Default is false.
             theta_value: Theta parameter.
         """
-        self.fd = fd_craig.setup_solver(self, x_grid, y_grid, form,
-                                        equidistant, theta_value)
+        fd_craig.setup_solver(
+            self, x_grid, y_grid, form, equidistant, theta_value)
         self.fd.initialization()
 
     @abc.abstractmethod
