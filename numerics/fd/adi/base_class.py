@@ -20,8 +20,8 @@ class ADI2D:
     Attributes:
         grid_x: 1D grid for x-dimension. Assumed ascending.
         grid_y: 1D grid for y-dimension. Assumed ascending.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
     """
 
@@ -57,25 +57,28 @@ class ADI2D:
     def nstates(self) -> (int, int):
         return self.grid_x.size, self.grid_y.size
 
-    def set_drift(self,
-                  drift_x: np.ndarray,
-                  drift_y: np.ndarray) -> None:
+    def set_drift(
+            self,
+            drift_x: np.ndarray,
+            drift_y: np.ndarray) -> None:
         """Drift matrices defined by underlying process."""
         self.drift_x = drift_x
         self.drift_y = drift_y
 
-    def set_diffusion(self,
-                      diffusion_x: np.ndarray,
-                      diffusion_y: np.ndarray) -> None:
+    def set_diffusion(
+            self,
+            diffusion_x: np.ndarray,
+            diffusion_y: np.ndarray) -> None:
         """Diffusion matrices defined by underlying process."""
         self.diff_x = diffusion_x
         self.diff_y = diffusion_y
         self.diff_x_sq = np.square(diffusion_x)
         self.diff_y_sq = np.square(diffusion_y)
 
-    def set_rate(self,
-                 rate_x: np.ndarray,
-                 rate_y: np.ndarray) -> None:
+    def set_rate(
+            self,
+            rate_x: np.ndarray,
+            rate_y: np.ndarray) -> None:
         """Rate matrix defined by underlying process."""
         self.rate_x = rate_x
         self.rate_y = rate_y

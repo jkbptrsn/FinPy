@@ -25,8 +25,8 @@ class CraigSneyd2D(base_class.ADI2D):
     Attributes:
         grid_x: 1D grid for x-dimension. Assumed ascending.
         grid_y: 1D grid for y-dimension. Assumed ascending.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
         theta_parameter: Determines the form of the time derivative.
         lambda_parameter: Determines the inclusion of the mixed
@@ -159,20 +159,21 @@ class CraigSneyd2D(base_class.ADI2D):
         self.solution = tmp
 
 
-def setup_solver(instrument,
-                 x_grid: np.ndarray,
-                 y_grid: np.ndarray,
-                 band: str = "tri",
-                 equidistant: bool = False,
-                 theta_parameter: float = 0.5):
+def setup_solver(
+        instrument,
+        x_grid: np.ndarray,
+        y_grid: np.ndarray,
+        band: str = "tri",
+        equidistant: bool = False,
+        theta_parameter: float = 0.5):
     """Setting up finite difference solver.
 
     Args:
         instrument: Instrument object.
         x_grid: Grid in x dimension.
         y_grid: Grid in y dimension.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
         theta_parameter: Determines the specific method
 
@@ -191,8 +192,9 @@ def setup_solver(instrument,
         raise ValueError("Unknown instrument.")
 
 
-def update(instrument,
-           event_idx: int = -1):
+def update(
+        instrument,
+        event_idx: int = -1):
     """Update drift, diffusion and rate vectors.
 
     Args:

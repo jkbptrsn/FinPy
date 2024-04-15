@@ -22,8 +22,8 @@ class PeachmanRachford2D(base_class.ADI2D):
     Attributes:
         grid_x: 1D grid for x-dimension. Assumed ascending.
         grid_y: 1D grid for y-dimension. Assumed ascending.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
     """
 
