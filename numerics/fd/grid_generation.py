@@ -2,9 +2,10 @@ import math
 import numpy as np
 
 
-def equidistant(x_min: float,
-                x_max: float,
-                n_states: int) -> np.ndarray:
+def equidistant(
+        x_min: float,
+        x_max: float,
+        n_states: int) -> np.ndarray:
     """Equidistant grid in one dimension.
 
     Args:
@@ -19,11 +20,12 @@ def equidistant(x_min: float,
     return dx * np.arange(n_states) + x_min
 
 
-def hyperbolic(x_min: float,
-               x_max: float,
-               n_states: int,
-               x_center: float,
-               shape: float = None) -> (np.ndarray, np.ndarray):
+def hyperbolic(
+        x_min: float,
+        x_max: float,
+        n_states: int,
+        x_center: float,
+        shape: float = None) -> (np.ndarray, np.ndarray):
     """Non-equidistant grid in one dimension.
 
     Hyperbolic sine transformation. See In 'T Hout and Foulon (2010).

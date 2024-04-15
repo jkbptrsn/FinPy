@@ -23,9 +23,10 @@ info = """
 """
 
 
-def ddx_equidistant(size: int,
-                    dx: float,
-                    band: str = "tri") -> np.ndarray:
+def ddx_equidistant(
+        size: int,
+        dx: float,
+        band: str = "tri") -> np.ndarray:
     """FD approximation of 1st order differential operator.
 
     Central finite difference approximation of 1st order differential
@@ -35,8 +36,8 @@ def ddx_equidistant(size: int,
     Args:
         size: Number of elements along main diagonal.
         dx: Constant grid spacing.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
 
     Returns:
         Discrete 1st order differential operator.
@@ -88,8 +89,8 @@ def ddx(grid: np.ndarray,
 
     Args:
         grid: Grid points.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
 
     Returns:
         Discrete 1st order differential operator.
@@ -155,9 +156,10 @@ def ddx(grid: np.ndarray,
     return matrix
 
 
-def d2dx2_equidistant(size: int,
-                      dx: float,
-                      band: str = "tri") -> np.ndarray:
+def d2dx2_equidistant(
+        size: int,
+        dx: float,
+        band: str = "tri") -> np.ndarray:
     """FD approximation of 2nd order differential operator.
 
     Central finite difference approximation of 2nd order differential
@@ -167,8 +169,8 @@ def d2dx2_equidistant(size: int,
     Args:
         size: Number of elements along main diagonal.
         dx: Constant grid spacing.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
 
     Returns:
         Discrete 2nd order differential operator.
@@ -200,8 +202,9 @@ def d2dx2_equidistant(size: int,
     return matrix / (dx ** 2)
 
 
-def d2dx2(grid: np.ndarray,
-          band: str = "tri") -> np.ndarray:
+def d2dx2(
+        grid: np.ndarray,
+        band: str = "tri") -> np.ndarray:
     """FD approximation of 2nd order differential operator.
 
     Finite difference approximation of 2nd order differential operator
@@ -212,8 +215,8 @@ def d2dx2(grid: np.ndarray,
 
     Args:
         grid: Grid points.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
 
     Returns:
         Discrete 2nd order differential operator.
@@ -264,11 +267,12 @@ def d2dx2(grid: np.ndarray,
     return matrix
 
 
-def d2dxdy(func: np.ndarray,
-           ddx_x: np.ndarray,
-           ddx_y: np.ndarray,
-           band_x: str = "tri",
-           band_y: str = "tri") -> np.ndarray:
+def d2dxdy(
+        func: np.ndarray,
+        ddx_x: np.ndarray,
+        ddx_y: np.ndarray,
+        band_x: str = "tri",
+        band_y: str = "tri") -> np.ndarray:
     """FD approximation of 2nd order mixed differential operator.
 
     Args:
@@ -277,10 +281,12 @@ def d2dxdy(func: np.ndarray,
             dimension.
         ddx_y: FD approximation of 1st order differential operator in y
             dimension.
-        band_x: Tri- or pentadiagonal matrix representation of
-            operators in x dimension. Default is tridiagonal.
-        band_y: Tri- or pentadiagonal matrix representation of
-            operators in y dimension. Default is tridiagonal.
+        band_x: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators in x dimension. Default is
+            tridiagonal.
+        band_y: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators in y dimension. Default is
+            tridiagonal.
 
     Returns:
         Discrete 2nd order mixed differential operator.

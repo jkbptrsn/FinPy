@@ -1,10 +1,11 @@
 import numpy as np
 
 
-def norms_1d(vector1: np.ndarray,
-             vector2: np.ndarray,
-             step_size1: float,
-             slice_nr: int = 2) -> (float, float, float):
+def norms_1d(
+        vector1: np.ndarray,
+        vector2: np.ndarray,
+        step_size1: float,
+        slice_nr: int = 2) -> (float, float, float):
     """Calculate norms of 1-dimensional vector.
 
     Args:
@@ -29,11 +30,12 @@ def norms_1d(vector1: np.ndarray,
     return norm_center, norm_max, norm_l2
 
 
-def norms_2d(vector1: np.ndarray,
-             vector2: np.ndarray,
-             step_size1: (float, float),
-             dimension: str = "x",
-             slice_nr: int = 2) -> (float, float, float):
+def norms_2d(
+        vector1: np.ndarray,
+        vector2: np.ndarray,
+        step_size1: (float, float),
+        dimension: str = "x",
+        slice_nr: int = 2) -> (float, float, float):
     """Calculate norms of 2-dimensional vector.
 
     Args:

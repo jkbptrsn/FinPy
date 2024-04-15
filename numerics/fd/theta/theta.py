@@ -19,8 +19,8 @@ class ThetaBase:
 
     Attributes:
         grid: Grid in spatial dimension. Assumed ascending.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
     """
 
@@ -133,8 +133,8 @@ class Theta(ThetaBase):
 
     Attributes:
         grid: Grid in spatial dimension.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
         theta_parameter: Determines the specific method.
             0   : Explicit method
@@ -177,9 +177,10 @@ class Theta(ThetaBase):
             + la.dia_matrix_prod(self.vec_drift, self.ddx, self.band) \
             + la.dia_matrix_prod(self.vec_diff_sq, self.d2dx2, self.band) / 2
 
-    def propagation(self,
-                    dt: float,
-                    time_dependent: bool = False):
+    def propagation(
+            self,
+            dt: float,
+            time_dependent: bool = False):
         """Propagation of solution vector for one time step dt."""
         rhs = self.mat_identity \
             + (1 - self.theta_parameter) * dt * self.mat_propagator
@@ -207,18 +208,19 @@ class Theta(ThetaBase):
         return self.theta_calc(dt)
 
 
-def setup_solver(instrument,
-                 grid: np.ndarray,
-                 band: str = "tri",
-                 equidistant: bool = False,
-                 theta_parameter: float = 0.5):
+def setup_solver(
+        instrument,
+        grid: np.ndarray,
+        band: str = "tri",
+        equidistant: bool = False,
+        theta_parameter: float = 0.5):
     """Setting up finite difference solver.
 
     Args:
         instrument: Instrument object.
         grid: Grid in spatial dimension.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
         theta_parameter: Determines the specific method:
             0   : Explicit method.
@@ -231,8 +233,9 @@ def setup_solver(instrument,
     instrument.fd.solution = instrument.payoff(instrument.fd.grid)
 
 
-def update(instrument,
-           event_idx: int = -1):
+def update(
+        instrument,
+        event_idx: int = -1):
     """Update drift, diffusion and rate vectors.
 
     Args:

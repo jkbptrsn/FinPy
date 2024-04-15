@@ -24,9 +24,10 @@ info = """
 """
 
 
-def delta_equidistant(dx: float,
-                      function: np.ndarray,
-                      band: str = "tri") -> np.ndarray:
+def delta_equidistant(
+        dx: float,
+        function: np.ndarray,
+        band: str = "tri") -> np.ndarray:
     """Finite difference approximation of delta on equidistant grid.
 
     Assuming ascending grid.
@@ -34,8 +35,8 @@ def delta_equidistant(dx: float,
     Args:
         dx: Constant grid spacing.
         function: Function values on grid.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
 
     Returns:
         Delta.
@@ -44,9 +45,10 @@ def delta_equidistant(dx: float,
     return la.matrix_col_prod(operator, function, band)
 
 
-def delta(grid: np.ndarray,
-          function: np.ndarray,
-          band: str = "tri") -> np.ndarray:
+def delta(
+        grid: np.ndarray,
+        function: np.ndarray,
+        band: str = "tri") -> np.ndarray:
     """Finite difference approximation of delta on non-equidistant grid.
 
     Assuming ascending grid.
@@ -54,8 +56,8 @@ def delta(grid: np.ndarray,
     Args:
         grid: Non-equidistant grid.
         function: Function values on grid.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
 
     Returns:
         Delta.
@@ -64,9 +66,10 @@ def delta(grid: np.ndarray,
     return la.matrix_col_prod(operator, function, band)
 
 
-def gamma_equidistant(dx: float,
-                      function: np.ndarray,
-                      band: str = "tri") -> np.ndarray:
+def gamma_equidistant(
+        dx: float,
+        function: np.ndarray,
+        band: str = "tri") -> np.ndarray:
     """Finite difference approximation of gamma on equidistant grid.
 
     Assuming ascending grid.
@@ -74,8 +77,8 @@ def gamma_equidistant(dx: float,
     Args:
         dx: Constant grid spacing.
         function: Function values on grid.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
 
     Returns:
         Gamma.
@@ -84,9 +87,10 @@ def gamma_equidistant(dx: float,
     return la.matrix_col_prod(operator, function, band)
 
 
-def gamma(grid: np.ndarray,
-          function: np.ndarray,
-          band: str = "tri") -> np.ndarray:
+def gamma(
+        grid: np.ndarray,
+        function: np.ndarray,
+        band: str = "tri") -> np.ndarray:
     """Finite difference approximation of gamma on non-equidistant grid.
 
     Assuming ascending grid.
@@ -94,8 +98,8 @@ def gamma(grid: np.ndarray,
     Args:
         grid: Non-equidistant grid.
         function: Function values on grid.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
 
     Returns:
         Gamma.

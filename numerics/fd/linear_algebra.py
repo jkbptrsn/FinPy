@@ -21,14 +21,15 @@ info = """
 """
 
 
-def identity_matrix(size: int,
-                    band: str = "tri") -> np.ndarray:
+def identity_matrix(
+        size: int,
+        band: str = "tri") -> np.ndarray:
     """Identity matrix of banded form.
 
     Args:
         size: Number of elements along main diagonal.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
 
     Returns:
         Identity matrix.
@@ -44,16 +45,17 @@ def identity_matrix(size: int,
     return matrix
 
 
-def matrix_col_prod(matrix: np.ndarray,
-                    column: np.ndarray,
-                    band: str = "tri") -> np.ndarray:
+def matrix_col_prod(
+        matrix: np.ndarray,
+        column: np.ndarray,
+        band: str = "tri") -> np.ndarray:
     """Product of banded matrix and column vector.
 
     Args:
         matrix: Banded matrix.
         column: Column vector.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
 
     Returns:
         Matrix-column product as column vector.
@@ -81,16 +83,17 @@ def matrix_col_prod(matrix: np.ndarray,
     return product
 
 
-def dia_matrix_prod(diagonal: np.ndarray,
-                    matrix: np.ndarray,
-                    band: str = "tri") -> np.ndarray:
+def dia_matrix_prod(
+        diagonal: np.ndarray,
+        matrix: np.ndarray,
+        band: str = "tri") -> np.ndarray:
     """Product of diagonal matrix and banded matrix.
 
     Args:
         diagonal: Diagonal matrix represented as vector.
         matrix: Banded matrix.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
 
     Returns:
         Banded matrix.
