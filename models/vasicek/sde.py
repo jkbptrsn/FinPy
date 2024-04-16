@@ -17,7 +17,7 @@ class Sde(metaclass=abc.ABCMeta):
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
 
-    See Andersen & Piterbarg (2010), section 10.1.
+    See Andersen & Piterbarg (2010), Section 10.1.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -71,7 +71,7 @@ class SdeExact(Sde):
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
+    See Andersen & Piterbarg (2010), Chapter 10.1.
 
     Monte-Carlo paths constructed using exact discretization.
 
@@ -114,7 +114,7 @@ class SdeExact(Sde):
     def _calc_rate_mean(self):
         """Conditional mean of short rate process.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.12).
+        See Andersen & Piterbarg (2010), Eq. (10.12).
         """
         exp_kappa = np.exp(-self.kappa * np.diff(self.event_grid))
         self.rate_mean[0, 0] = 1
@@ -124,7 +124,7 @@ class SdeExact(Sde):
     def _calc_rate_variance(self):
         """Conditional variance of short rate process.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.13).
+        See Andersen & Piterbarg (2010), Eq. (10.13).
         """
         two_kappa = 2 * self.kappa
         exp_two_kappa = np.exp(-two_kappa * np.diff(self.event_grid))
@@ -159,7 +159,7 @@ class SdeExact(Sde):
 
         Here the discount process refers to -int_{t_1}^{t_2} r_t dt.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.12+).
+        See Andersen & Piterbarg (2010), Eq. (10.12+).
         """
         dt = np.diff(self.event_grid)
         exp_kappa = np.exp(-self.kappa * dt)
@@ -172,7 +172,7 @@ class SdeExact(Sde):
 
         Here the discount process refers to -int_{t_1}^{t_2} r_t dt.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.13+).
+        See Andersen & Piterbarg (2010), Eq. (10.13+).
         """
         dt = np.diff(self.event_grid)
         exp_kappa = np.exp(-self.kappa * dt)
@@ -207,7 +207,7 @@ class SdeExact(Sde):
     def _calc_covariance(self):
         """Conditional covariance of short rate and discount processes.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, lemma 10.1.11.
+        See Andersen & Piterbarg (2010), Lemma 10.1.11.
         """
         dt = np.diff(self.event_grid)
         vol_sq = self.vol ** 2
@@ -288,7 +288,7 @@ class SdeEuler(Sde):
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
+    See Andersen & Piterbarg (2010), Chapter 10.1.
 
     Monte-Carlo paths constructed using Euler-Maruyama discretization.
 

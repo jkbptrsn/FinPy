@@ -8,11 +8,12 @@ from models.vasicek import zero_coupon_bond as zcbond
 from utils.global_types import Instrument
 
 
-def a_function(time1: float,
-               time2: float,
-               kappa: float,
-               mean_rate: float,
-               vol: float) -> float:
+def a_function(
+        time1: float,
+        time2: float,
+        kappa: float,
+        mean_rate: float,
+        vol: float) -> float:
     """Calculate A-function.
 
     See Andersen & Piterbarg (2010), Proposition 10.1.4.
@@ -34,9 +35,10 @@ def a_function(time1: float,
         * (b - (time2 - time1)) - vol_sq * b ** 2 / (4 * kappa)
 
 
-def b_function(time1: float,
-               time2: float,
-               kappa: float) -> float:
+def b_function(
+        time1: float,
+        time2: float,
+        kappa: float) -> float:
     """Calculate B-function.
 
     See Andersen & Piterbarg (2010), Proposition 10.1.4.
@@ -52,11 +54,12 @@ def b_function(time1: float,
     return (1 - math.exp(-kappa * (time2 - time1))) / kappa
 
 
-def dadt(time1: float,
-         time2: float,
-         kappa: float,
-         mean_rate: float,
-         vol: float) -> float:
+def dadt(
+        time1: float,
+        time2: float,
+        kappa: float,
+        mean_rate: float,
+        vol: float) -> float:
     """Calculate 1st order partial derivative of A-function wrt time1.
 
     See Andersen & Piterbarg (2010), Proposition 10.1.4.
@@ -73,14 +76,16 @@ def dadt(time1: float,
     """
     vol_sq = vol ** 2
     two_kappa_sq = 2 * kappa ** 2
+    b = b_function(time1, time2, kappa)
     db = dbdt(time1, time2, kappa)
     return (mean_rate - vol_sq / two_kappa_sq) * (db + 1) \
-        - vol_sq * b_function(time1, time2, kappa) * db / (2 * kappa)
+        - vol_sq * b * db / (2 * kappa)
 
 
-def dbdt(time1: float,
-         time2: float,
-         kappa: float) -> float:
+def dbdt(
+        time1: float,
+        time2: float,
+        kappa: float) -> float:
     """Calculate 1st order partial derivative of B-function wrt time1.
 
     See Andersen & Piterbarg (2010), Proposition 10.1.4.
@@ -94,6 +99,9 @@ def dbdt(time1: float,
         Time derivative of B-function.
     """
     return -math.exp(-kappa * (time2 - time1))
+
+
+###############################################################################
 
 
 def sigma_p(time1: float,
