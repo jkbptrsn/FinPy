@@ -101,14 +101,12 @@ def dbdt(
     return -math.exp(-kappa * (time2 - time1))
 
 
-###############################################################################
-
-
-def sigma_p(time1: float,
-            time2: float,
-            time3: float,
-            kappa: float,
-            vol: float) -> float:
+def sigma_p(
+        time1: float,
+        time2: float,
+        time3: float,
+        kappa: float,
+        vol: float) -> float:
     """Calculate sigma_p function.
 
     See Brigo & Mercurio (2007), Eq. (3.10).
@@ -129,10 +127,11 @@ def sigma_p(time1: float,
     return vol * b * math.sqrt((1 - exp_kappa) / two_kappa)
 
 
-def h_function(zc1_price: typing.Union[float, np.ndarray],
-               zc2_price: typing.Union[float, np.ndarray],
-               s_p: float,
-               strike: float) -> typing.Union[float, np.ndarray]:
+def h_function(
+        zc1_price: typing.Union[float, np.ndarray],
+        zc2_price: typing.Union[float, np.ndarray],
+        s_p: float,
+        strike: float) -> typing.Union[float, np.ndarray]:
     """Calculate h function.
 
     See Brigo & Mercurio (2007), Eq. (3.10).
@@ -151,16 +150,17 @@ def h_function(zc1_price: typing.Union[float, np.ndarray],
     return np.log(zc2_price / (zc1_price * strike)) / s_p + s_p / 2
 
 
-def european_option_price(spot: typing.Union[float, np.ndarray],
-                          event_idx: int,
-                          kappa: float,
-                          mean_rate: float,
-                          vol: float,
-                          strike: float,
-                          expiry_idx: int,
-                          maturity_idx: int,
-                          event_grid: np.ndarray,
-                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def european_option_price(
+        spot: typing.Union[float, np.ndarray],
+        event_idx: int,
+        kappa: float,
+        mean_rate: float,
+        vol: float,
+        strike: float,
+        expiry_idx: int,
+        maturity_idx: int,
+        event_grid: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option price.
 
@@ -203,16 +203,20 @@ def european_option_price(spot: typing.Union[float, np.ndarray],
                     - strike * zc1_price * norm.cdf(omega * (h - s_p)))
 
 
-def european_option_delta(spot: typing.Union[float, np.ndarray],
-                          event_idx: int,
-                          kappa: float,
-                          mean_rate: float,
-                          vol: float,
-                          strike: float,
-                          expiry_idx: int,
-                          maturity_idx: int,
-                          event_grid: np.ndarray,
-                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
+###############################################################################
+
+
+def european_option_delta(
+        spot: typing.Union[float, np.ndarray],
+        event_idx: int,
+        kappa: float,
+        mean_rate: float,
+        vol: float,
+        strike: float,
+        expiry_idx: int,
+        maturity_idx: int,
+        event_grid: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option delta.
 
@@ -262,16 +266,17 @@ def european_option_delta(spot: typing.Union[float, np.ndarray],
     return omega * delta
 
 
-def european_option_gamma(spot: typing.Union[float, np.ndarray],
-                          event_idx: int,
-                          kappa: float,
-                          mean_rate: float,
-                          vol: float,
-                          strike: float,
-                          expiry_idx: int,
-                          maturity_idx: int,
-                          event_grid: np.ndarray,
-                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def european_option_gamma(
+        spot: typing.Union[float, np.ndarray],
+        event_idx: int,
+        kappa: float,
+        mean_rate: float,
+        vol: float,
+        strike: float,
+        expiry_idx: int,
+        maturity_idx: int,
+        event_grid: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option gamma.
 
@@ -325,23 +330,25 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
     # See notes.
     gamma -= dhdr ** 2 * \
         (zc2_price * omega * h * norm.pdf(omega * h)
-         - strike * zc1_price * omega * (h - s_p) * norm.pdf(omega * (h - s_p)))
+         - strike * zc1_price * omega * (h - s_p)
+         * norm.pdf(omega * (h - s_p)))
     gamma += omega * d2hdr2 * \
         (zc2_price * norm.pdf(omega * h)
          - strike * zc1_price * norm.pdf(omega * (h - s_p)))
     return omega * gamma
 
 
-def european_option_theta(spot: typing.Union[float, np.ndarray],
-                          event_idx: int,
-                          kappa: float,
-                          mean_rate: float,
-                          vol: float,
-                          strike: float,
-                          expiry_idx: int,
-                          maturity_idx: int,
-                          event_grid: np.ndarray,
-                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def european_option_theta(
+        spot: typing.Union[float, np.ndarray],
+        event_idx: int,
+        kappa: float,
+        mean_rate: float,
+        vol: float,
+        strike: float,
+        expiry_idx: int,
+        maturity_idx: int,
+        event_grid: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option theta.
 
@@ -393,5 +400,6 @@ def european_option_theta(spot: typing.Union[float, np.ndarray],
         - strike * zc1_theta * norm.cdf(omega * (h - s_p))
     theta += omega \
         * (zc2_price * norm.pdf(omega * h) * dhdt
-           - strike * zc1_price * norm.pdf(omega * (h - s_p)) * (dhdt - ds_pdt))
+           - strike * zc1_price * norm.pdf(omega * (h - s_p))
+           * (dhdt - ds_pdt))
     return omega * theta

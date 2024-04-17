@@ -12,7 +12,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class ZCBond(bonds.BondAnalytical1F):
+class ZCBond(bonds.Bond1FAnalytical):
     """Zero-coupon bond in 1-factor Hull-White model.
 
     Price of Zero-coupon bond dependent on pseudo short rate modelled by

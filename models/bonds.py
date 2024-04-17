@@ -6,7 +6,7 @@ import numpy as np
 from numerics.fd.theta import theta as fd_theta
 
 
-class BondAnalytical1F(metaclass=abc.ABCMeta):
+class Bond1FAnalytical(metaclass=abc.ABCMeta):
     """Bond in 1-factor model with closed-form solution."""
 
     def __init__(self):
@@ -159,10 +159,6 @@ class BondAnalytical1F(metaclass=abc.ABCMeta):
             seed: Seed of random number generator. Default is None.
             antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         pass
 
@@ -190,9 +186,5 @@ class BondAnalytical1F(metaclass=abc.ABCMeta):
             seed: Seed of random number generator. Default is None.
             antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         pass

@@ -9,7 +9,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class Call(options.EuropeanOption2D):
+class Call(options.Option2F):
     """European call option in Heston model.
 
     European call option written on stock price modelled by Heston SDE.

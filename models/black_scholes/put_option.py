@@ -217,7 +217,7 @@ class Put(options.Option1FAnalytical):
         self.mc_exact.paths()
 
 
-class PutAmerican(options.AmericanOption):
+class PutAmerican(options.Option1F):
     """American put option in Black-Scholes model.
 
     TODO:

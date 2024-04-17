@@ -10,7 +10,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class ZCBond(bonds.BondAnalytical1F):
+class ZCBond(bonds.Bond1FAnalytical):
     """Zero-coupon bond in Vasicek model.
 
     Zero-coupon bond price dependent on short rate modelled by Vasicek
@@ -24,12 +24,13 @@ class ZCBond(bonds.BondAnalytical1F):
         event_grid: Event dates as year fractions from as-of date.
     """
 
-    def __init__(self,
-                 kappa: float,
-                 mean_rate: float,
-                 vol: float,
-                 maturity_idx: int,
-                 event_grid: np.ndarray):
+    def __init__(
+            self,
+            kappa: float,
+            mean_rate: float,
+            vol: float,
+            maturity_idx: int,
+            event_grid: np.ndarray):
         super().__init__()
         self.kappa = kappa
         self.mean_rate = mean_rate
@@ -122,11 +123,6 @@ class ZCBond(bonds.BondAnalytical1F):
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
-        self.fd.set_propagator()
-        # Set terminal condition.
-        self.fd.solution = self.payoff(self.fd.grid)
-        # Update drift, diffusion and rate vectors.
-        self.fd_update()
         # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid))
         for dt in time_steps:
@@ -146,14 +142,14 @@ class ZCBond(bonds.BondAnalytical1F):
             antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
-        Generation of Monte-Carlo paths using exact discretization.
+        Exact discretization.
 
         Args:
             spot: Spot short rate.
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
-            antithetic: Antithetic sampling for variance reduction.
+            antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
@@ -182,7 +178,7 @@ class ZCBond(bonds.BondAnalytical1F):
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
-            antithetic: Antithetic sampling for variance reduction.
+            antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
 
         Returns:

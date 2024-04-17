@@ -9,7 +9,7 @@ from utils import data_types
 from utils import global_types
 
 
-class Bond(bonds.BondAnalytical1F):
+class Bond(bonds.Bond1FAnalytical):
     """Coupon bearing bond in 1-factor Hull-White model.
 
     Bond with pre-specified cash flow.

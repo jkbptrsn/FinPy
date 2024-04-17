@@ -7,16 +7,17 @@ from numerics.fd.theta import theta as fd_theta
 from numerics.fd.adi import craig_sneyd as fd_craig
 
 
-# TODO: Rename to Option1F
-# TODO: Add Monte-Carlo related methods.
-class AmericanOption(metaclass=abc.ABCMeta):
-    """American option..."""
+class Option1F(metaclass=abc.ABCMeta):
+    """Option in 1-factor model.
+
+    TODO: Add Monte-Carlo related methods.
+    """
 
     def __init__(self):
         # Solver objects.
         self.fd = None
-        self.mc = None
         self.mc_exact = None
+        self.mc_euler = None
 
     @property
     @abc.abstractmethod
@@ -24,8 +25,9 @@ class AmericanOption(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -37,28 +39,29 @@ class AmericanOption(metaclass=abc.ABCMeta):
         """
         pass
 
-    def fd_setup(self,
-                 x_grid: np.ndarray,
-                 form: str = "tri",
-                 equidistant: bool = False,
-                 theta_value: float = 0.5):
+    def fd_setup(
+            self,
+            x_grid: np.ndarray,
+            band: str = "tri",
+            equidistant: bool = False,
+            theta_value: float = 0.5) -> None:
         """Setting up finite difference solver.
 
         Args:
             x_grid: Grid in spatial dimension.
-            form: Tri- ("tri") or pentadiagonal ("penta") form. Default
-                is tridiagonal.
+            band: Tri- ("tri") or pentadiagonal ("penta") matrix
+                representation of operators. Default is tridiagonal.
             equidistant: Is grid equidistant? Default is false.
             theta_value: Determines the specific method:
                 0   : Explicit method.
                 0.5 : Crank-Nicolson method (default).
                 1   : Fully implicit method.
         """
-        fd_theta.setup_solver(self, x_grid, form, equidistant, theta_value)
+        fd_theta.setup_solver(self, x_grid, band, equidistant, theta_value)
         self.fd.initialization()
 
     @abc.abstractmethod
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
         pass
 
@@ -73,8 +76,9 @@ class Option1FAnalytical(metaclass=abc.ABCMeta):
         self.mc_euler = None
 
     @abc.abstractmethod
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -87,9 +91,10 @@ class Option1FAnalytical(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -102,9 +107,10 @@ class Option1FAnalytical(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt value of underlying.
 
         Args:
@@ -117,9 +123,10 @@ class Option1FAnalytical(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt value of underlying.
 
         Args:
@@ -132,9 +139,10 @@ class Option1FAnalytical(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -146,28 +154,30 @@ class Option1FAnalytical(metaclass=abc.ABCMeta):
         """
         pass
 
-    def fd_setup(self,
-                 x_grid: np.ndarray,
-                 form: str = "tri",
-                 equidistant: bool = False,
-                 theta_value: float = 0.5):
+    def fd_setup(
+            self,
+            x_grid: np.ndarray,
+            band: str = "tri",
+            equidistant: bool = False,
+            theta_value: float = 0.5) -> None:
         """Setting up finite difference solver.
 
         Args:
             x_grid: Grid in spatial dimension.
-            form: Tri- ("tri") or pentadiagonal ("penta") form. Default
-                is tridiagonal.
+            band: Tri- ("tri") or pentadiagonal ("penta") matrix
+                representation of operators. Default is tridiagonal.
             equidistant: Is grid equidistant? Default is false.
             theta_value: Determines the specific method:
                 0   : Explicit method.
                 0.5 : Crank-Nicolson method (default).
                 1   : Fully implicit method.
         """
-        fd_theta.setup_solver(self, x_grid, form, equidistant, theta_value)
+        fd_theta.setup_solver(self, x_grid, band, equidistant, theta_value)
         self.fd.initialization()
 
-    def fd_update(self,
-                  event_idx: int = -1):
+    def fd_update(
+            self,
+            event_idx: int = -1) -> None:
         """Update drift, diffusion and rate vectors.
 
         Args:
@@ -176,22 +186,23 @@ class Option1FAnalytical(metaclass=abc.ABCMeta):
         fd_theta.update(self, event_idx)
 
     @abc.abstractmethod
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
         pass
 
 #    @abc.abstractmethod
-    def mc_exact_setup(self):
+    def mc_exact_setup(self) -> None:
         """Setup exact Monte-Carlo solver."""
         pass
 
 #    @abc.abstractmethod
-    def mc_exact_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False):
+    def mc_exact_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Exact discretization.
@@ -201,27 +212,24 @@ class Option1FAnalytical(metaclass=abc.ABCMeta):
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
-            antithetic: Antithetic sampling for variance reduction.
+            antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
-
-        Returns:
-            Realizations of underlying process represented on event
-            grid.
         """
         pass
 
 #    @abc.abstractmethod
-    def mc_euler_setup(self):
+    def mc_euler_setup(self) -> None:
         """Setup Euler Monte-Carlo solver."""
         pass
 
 #    @abc.abstractmethod
-    def mc_euler_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False):
+    def mc_euler_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Euler-Maruyama discretization.
@@ -231,19 +239,14 @@ class Option1FAnalytical(metaclass=abc.ABCMeta):
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
-            antithetic: Antithetic sampling for variance reduction.
+            antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
-
-        Returns:
-            Realizations of underlying process represented on event
-            grid.
         """
         pass
 
 
-# TODO: Rename to Option2F
-class EuropeanOption2D(metaclass=abc.ABCMeta):
-    """European option."""
+class Option2F(metaclass=abc.ABCMeta):
+    """Option in 2-factor model."""
 
     def __init__(self):
         # Solver objects.
@@ -255,8 +258,9 @@ class EuropeanOption2D(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -268,27 +272,28 @@ class EuropeanOption2D(metaclass=abc.ABCMeta):
         """
         pass
 
-    def fd_setup(self,
-                 x_grid: np.ndarray,
-                 y_grid: np.ndarray,
-                 form: str = "tri",
-                 equidistant: bool = False,
-                 theta_value: float = 0.5):
+    def fd_setup(
+            self,
+            x_grid: np.ndarray,
+            y_grid: np.ndarray,
+            band: str = "tri",
+            equidistant: bool = False,
+            theta_value: float = 0.5) -> None:
         """Setting up finite difference solver.
 
         Args:
             x_grid: Grid in x dimension.
             y_grid: Grid in y dimension.
-            form: Tri- ("tri") or pentadiagonal ("penta") form. Default
-                is tridiagonal.
+            band: Tri- ("tri") or pentadiagonal ("penta") matrix
+                representation of operators. Default is tridiagonal.
             equidistant: Is grid equidistant? Default is false.
             theta_value: Theta parameter.
         """
         fd_craig.setup_solver(
-            self, x_grid, y_grid, form, equidistant, theta_value)
+            self, x_grid, y_grid, band, equidistant, theta_value)
         self.fd.initialization()
 
     @abc.abstractmethod
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run solver on event_grid..."""
         pass

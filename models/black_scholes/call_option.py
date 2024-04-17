@@ -215,7 +215,7 @@ class Call(options.Option1FAnalytical):
         self.mc_exact.paths()
 
 
-class CallAmerican(options.AmericanOption):
+class CallAmerican(options.Option1F):
     """American call option in Black-Scholes model.
 
     American call option written on stock price modelled by
