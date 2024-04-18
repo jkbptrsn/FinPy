@@ -6,8 +6,8 @@ import numpy as np
 from models.vasicek import zero_coupon_bond as zcbond
 from utils import plots
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 if print_results:
     print("Unit test results from: " + __name__)

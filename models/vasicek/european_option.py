@@ -9,6 +9,7 @@ from models.vasicek import sde
 from models.vasicek import zero_coupon_bond as zcbond
 from utils import global_types
 from utils import payoffs
+from utils import smoothing
 
 
 class EuropeanOption(options.Option1FAnalytical):
@@ -163,12 +164,14 @@ class EuropeanOption(options.Option1FAnalytical):
         time_steps = np.flip(np.diff(self.event_grid))
         for idx, dt in enumerate(time_steps):
             event_idx = (self.event_grid.size - 1) - idx
-
-            # TODO: Check smoothing!
-
             # Expiry of option.
             if event_idx == self.expiry_idx:
                 self.fd.solution = self.payoff(self.fd.solution)
+
+                # TODO: Check smoothing!
+#                self.fd.solution = \
+#                    smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
+
             self.fd.propagation(dt)
 
     def mc_exact_setup(self) -> None:
