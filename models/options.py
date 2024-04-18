@@ -246,7 +246,10 @@ class Option1FAnalytical(metaclass=abc.ABCMeta):
 
 
 class Option2F(metaclass=abc.ABCMeta):
-    """Option in 2-factor model."""
+    """Option in 2-factor model.
+
+    TODO: Add Monte-Carlo related methods.
+    """
 
     def __init__(self):
         # Solver objects.

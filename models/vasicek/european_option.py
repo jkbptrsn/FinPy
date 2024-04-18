@@ -163,6 +163,9 @@ class EuropeanOption(options.Option1FAnalytical):
         time_steps = np.flip(np.diff(self.event_grid))
         for idx, dt in enumerate(time_steps):
             event_idx = (self.event_grid.size - 1) - idx
+
+            # TODO: Check smoothing!
+
             # Expiry of option.
             if event_idx == self.expiry_idx:
                 self.fd.solution = self.payoff(self.fd.solution)

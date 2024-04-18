@@ -180,10 +180,6 @@ class ZCBond(bonds.Bond1FAnalytical):
             seed: Seed of random number generator. Default is None.
             antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
         self.mc_euler.mc_estimate = self.mc_euler.discount_paths[-1].mean()

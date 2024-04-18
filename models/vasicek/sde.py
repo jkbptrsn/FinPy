@@ -205,7 +205,6 @@ class SdeExact(Sde):
         variance = self.discount_variance[event_idx]
         return mean + math.sqrt(variance) * normal_rand
 
-    # TODO: Check derivation!
     def _calc_covariance(self) -> None:
         """Conditional covariance of short rate and discount processes.
 

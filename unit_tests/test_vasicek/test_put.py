@@ -192,7 +192,3 @@ class PutOption(unittest.TestCase):
                       f"error mean = {error.mean():2.5f}, "
                       f"error std = {error.std():2.5f}")
             self.assertTrue(error.mean() < 1.8e-2 and error.std() < 4.4e-3)
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -203,9 +203,6 @@ def european_option_price(
                     - strike * zc1_price * norm.cdf(omega * (h - s_p)))
 
 
-###############################################################################
-
-
 def european_option_delta(
         spot: typing.Union[float, np.ndarray],
         event_idx: int,
@@ -327,7 +324,6 @@ def european_option_gamma(
     gamma += 2 * omega * dhdr * \
         (zc2_delta * norm.pdf(omega * h)
          - strike * zc1_delta * norm.pdf(omega * (h - s_p)))
-    # See notes.
     gamma -= dhdr ** 2 * \
         (zc2_price * omega * h * norm.pdf(omega * h)
          - strike * zc1_price * omega * (h - s_p)
