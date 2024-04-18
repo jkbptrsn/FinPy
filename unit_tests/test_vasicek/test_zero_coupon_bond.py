@@ -3,7 +3,6 @@ import unittest
 import matplotlib.pyplot as plt
 import numpy as np
 
-from models.vasicek import european_option as option
 from models.vasicek import zero_coupon_bond as zcbond
 from utils import plots
 
