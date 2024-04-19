@@ -18,7 +18,7 @@ class Put(options.Option1FAnalytical):
     European put option written on stock price modelled by
     Black-Scholes SDE.
 
-    See J.C. Hull 2015, chapter 15 and 19.
+    See Hull (2015), Chapters 15 and 19.
 
     Attributes:
         rate: Interest rate.
@@ -30,13 +30,14 @@ class Put(options.Option1FAnalytical):
         dividend: Continuous dividend yield. Default value is 0.
     """
 
-    def __init__(self,
-                 rate: float,
-                 vol: float,
-                 strike: float,
-                 expiry_idx: int,
-                 event_grid: np.ndarray,
-                 dividend: float = 0):
+    def __init__(
+            self,
+            rate: float,
+            vol: float,
+            strike: float,
+            expiry_idx: int,
+            event_grid: np.ndarray,
+            dividend: float = 0):
         super().__init__()
         self.rate = rate
         self.vol = vol
@@ -53,8 +54,9 @@ class Put(options.Option1FAnalytical):
     def expiry(self) -> float:
         return self.event_grid[self.expiry_idx]
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -66,8 +68,9 @@ class Put(options.Option1FAnalytical):
         """
         return payoffs.put(spot, self.strike)
 
-    def payoff_dds(self,
-                   spot: typing.Union[float, np.ndarray]) \
+    def payoff_dds(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Derivative of payoff function wrt value of underlying.
 
@@ -82,9 +85,10 @@ class Put(options.Option1FAnalytical):
         """
         return - payoffs.binary_cash_put(spot, self.strike)
 
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -102,9 +106,10 @@ class Put(options.Option1FAnalytical):
         return - s * norm.cdf(-d1) \
             + self.strike * norm.cdf(-d2) * math.exp(-self.rate * delta_t)
 
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt stock price.
 
         Args:
@@ -121,9 +126,10 @@ class Put(options.Option1FAnalytical):
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
         return math.exp(-self.dividend * delta_t) * (norm.cdf(d1) - 1)
 
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt stock price.
 
         Args:
@@ -161,9 +167,10 @@ class Put(options.Option1FAnalytical):
         return - self.strike * delta_t * math.exp(-self.rate * delta_t) \
             * norm.cdf(-d2)
 
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -182,9 +189,10 @@ class Put(options.Option1FAnalytical):
             + self.rate * self.strike * math.exp(-self.rate * delta_t) \
             * norm.cdf(-d2) - self.dividend * s * norm.cdf(-d1)
 
-    def vega(self,
-             spot: typing.Union[float, np.ndarray],
-             event_idx: int) -> typing.Union[float, np.ndarray]:
+    def vega(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt volatility.
 
         Args:
@@ -229,7 +237,7 @@ class PutAmerican(options.Option1F):
     American put option written on stock price modelled by
     Black-Scholes SDE.
 
-    See J.C. Hull 2015, chapter 15 and 19.
+    See Hull (2015), Chapters 15 and 19.
 
     Attributes:
         rate: Interest rate.
@@ -241,13 +249,14 @@ class PutAmerican(options.Option1F):
         dividend: Continuous dividend yield. Default value is 0.
     """
 
-    def __init__(self,
-                 rate: float,
-                 vol: float,
-                 strike: float,
-                 exercise_grid: np.array,
-                 event_grid: np.ndarray,
-                 dividend: float = 0):
+    def __init__(
+            self,
+            rate: float,
+            vol: float,
+            strike: float,
+            exercise_grid: np.array,
+            event_grid: np.ndarray,
+            dividend: float = 0):
         super().__init__()
         self.rate = rate
         self.vol = vol
@@ -263,8 +272,9 @@ class PutAmerican(options.Option1F):
     def expiry(self) -> float:
         return self.event_grid[self.exercise_grid[-1]]
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -276,8 +286,9 @@ class PutAmerican(options.Option1F):
         """
         return payoffs.put(spot, self.strike)
 
-    def payoff_dds(self,
-                   spot: typing.Union[float, np.ndarray]) \
+    def payoff_dds(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Derivative of payoff function wrt value of underlying.
 

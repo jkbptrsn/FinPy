@@ -26,11 +26,12 @@ class SDE:
         dividend: Continuous dividend yield. Default value is 0.
     """
 
-    def __init__(self,
-                 rate: float,
-                 vol: float,
-                 event_grid: np.ndarray,
-                 dividend: float = 0):
+    def __init__(
+            self,
+            rate: float,
+            vol: float,
+            event_grid: np.ndarray,
+            dividend: float = 0):
         self.rate = rate
         self.vol = vol
         self.event_grid = event_grid
@@ -50,12 +51,13 @@ class SDE:
     def __repr__(self) -> str:
         return f"{self.model} SDE object"
 
-    def initialization(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False):
+    def initialization(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False):
         """Initialization of path generation."""
         self.spot = spot
         self.n_paths = n_paths
@@ -63,10 +65,11 @@ class SDE:
         self.seed = seed
         self.antithetic = antithetic
 
-    def _increment(self,
-                   spot: typing.Union[float, np.ndarray],
-                   time_idx: int,
-                   normal_rand: typing.Union[float, np.ndarray]) \
+    def _increment(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            time_idx: int,
+            normal_rand: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Increment stock price process.
 
@@ -92,9 +95,10 @@ class SDE:
                 + self._increment(grid[idx - 1, :], idx, realizations)
         self.solution = grid
 
-    def price(self,
-              instrument,
-              time_idx: int) -> (float, float):
+    def price(
+            self,
+            instrument,
+            time_idx: int) -> (float, float):
         """Price of instrument."""
         payoff = instrument.payoff(self.solution[time_idx, :])
         discount = math.exp(-self.rate * self.event_grid[time_idx])

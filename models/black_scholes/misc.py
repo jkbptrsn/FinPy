@@ -4,18 +4,19 @@ import typing
 import numpy as np
 
 
-def d1d2(spot: typing.Union[float, np.ndarray],
-         time: float,
-         rate: float,
-         vol: float,
-         expiry: float,
-         strike: float) \
+def d1d2(
+        spot: typing.Union[float, np.ndarray],
+        time: float,
+        rate: float,
+        vol: float,
+        expiry: float,
+        strike: float) \
         -> typing.Union[
             typing.Tuple[float, float],
             typing.Tuple[np.ndarray, np.ndarray]]:
     """Parameters in Black-Scholes formula.
 
-    See J.C. Hull 2015, chapter 15.
+    See Hull (2015), Chapter 15.
 
     Args:
         spot: Current stock price.

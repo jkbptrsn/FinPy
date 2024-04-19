@@ -28,13 +28,14 @@ class BinaryCashCall(options.Option1FAnalytical):
         dividend: Continuous dividend yield. Default value is 0.
     """
 
-    def __init__(self,
-                 rate: float,
-                 vol: float,
-                 strike: float,
-                 expiry_idx: int,
-                 event_grid: np.ndarray,
-                 dividend: float = 0):
+    def __init__(
+            self,
+            rate: float,
+            vol: float,
+            strike: float,
+            expiry_idx: int,
+            event_grid: np.ndarray,
+            dividend: float = 0):
         super().__init__()
         self.rate = rate
         self.vol = vol
@@ -50,8 +51,9 @@ class BinaryCashCall(options.Option1FAnalytical):
     def expiry(self) -> float:
         return self.event_grid[self.expiry_idx]
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -63,9 +65,10 @@ class BinaryCashCall(options.Option1FAnalytical):
         """
         return payoffs.binary_cash_call(spot, self.strike)
 
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -81,9 +84,10 @@ class BinaryCashCall(options.Option1FAnalytical):
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
         return math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2)
 
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt stock price.
 
         Args:
@@ -101,9 +105,10 @@ class BinaryCashCall(options.Option1FAnalytical):
         return math.exp(-self.rate * (self.expiry - time)) * norm.pdf(d2) \
             * d2_deriv1
 
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt stock price.
 
         Args:
@@ -145,9 +150,10 @@ class BinaryCashCall(options.Option1FAnalytical):
             * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2) + \
             math.exp(-self.rate * (self.expiry - time)) * norm.pdf(d2) * d2_deriv1
 
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -168,9 +174,10 @@ class BinaryCashCall(options.Option1FAnalytical):
             + math.exp(-self.rate * (self.expiry - time)) * norm.pdf(d2) \
             * d2_deriv1
 
-    def vega(self,
-             spot: typing.Union[float, np.ndarray],
-             event_idx: int) -> typing.Union[float, np.ndarray]:
+    def vega(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt volatility.
 
         Args:
@@ -188,7 +195,7 @@ class BinaryCashCall(options.Option1FAnalytical):
         return math.exp(-self.rate * (self.expiry - time)) * norm.pdf(d2) \
             * d2_deriv1
 
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run solver on event_grid..."""
         for dt in np.flip(np.diff(self.event_grid)):
             self.fd.set_propagator()
@@ -212,13 +219,14 @@ class BinaryAssetCall(options.Option1FAnalytical):
         dividend: Continuous dividend yield. Default value is 0.
     """
 
-    def __init__(self,
-                 rate: float,
-                 vol: float,
-                 strike: float,
-                 expiry_idx: int,
-                 event_grid: np.ndarray,
-                 dividend: float = 0):
+    def __init__(
+            self,
+            rate: float,
+            vol: float,
+            strike: float,
+            expiry_idx: int,
+            event_grid: np.ndarray,
+            dividend: float = 0):
         super().__init__()
         self.rate = rate
         self.vol = vol
@@ -234,8 +242,9 @@ class BinaryAssetCall(options.Option1FAnalytical):
     def expiry(self) -> float:
         return self.event_grid[self.expiry_idx]
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -247,9 +256,10 @@ class BinaryAssetCall(options.Option1FAnalytical):
         """
         return payoffs.binary_asset_call(spot, self.strike)
 
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -265,9 +275,10 @@ class BinaryAssetCall(options.Option1FAnalytical):
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
         return spot * norm.cdf(d1)
 
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt stock price.
 
         Args:
@@ -284,9 +295,10 @@ class BinaryAssetCall(options.Option1FAnalytical):
         return s * norm.pdf(d1) \
             / (s * self.vol * math.sqrt(self.expiry - time)) + norm.cdf(d1)
 
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt stock price.
 
         Args:
@@ -298,9 +310,10 @@ class BinaryAssetCall(options.Option1FAnalytical):
         """
         pass
 
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -312,7 +325,7 @@ class BinaryAssetCall(options.Option1FAnalytical):
         """
         pass
 
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run solver on event_grid..."""
         for dt in np.flip(np.diff(self.event_grid)):
             self.fd.set_propagator()
@@ -336,13 +349,14 @@ class BinaryCashPut(options.Option1FAnalytical):
         dividend: Continuous dividend yield. Default value is 0.
     """
 
-    def __init__(self,
-                 rate: float,
-                 vol: float,
-                 strike: float,
-                 expiry_idx: int,
-                 event_grid: np.ndarray,
-                 dividend: float = 0):
+    def __init__(
+            self,
+            rate: float,
+            vol: float,
+            strike: float,
+            expiry_idx: int,
+            event_grid: np.ndarray,
+            dividend: float = 0):
         super().__init__()
         self.rate = rate
         self.vol = vol
@@ -358,8 +372,9 @@ class BinaryCashPut(options.Option1FAnalytical):
     def expiry(self) -> float:
         return self.event_grid[self.expiry_idx]
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -371,9 +386,10 @@ class BinaryCashPut(options.Option1FAnalytical):
         """
         return payoffs.binary_cash_put(spot, self.strike)
 
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -389,9 +405,10 @@ class BinaryCashPut(options.Option1FAnalytical):
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
         return math.exp(-self.rate * (self.expiry - time)) * norm.cdf(-d2)
 
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt stock price.
 
         Args:
@@ -408,9 +425,10 @@ class BinaryCashPut(options.Option1FAnalytical):
         return - math.exp(-self.rate * (self.expiry - time)) * norm.pdf(-d2) \
             / (s * self.vol * math.sqrt(self.expiry - time))
 
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt stock price.
 
         Args:
@@ -422,9 +440,10 @@ class BinaryCashPut(options.Option1FAnalytical):
         """
         pass
 
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -436,7 +455,7 @@ class BinaryCashPut(options.Option1FAnalytical):
         """
         pass
 
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run solver on event_grid..."""
         for dt in np.flip(np.diff(self.event_grid)):
             self.fd.set_propagator()
@@ -482,8 +501,9 @@ class BinaryAssetPut(options.Option1FAnalytical):
     def expiry(self) -> float:
         return self.event_grid[self.expiry_idx]
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -495,9 +515,10 @@ class BinaryAssetPut(options.Option1FAnalytical):
         """
         return payoffs.binary_asset_put(spot, self.strike)
 
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -513,9 +534,10 @@ class BinaryAssetPut(options.Option1FAnalytical):
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
         return s * norm.cdf(-d1)
 
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt stock price.
 
         Args:
@@ -532,9 +554,10 @@ class BinaryAssetPut(options.Option1FAnalytical):
         return - s * norm.pdf(-d1) \
             / (s * self.vol * math.sqrt(self.expiry - time)) + norm.cdf(-d1)
 
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt stock price.
 
         Args:
@@ -546,9 +569,10 @@ class BinaryAssetPut(options.Option1FAnalytical):
         """
         pass
 
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -560,7 +584,7 @@ class BinaryAssetPut(options.Option1FAnalytical):
         """
         pass
 
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run solver on event_grid..."""
         for dt in np.flip(np.diff(self.event_grid)):
             self.fd.set_propagator()
