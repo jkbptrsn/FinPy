@@ -83,6 +83,15 @@ class Call(options.Option2F):
 
         return self.strike * (math.exp(x) * prop_1 - prop_0) * math.exp(-self.rate * tau)
 
+    def delta(self):
+        pass
+
+    def gamma(self):
+        pass
+
+    def theta(self):
+        pass
+
     def fd_solve(self):
         """Run solver on event_grid..."""
         for dt in np.flip(np.diff(self.event_grid)):

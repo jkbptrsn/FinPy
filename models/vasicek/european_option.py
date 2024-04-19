@@ -167,11 +167,9 @@ class EuropeanOption(options.Option1FAnalytical):
             # Expiry of option.
             if event_idx == self.expiry_idx:
                 self.fd.solution = self.payoff(self.fd.solution)
-
-                # TODO: Check smoothing!
-#                self.fd.solution = \
-#                    smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
-
+                # Smoothing
+                # self.fd.solution = \
+                #     smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
             self.fd.propagation(dt)
 
     def mc_exact_setup(self) -> None:
