@@ -25,8 +25,7 @@ class Put(options.Option1FAnalytical):
         vol: Volatility.
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
+        event_grid: Event dates as year fractions from as-of date.
         dividend: Continuous dividend yield. Default value is 0.
     """
 
@@ -72,10 +71,7 @@ class Put(options.Option1FAnalytical):
             self,
             spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
-        """Derivative of payoff function wrt value of underlying.
-
-        1st order partial derivative of payoff function wrt value of
-        underlying.
+        """Derivative of payoff function wrt stock price.
 
         Args:
             spot: Current stock price.
@@ -244,8 +240,7 @@ class PutAmerican(options.Option1F):
         vol: Volatility.
         strike: Strike price of stock at expiry.
         exercise_grid: Exercise indices on event_grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
+        event_grid: Event dates as year fractions from as-of date.
         dividend: Continuous dividend yield. Default value is 0.
     """
 
@@ -290,10 +285,7 @@ class PutAmerican(options.Option1F):
             self,
             spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
-        """Derivative of payoff function wrt value of underlying.
-
-        1st order partial derivative of payoff function wrt value of
-        underlying.
+        """Derivative of payoff function wrt stock price.
 
         Args:
             spot: Current stock price.
@@ -301,7 +293,7 @@ class PutAmerican(options.Option1F):
         Returns:
             Derivative of payoff.
         """
-        return - payoffs.binary_cash_put(spot, self.strike)
+        return -payoffs.binary_cash_put(spot, self.strike)
 
     def fd_solve(self):
         """Run finite difference solver on event_grid."""
@@ -319,7 +311,7 @@ class PutAmerican(options.Option1F):
 #                self.fd.solution = \
 #                    smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
 
-            self.fd.set_propagator()
+#            self.fd.set_propagator()
             self.fd.propagation(dt)
 
             counter += 1

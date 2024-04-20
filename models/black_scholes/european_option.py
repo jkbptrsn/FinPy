@@ -10,11 +10,19 @@ from models.black_scholes import sde
 from utils import global_types
 from utils import payoffs
 
+# TODO: Revisit CallAmerican class (LSM!)
+# TODO: Revisit LongstaffSchwartz class in test_call.py (LSM!)
+# TODO: Replace put_option.py
+# TODO: Revisit test_pyt.py
+# TODO: Remove SDE class from sde.py
+# TODO: Move American option class to american_option
+# TODO: Test MC results, especially for LSM; Above and below FD result?
 
-class Call(options.Option1FAnalytical):
-    """European call option in Black-Scholes model.
 
-    European call option written on stock price modelled by
+class EuropeanOption(options.Option1FAnalytical):
+    """European call/put option in Black-Scholes model.
+
+    European call/put option written on stock price modelled by
     Black-Scholes SDE.
 
     See Hull (2015), Chapters 15 and 19.
@@ -24,9 +32,9 @@ class Call(options.Option1FAnalytical):
         vol: Volatility.
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-        dividend: Continuous dividend yield. Default value is 0.
+        event_grid: Event dates as year fractions from as-of date.
+        dividend: Continuous dividend yield. Default is 0.
+        type_: Option type. Default is call.
     """
 
     def __init__(
@@ -36,7 +44,8 @@ class Call(options.Option1FAnalytical):
             strike: float,
             expiry_idx: int,
             event_grid: np.ndarray,
-            dividend: float = 0):
+            dividend: float = 0,
+            type_: str = "Call"):
         super().__init__()
         self.rate = rate
         self.vol = vol
@@ -45,8 +54,13 @@ class Call(options.Option1FAnalytical):
         self.event_grid = event_grid
         self.dividend = dividend
 
-        self.type = global_types.Instrument.EUROPEAN_CALL
         self.model = global_types.Model.BLACK_SCHOLES
+        if type_ == "Call":
+            self.type = global_types.Instrument.EUROPEAN_CALL
+        elif type_ == "Put":
+            self.type = global_types.Instrument.EUROPEAN_PUT
+        else:
+            raise ValueError(f"Unknown option type: {type_}")
 
     @property
     def expiry(self) -> float:
@@ -64,16 +78,16 @@ class Call(options.Option1FAnalytical):
         Returns:
             Payoff.
         """
-        return payoffs.call(spot, self.strike)
+        if self.type == global_types.Instrument.EUROPEAN_CALL:
+            return payoffs.call(spot, self.strike)
+        else:
+            return payoffs.put(spot, self.strike)
 
     def payoff_dds(
             self,
             spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
-        """Derivative of payoff function wrt value of underlying.
-
-        1st order partial derivative of payoff function wrt value of
-        underlying.
+        """Derivative of payoff function wrt stock price.
 
         Args:
             spot: Current stock price.
@@ -81,7 +95,10 @@ class Call(options.Option1FAnalytical):
         Returns:
             Derivative of payoff.
         """
-        return payoffs.binary_cash_call(spot, self.strike)
+        if self.type == global_types.Instrument.EUROPEAN_CALL:
+            return payoffs.binary_cash_call(spot, self.strike)
+        else:
+            return -payoffs.binary_cash_put(spot, self.strike)
 
     def price(
             self,
@@ -98,11 +115,16 @@ class Call(options.Option1FAnalytical):
         """
         time = self.event_grid[event_idx]
         delta_t = self.expiry - time
+        # Correct for dividends.
         s = spot * math.exp(-self.dividend * delta_t)
         d1, d2 = \
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
-        return s * norm.cdf(d1) \
-            - self.strike * norm.cdf(d2) * math.exp(-self.rate * delta_t)
+        if self.type == global_types.Instrument.EUROPEAN_CALL:
+            return s * norm.cdf(d1) \
+                - self.strike * norm.cdf(d2) * math.exp(-self.rate * delta_t)
+        else:
+            return - s * norm.cdf(-d1) \
+                + self.strike * norm.cdf(-d2) * math.exp(-self.rate * delta_t)
 
     def delta(
             self,
@@ -119,10 +141,14 @@ class Call(options.Option1FAnalytical):
         """
         time = self.event_grid[event_idx]
         delta_t = self.expiry - time
+        # Correct for dividends.
         s = spot * math.exp(-self.dividend * delta_t)
         d1, d2 = \
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
-        return math.exp(-self.dividend * delta_t) * norm.cdf(d1)
+        if self.type == global_types.Instrument.EUROPEAN_CALL:
+            return math.exp(-self.dividend * delta_t) * norm.cdf(d1)
+        else:
+            return math.exp(-self.dividend * delta_t) * (norm.cdf(d1) - 1)
 
     def gamma(
             self,
@@ -139,11 +165,16 @@ class Call(options.Option1FAnalytical):
         """
         time = self.event_grid[event_idx]
         delta_t = self.expiry - time
+        # Correct for dividends.
         s = spot * math.exp(-self.dividend * delta_t)
         d1, d2 = \
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
-        return math.exp(-self.dividend * delta_t) * norm.pdf(d1) \
-            / (spot * self.vol * math.sqrt(delta_t))
+        if self.type == global_types.Instrument.EUROPEAN_CALL:
+            return math.exp(-self.dividend * delta_t) * norm.pdf(d1) \
+                / (spot * self.vol * math.sqrt(delta_t))
+        else:
+            return math.exp(-self.dividend * delta_t) * norm.pdf(d1) \
+                / (spot * self.vol * math.sqrt(delta_t))
 
     def rho(self,
             spot: typing.Union[float, np.ndarray],
@@ -159,11 +190,16 @@ class Call(options.Option1FAnalytical):
         """
         time = self.event_grid[event_idx]
         delta_t = self.expiry - time
+        # Correct for dividends.
         s = spot * math.exp(-self.dividend * delta_t)
         d1, d2 = \
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
-        return self.strike * delta_t * math.exp(-self.rate * delta_t) \
-            * norm.cdf(d2)
+        if self.type == global_types.Instrument.EUROPEAN_CALL:
+            return self.strike * delta_t * math.exp(-self.rate * delta_t) \
+                * norm.cdf(d2)
+        else:
+            return - self.strike * delta_t * math.exp(-self.rate * delta_t) \
+                * norm.cdf(-d2)
 
     def theta(
             self,
@@ -180,12 +216,18 @@ class Call(options.Option1FAnalytical):
         """
         time = self.event_grid[event_idx]
         delta_t = self.expiry - time
+        # Correct for dividends.
         s = spot * math.exp(-self.dividend * delta_t)
         d1, d2 = \
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
-        return - s * norm.pdf(d1) * self.vol / (2 * math.sqrt(delta_t)) \
-            - self.rate * self.strike * math.exp(-self.rate * delta_t) \
-            * norm.cdf(d2) + self.dividend * s * norm.cdf(d1)
+        if self.type == global_types.Instrument.EUROPEAN_CALL:
+            return - s * norm.pdf(d1) * self.vol / (2 * math.sqrt(delta_t)) \
+                - self.rate * self.strike * math.exp(-self.rate * delta_t) \
+                * norm.cdf(d2) + self.dividend * s * norm.cdf(d1)
+        else:
+            return - s * norm.pdf(d1) * self.vol / (2 * math.sqrt(delta_t)) \
+                + self.rate * self.strike * math.exp(-self.rate * delta_t) \
+                * norm.cdf(-d2) - self.dividend * s * norm.cdf(-d1)
 
     def vega(
             self,
@@ -202,28 +244,92 @@ class Call(options.Option1FAnalytical):
         """
         time = self.event_grid[event_idx]
         delta_t = self.expiry - time
+        # Correct for dividends.
         s = spot * math.exp(-self.dividend * delta_t)
         d1, d2 = \
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
-        return s * norm.pdf(d1) * math.sqrt(delta_t)
+        if self.type == global_types.Instrument.EUROPEAN_CALL:
+            return s * norm.pdf(d1) * math.sqrt(delta_t)
+        else:
+            return s * norm.pdf(d1) * math.sqrt(delta_t)
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event_grid."""
         for dt in np.flip(np.diff(self.event_grid)):
-            self.fd.set_propagator()
             self.fd.propagation(dt)
 
     def mc_exact_setup(self) -> None:
         """Setup exact Monte-Carlo solver."""
         self.mc_exact = \
-            sde.SDE(self.rate, self.vol, self.event_grid, self.dividend)
+            sde.SdeExact(self.rate, self.vol, self.event_grid, self.dividend)
 
-    # TODO: Change parameter list!
-    def mc_exact_solve(self) -> None:
-        """Run Monte-Carlo solver on event_grid."""
-        self.mc_exact.paths()
+    def mc_exact_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
+        """Run Monte-Carlo solver on event grid.
+
+        Exact discretization.
+
+        Args:
+            spot: Spot stock price.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Use antithetic sampling for variance reduction?
+                Default is False.
+        """
+        self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        # Stock price at expiry.
+        prices = self.mc_exact.price_paths[self.expiry_idx]
+        # Option payoffs.
+        option_prices = self.payoff(prices)
+        # Discounted payoffs.
+        option_prices *= self.mc_exact.discount_grid[self.expiry_idx]
+        self.mc_exact.mc_estimate = option_prices.mean()
+        self.mc_exact.mc_error = option_prices.std(ddof=1)
+        self.mc_exact.mc_error /= math.sqrt(n_paths)
+
+    def mc_euler_setup(self) -> None:
+        """Setup Euler Monte-Carlo solver."""
+        self.mc_euler = \
+            sde.SdeEuler(self.rate, self.vol, self.event_grid, self.dividend)
+
+    def mc_euler_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
+        """Run Monte-Carlo solver on event grid.
+
+        Euler-Maruyama discretization.
+
+        Args:
+            spot: Spot stock price.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Use antithetic sampling for variance reduction?
+                Default is False.
+        """
+        self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
+        # Stock price at expiry.
+        prices = self.mc_euler.price_paths[self.expiry_idx]
+        # Option payoffs.
+        option_prices = self.payoff(prices)
+        # Discounted payoffs.
+        option_prices *= self.mc_euler.discount_grid[self.expiry_idx]
+        self.mc_euler.mc_estimate = option_prices.mean()
+        self.mc_euler.mc_error = option_prices.std(ddof=1)
+        self.mc_euler.mc_error /= math.sqrt(n_paths)
 
 
+# TODO: Check class!
 class CallAmerican(options.Option1F):
     """American call option in Black-Scholes model.
 
@@ -237,8 +343,7 @@ class CallAmerican(options.Option1F):
         vol: Volatility.
         strike: Strike price of stock at expiry.
         exercise_grid: Exercise indices on event_grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
+        event_grid: Event dates as year fractions from as-of date.
         dividend: Continuous dividend yield. Default value is 0.
     """
 
@@ -283,10 +388,7 @@ class CallAmerican(options.Option1F):
             self,
             spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
-        """Derivative of payoff function wrt value of underlying.
-
-        1st order partial derivative of payoff function wrt value of
-        underlying.
+        """Derivative of payoff function wrt stock price.
 
         Args:
             spot: Current stock price.
@@ -313,7 +415,7 @@ class CallAmerican(options.Option1F):
 #                self.fd.solution = \
 #                    smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
 
-            self.fd.set_propagator()
+#            self.fd.set_propagator()
             self.fd.propagation(dt)
 
             counter += 1

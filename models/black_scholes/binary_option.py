@@ -23,9 +23,8 @@ class BinaryCashCall(options.Option1FAnalytical):
         vol: Volatility.
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-        dividend: Continuous dividend yield. Default value is 0.
+        event_grid: Event dates as year fractions from as-of date.
+        dividend: Continuous dividend yield. Default is 0.
     """
 
     def __init__(
@@ -214,9 +213,8 @@ class BinaryAssetCall(options.Option1FAnalytical):
         vol: Volatility.
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-        dividend: Continuous dividend yield. Default value is 0.
+        event_grid: Event dates as year fractions from as-of date.
+        dividend: Continuous dividend yield. Default is 0.
     """
 
     def __init__(
@@ -344,9 +342,8 @@ class BinaryCashPut(options.Option1FAnalytical):
         vol: Volatility.
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-        dividend: Continuous dividend yield. Default value is 0.
+        event_grid: Event dates as year fractions from as-of date.
+        dividend: Continuous dividend yield. Default is 0.
     """
 
     def __init__(
@@ -474,9 +471,8 @@ class BinaryAssetPut(options.Option1FAnalytical):
         vol: Volatility.
         strike: Strike price of stock at expiry.
         expiry_idx: Expiry index on event_grid.
-        event_grid: Event dates represented as year fractions from as-of
-            date.
-        dividend: Continuous dividend yield. Default value is 0.
+        event_grid: Event dates as year fractions from as-of date.
+        dividend: Continuous dividend yield. Default is 0.
     """
 
     def __init__(self,

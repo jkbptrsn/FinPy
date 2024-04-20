@@ -11,6 +11,9 @@ from utils import plots
 plot_results = False
 print_results = True
 
+if print_results:
+    print("Unit test results from: " + __name__)
+
 
 class PutOption(unittest.TestCase):
     """European call option in Black-Scholes model."""
@@ -405,7 +408,3 @@ class LongstaffSchwartz(unittest.TestCase):
             print("")
         if plot_results:
             plots.plot_price_and_greeks(self.pFDa11)
-
-
-if __name__ == '__main__':
-    unittest.main()

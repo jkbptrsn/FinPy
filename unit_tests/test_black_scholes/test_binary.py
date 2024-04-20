@@ -3,12 +3,15 @@ import unittest
 from matplotlib import pyplot as plt
 import numpy as np
 
-from models.black_scholes import call_option as call
+from models.black_scholes import european_option as call
 from models.black_scholes import binary_option as binary
 from utils import plots
 
 plot_results = False
 print_results = False
+
+if print_results:
+    print("Unit test results from: " + __name__)
 
 
 class BinaryCashCall(unittest.TestCase):
@@ -96,7 +99,3 @@ class BinaryCashCall(unittest.TestCase):
         if print_results:
             print(np.max(np.abs(diff[idx_min:idx_max])))
         self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 1.0e-2)
-
-
-if __name__ == '__main__':
-    unittest.main()
