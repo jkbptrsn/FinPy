@@ -10,11 +10,10 @@ from models.black_scholes import sde
 from utils import global_types
 from utils import payoffs
 
-# TODO: Revisit CallAmerican class (LSM!)
+# TODO: Revisit AmericanOption class (LSM!)
+#  Add mc_euler
+#  Add LSM in mc function calls
 # TODO: Revisit LongstaffSchwartz class in test_call.py (LSM!)
-# TODO: Replace put_option.py
-# TODO: Revisit test_pyt.py
-# TODO: Remove SDE class from sde.py
 # TODO: Move American option class to american_option
 # TODO: Test MC results, especially for LSM; Above and below FD result?
 
@@ -255,6 +254,7 @@ class EuropeanOption(options.Option1FAnalytical):
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event_grid."""
+        # Backward propagation.
         for dt in np.flip(np.diff(self.event_grid)):
             self.fd.propagation(dt)
 
@@ -329,11 +329,10 @@ class EuropeanOption(options.Option1FAnalytical):
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
 
-# TODO: Check class!
-class CallAmerican(options.Option1F):
-    """American call option in Black-Scholes model.
+class AmericanOption(options.Option1F):
+    """American call/put option in Black-Scholes model.
 
-    American call option written on stock price modelled by
+    American call/put option written on stock price modelled by
     Black-Scholes SDE.
 
     See Hull (2015), Chapters 15 and 19.
@@ -344,7 +343,8 @@ class CallAmerican(options.Option1F):
         strike: Strike price of stock at expiry.
         exercise_grid: Exercise indices on event_grid.
         event_grid: Event dates as year fractions from as-of date.
-        dividend: Continuous dividend yield. Default value is 0.
+        dividend: Continuous dividend yield. Default is 0.
+        type_: Option type. Default is call.
     """
 
     def __init__(
@@ -354,7 +354,8 @@ class CallAmerican(options.Option1F):
             strike: float,
             exercise_grid: np.array,
             event_grid: np.ndarray,
-            dividend: float = 0):
+            dividend: float = 0,
+            type_: str = "Call"):
         super().__init__()
         self.rate = rate
         self.vol = vol
@@ -363,8 +364,13 @@ class CallAmerican(options.Option1F):
         self.event_grid = event_grid
         self.dividend = dividend
 
-        self.type = global_types.Instrument.AMERICAN_CALL
         self.model = global_types.Model.BLACK_SCHOLES
+        if type_ == "Call":
+            self.type = global_types.Instrument.AMERICAN_CALL
+        elif type_ == "Put":
+            self.type = global_types.Instrument.AMERICAN_PUT
+        else:
+            raise ValueError(f"Unknown option type: {type_}")
 
     @property
     def expiry(self) -> float:
@@ -382,7 +388,10 @@ class CallAmerican(options.Option1F):
         Returns:
             Payoff.
         """
-        return payoffs.call(spot, self.strike)
+        if self.type == global_types.Instrument.AMERICAN_CALL:
+            return payoffs.call(spot, self.strike)
+        else:
+            return payoffs.put(spot, self.strike)
 
     def payoff_dds(
             self,
@@ -396,15 +405,18 @@ class CallAmerican(options.Option1F):
         Returns:
             Derivative of payoff.
         """
-        return payoffs.binary_cash_call(spot, self.strike)
+        if self.type == global_types.Instrument.AMERICAN_CALL:
+            return payoffs.binary_cash_call(spot, self.strike)
+        else:
+            return -payoffs.binary_cash_put(spot, self.strike)
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event_grid."""
-        counter = 0
-        for dt in np.flip(np.diff(self.event_grid)):
-            # Event index before propagation with time step -dt.
-            event_idx = (self.event_grid.size - 1) - counter
-
+        # TODO: Set terminal condition?
+        # Backward propagation.
+        time_steps = np.flip(np.diff(self.event_grid))
+        for idx, dt in enumerate(time_steps):
+            event_idx = (self.event_grid.size - 1) - idx
             # Compare continuation value and exercise value.
             if event_idx in self.exercise_grid:
                 exercise_value = self.payoff(self.fd.grid)
@@ -415,17 +427,42 @@ class CallAmerican(options.Option1F):
 #                self.fd.solution = \
 #                    smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
 
-#            self.fd.set_propagator()
             self.fd.propagation(dt)
 
-            counter += 1
-
-    def mc_exact_setup(self) -> None:
+    def mc_exact_setup_new(self) -> None:
         """Setup exact Monte-Carlo solver."""
         self.mc_exact = \
-            sde.SDE(self.rate, self.vol, self.event_grid, self.dividend)
+            sde.SdeExact(self.rate, self.vol, self.event_grid, self.dividend)
 
-    # TODO: Change parameter list!
-    def mc_exact_solve(self) -> None:
-        """Run Monte-Carlo solver on event_grid."""
-        self.mc_exact.paths()
+    def mc_exact_solve_new(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
+        """Run Monte-Carlo solver on event grid.
+
+        Exact discretization.
+
+        Args:
+            spot: Spot stock price.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Use antithetic sampling for variance reduction?
+                Default is False.
+        """
+        self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+
+        self.mc_exact.solution = self.mc_exact.price_paths
+
+#        # Stock price at expiry.
+#        prices = self.mc_exact.price_paths[self.expiry_idx]
+#        # Option payoffs.
+#        option_prices = self.payoff(prices)
+#        # Discounted payoffs.
+#        option_prices *= self.mc_exact.discount_grid[self.expiry_idx]
+#        self.mc_exact.mc_estimate = option_prices.mean()
+#        self.mc_exact.mc_error = option_prices.std(ddof=1)
+#        self.mc_exact.mc_error /= math.sqrt(n_paths)

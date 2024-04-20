@@ -3,7 +3,6 @@ import unittest
 from matplotlib import pyplot as plt
 import numpy as np
 
-from models.black_scholes import european_option as call
 from models.black_scholes import binary_option as binary
 from utils import plots
 

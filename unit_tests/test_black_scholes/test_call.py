@@ -9,7 +9,7 @@ from numerics.mc import lsm
 from utils import plots
 
 plot_results = False
-print_results = True
+print_results = False
 
 if print_results:
     print("Unit test results from: " + __name__)
@@ -167,7 +167,8 @@ class CallOption(unittest.TestCase):
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
                 print(f"No variance reduction: "
-                      f"Stock price = {s:5.2f}, option price = {price_a:2.3f}, "
+                      f"Stock price = {s:5.2f}, "
+                      f"option price = {price_a:2.3f}, "
                       f"error mean = {error.mean():2.5f}, "
                       f"error std = {error.std():2.5f}")
             self.assertTrue(error.mean() < 2.8e-2 and error.std() < 2.1e-2)
@@ -180,7 +181,8 @@ class CallOption(unittest.TestCase):
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
                 print(f"Antithetic sampling:   "
-                      f"Stock price = {s:5.2f}, option price = {price_a:2.3f}, "
+                      f"Stock price = {s:5.2f}, "
+                      f"option price = {price_a:2.3f}, "
                       f"error mean = {error.mean():2.5f}, "
                       f"error std = {error.std():2.5f}")
             self.assertTrue(error.mean() < 2.7e-2 and error.std() < 2.2e-2)
@@ -207,7 +209,8 @@ class CallOption(unittest.TestCase):
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
                 print(f"No variance reduction: "
-                      f"Stock price = {s:5.2f}, option price = {price_a:2.3f}, "
+                      f"Stock price = {s:5.2f}, "
+                      f"option price = {price_a:2.3f}, "
                       f"error mean = {error.mean():2.5f}, "
                       f"error std = {error.std():2.5f}")
             self.assertTrue(error.mean() < 3.1e-2 and error.std() < 2.2e-2)
@@ -220,7 +223,8 @@ class CallOption(unittest.TestCase):
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
                 print(f"Antithetic sampling:   "
-                      f"Stock price = {s:5.2f}, option price = {price_a:2.3f}, "
+                      f"Stock price = {s:5.2f}, "
+                      f"option price = {price_a:2.3f}, "
                       f"error mean = {error.mean():2.5f}, "
                       f"error std = {error.std():2.5f}")
             self.assertTrue(error.mean() < 3.4e-2 and error.std() < 2.2e-2)
@@ -303,8 +307,10 @@ class LongstaffSchwartz(unittest.TestCase):
         self.event_grid_mc2 = \
             np.arange(int(2 * self.frequency_mc) + 1) / self.frequency_mc
 
-        self.exercise_indices_mc1 = np.arange(1 * self.frequency_mc, 0, -self.skip)
-        self.exercise_indices_mc2 = np.arange(2 * self.frequency_mc, 0, -self.skip)
+        self.exercise_indices_mc1 = (
+            np.arange(1 * self.frequency_mc, 0, -self.skip))
+        self.exercise_indices_mc2 = (
+            np.arange(2 * self.frequency_mc, 0, -self.skip))
 
         # Spatial grid used in FD pricing.
         self.x_grid = np.arange(801) / 4
@@ -313,112 +319,76 @@ class LongstaffSchwartz(unittest.TestCase):
         # Number of MC paths.
         self.n_paths = 30000
 
-        self.pFDa11 = \
-            option.CallAmerican(self.rate,
-                            self.vol1,
-                            self.strike,
-                            self.exercise_indices_mc1,
-                            self.event_grid_fd1)
+        self.pFDa11 = option.AmericanOption(
+            self.rate, self.vol1, self.strike, self.exercise_indices_mc1,
+            self.event_grid_fd1, type_="Call")
 
-        self.pMCa11 = \
-            option.CallAmerican(self.rate,
-                            self.vol1,
-                            self.strike,
-                            self.exercise_indices_mc1,
-                            self.event_grid_mc1)
+        self.pMCa11 = option.AmericanOption(
+            self.rate, self.vol1, self.strike, self.exercise_indices_mc1,
+            self.event_grid_mc1, type_="Call")
 
-        self.p11 = \
-            option.EuropeanOption(self.rate,
-                    self.vol1,
-                    self.strike,
-                    self.event_grid_fd1.size - 1,
-                    self.event_grid_fd1, type_="Call")
+        self.p11 = option.EuropeanOption(
+            self.rate, self.vol1, self.strike, self.event_grid_fd1.size - 1,
+            self.event_grid_fd1, type_="Call")
 
-        self.pFDa12 = \
-            option.CallAmerican(self.rate,
-                            self.vol1,
-                            self.strike,
-                            self.exercise_indices_mc2,
-                            self.event_grid_fd2)
+        self.pFDa12 = option.AmericanOption(
+            self.rate, self.vol1, self.strike, self.exercise_indices_mc2,
+            self.event_grid_fd2, type_="Call")
 
-        self.pMCa12 = \
-            option.CallAmerican(self.rate,
-                            self.vol1,
-                            self.strike,
-                            self.exercise_indices_mc2,
-                            self.event_grid_mc2)
+        self.pMCa12 = option.AmericanOption(
+            self.rate, self.vol1, self.strike, self.exercise_indices_mc2,
+            self.event_grid_mc2, type_="Call")
 
-        self.p12 = \
-            option.EuropeanOption(self.rate,
-                    self.vol1,
-                    self.strike,
-                    self.event_grid_fd2.size - 1,
-                    self.event_grid_fd2, type_="Call")
+        self.p12 = option.EuropeanOption(
+            self.rate, self.vol1, self.strike, self.event_grid_fd2.size - 1,
+            self.event_grid_fd2, type_="Call")
 
-        self.pFDa21 = \
-            option.CallAmerican(self.rate,
-                            self.vol2,
-                            self.strike,
-                            self.exercise_indices_mc1,
-                            self.event_grid_fd1)
+        self.pFDa21 = option.AmericanOption(
+            self.rate, self.vol2, self.strike, self.exercise_indices_mc1,
+            self.event_grid_fd1, type_="Call")
 
-        self.pMCa21 = \
-            option.CallAmerican(self.rate,
-                            self.vol2,
-                            self.strike,
-                            self.exercise_indices_mc1,
-                            self.event_grid_mc1)
+        self.pMCa21 = option.AmericanOption(
+            self.rate, self.vol2, self.strike, self.exercise_indices_mc1,
+            self.event_grid_mc1, type_="Call")
 
-        self.p21 = \
-            option.EuropeanOption(self.rate,
-                    self.vol2,
-                    self.strike,
-                    self.event_grid_fd1.size - 1,
-                    self.event_grid_fd1, type_="Call")
+        self.p21 = option.EuropeanOption(
+            self.rate, self.vol2, self.strike, self.event_grid_fd1.size - 1,
+            self.event_grid_fd1, type_="Call")
 
-        self.pFDa22 = \
-            option.CallAmerican(self.rate,
-                            self.vol2,
-                            self.strike,
-                            self.exercise_indices_mc2,
-                            self.event_grid_fd2)
+        self.pFDa22 = option.AmericanOption(
+            self.rate, self.vol2, self.strike, self.exercise_indices_mc2,
+            self.event_grid_fd2, type_="Call")
 
-        self.pMCa22 = \
-            option.CallAmerican(self.rate,
-                            self.vol2,
-                            self.strike,
-                            self.exercise_indices_mc2,
-                            self.event_grid_mc2)
+        self.pMCa22 = option.AmericanOption(
+            self.rate, self.vol2, self.strike, self.exercise_indices_mc2,
+            self.event_grid_mc2, type_="Call")
 
-        self.p22 = \
-            option.EuropeanOption(self.rate,
-                    self.vol2,
-                    self.strike,
-                    self.event_grid_fd2.size - 1,
-                    self.event_grid_fd2, type_="Call")
+        self.p22 = option.EuropeanOption(
+            self.rate, self.vol2, self.strike, self.event_grid_fd2.size - 1,
+            self.event_grid_fd2, type_="Call")
 
     def test_pricing(self):
         """..."""
         self.pFDa11.fd_setup(self.x_grid, equidistant=True)
-        self.pMCa11.mc_exact_setup()
+        self.pMCa11.mc_exact_setup_new()
         self.p11.mc_exact_setup()
         self.pFDa11.fd_solve()
         analytical11 = self.p11.price(self.x_grid, 0)
 
         self.pFDa12.fd_setup(self.x_grid, equidistant=True)
-        self.pMCa12.mc_exact_setup()
+        self.pMCa12.mc_exact_setup_new()
         self.p12.mc_exact_setup()
         self.pFDa12.fd_solve()
         analytical12 = self.p12.price(self.x_grid, 0)
 
         self.pFDa21.fd_setup(self.x_grid, equidistant=True)
-        self.pMCa21.mc_exact_setup()
+        self.pMCa21.mc_exact_setup_new()
         self.p21.mc_exact_setup()
         self.pFDa21.fd_solve()
         analytical21 = self.p21.price(self.x_grid, 0)
 
         self.pFDa22.fd_setup(self.x_grid, equidistant=True)
-        self.pMCa22.mc_exact_setup()
+        self.pMCa22.mc_exact_setup_new()
         self.p22.mc_exact_setup()
         self.pFDa22.fd_solve()
         analytical22 = self.p22.price(self.x_grid, 0)
@@ -434,9 +404,8 @@ class LongstaffSchwartz(unittest.TestCase):
             p11_mean = self.p11.mc_exact.mc_estimate
             p11_error = self.p11.mc_exact.mc_error
 
-            self.pMCa11.mc_exact.initialization(y, self.n_paths,
-                                                seed=0, antithetic=True)
-            self.pMCa11.mc_exact_solve()
+            self.pMCa11.mc_exact_solve_new(
+                y, self.n_paths, seed=0, antithetic=True)
             pa11_mc = lsm.american_option(self.pMCa11)
 
             self.p12.mc_exact_solve(
@@ -444,9 +413,8 @@ class LongstaffSchwartz(unittest.TestCase):
             p12_mean = self.p12.mc_exact.mc_estimate
             p12_error = self.p12.mc_exact.mc_error
 
-            self.pMCa12.mc_exact.initialization(y, self.n_paths,
-                                                seed=0, antithetic=True)
-            self.pMCa12.mc_exact_solve()
+            self.pMCa12.mc_exact_solve_new(
+                y, self.n_paths, seed=0, antithetic=True)
             pa12_mc = lsm.american_option(self.pMCa12)
 
             self.p21.mc_exact_solve(
@@ -454,9 +422,8 @@ class LongstaffSchwartz(unittest.TestCase):
             p21_mean = self.p21.mc_exact.mc_estimate
             p21_error = self.p21.mc_exact.mc_error
 
-            self.pMCa21.mc_exact.initialization(y, self.n_paths,
-                                                seed=0, antithetic=True)
-            self.pMCa21.mc_exact_solve()
+            self.pMCa21.mc_exact_solve_new(
+                y, self.n_paths, seed=0, antithetic=True)
             pa21_mc = lsm.american_option(self.pMCa21)
 
             self.p22.mc_exact_solve(
@@ -464,9 +431,8 @@ class LongstaffSchwartz(unittest.TestCase):
             p22_mean = self.p22.mc_exact.mc_estimate
             p22_error = self.p22.mc_exact.mc_error
 
-            self.pMCa22.mc_exact.initialization(y, self.n_paths,
-                                                seed=0, antithetic=True)
-            self.pMCa22.mc_exact_solve()
+            self.pMCa22.mc_exact_solve_new(
+                y, self.n_paths, seed=0, antithetic=True)
             pa22_mc = lsm.american_option(self.pMCa22)
 
             for x, pa, p in \

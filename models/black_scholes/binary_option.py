@@ -6,7 +6,6 @@ from scipy.stats import norm
 
 from models import options
 from models.black_scholes import misc
-from models.black_scholes import sde
 from utils import global_types
 from utils import payoffs
 
@@ -43,8 +42,8 @@ class BinaryCashCall(options.Option1FAnalytical):
         self.event_grid = event_grid
         self.dividend = dividend
 
-        self.type = global_types.Instrument.BINARY_CASH_CALL
         self.model = global_types.Model.BLACK_SCHOLES
+        self.type = global_types.Instrument.BINARY_CASH_CALL
 
     @property
     def expiry(self) -> float:
@@ -145,9 +144,10 @@ class BinaryCashCall(options.Option1FAnalytical):
         d1, d2 = \
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
         d2_deriv1 = math.sqrt(self.expiry - time) / self.vol
-        return - (self.expiry - time) \
-            * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2) + \
-            math.exp(-self.rate * (self.expiry - time)) * norm.pdf(d2) * d2_deriv1
+        return (- (self.expiry - time)
+                * math.exp(-self.rate * (self.expiry - time)) * norm.cdf(d2)
+                + math.exp(-self.rate * (self.expiry - time)) * norm.pdf(d2)
+                * d2_deriv1)
 
     def theta(
             self,
@@ -166,9 +166,10 @@ class BinaryCashCall(options.Option1FAnalytical):
         s = spot * math.exp(-self.dividend * (self.expiry - time))
         d1, d2 = \
             misc.d1d2(s, time, self.rate, self.vol, self.expiry, self.strike)
-        d2_deriv1 = d1 / (2 * (self.expiry - time)) \
-            - (self.rate + self.vol ** 2 / 2) / (self.vol * math.sqrt(self.expiry - time)) \
-            + self.vol / (2 * math.sqrt(self.expiry - time))
+        d2_deriv1 = (d1 / (2 * (self.expiry - time))
+                     - (self.rate + self.vol ** 2 / 2) /
+                     (self.vol * math.sqrt(self.expiry - time))
+                     + self.vol / (2 * math.sqrt(self.expiry - time)))
         return self.rate * self.price(spot, event_idx) \
             + math.exp(-self.rate * (self.expiry - time)) * norm.pdf(d2) \
             * d2_deriv1
@@ -195,9 +196,10 @@ class BinaryCashCall(options.Option1FAnalytical):
             * d2_deriv1
 
     def fd_solve(self) -> None:
-        """Run solver on event_grid..."""
-        for dt in np.flip(np.diff(self.event_grid)):
-            self.fd.set_propagator()
+        """Run finite difference solver on event_grid."""
+        # Backward propagation.
+        time_steps = np.flip(np.diff(self.event_grid))
+        for idx, dt in enumerate(time_steps):
             self.fd.propagation(dt)
 
 
@@ -233,8 +235,8 @@ class BinaryAssetCall(options.Option1FAnalytical):
         self.event_grid = event_grid
         self.dividend = dividend
 
-        self.type = global_types.Instrument.BINARY_ASSET_CALL
         self.model = global_types.Model.BLACK_SCHOLES
+        self.type = global_types.Instrument.BINARY_ASSET_CALL
 
     @property
     def expiry(self) -> float:
@@ -324,9 +326,10 @@ class BinaryAssetCall(options.Option1FAnalytical):
         pass
 
     def fd_solve(self) -> None:
-        """Run solver on event_grid..."""
-        for dt in np.flip(np.diff(self.event_grid)):
-            self.fd.set_propagator()
+        """Run finite difference solver on event_grid."""
+        # Backward propagation.
+        time_steps = np.flip(np.diff(self.event_grid))
+        for idx, dt in enumerate(time_steps):
             self.fd.propagation(dt)
 
 
@@ -362,8 +365,8 @@ class BinaryCashPut(options.Option1FAnalytical):
         self.event_grid = event_grid
         self.dividend = dividend
 
-        self.type = global_types.Instrument.BINARY_CASH_PUT
         self.model = global_types.Model.BLACK_SCHOLES
+        self.type = global_types.Instrument.BINARY_CASH_PUT
 
     @property
     def expiry(self) -> float:
@@ -453,9 +456,10 @@ class BinaryCashPut(options.Option1FAnalytical):
         pass
 
     def fd_solve(self) -> None:
-        """Run solver on event_grid..."""
-        for dt in np.flip(np.diff(self.event_grid)):
-            self.fd.set_propagator()
+        """Run finite difference solver on event_grid."""
+        # Backward propagation.
+        time_steps = np.flip(np.diff(self.event_grid))
+        for idx, dt in enumerate(time_steps):
             self.fd.propagation(dt)
 
 
@@ -490,8 +494,8 @@ class BinaryAssetPut(options.Option1FAnalytical):
         self.event_grid = event_grid
         self.dividend = dividend
 
-        self.type = global_types.Instrument.BINARY_ASSET_PUT
         self.model = global_types.Model.BLACK_SCHOLES
+        self.type = global_types.Instrument.BINARY_ASSET_PUT
 
     @property
     def expiry(self) -> float:
@@ -581,7 +585,8 @@ class BinaryAssetPut(options.Option1FAnalytical):
         pass
 
     def fd_solve(self) -> None:
-        """Run solver on event_grid..."""
-        for dt in np.flip(np.diff(self.event_grid)):
-            self.fd.set_propagator()
+        """Run finite difference solver on event_grid."""
+        # Backward propagation.
+        time_steps = np.flip(np.diff(self.event_grid))
+        for idx, dt in enumerate(time_steps):
             self.fd.propagation(dt)
