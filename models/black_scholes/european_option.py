@@ -412,7 +412,6 @@ class AmericanOption(options.Option1F):
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event_grid."""
-        # TODO: Set terminal condition?
         # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid))
         for idx, dt in enumerate(time_steps):
@@ -420,13 +419,7 @@ class AmericanOption(options.Option1F):
             # Compare continuation value and exercise value.
             if event_idx in self.exercise_grid:
                 exercise_value = self.payoff(self.fd.grid)
-                self.fd.solution = \
-                    np.maximum(self.fd.solution, exercise_value)
-
-                # TODO: Why doesn't smoothing work better?
-#                self.fd.solution = \
-#                    smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
-
+                self.fd.solution = np.maximum(self.fd.solution, exercise_value)
             self.fd.propagation(dt)
 
     def mc_exact_setup(self) -> None:

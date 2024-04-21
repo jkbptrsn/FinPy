@@ -8,8 +8,8 @@ from models.black_scholes import binary_option as binary
 from numerics.mc import lsm
 from utils import plots
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 if print_results:
     print("Unit test results from: " + __name__)
@@ -99,6 +99,7 @@ class EuropeanPut(unittest.TestCase):
             plt.title("Put option, Black-Scholes model")
             plt.xlabel("Stock price")
             plt.ylabel("Option price")
+            plt.legend()
             plt.show()
 
     def test_theta_method(self):
@@ -277,11 +278,8 @@ class EuropeanPut(unittest.TestCase):
             plt.show()
 
 
-class LongstaffSchwartz(unittest.TestCase):
-    """Numerical examples in Longstaff-Schwartz article.
-
-    See Longstaff & Schwartz 2001.
-    """
+class AmericanPut(unittest.TestCase):
+    """Numerical examples in Longstaff & Schwartz 2001."""
 
     def setUp(self) -> None:
         # Finite-difference prices of American put option in
@@ -304,82 +302,75 @@ class LongstaffSchwartz(unittest.TestCase):
         self.vol2 = 0.4
 
         # Event grids used in FD pricing.
-        self.frequency_fd = 500
-        self.event_grid_fd1 = \
-            np.arange(int(1 * self.frequency_fd) + 1) / self.frequency_fd
-        self.event_grid_fd2 = \
-            np.arange(int(2 * self.frequency_fd) + 1) / self.frequency_fd
+        self.frequency_fd = 100
+        self.event_grid_fd1 = (
+            np.arange(1 * self.frequency_fd + 1) / self.frequency_fd)
+        self.event_grid_fd2 = (
+            np.arange(2 * self.frequency_fd + 1) / self.frequency_fd)
 
         # Event grids used in MC pricing.
-        self.frequency_mc = 500
-        self.skip = 10
-        self.event_grid_mc1 = \
-            np.arange(int(1 * self.frequency_mc) + 1) / self.frequency_mc
-        self.event_grid_mc2 = \
-            np.arange(int(2 * self.frequency_mc) + 1) / self.frequency_mc
+        self.frequency_mc = 100
+        self.skip = 2
+        self.event_grid_mc1 = (
+            np.arange(1 * self.frequency_mc + 1) / self.frequency_mc)
+        self.event_grid_mc2 = (
+            np.arange(2 * self.frequency_mc + 1) / self.frequency_mc)
 
-        self.exercise_indices_mc1 = (
+        self.exercise_indices_1 = (
             np.arange(1 * self.frequency_mc, 0, -self.skip))
-        self.exercise_indices_mc2 = (
+        self.exercise_indices_2 = (
             np.arange(2 * self.frequency_mc, 0, -self.skip))
 
         # Spatial grid used in FD pricing.
-        self.x_grid = np.arange(801) / 4
+        self.x_grid = np.arange(603 + 1) / 3
         self.x_grid = self.x_grid[1:]
 
         # Number of MC paths.
-        self.n_paths = 10000
+        self.n_paths = 10000  # TODO: Use 50000?
 
+        # Option objects.
         self.pFDa11 = option.AmericanOption(
-            self.rate, self.vol1, self.strike, self.exercise_indices_mc1,
+            self.rate, self.vol1, self.strike, self.exercise_indices_1,
             self.event_grid_fd1, type_="Put")
-
         self.pMCa11 = option.AmericanOption(
-            self.rate, self.vol1, self.strike, self.exercise_indices_mc1,
+            self.rate, self.vol1, self.strike, self.exercise_indices_1,
             self.event_grid_mc1, type_="Put")
-
         self.p11 = option.EuropeanOption(
             self.rate, self.vol1, self.strike, self.event_grid_fd1.size - 1,
             self.event_grid_fd1, type_="Put")
 
         self.pFDa12 = option.AmericanOption(
-            self.rate, self.vol1, self.strike, self.exercise_indices_mc2,
+            self.rate, self.vol1, self.strike, self.exercise_indices_2,
             self.event_grid_fd2, type_="Put")
-
         self.pMCa12 = option.AmericanOption(
-            self.rate, self.vol1, self.strike, self.exercise_indices_mc2,
+            self.rate, self.vol1, self.strike, self.exercise_indices_2,
             self.event_grid_mc2, type_="Put")
-
         self.p12 = option.EuropeanOption(
             self.rate, self.vol1, self.strike, self.event_grid_fd2.size - 1,
             self.event_grid_fd2, type_="Put")
 
         self.pFDa21 = option.AmericanOption(
-            self.rate, self.vol2, self.strike, self.exercise_indices_mc1,
+            self.rate, self.vol2, self.strike, self.exercise_indices_1,
             self.event_grid_fd1, type_="Put")
-
         self.pMCa21 = option.AmericanOption(
-            self.rate, self.vol2, self.strike, self.exercise_indices_mc1,
+            self.rate, self.vol2, self.strike, self.exercise_indices_1,
             self.event_grid_mc1, type_="Put")
-
         self.p21 = option.EuropeanOption(
             self.rate, self.vol2, self.strike, self.event_grid_fd1.size - 1,
             self.event_grid_fd1, type_="Put")
 
         self.pFDa22 = option.AmericanOption(
-            self.rate, self.vol2, self.strike, self.exercise_indices_mc2,
+            self.rate, self.vol2, self.strike, self.exercise_indices_2,
             self.event_grid_fd2, type_="Put")
-
         self.pMCa22 = option.AmericanOption(
-            self.rate, self.vol2, self.strike, self.exercise_indices_mc2,
+            self.rate, self.vol2, self.strike, self.exercise_indices_2,
             self.event_grid_mc2, type_="Put")
-
         self.p22 = option.EuropeanOption(
             self.rate, self.vol2, self.strike, self.event_grid_fd2.size - 1,
             self.event_grid_fd2, type_="Put")
 
     def test_pricing(self):
-        """..."""
+        """Compare prices."""
         self.pFDa11.fd_setup(self.x_grid, equidistant=True)
         self.pMCa11.mc_exact_setup()
         self.p11.mc_exact_setup()
@@ -406,12 +397,11 @@ class LongstaffSchwartz(unittest.TestCase):
 
         counter = 0
         if print_results:
-            print("  S  FD European  MC European     "
+            print("  S  CF European  MC European     "
                   "MC error  FD American  MC American")
         for y in (36, 38, 40, 42, 44):
 
-            self.p11.mc_exact_solve(
-                y, self.n_paths, seed=0, antithetic=True)
+            self.p11.mc_exact_solve(y, self.n_paths, seed=0, antithetic=True)
             p11_mean = self.p11.mc_exact.mc_estimate
             p11_error = self.p11.mc_exact.mc_error
 
@@ -419,8 +409,7 @@ class LongstaffSchwartz(unittest.TestCase):
                 y, self.n_paths, seed=0, antithetic=True)
             pa11_mc = lsm.american_option(self.pMCa11)
 
-            self.p12.mc_exact_solve(
-                y, self.n_paths, seed=0, antithetic=True)
+            self.p12.mc_exact_solve(y, self.n_paths, seed=0, antithetic=True)
             p12_mean = self.p12.mc_exact.mc_estimate
             p12_error = self.p12.mc_exact.mc_error
 
@@ -428,8 +417,7 @@ class LongstaffSchwartz(unittest.TestCase):
                 y, self.n_paths, seed=0, antithetic=True)
             pa12_mc = lsm.american_option(self.pMCa12)
 
-            self.p21.mc_exact_solve(
-                y, self.n_paths, seed=0, antithetic=True)
+            self.p21.mc_exact_solve(y, self.n_paths, seed=0, antithetic=True)
             p21_mean = self.p21.mc_exact.mc_estimate
             p21_error = self.p21.mc_exact.mc_error
 
@@ -437,8 +425,7 @@ class LongstaffSchwartz(unittest.TestCase):
                 y, self.n_paths, seed=0, antithetic=True)
             pa21_mc = lsm.american_option(self.pMCa21)
 
-            self.p22.mc_exact_solve(
-                y, self.n_paths, seed=0, antithetic=True)
+            self.p22.mc_exact_solve(y, self.n_paths, seed=0, antithetic=True)
             p22_mean = self.p22.mc_exact.mc_estimate
             p22_error = self.p22.mc_exact.mc_error
 
@@ -499,5 +486,3 @@ class LongstaffSchwartz(unittest.TestCase):
                               f"{pa:11.3f}  "
                               f"{pa22_mc:11.3f}  ")
             print("")
-        if plot_results:
-            plots.plot_price_and_greeks(self.pFDa11)

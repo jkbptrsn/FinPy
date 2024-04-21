@@ -1,4 +1,4 @@
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.polynomial as poly
 
@@ -9,7 +9,7 @@ def american_option(instrument,
     """Pricing American option using Longstaff-Schwartz method.
 
     Args:
-        instrument: ...
+        instrument: Financial instrument object.
         basis_set: Type of polynomial basis set. Default is Power.
             * Power
             * Chebyshev
@@ -82,7 +82,7 @@ def american_option(instrument,
         cont_value_path[do_exercise_idx] = exercise_value[do_exercise_idx]
 
         if plot_regression:
-            x_grid = np.linspace(10, 120)
+            x_grid = np.linspace(20, 50)
             plt.plot(paths[idx, :], cont_value_path, "ob")
             plt.plot(x_grid, ls_fit(x_grid), "-r")
             plt.plot(x_grid, np.maximum(ls_fit(x_grid), 0), "-k")
