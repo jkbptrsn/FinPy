@@ -8,14 +8,14 @@ from models.black_scholes import binary_option as binary
 from numerics.mc import lsm
 from utils import plots
 
-plot_results = False
-print_results = False
+plot_results = True
+print_results = True
 
 if print_results:
     print("Unit test results from: " + __name__)
 
 
-class CallOption(unittest.TestCase):
+class EuropeanCall(unittest.TestCase):
     """European call option in Black-Scholes model."""
 
     def setUp(self) -> None:
@@ -76,8 +76,8 @@ class CallOption(unittest.TestCase):
             (S - K)^+ = S * I_{S > K} - K * I_{S > K}.
         """
         c = option.EuropeanOption(
-            self.rate, self.vol, self.strike, self.expiry_idx,
-            self.event_grid, type_="Call")
+            self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid,
+            type_="Call")
         b_asset = binary.BinaryAssetCall(
             self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid)
         b_cash = binary.BinaryCashCall(
@@ -100,8 +100,7 @@ class CallOption(unittest.TestCase):
             plt.xlabel("Stock price")
             plt.ylabel("Option price")
             plt.legend()
-            plt.pause(2)
-            plt.clf()
+            plt.show()
 
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
@@ -160,11 +159,11 @@ class CallOption(unittest.TestCase):
             # Analytical result.
             price_a = self.mc_call.price(s, 0)
             # Numerical result; no variance reduction.
-            error = np.zeros(n_rep)
+            price_n = np.zeros(n_rep)
             for rep in range(n_rep):
                 self.mc_call.mc_exact_solve(s, n_paths, rng=rng)
-                price_n = self.mc_call.mc_exact.mc_estimate
-                error[rep] += abs((price_n - price_a) / price_a)
+                price_n[rep] = self.mc_call.mc_exact.mc_estimate
+            error = np.abs((price_n - price_a) / price_a)
             if print_results:
                 print(f"No variance reduction: "
                       f"Stock price = {s:5.2f}, "
@@ -173,12 +172,12 @@ class CallOption(unittest.TestCase):
                       f"error std = {error.std():2.5f}")
             self.assertTrue(error.mean() < 2.8e-2 and error.std() < 2.1e-2)
             # Numerical result; Antithetic sampling.
-            error = np.zeros(n_rep)
+            price_n_anti = np.zeros(n_rep)
             for rep in range(n_rep):
                 self.mc_call.mc_exact_solve(
                     s, n_paths, rng=rng, antithetic=True)
-                price_n = self.mc_call.mc_exact.mc_estimate
-                error[rep] += abs((price_n - price_a) / price_a)
+                price_n_anti[rep] = self.mc_call.mc_exact.mc_estimate
+            error = np.abs((price_n_anti - price_a) / price_a)
             if print_results:
                 print(f"Antithetic sampling:   "
                       f"Stock price = {s:5.2f}, "
@@ -186,9 +185,16 @@ class CallOption(unittest.TestCase):
                       f"error mean = {error.mean():2.5f}, "
                       f"error std = {error.std():2.5f}")
             self.assertTrue(error.mean() < 2.7e-2 and error.std() < 2.2e-2)
+            if plot_results:
+                y, x, _ = plt.hist(price_n)
+                plt.vlines(price_a, 0, y.max(), colors="r")
+                plt.xlabel("Price")
+                plt.ylabel("Count")
+                plt.pause(2)
+                plt.clf()
 
     def test_monte_carlo_euler(self) -> None:
-        """Monte-Carlo pricing of zero-coupon bond."""
+        """Monte-Carlo pricing of European call option."""
         self.mc_euler_call.mc_euler_setup()
         # Spot stock price.
         spot_vector = np.arange(30, 81, 10)
@@ -202,11 +208,11 @@ class CallOption(unittest.TestCase):
             # Analytical result.
             price_a = self.mc_euler_call.price(s, 0)
             # Numerical result; no variance reduction.
-            error = np.zeros(n_rep)
+            price_n = np.zeros(n_rep)
             for rep in range(n_rep):
                 self.mc_euler_call.mc_euler_solve(s, n_paths, rng=rng)
-                price_n = self.mc_euler_call.mc_euler.mc_estimate
-                error[rep] += abs((price_n - price_a) / price_a)
+                price_n[rep] = self.mc_euler_call.mc_euler.mc_estimate
+            error = abs((price_n - price_a) / price_a)
             if print_results:
                 print(f"No variance reduction: "
                       f"Stock price = {s:5.2f}, "
@@ -215,12 +221,12 @@ class CallOption(unittest.TestCase):
                       f"error std = {error.std():2.5f}")
             self.assertTrue(error.mean() < 3.1e-2 and error.std() < 2.2e-2)
             # Numerical result; Antithetic sampling.
-            error = np.zeros(n_rep)
+            price_n_anti = np.zeros(n_rep)
             for rep in range(n_rep):
                 self.mc_euler_call.mc_euler_solve(
                     s, n_paths, rng=rng, antithetic=True)
-                price_n = self.mc_euler_call.mc_euler.mc_estimate
-                error[rep] += abs((price_n - price_a) / price_a)
+                price_n_anti[rep] = self.mc_euler_call.mc_euler.mc_estimate
+            error = abs((price_n_anti - price_a) / price_a)
             if print_results:
                 print(f"Antithetic sampling:   "
                       f"Stock price = {s:5.2f}, "
@@ -228,9 +234,16 @@ class CallOption(unittest.TestCase):
                       f"error mean = {error.mean():2.5f}, "
                       f"error std = {error.std():2.5f}")
             self.assertTrue(error.mean() < 3.4e-2 and error.std() < 2.2e-2)
+            if plot_results:
+                y, x, _ = plt.hist(price_n)
+                plt.vlines(price_a, 0, y.max(), colors="r")
+                plt.xlabel("Price")
+                plt.ylabel("Count")
+                plt.pause(2)
+                plt.clf()
 
     def test_monte_carlo_plot(self) -> None:
-        """Monte-Carlo pricing of zero-coupon bond."""
+        """Monte-Carlo pricing of European call optionzero-coupon bond."""
         self.mc_call.mc_exact_setup()
         self.mc_euler_call.mc_euler_setup()
         # Spot stock price.
@@ -370,25 +383,25 @@ class LongstaffSchwartz(unittest.TestCase):
     def test_pricing(self):
         """..."""
         self.pFDa11.fd_setup(self.x_grid, equidistant=True)
-        self.pMCa11.mc_exact_setup_new()
+        self.pMCa11.mc_exact_setup()
         self.p11.mc_exact_setup()
         self.pFDa11.fd_solve()
         analytical11 = self.p11.price(self.x_grid, 0)
 
         self.pFDa12.fd_setup(self.x_grid, equidistant=True)
-        self.pMCa12.mc_exact_setup_new()
+        self.pMCa12.mc_exact_setup()
         self.p12.mc_exact_setup()
         self.pFDa12.fd_solve()
         analytical12 = self.p12.price(self.x_grid, 0)
 
         self.pFDa21.fd_setup(self.x_grid, equidistant=True)
-        self.pMCa21.mc_exact_setup_new()
+        self.pMCa21.mc_exact_setup()
         self.p21.mc_exact_setup()
         self.pFDa21.fd_solve()
         analytical21 = self.p21.price(self.x_grid, 0)
 
         self.pFDa22.fd_setup(self.x_grid, equidistant=True)
-        self.pMCa22.mc_exact_setup_new()
+        self.pMCa22.mc_exact_setup()
         self.p22.mc_exact_setup()
         self.pFDa22.fd_solve()
         analytical22 = self.p22.price(self.x_grid, 0)
@@ -404,7 +417,7 @@ class LongstaffSchwartz(unittest.TestCase):
             p11_mean = self.p11.mc_exact.mc_estimate
             p11_error = self.p11.mc_exact.mc_error
 
-            self.pMCa11.mc_exact_solve_new(
+            self.pMCa11.mc_exact_solve(
                 y, self.n_paths, seed=0, antithetic=True)
             pa11_mc = lsm.american_option(self.pMCa11)
 
@@ -413,7 +426,7 @@ class LongstaffSchwartz(unittest.TestCase):
             p12_mean = self.p12.mc_exact.mc_estimate
             p12_error = self.p12.mc_exact.mc_error
 
-            self.pMCa12.mc_exact_solve_new(
+            self.pMCa12.mc_exact_solve(
                 y, self.n_paths, seed=0, antithetic=True)
             pa12_mc = lsm.american_option(self.pMCa12)
 
@@ -422,7 +435,7 @@ class LongstaffSchwartz(unittest.TestCase):
             p21_mean = self.p21.mc_exact.mc_estimate
             p21_error = self.p21.mc_exact.mc_error
 
-            self.pMCa21.mc_exact_solve_new(
+            self.pMCa21.mc_exact_solve(
                 y, self.n_paths, seed=0, antithetic=True)
             pa21_mc = lsm.american_option(self.pMCa21)
 
@@ -431,7 +444,7 @@ class LongstaffSchwartz(unittest.TestCase):
             p22_mean = self.p22.mc_exact.mc_estimate
             p22_error = self.p22.mc_exact.mc_error
 
-            self.pMCa22.mc_exact_solve_new(
+            self.pMCa22.mc_exact_solve(
                 y, self.n_paths, seed=0, antithetic=True)
             pa22_mc = lsm.american_option(self.pMCa22)
 

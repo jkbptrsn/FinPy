@@ -39,7 +39,7 @@ def american_option(instrument,
     elif basis_set == "Hermite":
         fit_function = poly.Hermite.fit
     else:
-        raise ValueError(f"Type of basis set is unknown: {basis_set}")
+        raise ValueError(f"Unknown basis set: {basis_set}")
     # Index of exercise (on event grid) for each path.
     exercise_index = -np.ones(paths.shape[1], dtype=int)
     # Continuation value for each path.

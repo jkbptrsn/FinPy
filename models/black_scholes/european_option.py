@@ -429,12 +429,12 @@ class AmericanOption(options.Option1F):
 
             self.fd.propagation(dt)
 
-    def mc_exact_setup_new(self) -> None:
+    def mc_exact_setup(self) -> None:
         """Setup exact Monte-Carlo solver."""
         self.mc_exact = \
             sde.SdeExact(self.rate, self.vol, self.event_grid, self.dividend)
 
-    def mc_exact_solve_new(
+    def mc_exact_solve(
             self,
             spot: float,
             n_paths: int,
@@ -456,6 +456,44 @@ class AmericanOption(options.Option1F):
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
 
         self.mc_exact.solution = self.mc_exact.price_paths
+
+#        # Stock price at expiry.
+#        prices = self.mc_exact.price_paths[self.expiry_idx]
+#        # Option payoffs.
+#        option_prices = self.payoff(prices)
+#        # Discounted payoffs.
+#        option_prices *= self.mc_exact.discount_grid[self.expiry_idx]
+#        self.mc_exact.mc_estimate = option_prices.mean()
+#        self.mc_exact.mc_error = option_prices.std(ddof=1)
+#        self.mc_exact.mc_error /= math.sqrt(n_paths)
+
+    def mc_euler_setup(self) -> None:
+        """Setup Euler Monte-Carlo solver."""
+        self.mc_euler = \
+            sde.SdeEuler(self.rate, self.vol, self.event_grid, self.dividend)
+
+    def mc_euler_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
+        """Run Monte-Carlo solver on event grid.
+
+        Euler-Maruyama discretization.
+
+        Args:
+            spot: Spot stock price.
+            n_paths: Number of Monte-Carlo paths.
+            rng: Random number generator. Default is None.
+            seed: Seed of random number generator. Default is None.
+            antithetic: Use antithetic sampling for variance reduction?
+                Default is False.
+        """
+        self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
+
+        self.mc_euler.solution = self.mc_exact.price_paths
 
 #        # Stock price at expiry.
 #        prices = self.mc_exact.price_paths[self.expiry_idx]
