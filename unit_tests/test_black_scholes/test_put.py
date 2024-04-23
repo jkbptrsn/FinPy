@@ -5,7 +5,6 @@ import numpy as np
 
 from models.black_scholes import european_option as option
 from models.black_scholes import binary_option as binary
-from numerics.mc import lsm
 from utils import plots
 
 plot_results = False
@@ -316,17 +315,18 @@ class AmericanPut(unittest.TestCase):
         self.event_grid_mc2 = (
             np.arange(2 * self.frequency_mc + 1) / self.frequency_mc)
 
+        # List of exercise indices in ascending order.
         self.exercise_indices_1 = (
-            np.arange(1 * self.frequency_mc, 0, -self.skip))
+            np.arange(self.skip, 1 * self.frequency_mc + 1, self.skip))
         self.exercise_indices_2 = (
-            np.arange(2 * self.frequency_mc, 0, -self.skip))
+            np.arange(self.skip, 2 * self.frequency_mc + 1, self.skip))
 
         # Spatial grid used in FD pricing.
         self.x_grid = np.arange(603 + 1) / 3
         self.x_grid = self.x_grid[1:]
 
         # Number of MC paths.
-        self.n_paths = 10000  # TODO: Use 50000?
+        self.n_paths = 50000
 
         # Option objects.
         self.pFDa11 = option.AmericanOption(
@@ -399,39 +399,42 @@ class AmericanPut(unittest.TestCase):
         if print_results:
             print("  S  CF European  MC European     "
                   "MC error  FD American  MC American")
+
+        rng = np.random.default_rng(0)
+
         for y in (36, 38, 40, 42, 44):
 
-            self.p11.mc_exact_solve(y, self.n_paths, seed=0, antithetic=True)
+            self.p11.mc_exact_solve(y, self.n_paths, rng=rng, antithetic=True)
             p11_mean = self.p11.mc_exact.mc_estimate
             p11_error = self.p11.mc_exact.mc_error
 
             self.pMCa11.mc_exact_solve(
-                y, self.n_paths, seed=0, antithetic=True)
-            pa11_mc = lsm.american_option(self.pMCa11)
+                y, self.n_paths, rng=rng, antithetic=True)
+            pa11_mc = self.pMCa11.mc_exact.mc_estimate
 
-            self.p12.mc_exact_solve(y, self.n_paths, seed=0, antithetic=True)
+            self.p12.mc_exact_solve(y, self.n_paths, rng=rng, antithetic=True)
             p12_mean = self.p12.mc_exact.mc_estimate
             p12_error = self.p12.mc_exact.mc_error
 
             self.pMCa12.mc_exact_solve(
-                y, self.n_paths, seed=0, antithetic=True)
-            pa12_mc = lsm.american_option(self.pMCa12)
+                y, self.n_paths, rng=rng, antithetic=True)
+            pa12_mc = self.pMCa12.mc_exact.mc_estimate
 
-            self.p21.mc_exact_solve(y, self.n_paths, seed=0, antithetic=True)
+            self.p21.mc_exact_solve(y, self.n_paths, rng=rng, antithetic=True)
             p21_mean = self.p21.mc_exact.mc_estimate
             p21_error = self.p21.mc_exact.mc_error
 
             self.pMCa21.mc_exact_solve(
-                y, self.n_paths, seed=0, antithetic=True)
-            pa21_mc = lsm.american_option(self.pMCa21)
+                y, self.n_paths, rng=rng, antithetic=True)
+            pa21_mc = self.pMCa21.mc_exact.mc_estimate
 
-            self.p22.mc_exact_solve(y, self.n_paths, seed=0, antithetic=True)
+            self.p22.mc_exact_solve(y, self.n_paths, rng=rng, antithetic=True)
             p22_mean = self.p22.mc_exact.mc_estimate
             p22_error = self.p22.mc_exact.mc_error
 
             self.pMCa22.mc_exact_solve(
-                y, self.n_paths, seed=0, antithetic=True)
-            pa22_mc = lsm.american_option(self.pMCa22)
+                y, self.n_paths, rng=rng, antithetic=True)
+            pa22_mc = self.pMCa22.mc_exact.mc_estimate
 
             for x, pa, p in \
                     zip(self.x_grid, self.pFDa11.fd.solution, analytical11):

@@ -7,15 +7,9 @@ from scipy.stats import norm
 from models import options
 from models.black_scholes import misc
 from models.black_scholes import sde
+from numerics.mc import lsm
 from utils import global_types
 from utils import payoffs
-
-# TODO: Revisit AmericanOption class (LSM!)
-#  Add mc_euler
-#  Add LSM in mc function calls
-# TODO: Revisit LongstaffSchwartz class in test_call.py (LSM!)
-# TODO: Move American option class to american_option
-# TODO: Test MC results, especially for LSM; Above and below FD result?
 
 
 class EuropeanOption(options.Option1FAnalytical):
@@ -447,18 +441,8 @@ class AmericanOption(options.Option1F):
                 Default is False.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
-
-        self.mc_exact.solution = self.mc_exact.price_paths
-
-#        # Stock price at expiry.
-#        prices = self.mc_exact.price_paths[self.expiry_idx]
-#        # Option payoffs.
-#        option_prices = self.payoff(prices)
-#        # Discounted payoffs.
-#        option_prices *= self.mc_exact.discount_grid[self.expiry_idx]
-#        self.mc_exact.mc_estimate = option_prices.mean()
-#        self.mc_exact.mc_error = option_prices.std(ddof=1)
-#        self.mc_exact.mc_error /= math.sqrt(n_paths)
+        self.mc_exact.mc_estimate, self.mc_exact.mc_error = (
+            lsm.black_scholes(self))
 
     def mc_euler_setup(self) -> None:
         """Setup Euler Monte-Carlo solver."""
@@ -485,15 +469,5 @@ class AmericanOption(options.Option1F):
                 Default is False.
         """
         self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
-
-        self.mc_euler.solution = self.mc_exact.price_paths
-
-#        # Stock price at expiry.
-#        prices = self.mc_exact.price_paths[self.expiry_idx]
-#        # Option payoffs.
-#        option_prices = self.payoff(prices)
-#        # Discounted payoffs.
-#        option_prices *= self.mc_exact.discount_grid[self.expiry_idx]
-#        self.mc_exact.mc_estimate = option_prices.mean()
-#        self.mc_exact.mc_error = option_prices.std(ddof=1)
-#        self.mc_exact.mc_error /= math.sqrt(n_paths)
+        self.mc_euler.mc_estimate, self.mc_euler.mc_error = (
+            lsm.black_scholes(self))

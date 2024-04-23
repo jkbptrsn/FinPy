@@ -5,7 +5,6 @@ import numpy as np
 
 from models.black_scholes import european_option as option
 from models.black_scholes import binary_option as binary
-from numerics.mc import lsm
 from utils import plots
 
 plot_results = False
@@ -190,7 +189,7 @@ class EuropeanCall(unittest.TestCase):
                 plt.vlines(price_a, 0, y.max(), colors="r")
                 plt.xlabel("Price")
                 plt.ylabel("Count")
-                plt.pause(2)
+                plt.pause(0.5)
                 plt.clf()
 
     def test_monte_carlo_euler(self) -> None:
@@ -282,16 +281,6 @@ class AmericanCall(unittest.TestCase):
     """Numerical examples in Longstaff & Schwartz 2001."""
 
     def setUp(self) -> None:
-
-
-
-
-
-
-
-
-
-
         # Short term interest rate.
         self.rate = 0.06
         # Strike price of put.
@@ -316,17 +305,18 @@ class AmericanCall(unittest.TestCase):
         self.event_grid_mc2 = (
             np.arange(2 * self.frequency_mc + 1) / self.frequency_mc)
 
+        # List of exercise indices in ascending order.
         self.exercise_indices_1 = (
-            np.arange(1 * self.frequency_mc, 0, -self.skip))
+            np.arange(self.skip, 1 * self.frequency_mc + 1, self.skip))
         self.exercise_indices_2 = (
-            np.arange(2 * self.frequency_mc, 0, -self.skip))
+            np.arange(self.skip, 2 * self.frequency_mc + 1, self.skip))
 
         # Spatial grid used in FD pricing.
         self.x_grid = np.arange(603 + 1) / 3
         self.x_grid = self.x_grid[1:]
 
         # Number of MC paths.
-        self.n_paths = 30000  # TODO: Use 50000?
+        self.n_paths = 50000
 
         # Option objects.
         self.cFDa11 = option.AmericanOption(
@@ -399,39 +389,42 @@ class AmericanCall(unittest.TestCase):
         if print_results:
             print("  S  CF European  MC European     "
                   "MC error  FD American  MC American")
+
+        rng = np.random.default_rng(0)
+
         for y in (36, 38, 40, 42, 44):
 
-            self.c11.mc_exact_solve(y, self.n_paths, seed=0, antithetic=True)
+            self.c11.mc_exact_solve(y, self.n_paths, rng=rng, antithetic=True)
             c11_mean = self.c11.mc_exact.mc_estimate
             c11_error = self.c11.mc_exact.mc_error
 
             self.cMCa11.mc_exact_solve(
-                y, self.n_paths, seed=0, antithetic=True)
-            ca11_mc = lsm.american_option(self.cMCa11)
+                y, self.n_paths, rng=rng, antithetic=True)
+            ca11_mc = self.cMCa11.mc_exact.mc_estimate
 
-            self.c12.mc_exact_solve(y, self.n_paths, seed=0, antithetic=True)
+            self.c12.mc_exact_solve(y, self.n_paths, rng=rng, antithetic=True)
             c12_mean = self.c12.mc_exact.mc_estimate
             c12_error = self.c12.mc_exact.mc_error
 
             self.cMCa12.mc_exact_solve(
-                y, self.n_paths, seed=0, antithetic=True)
-            ca12_mc = lsm.american_option(self.cMCa12)
+                y, self.n_paths, rng=rng, antithetic=True)
+            ca12_mc = self.cMCa12.mc_exact.mc_estimate
 
-            self.c21.mc_exact_solve(y, self.n_paths, seed=0, antithetic=True)
+            self.c21.mc_exact_solve(y, self.n_paths, rng=rng, antithetic=True)
             c21_mean = self.c21.mc_exact.mc_estimate
             c21_error = self.c21.mc_exact.mc_error
 
             self.cMCa21.mc_exact_solve(
-                y, self.n_paths, seed=0, antithetic=True)
-            ca21_mc = lsm.american_option(self.cMCa21)
+                y, self.n_paths, rng=rng, antithetic=True)
+            ca21_mc = self.cMCa21.mc_exact.mc_estimate
 
-            self.c22.mc_exact_solve(y, self.n_paths, seed=0, antithetic=True)
+            self.c22.mc_exact_solve(y, self.n_paths, rng=rng, antithetic=True)
             c22_mean = self.c22.mc_exact.mc_estimate
             c22_error = self.c22.mc_exact.mc_error
 
             self.cMCa22.mc_exact_solve(
-                y, self.n_paths, seed=0, antithetic=True)
-            ca22_mc = lsm.american_option(self.cMCa22)
+                y, self.n_paths, rng=rng, antithetic=True)
+            ca22_mc = self.cMCa22.mc_exact.mc_estimate
 
             for x, ca, c in \
                     zip(self.x_grid, self.cFDa11.fd.solution, analytical11):
