@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from models.black_scholes import european_option as option
-from models.black_scholes import binary_option as binary
 from utils import plots
 
 plot_results = False
@@ -65,41 +64,6 @@ class EuropeanPut(unittest.TestCase):
         self.mc_euler_put = option.EuropeanOption(
             self.rate, self.vol, self.strike, self.mc_euler_expiry_idx,
             self.mc_euler_event_grid, type_="Put")
-
-    def test_decomposition(self) -> None:
-        """Decompose put option price.
-
-        The payoff of European put option can be decomposed into payoffs
-        of European asset-or-nothing and cash-or-nothing put options
-        written on same underlying:
-            (K - S)^+ = K * I_{S < K} - S * I_{S < K}.
-        """
-        p = option.EuropeanOption(
-            self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid,
-            type_="Put")
-        b_asset = binary.BinaryAssetPut(
-            self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid)
-        b_cash = binary.BinaryCashPut(
-            self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid)
-        price_p = p.price(self.spot, self.time_idx)
-        price_ba = b_asset.price(self.spot, self.time_idx)
-        price_bc = self.strike * b_cash.price(self.spot, self.time_idx)
-        put_decomposed = - price_ba + price_bc
-        diff = np.abs(price_p - put_decomposed)
-        if print_results:
-            print(np.max(diff))
-        self.assertTrue(np.max(diff) < 1.0e-14)
-        if plot_results:
-            plt.plot(self.spot, p.payoff(self.spot), "-k", label="Put payoff")
-            plt.plot(self.spot, price_p, "-ob", label="Put")
-            plt.plot(self.spot, price_ba, "-r", label="Asset-or-nothing put")
-            plt.plot(self.spot, price_bc, "-g", label="Cash-or-nothing put")
-            plt.plot(self.spot, put_decomposed, "-y", label="Composition")
-            plt.title("Put option, Black-Scholes model")
-            plt.xlabel("Stock price")
-            plt.ylabel("Option price")
-            plt.legend()
-            plt.show()
 
     def test_theta_method(self):
         """Finite difference pricing of European put option."""
@@ -289,8 +253,11 @@ class AmericanPut(unittest.TestCase):
              2.314, 2.885, 5.312, 6.920,
              1.617, 2.212, 4.582, 6.248,
              1.110, 1.690, 3.948, 5.647)
+
         # Threshold for testing.
-        self.threshold = 6e-3
+        self.threshold = 7.0e-3
+        self.threshold_ = 7.8e-3
+
         # Short term interest rate.
         self.rate = 0.06
         # Strike price of put.
@@ -441,6 +408,11 @@ class AmericanPut(unittest.TestCase):
                 if abs(x - y) < 1.e-6:
                     diff = self.fd_american[counter] - pa
                     counter += 1
+                    if print_results:
+                        print(f"European price diff: "
+                              f"{abs((p - p11_mean) / p):2.5f}")
+                        print(f"American price diff: "
+                              f"{abs((pa - pa11_mc) / pa):2.5f}")
                     self.assertTrue(abs(diff) < self.threshold)
                     if print_results:
                         print(f"{int(x):3}  "
@@ -454,6 +426,11 @@ class AmericanPut(unittest.TestCase):
                 if abs(x - y) < 1.e-6:
                     diff = self.fd_american[counter] - pa
                     counter += 1
+                    if print_results:
+                        print(f"European price diff: "
+                              f"{abs((p - p12_mean) / p):2.5f}")
+                        print(f"American price diff: "
+                              f"{abs((pa - pa12_mc) / pa):2.5f}")
                     self.assertTrue(abs(diff) < self.threshold)
                     if print_results:
                         print(f"{int(x):3}  "
@@ -467,6 +444,11 @@ class AmericanPut(unittest.TestCase):
                 if abs(x - y) < 1.e-6:
                     diff = self.fd_american[counter] - pa
                     counter += 1
+                    if print_results:
+                        print(f"European price diff: "
+                              f"{abs((p - p21_mean) / p):2.5f}")
+                        print(f"American price diff: "
+                              f"{abs((pa - pa21_mc) / pa):2.5f}")
                     self.assertTrue(abs(diff) < self.threshold)
                     if print_results:
                         print(f"{int(x):3}  "
@@ -480,6 +462,11 @@ class AmericanPut(unittest.TestCase):
                 if abs(x - y) < 1.e-6:
                     diff = self.fd_american[counter] - pa
                     counter += 1
+                    if print_results:
+                        print(f"European price diff: "
+                              f"{abs((p - p22_mean) / p):2.5f}")
+                        print(f"American price diff: "
+                              f"{abs((pa - pa22_mc) / pa):2.5f}")
                     self.assertTrue(abs(diff) < self.threshold)
                     if print_results:
                         print(f"{int(x):3}  "

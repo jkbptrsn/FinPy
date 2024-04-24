@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from models.black_scholes import european_option as option
-from models.black_scholes import binary_option as binary
 from utils import plots
 
 plot_results = False
@@ -65,41 +64,6 @@ class EuropeanCall(unittest.TestCase):
         self.mc_euler_call = option.EuropeanOption(
             self.rate, self.vol, self.strike, self.mc_euler_expiry_idx,
             self.mc_euler_event_grid, type_="Call")
-
-    def test_decomposition(self) -> None:
-        """Decompose call option price.
-
-        The payoff of European call option can be decomposed into
-        payoffs of European asset-or-nothing and cash-or-nothing call
-        options written on same underlying:
-            (S - K)^+ = S * I_{S > K} - K * I_{S > K}.
-        """
-        c = option.EuropeanOption(
-            self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid,
-            type_="Call")
-        b_asset = binary.BinaryAssetCall(
-            self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid)
-        b_cash = binary.BinaryCashCall(
-            self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid)
-        price_c = c.price(self.spot, self.time_idx)
-        price_ba = b_asset.price(self.spot, self.time_idx)
-        price_bc = self.strike * b_cash.price(self.spot, self.time_idx)
-        call_decomposed = price_ba - price_bc
-        diff = np.abs(price_c - call_decomposed)
-        if print_results:
-            print(np.max(diff))
-        self.assertTrue(np.max(diff) < 5.0e-14)
-        if plot_results:
-            plt.plot(self.spot, c.payoff(self.spot), "-k", label="Call payoff")
-            plt.plot(self.spot, price_c, "-ob", label="Call")
-            plt.plot(self.spot, price_ba, "-r", label="Asset-or-nothing call")
-            plt.plot(self.spot, price_bc, "-g", label="Cash-or-nothing call")
-            plt.plot(self.spot, call_decomposed, "-y", label="Composition")
-            plt.title("Call option, Black-Scholes model")
-            plt.xlabel("Stock price")
-            plt.ylabel("Option price")
-            plt.legend()
-            plt.show()
 
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
@@ -281,6 +245,10 @@ class AmericanCall(unittest.TestCase):
     """Numerical examples in Longstaff & Schwartz 2001."""
 
     def setUp(self) -> None:
+        # Threshold for testing.
+        self.threshold = 7e-4
+        self.threshold_ = 2.2e-2
+
         # Short term interest rate.
         self.rate = 0.06
         # Strike price of put.
@@ -431,6 +399,15 @@ class AmericanCall(unittest.TestCase):
                 if abs(x - y) < 1.e-6:
                     counter += 1
                     if print_results:
+                        print(f"Price diff: {abs(ca - c):2.5f}")
+                        print(f"European price diff: "
+                              f"{abs((c - c11_mean) / c):2.5f}")
+                        print(f"American price diff: "
+                              f"{abs((ca - ca11_mc) / ca):2.5f}")
+                    self.assertTrue(abs(ca - c) < self.threshold)
+                    self.assertTrue(abs((c - c11_mean) / c) < self.threshold_)
+                    self.assertTrue(abs((ca - ca11_mc) / ca) < self.threshold_)
+                    if print_results:
                         print(f"{int(x):3}  "
                               f"{c:11.3f}  "
                               f"{c11_mean:11.3f}  "
@@ -441,6 +418,15 @@ class AmericanCall(unittest.TestCase):
                     zip(self.x_grid, self.cFDa12.fd.solution, analytical12):
                 if abs(x - y) < 1.e-6:
                     counter += 1
+                    if print_results:
+                        print(f"Price diff: {abs(ca - c):2.5f}")
+                        print(f"European price diff: "
+                              f"{abs((c - c12_mean) / c):2.5f}")
+                        print(f"American price diff: "
+                              f"{abs((ca - ca12_mc) / ca):2.5f}")
+                    self.assertTrue(abs(ca - c) < self.threshold)
+                    self.assertTrue(abs((c - c12_mean) / c) < self.threshold_)
+                    self.assertTrue(abs((ca - ca12_mc) / ca) < self.threshold_)
                     if print_results:
                         print(f"{int(x):3}  "
                               f"{c:11.3f}  "
@@ -453,6 +439,15 @@ class AmericanCall(unittest.TestCase):
                 if abs(x - y) < 1.e-6:
                     counter += 1
                     if print_results:
+                        print(f"Price diff: {abs(ca - c):2.5f}")
+                        print(f"European price diff: "
+                              f"{abs((c - c21_mean) / c):2.5f}")
+                        print(f"American price diff: "
+                              f"{abs((ca - ca21_mc) / ca):2.5f}")
+                    self.assertTrue(abs(ca - c) < self.threshold)
+                    self.assertTrue(abs((c - c21_mean) / c) < self.threshold_)
+                    self.assertTrue(abs((ca - ca21_mc) / ca) < self.threshold_)
+                    if print_results:
                         print(f"{int(x):3}  "
                               f"{c:11.3f}  "
                               f"{c21_mean:11.3f}  "
@@ -463,6 +458,15 @@ class AmericanCall(unittest.TestCase):
                     zip(self.x_grid, self.cFDa22.fd.solution, analytical22):
                 if abs(x - y) < 1.e-6:
                     counter += 1
+                    if print_results:
+                        print(f"Price diff: {abs(ca - c):2.5f}")
+                        print(f"European price diff: "
+                              f"{abs((c - c22_mean) / c):2.5f}")
+                        print(f"American price diff: "
+                              f"{abs((ca - ca22_mc) / ca):2.5f}")
+                    self.assertTrue(abs(ca - c) < self.threshold)
+                    self.assertTrue(abs((c - c22_mean) / c) < self.threshold_)
+                    self.assertTrue(abs((ca - ca22_mc) / ca) < self.threshold_)
                     if print_results:
                         print(f"{int(x):3}  "
                               f"{c:11.3f}  "

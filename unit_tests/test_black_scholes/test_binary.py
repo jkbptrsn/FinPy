@@ -3,6 +3,7 @@ import unittest
 from matplotlib import pyplot as plt
 import numpy as np
 
+from models.black_scholes import european_option as option
 from models.black_scholes import binary_option as binary
 from utils import plots
 
@@ -11,6 +12,90 @@ print_results = False
 
 if print_results:
     print("Unit test results from: " + __name__)
+
+
+class Decomposition(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.rate = 0.05
+        self.vol = 0.2
+        self.strike = 50
+        self.time = 0
+        self.time_idx = 0
+        self.expiry = 5
+        self.expiry_idx = 2
+        self.event_grid = np.array([self.time, self.expiry / 2, self.expiry])
+        self.spot = np.arange(2, 200, 2)
+
+    def test_call(self) -> None:
+        """Decompose call option price.
+
+        The payoff of European call option can be decomposed into
+        payoffs of European asset-or-nothing and cash-or-nothing call
+        options written on same underlying:
+            (S - K)^+ = S * I_{S > K} - K * I_{S > K}.
+        """
+        c = option.EuropeanOption(
+            self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid,
+            type_="Call")
+        b_asset = binary.BinaryAssetCall(
+            self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid)
+        b_cash = binary.BinaryCashCall(
+            self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid)
+        price_c = c.price(self.spot, self.time_idx)
+        price_ba = b_asset.price(self.spot, self.time_idx)
+        price_bc = self.strike * b_cash.price(self.spot, self.time_idx)
+        call_decomposed = price_ba - price_bc
+        diff = np.abs(price_c - call_decomposed)
+        if print_results:
+            print(np.max(diff))
+        self.assertTrue(np.max(diff) < 5.0e-14)
+        if plot_results:
+            plt.plot(self.spot, c.payoff(self.spot), "-k", label="Call payoff")
+            plt.plot(self.spot, price_c, "-ob", label="Call")
+            plt.plot(self.spot, price_ba, "-r", label="Asset-or-nothing call")
+            plt.plot(self.spot, price_bc, "-g", label="Cash-or-nothing call")
+            plt.plot(self.spot, call_decomposed, "-y", label="Composition")
+            plt.title("Call option, Black-Scholes model")
+            plt.xlabel("Stock price")
+            plt.ylabel("Option price")
+            plt.legend()
+            plt.show()
+
+    def test_decomposition(self) -> None:
+        """Decompose put option price.
+
+        The payoff of European put option can be decomposed into payoffs
+        of European asset-or-nothing and cash-or-nothing put options
+        written on same underlying:
+            (K - S)^+ = K * I_{S < K} - S * I_{S < K}.
+        """
+        p = option.EuropeanOption(
+            self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid,
+            type_="Put")
+        b_asset = binary.BinaryAssetPut(
+            self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid)
+        b_cash = binary.BinaryCashPut(
+            self.rate, self.vol, self.strike, self.expiry_idx, self.event_grid)
+        price_p = p.price(self.spot, self.time_idx)
+        price_ba = b_asset.price(self.spot, self.time_idx)
+        price_bc = self.strike * b_cash.price(self.spot, self.time_idx)
+        put_decomposed = - price_ba + price_bc
+        diff = np.abs(price_p - put_decomposed)
+        if print_results:
+            print(np.max(diff))
+        self.assertTrue(np.max(diff) < 1.0e-14)
+        if plot_results:
+            plt.plot(self.spot, p.payoff(self.spot), "-k", label="Put payoff")
+            plt.plot(self.spot, price_p, "-ob", label="Put")
+            plt.plot(self.spot, price_ba, "-r", label="Asset-or-nothing put")
+            plt.plot(self.spot, price_bc, "-g", label="Cash-or-nothing put")
+            plt.plot(self.spot, put_decomposed, "-y", label="Composition")
+            plt.title("Put option, Black-Scholes model")
+            plt.xlabel("Stock price")
+            plt.ylabel("Option price")
+            plt.legend()
+            plt.show()
 
 
 class BinaryCashCall(unittest.TestCase):
