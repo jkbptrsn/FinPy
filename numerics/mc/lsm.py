@@ -1,31 +1,33 @@
-from matplotlib import pyplot as plt
+import math
+
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.polynomial as poly
 
+plot_regression = False
 
-def american_option(instrument,
-                    basis_set: str = "Power",
-                    degree: int = 4):
-    """Pricing American option using Longstaff-Schwartz method.
+
+def black_scholes(instrument,
+                  basis_set: str = "Power",
+                  degree: int = 4) -> (float, float):
+    """Pricing American option in Black-Scholes model.
 
     Args:
-        instrument: ...
+        instrument: Financial instrument object.
         basis_set: Type of polynomial basis set. Default is Power.
             * Power
             * Chebyshev
             * Legendre
             * Laguerre
             * Hermite
-        degree: Degree of series based on basis set.
+        degree: Degree of basis set series. Default is 4.
 
     Returns:
         American option price.
     """
-    paths = instrument.mc_exact.solution
+    paths = instrument.mc_exact.price_paths
     discount_grid = instrument.mc_exact.discount_grid
     exercise_grid = instrument.exercise_grid
-
-    plot_regression = False
 
     # Get fitting function.
     if basis_set == "Power":
@@ -39,62 +41,85 @@ def american_option(instrument,
     elif basis_set == "Hermite":
         fit_function = poly.Hermite.fit
     else:
-        raise ValueError(f"Type of basis set is unknown: {basis_set}")
+        raise ValueError(f"Unknown basis set: {basis_set}")
+
     # Index of exercise (on event grid) for each path.
-    exercise_index = -np.ones(paths.shape[1], dtype=int)
-    # Continuation value for each path.
-    cont_value_path = np.zeros(paths.shape[1])
+    exercise_idx = -np.ones(paths.shape[1], dtype=int)
+    # Discounted payoff along each path.
+    payoff = np.zeros(paths.shape[1])
 
     # Loop over exercise indices (in reverse order).
-    # TODO: Do the "reverse" here.
     idx_old = None
     first_exercise = True
-    for idx in exercise_grid:
-        # Continuation value discounted to current exercise event.
-        if idx_old is None:
+    ls_fit = None
+    for idx in np.flip(exercise_grid):
+        # Payoff, along each path, discounted to current event.
+        if first_exercise:
             discount_factor = 1
             idx_old = idx
         else:
             discount_factor = discount_grid[idx_old] / discount_grid[idx]
             idx_old = idx
-        cont_value_path *= discount_factor
-        # Immediate exercise value.
+        payoff *= discount_factor
+        # Option payoff, for each path, if exercised at current event.
         exercise_value = instrument.payoff(paths[idx, :])
-        # Least squares fit.
-        ls_fit = fit_function(paths[idx, :], cont_value_path, deg=degree)
-        # LSM estimate of expected continuation value.
-        cont_value_lsm = ls_fit(paths[idx, :])
+        # Indices of paths for which the option is ITM.
+        path_idx_itm = np.nonzero(exercise_value)[0]
 
-        # The polynomial fit can give negative continuation values.
-        # These are truncated at zero. TODO: Important!
-        cont_value_lsm = np.maximum(cont_value_lsm, 0)
-
-        # Exercise if exercise value is large than continuation value.
+        # Option is exercised if 'exercise value' is larger than
+        # 'continuation value'.
         if first_exercise:
-            do_exercise = np.maximum(exercise_value, 0)
+            path_idx_exercise = path_idx_itm
             first_exercise = False
         else:
-            do_exercise = np.maximum(exercise_value - cont_value_lsm, 0)
-        do_exercise_idx = np.nonzero(do_exercise)
-        # Update exercise indices.
-        exercise_index[do_exercise_idx] = idx
-        # Update continuation values.
-        cont_value_path[do_exercise_idx] = exercise_value[do_exercise_idx]
+            # Try to fit based on paths for which the option is ITM.
+            try:
+                # Least squares fit.
+                paths_itm = paths[idx, path_idx_itm]
+                ls_fit = (
+                    fit_function(paths_itm, payoff[path_idx_itm], deg=degree))
+                # LSM estimate of expected continuation value.
+                cont_value_lsm = ls_fit(paths_itm)
+                # Least squares fit might result in negative values!
+                cont_value_lsm = np.maximum(cont_value_lsm, 0)
+                exercise = np.maximum(exercise_value[path_idx_itm]
+                                      - cont_value_lsm, 0)
+                path_idx_exercise = path_idx_itm[np.nonzero(exercise)[0]]
+            except:
+                # Least squares fit.
+                ls_fit = fit_function(paths[idx, :], payoff, deg=degree)
+                # LSM estimate of expected continuation value.
+                cont_value_lsm = ls_fit(paths[idx, :])
+                # Least squares fit might result in negative values!
+                cont_value_lsm = np.maximum(cont_value_lsm, 0)
+                exercise = np.maximum(exercise_value - cont_value_lsm, 0)
+                path_idx_exercise = np.nonzero(exercise)
+
+        # Update index of exercise for each path.
+        exercise_idx[path_idx_exercise] = idx
+        # Update discounted payoff along each path.
+        payoff[path_idx_exercise] = exercise_value[path_idx_exercise]
 
         if plot_regression:
-            x_grid = np.linspace(10, 120)
-            plt.plot(paths[idx, :], cont_value_path, "ob")
-            plt.plot(x_grid, ls_fit(x_grid), "-r")
-            plt.plot(x_grid, np.maximum(ls_fit(x_grid), 0), "-k")
+            x_grid = np.linspace(20, 50)
+            plt.plot(paths[idx, :], payoff, "ob", label="MC paths")
+            if ls_fit:
+                plt.plot(x_grid, ls_fit(x_grid), "-r", label="LS fit")
+                plt.plot(x_grid, np.maximum(ls_fit(x_grid), 0),
+                         "-k", label="LS fit floored")
+            plt.xlabel("Stock price")
+            plt.ylabel("Option price")
+            plt.legend()
             plt.pause(0.5)
             plt.cla()
 
-    # Monte-Carlo average.
-    mc_average = cont_value_path.sum() / cont_value_path.size
     # Possible final discounting back to time zero.
-    mc_average *= discount_grid[exercise_grid[-1]] / discount_grid[0]
+    payoff *= discount_grid[exercise_grid[0]] / discount_grid[0]
+    mc_estimate = payoff.mean()
+    mc_error = payoff.std(ddof=1)
+    mc_error /= math.sqrt(paths.shape[1])
 
-    return mc_average
+    return mc_estimate, mc_error
 
 
 def prepayment_option(paths,
@@ -119,8 +144,6 @@ def prepayment_option(paths,
     Returns:
         Prepayment option price.
     """
-    plot_regression = False
-
     # Get fitting function.
     if basis_set == "Power":
         fit_function = poly.Polynomial.fit

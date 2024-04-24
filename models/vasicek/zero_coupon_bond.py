@@ -10,11 +10,11 @@ from utils import global_types
 from utils import payoffs
 
 
-class ZCBond(bonds.BondAnalytical1F):
+class ZCBond(bonds.Bond1FAnalytical):
     """Zero-coupon bond in Vasicek model.
 
     Zero-coupon bond price dependent on short rate modelled by Vasicek
-    SDE. See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
+    SDE. See Andersen & Piterbarg (2010), Proposition 10.1.4.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -24,12 +24,13 @@ class ZCBond(bonds.BondAnalytical1F):
         event_grid: Event dates as year fractions from as-of date.
     """
 
-    def __init__(self,
-                 kappa: float,
-                 mean_rate: float,
-                 vol: float,
-                 maturity_idx: int,
-                 event_grid: np.ndarray):
+    def __init__(
+            self,
+            kappa: float,
+            mean_rate: float,
+            vol: float,
+            maturity_idx: int,
+            event_grid: np.ndarray):
         super().__init__()
         self.kappa = kappa
         self.mean_rate = mean_rate
@@ -44,8 +45,9 @@ class ZCBond(bonds.BondAnalytical1F):
     def maturity(self) -> float:
         return self.event_grid[self.maturity_idx]
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -57,9 +59,10 @@ class ZCBond(bonds.BondAnalytical1F):
         """
         return payoffs.zero_coupon_bond(spot)
 
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -72,9 +75,10 @@ class ZCBond(bonds.BondAnalytical1F):
         return np.exp(self.a_function(event_idx)
                       - self.b_function(event_idx) * spot)
 
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt short rate.
 
         Args:
@@ -86,9 +90,10 @@ class ZCBond(bonds.BondAnalytical1F):
         """
         return -self.b_function(event_idx) * self.price(spot, event_idx)
 
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt short rate.
 
         Args:
@@ -100,9 +105,10 @@ class ZCBond(bonds.BondAnalytical1F):
         """
         return self.b_function(event_idx) ** 2 * self.price(spot, event_idx)
 
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -115,39 +121,35 @@ class ZCBond(bonds.BondAnalytical1F):
         return self.price(spot, event_idx) \
             * (self.dadt(event_idx) - self.dbdt(event_idx) * spot)
 
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
-        self.fd.set_propagator()
-        # Set terminal condition.
-        self.fd.solution = self.payoff(self.fd.grid)
-        # Update drift, diffusion and rate vectors.
-        self.fd_update()
         # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid))
         for dt in time_steps:
             self.fd.propagation(dt)
 
-    def mc_exact_setup(self):
+    def mc_exact_setup(self) -> None:
         """Setup exact Monte-Carlo solver."""
         self.mc_exact = \
             sde.SdeExact(self.kappa, self.mean_rate, self.vol, self.event_grid)
 
-    def mc_exact_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False):
+    def mc_exact_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
-        Generation of Monte-Carlo paths using exact discretization.
+        Exact discretization.
 
         Args:
             spot: Spot short rate.
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
-            antithetic: Antithetic sampling for variance reduction.
+            antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
@@ -155,17 +157,18 @@ class ZCBond(bonds.BondAnalytical1F):
         self.mc_exact.mc_error = self.mc_exact.discount_paths[-1].std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
-    def mc_euler_setup(self):
+    def mc_euler_setup(self) -> None:
         """Setup Euler Monte-Carlo solver."""
         self.mc_euler = \
             sde.SdeEuler(self.kappa, self.mean_rate, self.vol, self.event_grid)
 
-    def mc_euler_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False):
+    def mc_euler_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Euler-Maruyama discretization.
@@ -175,36 +178,28 @@ class ZCBond(bonds.BondAnalytical1F):
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
-            antithetic: Antithetic sampling for variance reduction.
+            antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
         self.mc_euler.mc_estimate = self.mc_euler.discount_paths[-1].mean()
         self.mc_euler.mc_error = self.mc_euler.discount_paths[-1].std(ddof=1)
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
-    def a_function(self,
-                   event_idx: int) -> float:
+    def a_function(self, event_idx: int) -> float:
         event_time = self.event_grid[event_idx]
         return misc.a_function(event_time, self.maturity, self.kappa,
                                self.mean_rate, self.vol)
 
-    def b_function(self,
-                   event_idx: int) -> float:
+    def b_function(self, event_idx: int) -> float:
         event_time = self.event_grid[event_idx]
         return misc.b_function(event_time, self.maturity, self.kappa)
 
-    def dadt(self,
-             event_idx: int) -> float:
+    def dadt(self, event_idx: int) -> float:
         event_time = self.event_grid[event_idx]
         return misc.dadt(event_time, self.maturity, self.kappa, self.mean_rate,
                          self.vol)
 
-    def dbdt(self,
-             event_idx: int) -> float:
+    def dbdt(self, event_idx: int) -> float:
         event_time = self.event_grid[event_idx]
         return misc.dbdt(event_time, self.maturity, self.kappa)

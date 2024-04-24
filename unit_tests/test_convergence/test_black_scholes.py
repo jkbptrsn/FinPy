@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from scipy.stats import linregress
 
-from models.black_scholes import call_option as call
+from models.black_scholes import european_option as option
 from numerics.fd import misc
 
 plot_results = False
@@ -48,7 +48,7 @@ class Theta1D(unittest.TestCase):
                     event_grid = dt * np.arange(t_steps) - t_min
                     expiry_idx = t_steps - 1
                     instrument = \
-                        call.Call(rate, vol, strike, expiry_idx, event_grid)
+                        option.EuropeanOption(rate, vol, strike, expiry_idx, event_grid, type_="Call")
                     dx = (x_max - x_min) / (x_states - 1)
                     x_grid = dx * np.arange(x_states) + x_min
                     instrument.fd_setup(x_grid, equidistant=True,
@@ -126,7 +126,7 @@ class Theta1D(unittest.TestCase):
                     event_grid = dt * np.arange(t_steps) + t_min
                     expiry_idx = t_steps - 1
                     instrument = \
-                        call.Call(rate, vol, strike, expiry_idx, event_grid)
+                        option.EuropeanOption(rate, vol, strike, expiry_idx, event_grid, type_="Call")
                     dx = (x_max - x_min) / (x_states - 1)
                     x_grid = dx * np.arange(x_states) + x_min
                     instrument.fd_setup(x_grid, equidistant=True,

@@ -10,7 +10,7 @@ from utils import data_types
 from utils import global_types
 
 
-class Swap(bonds.BondAnalytical1F):
+class Swap(bonds.Bond1FAnalytical):
     """Fixed-for-floating swap in 1-factor Hull-White model.
 
     Price of fixed-for-floating swap based on "simple rate" fixing.

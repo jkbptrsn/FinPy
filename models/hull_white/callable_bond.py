@@ -12,7 +12,7 @@ from utils import payoffs
 from utils import smoothing
 
 
-class FixedRate(bonds.BondAnalytical1F):
+class FixedRate(bonds.Bond1FAnalytical):
     """Fixed rate callable bond in 1-factor Hull-White model.
 
     Fixed rate callable bond with pre-specified cash flow.

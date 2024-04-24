@@ -6,7 +6,7 @@ def smoothing_1d(grid: np.ndarray,
     """'Box smoothing' of discrete function on non-equidistant grid.
 
     Smoothing of discrete function. The method is similar to box
-    smoothing. See L.B.G. Andersen & V.V. Piterbarg 2010, section 23.3.
+    smoothing. See Andersen & Piterbarg (2010), Section 23.3.
 
     Args:
         grid: Discrete grid.
@@ -36,7 +36,7 @@ def smoothing_payoff_1d(grid: np.ndarray,
                         instrument) -> np.ndarray:
     """Box smoothing of payoff function on non-equidistant grid.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, section 23.3.
+    See Andersen & Piterbarg (2010), Section 23.3.
 
     Args:
         grid: Discrete grid.

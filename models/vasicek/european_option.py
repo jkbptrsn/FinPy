@@ -7,9 +7,9 @@ from models import options
 from models.vasicek import misc
 from models.vasicek import sde
 from models.vasicek import zero_coupon_bond as zcbond
-from utils.global_types import Instrument
-from utils.global_types import Model
+from utils import global_types
 from utils import payoffs
+from utils import smoothing
 
 
 class EuropeanOption(options.Option1FAnalytical):
@@ -28,15 +28,16 @@ class EuropeanOption(options.Option1FAnalytical):
         type_: Option type. Default is call.
     """
 
-    def __init__(self,
-                 kappa: float,
-                 mean_rate: float,
-                 vol: float,
-                 strike: float,
-                 expiry_idx: int,
-                 maturity_idx: int,
-                 event_grid: np.ndarray,
-                 type_: str = "Call"):
+    def __init__(
+            self,
+            kappa: float,
+            mean_rate: float,
+            vol: float,
+            strike: float,
+            expiry_idx: int,
+            maturity_idx: int,
+            event_grid: np.ndarray,
+            type_: str = "Call"):
         super().__init__()
         self.kappa = kappa
         self.mean_rate = mean_rate
@@ -50,13 +51,13 @@ class EuropeanOption(options.Option1FAnalytical):
         self.zcbond = zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
                                     self.maturity_idx, self.event_grid)
 
-        self.model = Model.VASICEK
+        self.model = global_types.Model.VASICEK
         if type_ == "Call":
-            self.type = Instrument.EUROPEAN_CALL
+            self.type = global_types.Instrument.EUROPEAN_CALL
         elif type_ == "Put":
-            self.type = Instrument.EUROPEAN_PUT
+            self.type = global_types.Instrument.EUROPEAN_PUT
         else:
-            raise ValueError(f"Option type is unknown: {type_}")
+            raise ValueError(f"Unknown option type: {type_}")
 
     @property
     def expiry(self) -> float:
@@ -66,8 +67,9 @@ class EuropeanOption(options.Option1FAnalytical):
     def maturity(self) -> float:
         return self.zcbond.maturity
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -77,14 +79,15 @@ class EuropeanOption(options.Option1FAnalytical):
         Returns:
             Payoff.
         """
-        if self.type == Instrument.EUROPEAN_CALL:
+        if self.type == global_types.Instrument.EUROPEAN_CALL:
             return payoffs.call(spot, self.strike)
         else:
             return payoffs.put(spot, self.strike)
 
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -99,9 +102,10 @@ class EuropeanOption(options.Option1FAnalytical):
             self.strike, self.expiry_idx, self.maturity_idx, self.event_grid,
             self.type)
 
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt short rate.
 
         Args:
@@ -116,9 +120,10 @@ class EuropeanOption(options.Option1FAnalytical):
             self.strike, self.expiry_idx, self.maturity_idx, self.event_grid,
             self.type)
 
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt short rate.
 
         Args:
@@ -133,9 +138,10 @@ class EuropeanOption(options.Option1FAnalytical):
             self.strike, self.expiry_idx, self.maturity_idx, self.event_grid,
             self.type)
 
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -150,13 +156,10 @@ class EuropeanOption(options.Option1FAnalytical):
             self.strike, self.expiry_idx, self.maturity_idx, self.event_grid,
             self.type)
 
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
-        self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = self.zcbond.payoff(self.fd.grid)
-        # Update drift, diffusion and rate vectors.
-        self.fd_update()
         # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid))
         for idx, dt in enumerate(time_steps):
@@ -164,19 +167,23 @@ class EuropeanOption(options.Option1FAnalytical):
             # Expiry of option.
             if event_idx == self.expiry_idx:
                 self.fd.solution = self.payoff(self.fd.solution)
+                # Smoothing
+                # self.fd.solution = \
+                #     smoothing.smoothing_1d(self.fd.grid, self.fd.solution)
             self.fd.propagation(dt)
 
-    def mc_exact_setup(self):
+    def mc_exact_setup(self) -> None:
         """Setup exact Monte-Carlo solver."""
         self.mc_exact = \
             sde.SdeExact(self.kappa, self.mean_rate, self.vol, self.event_grid)
 
-    def mc_exact_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False):
+    def mc_exact_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Exact discretization.
@@ -186,12 +193,8 @@ class EuropeanOption(options.Option1FAnalytical):
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
-            antithetic: Antithetic sampling for variance reduction.
+            antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
         # Short rates at expiry.
@@ -206,17 +209,18 @@ class EuropeanOption(options.Option1FAnalytical):
         self.mc_exact.mc_error = option_prices.std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
-    def mc_euler_setup(self):
+    def mc_euler_setup(self) -> None:
         """Setup Euler Monte-Carlo solver."""
         self.mc_euler = \
             sde.SdeEuler(self.kappa, self.mean_rate, self.vol, self.event_grid)
 
-    def mc_euler_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False):
+    def mc_euler_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Euler-Maruyama discretization.
@@ -226,12 +230,8 @@ class EuropeanOption(options.Option1FAnalytical):
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
-            antithetic: Antithetic sampling for variance reduction.
+            antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
         # Short rates at expiry.

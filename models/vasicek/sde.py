@@ -17,7 +17,7 @@ class Sde(metaclass=abc.ABCMeta):
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
+    See Andersen & Piterbarg (2010), Section 10.1.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -26,11 +26,12 @@ class Sde(metaclass=abc.ABCMeta):
         event_grid: Event dates as year fractions from as-of date.
     """
 
-    def __init__(self,
-                 kappa: float,
-                 mean_rate: float,
-                 vol: float,
-                 event_grid: np.ndarray):
+    def __init__(
+            self,
+            kappa: float,
+            mean_rate: float,
+            vol: float,
+            event_grid: np.ndarray):
         self.kappa = kappa
         self.mean_rate = mean_rate
         self.vol = vol
@@ -39,12 +40,13 @@ class Sde(metaclass=abc.ABCMeta):
         self.model = global_types.Model.VASICEK
 
     @abc.abstractmethod
-    def paths(self,
-              spot: float,
-              n_paths: int,
-              rng: np.random.Generator = None,
-              seed: int = None,
-              antithetic: bool = False):
+    def paths(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Generation of Monte-Carlo paths.
 
         Args:
@@ -52,12 +54,8 @@ class Sde(metaclass=abc.ABCMeta):
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
-            antithetic: Antithetic sampling for variance reduction.
+            antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         pass
 
@@ -71,7 +69,7 @@ class SdeExact(Sde):
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
+    See Andersen & Piterbarg (2010), Chapter 10.1.
 
     Monte-Carlo paths constructed using exact discretization.
 
@@ -82,11 +80,12 @@ class SdeExact(Sde):
         event_grid: Event dates as year fractions from as-of date.
     """
 
-    def __init__(self,
-                 kappa: float,
-                 mean_rate: float,
-                 vol: float,
-                 event_grid: np.ndarray):
+    def __init__(
+            self,
+            kappa: float,
+            mean_rate: float,
+            vol: float,
+            event_grid: np.ndarray):
         super().__init__(kappa, mean_rate, vol, event_grid)
 
         # Arrays used for discretization.
@@ -103,7 +102,7 @@ class SdeExact(Sde):
 
         self.initialization()
 
-    def initialization(self):
+    def initialization(self) -> None:
         """Initialization of Monte-Carlo solver."""
         self._calc_rate_mean()
         self._calc_rate_variance()
@@ -111,30 +110,31 @@ class SdeExact(Sde):
         self._calc_discount_variance()
         self._calc_covariance()
 
-    def _calc_rate_mean(self):
+    def _calc_rate_mean(self) -> None:
         """Conditional mean of short rate process.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.12).
+        See Andersen & Piterbarg (2010), Eq. (10.12).
         """
         exp_kappa = np.exp(-self.kappa * np.diff(self.event_grid))
         self.rate_mean[0, 0] = 1
         self.rate_mean[1:, 0] = exp_kappa
         self.rate_mean[1:, 1] = self.mean_rate * (1 - exp_kappa)
 
-    def _calc_rate_variance(self):
+    def _calc_rate_variance(self) -> None:
         """Conditional variance of short rate process.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.13).
+        See Andersen & Piterbarg (2010), Eq. (10.13).
         """
         two_kappa = 2 * self.kappa
         exp_two_kappa = np.exp(-two_kappa * np.diff(self.event_grid))
         self.rate_variance[1:] = \
             self.vol ** 2 * (1 - exp_two_kappa) / two_kappa
 
-    def _rate_increment(self,
-                        spot: typing.Union[float, np.ndarray],
-                        event_idx: int,
-                        normal_rand: typing.Union[float, np.ndarray]) \
+    def _rate_increment(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            normal_rand: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Increment short rate process one time step.
 
@@ -154,12 +154,12 @@ class SdeExact(Sde):
         variance = self.rate_variance[event_idx]
         return mean + math.sqrt(variance) * normal_rand - spot
 
-    def _calc_discount_mean(self):
+    def _calc_discount_mean(self) -> None:
         """Conditional mean of discount process.
 
         Here the discount process refers to -int_{t_1}^{t_2} r_t dt.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.12+).
+        See Andersen & Piterbarg (2010), Eq. (10.12+).
         """
         dt = np.diff(self.event_grid)
         exp_kappa = np.exp(-self.kappa * dt)
@@ -167,12 +167,12 @@ class SdeExact(Sde):
         self.discount_mean[1:, 0] = -exp_kappa
         self.discount_mean[1:, 1] = self.mean_rate * (exp_kappa - dt)
 
-    def _calc_discount_variance(self):
+    def _calc_discount_variance(self) -> None:
         """Conditional variance of discount process.
 
         Here the discount process refers to -int_{t_1}^{t_2} r_t dt.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.13+).
+        See Andersen & Piterbarg (2010), Eq. (10.13+).
         """
         dt = np.diff(self.event_grid)
         exp_kappa = np.exp(-self.kappa * dt)
@@ -182,10 +182,11 @@ class SdeExact(Sde):
             self.vol ** 2 * (4 * exp_kappa - 3 + two_kappa * dt
                              - exp_two_kappa) / (2 * self.kappa ** 3)
 
-    def _discount_increment(self,
-                            spot_rate: typing.Union[float, np.ndarray],
-                            event_idx: int,
-                            normal_rand: typing.Union[float, np.ndarray]) \
+    def _discount_increment(
+            self,
+            spot_rate: typing.Union[float, np.ndarray],
+            event_idx: int,
+            normal_rand: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Increment discount process one time step.
 
@@ -204,10 +205,10 @@ class SdeExact(Sde):
         variance = self.discount_variance[event_idx]
         return mean + math.sqrt(variance) * normal_rand
 
-    def _calc_covariance(self):
+    def _calc_covariance(self) -> None:
         """Conditional covariance of short rate and discount processes.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, lemma 10.1.11.
+        See Andersen & Piterbarg (2010), Lemma 10.1.11.
         """
         dt = np.diff(self.event_grid)
         vol_sq = self.vol ** 2
@@ -217,8 +218,9 @@ class SdeExact(Sde):
         self.covariance[1:] = \
             vol_sq * (2 * exp_kappa - exp_two_kappa - 1) / (2 * kappa_sq)
 
-    def _correlation(self,
-                     event_idx: int) -> float:
+    def _correlation(
+            self,
+            event_idx: int) -> float:
         """Conditional correlation of short rate and discount processes.
 
         Args:
@@ -232,12 +234,13 @@ class SdeExact(Sde):
         discount_var = self.discount_variance[event_idx]
         return covariance / math.sqrt(rate_var * discount_var)
 
-    def paths(self,
-              spot: float,
-              n_paths: int,
-              rng: np.random.Generator = None,
-              seed: int = None,
-              antithetic: bool = False):
+    def paths(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False):
         """Generation of Monte-Carlo paths using exact discretization.
 
         Args:
@@ -245,12 +248,8 @@ class SdeExact(Sde):
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
-            antithetic: Antithetic sampling for variance reduction.
+            antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
-
-        Returns:
-            Realizations of correlated short rate and discount processes
-            represented on event grid.
         """
         if rng is None:
             rng = np.random.default_rng(seed)
@@ -288,7 +287,7 @@ class SdeEuler(Sde):
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
+    See Andersen & Piterbarg (2010), Chapter 10.1.
 
     Monte-Carlo paths constructed using Euler-Maruyama discretization.
 
@@ -299,11 +298,12 @@ class SdeEuler(Sde):
         event_grid: Event dates as year fractions from as-of date.
     """
 
-    def __init__(self,
-                 kappa: float,
-                 mean_rate: float,
-                 vol: float,
-                 event_grid: np.ndarray):
+    def __init__(
+            self,
+            kappa: float,
+            mean_rate: float,
+            vol: float,
+            event_grid: np.ndarray):
         super().__init__(kappa, mean_rate, vol, event_grid)
 
         self.rate_paths = None
@@ -311,10 +311,11 @@ class SdeEuler(Sde):
         self.mc_estimate = None
         self.mc_error = None
 
-    def _rate_increment(self,
-                        spot: typing.Union[float, np.ndarray],
-                        dt: float,
-                        normal_rand: typing.Union[float, np.ndarray]) \
+    def _rate_increment(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            dt: float,
+            normal_rand: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Increment short rate process one time step.
 
@@ -332,12 +333,13 @@ class SdeEuler(Sde):
             + self.vol * wiener_increment
         return rate_increment
 
-    def paths(self,
-              spot: float,
-              n_paths: int,
-              rng: np.random.Generator = None,
-              seed: int = None,
-              antithetic: bool = False):
+    def paths(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False):
         """Generation of Monte-Carlo paths using Euler discretization.
 
         Args:
@@ -345,12 +347,8 @@ class SdeEuler(Sde):
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
-            antithetic: Antithetic sampling for variance reduction.
+            antithetic: Use antithetic sampling for variance reduction?
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         if rng is None:
             rng = np.random.default_rng(seed)

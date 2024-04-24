@@ -17,11 +17,13 @@ class DouglasRachford2D(base_class.ADI2D):
         L_y = drift_y * d/dy + 1/2 * diffusion_y^2 * d^2/dy^2
             - 1/2 * rate.
 
+    See Andersen & Piterbarg (2010).
+
     Attributes:
         grid_x: 1D grid for x-dimension. Assumed ascending.
         grid_y: 1D grid for y-dimension. Assumed ascending.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
         theta_parameter: Determines the form of the time derivative.
     """
@@ -49,10 +51,6 @@ class DouglasRachford2D(base_class.ADI2D):
         """Initialization of identity and propagator matrices."""
         self.identity_x = la.identity_matrix(self.nstates[0], self.band)
         self.identity_y = la.identity_matrix(self.nstates[1], self.band)
-        self.set_propagator()
-
-    def set_propagator(self) -> None:
-        """Propagator as banded matrix."""
         if self.equidistant:
             dx = self.grid_x[1] - self.grid_x[0]
             dy = self.grid_y[1] - self.grid_y[0]
@@ -94,8 +92,7 @@ class DouglasRachford2D(base_class.ADI2D):
             dimension = (2, 2)
         else:
             raise ValueError(
-                f"{self.band}: "
-                f"Unknown form of banded matrix. Use tri or penta.")
+                f"{self.band}: Unknown banded matrix. Use tri or penta.")
         rhs_tmp = np.zeros(self.nstates)
         # First split; right-hand side.
         for idx in range(self.nstates[0]):
@@ -103,13 +100,13 @@ class DouglasRachford2D(base_class.ADI2D):
             operator = dt * self.propagator_y
             rhs_tmp[idx, :] = \
                 la.matrix_col_prod(operator, self.solution[idx, :], self.band)
-        rhs = rhs_tmp.copy()
+        rhs = np.zeros(self.nstates)
         for idx in range(self.nstates[1]):
             self.set_propagator_x(idx)
             operator = self.identity_x \
                 + (1 - self.theta_parameter) * dt * self.propagator_x
-            rhs[:, idx] += \
-                la.matrix_col_prod(operator, self.solution[:, idx], self.band)
+            rhs[:, idx] = rhs_tmp[:, idx] \
+                + la.matrix_col_prod(operator, self.solution[:, idx], self.band)
         # First split; left-hand side.
         for idx in range(self.nstates[1]):
             self.set_propagator_x(idx)

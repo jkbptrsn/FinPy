@@ -1,12 +1,11 @@
 import abc
 
-import math
 import numpy as np
 from scipy.linalg import solve_banded
 
+from numerics.fd import delta_gamma as greeks
 from numerics.fd import differential_operators as do
 from numerics.fd import linear_algebra as la
-from numerics.fd import delta_gamma as greeks
 from utils import global_types
 
 
@@ -15,17 +14,14 @@ class ThetaBase:
 
     The general structure of the PDE is
         dV/dt + drift * dV/dx + 1/2 * diffusion^2 * d^2V/dx^2 = rate * V,
-    TODO: What about the RHS for Ornstein-Uhlenbeck processes?
     where the underlying 1-dimensional Markov process reads
         dx_t = drift(t, x_t) * dt + diffusion(t, x_t) * dW_t.
 
     Attributes:
         grid: Grid in spatial dimension. Assumed ascending.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
-
-    TODO: Smoothing of payoff functions -- not necessary according to Andreasen
     """
 
     def __init__(self,
@@ -77,10 +73,12 @@ class ThetaBase:
 
     @abc.abstractmethod
     def set_propagator(self):
+        """Propagator as banded matrix."""
         pass
 
     @abc.abstractmethod
     def propagation(self, dt: float):
+        """Propagation of solution vector for one time step dt."""
         pass
 
     def delta(self) -> np.ndarray:
@@ -101,6 +99,7 @@ class ThetaBase:
 
     @abc.abstractmethod
     def theta(self, dt: float = None) -> np.ndarray:
+        """Finite difference calculation of theta."""
         pass
 
     def theta_calc(self, dt: float) -> np.ndarray:
@@ -127,18 +126,23 @@ class Theta(ThetaBase):
     The propagator is defined as
         dV/dt = - Propagator * V.
 
+    See Andersen & Piterbarg (2010).
+
     scipy.linalg.solve_banded solves equation A x = b using standard LU
     factorization of A.
 
     Attributes:
         grid: Grid in spatial dimension.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
         theta_parameter: Determines the specific method.
             0   : Explicit method
             0.5 : Crank-Nicolson method (default)
             1   : Fully implicit method
+
+    TODO: Smoothing of payoff functions? Not necessary according to Kwant Daddy
+    TODO: Rannacher (initial) stepping? Not necessary according to Kwant Daddy
     """
 
     def __init__(self,
@@ -149,40 +153,40 @@ class Theta(ThetaBase):
         super().__init__(grid, band, equidistant)
         self.theta_parameter = theta_parameter
 
+        self.ddx = None
+        self.d2dx2 = None
+
         self.dt_last = None
 
     def initialization(self):
         """Initialization of identity and propagator matrices."""
         self.mat_identity = la.identity_matrix(self.nstates, self.band)
+        if self.equidistant:
+            dx = self.grid[1] - self.grid[0]
+            self.ddx = do.ddx_equidistant(self.nstates, dx, self.band)
+            self.d2dx2 = do.d2dx2_equidistant(self.nstates, dx, self.band)
+        else:
+            self.ddx = do.ddx(self.grid, self.band)
+            self.d2dx2 = do.d2dx2(self.grid, self.band)
         self.set_propagator()
 
     def set_propagator(self):
         """Propagator as banded matrix."""
-        if self.equidistant:
-            dx = self.grid[1] - self.grid[0]
-            ddx = do.ddx_equidistant(self.nstates, dx, self.band)
-            d2dx2 = do.d2dx2_equidistant(self.nstates, dx, self.band)
-        else:
-            ddx = do.ddx(self.grid, self.band)
-            d2dx2 = do.d2dx2(self.grid, self.band)
         self.mat_propagator = \
             - la.dia_matrix_prod(self.vec_rate, self.mat_identity, self.band) \
-            + la.dia_matrix_prod(self.vec_drift, ddx, self.band) \
-            + la.dia_matrix_prod(self.vec_diff_sq, d2dx2, self.band) / 2
+            + la.dia_matrix_prod(self.vec_drift, self.ddx, self.band) \
+            + la.dia_matrix_prod(self.vec_diff_sq, self.d2dx2, self.band) / 2
 
-    def propagation(self,
-                    dt: float,
-                    time_dependent: bool = False):
+    def propagation(
+            self,
+            dt: float,
+            time_dependent: bool = False):
         """Propagation of solution vector for one time step dt."""
         rhs = self.mat_identity \
             + (1 - self.theta_parameter) * dt * self.mat_propagator
         rhs = la.matrix_col_prod(rhs, self.vec_solution, self.band)
-
         if time_dependent:
             self.set_propagator()
-            # TODO: Update propagator, if drift/diffusion is time-dependent.
-            #  But then one would also need to update vec_drift and vec_diff_sq...
-
         lhs = self.mat_identity \
             - self.theta_parameter * dt * self.mat_propagator
         if self.band == "tri":
@@ -190,7 +194,8 @@ class Theta(ThetaBase):
         elif self.band == "penta":
             self.vec_solution = solve_banded((2, 2), lhs, rhs)
         else:
-            raise ValueError("Form should be tri or penta...")
+            raise ValueError(
+                f"{self.band}: Unknown banded matrix. Use tri or penta.")
         # Last used time step.
         self.dt_last = dt
 
@@ -203,93 +208,55 @@ class Theta(ThetaBase):
         return self.theta_calc(dt)
 
 
-def setup_solver(instrument,
-                 grid: np.ndarray,
-                 band: str = "tri",
-                 equidistant: bool = False,
-                 theta_parameter: float = 0.5) -> Theta:
+def setup_solver(
+        instrument,
+        grid: np.ndarray,
+        band: str = "tri",
+        equidistant: bool = False,
+        theta_parameter: float = 0.5):
     """Setting up finite difference solver.
 
     Args:
         instrument: Instrument object.
         grid: Grid in spatial dimension.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
         theta_parameter: Determines the specific method:
             0   : Explicit method.
             0.5 : Crank-Nicolson method (default).
             1   : Fully implicit method.
-
-    Returns:
-        Finite difference solver.
     """
-    solver = Theta(grid, band, equidistant, theta_parameter)
-
-    # TODO: Move updates below to update function.
-    if instrument.model == global_types.Model.BACHELIER:
-        drift = 0 * solver.grid
-        diffusion = instrument.vol + 0 * solver.grid
-        rate = instrument.rate + 0 * solver.grid
-    elif instrument.model == global_types.Model.BLACK_SCHOLES:
-        drift = instrument.rate * solver.grid
-        diffusion = instrument.vol * solver.grid
-        rate = instrument.rate + 0 * solver.grid
-    elif instrument.model == global_types.Model.CIR:
-        drift = instrument.kappa * (instrument.mean_rate - solver.grid)
-        diffusion = instrument.vol * np.sqrt(solver.grid)
-        rate = solver.grid
-    elif instrument.model == global_types.Model.HULL_WHITE_1F:
-
-        if instrument.transformation == global_types.Transformation.ANDERSEN:
-            drift = instrument.y_eg[-1] - instrument.kappa_eg[-1] * solver.grid
-            diffusion = instrument.vol_eg[-1] + 0 * solver.grid
-            rate = solver.grid + instrument.forward_rate_eg[-1]
-        elif instrument.transformation == global_types.Transformation.PELSSER:
-            drift = -instrument.kappa_eg[-1] * solver.grid
-            diffusion = instrument.vol_eg[-1] + 0 * solver.grid
-            rate = solver.grid
-        else:
-            raise ValueError(f"Transformation is not recognized: "
-                             f"{instrument.transformation}")
-
-    elif instrument.model == global_types.Model.VASICEK:
-        drift = instrument.kappa * (instrument.mean_rate - solver.grid)
-        diffusion = instrument.vol + 0 * solver.grid
-        rate = solver.grid
-    else:
-        raise ValueError(f"Model is not recognized: {instrument.model}")
-    solver.set_drift(drift)
-    solver.set_diffusion(diffusion)
-    solver.set_rate(rate)
-
-    # Terminal solution to PDE.
-    # TODO: Move to each instrument. Cannot generalize...
-    solver.solution = instrument.payoff(solver.grid)
-
-    return solver
+    instrument.fd = Theta(grid, band, equidistant, theta_parameter)
+    update(instrument)
+    # Terminal solution of PDE. TODO: Move to instrument class?
+    instrument.fd.solution = instrument.payoff(instrument.fd.grid)
 
 
-def update(instrument,
-           event_idx: int = -1):
+def update(
+        instrument,
+        event_idx: int = -1):
     """Update drift, diffusion and rate vectors.
 
     Args:
         instrument: Instrument object.
         event_idx: Index on event grid. Default is -1.
     """
-    if instrument.model == global_types.Model.BACHELIER:
-        drift = 0 * instrument.fd.grid
-        diffusion = instrument.vol + 0 * instrument.fd.grid
-        rate = instrument.rate + 0 * instrument.fd.grid
-    elif instrument.model == global_types.Model.BLACK_SCHOLES:
+    if instrument.model == global_types.Model.BLACK_SCHOLES:
         drift = instrument.rate * instrument.fd.grid
         diffusion = instrument.vol * instrument.fd.grid
+        rate = instrument.rate + 0 * instrument.fd.grid
+
+    # TODO: NM delete
+    elif instrument.model == global_types.Model.BACHELIER:
+        drift = 0 * instrument.fd.grid
+        diffusion = instrument.vol + 0 * instrument.fd.grid
         rate = instrument.rate + 0 * instrument.fd.grid
     elif instrument.model == global_types.Model.CIR:
         drift = instrument.kappa * (instrument.mean_rate - instrument.fd.grid)
         diffusion = instrument.vol * np.sqrt(instrument.fd.grid)
         rate = instrument.fd.grid
+
     elif instrument.model == global_types.Model.HULL_WHITE_1F:
         if instrument.transformation == global_types.Transformation.ANDERSEN:
             drift = instrument.y_eg[event_idx] \
@@ -301,14 +268,14 @@ def update(instrument,
             diffusion = instrument.vol_eg[event_idx] + 0 * instrument.fd.grid
             rate = instrument.fd.grid
         else:
-            raise ValueError(f"Transformation is unknown: "
-                             f"{instrument.transformation}")
+            raise ValueError(
+                f"Unknown transformation: {instrument.transformation}")
     elif instrument.model == global_types.Model.VASICEK:
         drift = instrument.kappa * (instrument.mean_rate - instrument.fd.grid)
         diffusion = instrument.vol + 0 * instrument.fd.grid
         rate = instrument.fd.grid
     else:
-        raise ValueError(f"Model is unknown: {instrument.model}")
+        raise ValueError(f"Unknown model: {instrument.model}")
     instrument.fd.set_drift(drift)
     instrument.fd.set_diffusion(diffusion)
     instrument.fd.set_rate(rate)

@@ -1,4 +1,3 @@
-import math
 import numpy as np
 from scipy.linalg import solve_banded
 
@@ -21,16 +20,17 @@ class CraigSneyd2D(base_class.ADI2D):
             - 1/2 * rate,
         L_xy = coupling * diffusion_x * diffusion_y * d^2/dxdy
 
-    See L.B.G. Andersen & V.V. Piterbarg, Interest Rate Modeling, 2010.
+    See Andersen & Piterbarg (2010).
 
     Attributes:
         grid_x: 1D grid for x-dimension. Assumed ascending.
         grid_y: 1D grid for y-dimension. Assumed ascending.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
         theta_parameter: Determines the form of the time derivative.
-        lambda_parameter: TODO: Determines the inclusion of the mixed derivative...
+        lambda_parameter: Determines the inclusion of the mixed
+            derivative.
     """
 
     def __init__(self,
@@ -54,26 +54,10 @@ class CraigSneyd2D(base_class.ADI2D):
         self.propagator_x = None
         self.propagator_y = None
 
-        self.propagator_x_tmp = None
-        self.propagator_y_tmp = None
-
     def initialization(self) -> None:
         """Initialization of identity and propagator matrices."""
         self.identity_x = la.identity_matrix(self.nstates[0], self.band)
         self.identity_y = la.identity_matrix(self.nstates[1], self.band)
-        self.set_propagator()
-
-    # TODO: Move diff operators to set_differential_operators
-    def set_propagator(self) -> None:
-        """Propagator as banded matrix."""
-        if self.band == "tri":
-            n_diagonals = 3
-        elif self.band == "penta":
-            n_diagonals = 5
-        else:
-            raise ValueError(
-                f"{self.band}: "
-                f"Unknown form of banded matrix. Use tri or penta.")
         if self.equidistant:
             dx = self.grid_x[1] - self.grid_x[0]
             dy = self.grid_y[1] - self.grid_y[0]
@@ -87,19 +71,6 @@ class CraigSneyd2D(base_class.ADI2D):
             self.d2dx2 = do.d2dx2(self.grid_x, self.band)
             self.d2dy2 = do.d2dx2(self.grid_y, self.band)
 
-        self.propagator_x_tmp = \
-            np.zeros((self.nstates[1], n_diagonals, self.nstates[0]))
-        self.propagator_y_tmp = \
-            np.zeros((self.nstates[0], n_diagonals, self.nstates[1]))
-
-        for idx in range(self.nstates[1]):
-            self.set_propagator_x(idx)
-            self.propagator_x_tmp[idx] = self.propagator_x
-        for idx in range(self.nstates[0]):
-            self.set_propagator_y(idx)
-            self.propagator_y_tmp[idx] = self.propagator_y
-
-    # TODO: Save as numpy array of arrays...
     def set_propagator_x(self, idx: int) -> None:
         """Propagator in x-dimension as banded matrix."""
         term_1 = \
@@ -110,7 +81,6 @@ class CraigSneyd2D(base_class.ADI2D):
             la.dia_matrix_prod(self.rate_x[:, idx], self.identity_x, self.band)
         self.propagator_x = term_1 + term_2 / 2 - term_3 / 2
 
-    # TODO: Save as numpy array of arrays...
     def set_propagator_y(self, idx: int) -> None:
         """Propagator in y-dimension as banded matrix."""
         term_1 = \
@@ -121,17 +91,9 @@ class CraigSneyd2D(base_class.ADI2D):
             la.dia_matrix_prod(self.rate_y[idx, :], self.identity_y, self.band)
         self.propagator_y = term_1 + term_2 / 2 - term_3 / 2
 
-    # TODO: What about correlation (and diffusion product)?
     def d2dxdy(self, function: np.ndarray) -> np.ndarray:
         """2nd order mixed derivative of function."""
-        if self.equidistant:
-            dx = self.grid_x[1] - self.grid_x[0]
-            dy = self.grid_y[1] - self.grid_y[0]
-            do.d2dxdy_equidistant(function, dx, dy)
-            return np.zeros(function.shape)
-        else:
-            do.d2dxdy(function, self.grid_x, self.grid_y)
-            return np.zeros(function.shape)
+        return do.d2dxdy(function, self.ddx, self.ddy, self.band, self.band)
 
     def propagation(self, dt: float) -> None:
         """Propagation of solution matrix for one time step dt."""
@@ -141,133 +103,139 @@ class CraigSneyd2D(base_class.ADI2D):
             dimension = (2, 2)
         else:
             raise ValueError(
-                f"{self.band}: "
-                f"Unknown form of banded matrix. Use tri or penta.")
+                f"{self.band}: Unknown banded matrix. Use tri or penta.")
         # Predictor step, first split; right-hand side.
         x_term = np.zeros(self.nstates)
         for idx in range(self.nstates[1]):
+            self.set_propagator_x(idx)
             operator = self.identity_x \
-                + (1 - self.theta_parameter) * dt * self.propagator_x_tmp[idx]
+                + (1 - self.theta_parameter) * dt * self.propagator_x
             x_term[:, idx] = \
                 la.matrix_col_prod(operator, self.solution[:, idx], self.band)
         y_term = np.zeros(self.nstates)
         for idx in range(self.nstates[0]):
-            operator = dt * self.propagator_y_tmp[idx]
+            self.set_propagator_y(idx)
+            operator = dt * self.propagator_y
             y_term[idx, :] = \
                 la.matrix_col_prod(operator, self.solution[idx, :], self.band)
-
-        mixed_term = \
-            np.sqrt(self.diff_x_sq) * np.sqrt(self.diff_y_sq) \
-            * self.d2dxdy(self.solution)
-#        xy_term = dt * self.d2dxdy(self.solution)
+        mixed_term = self.coupling \
+            * self.diff_x * self.diff_y * self.d2dxdy(self.solution)
         xy_term = dt * mixed_term
-
         tmp = x_term + y_term + xy_term
         # Predictor step, first split; left-hand side.
         for idx in range(self.nstates[1]):
+            self.set_propagator_x(idx)
             operator = self.identity_x \
-                - self.theta_parameter * dt * self.propagator_x_tmp[idx]
+                - self.theta_parameter * dt * self.propagator_x
             tmp[:, idx] = solve_banded(dimension, operator, tmp[:, idx])
         # Predictor step, second split; right-hand side.
         tmp -= self.theta_parameter * y_term
         # Predictor step, second split; left-hand side.
         for idx in range(self.nstates[0]):
+            self.set_propagator_y(idx)
             operator = self.identity_y \
-                - self.theta_parameter * dt * self.propagator_y_tmp[idx]
+                - self.theta_parameter * dt * self.propagator_y
             tmp[idx, :] = solve_banded(dimension, operator, tmp[idx, :])
         # Corrector step, first split; right-hand side.
-
-        mixed_term = \
-            np.sqrt(self.diff_x_sq) * np.sqrt(self.diff_y_sq) \
-            * self.d2dxdy(tmp)
-#        tmp = x_term + y_term + (1 - self.lambda_parameter) * xy_term \
-#            + self.lambda_parameter * dt * self.d2dxdy(tmp)
+        mixed_term = self.coupling \
+            * self.diff_x * self.diff_y * self.d2dxdy(tmp)
         tmp = x_term + y_term + (1 - self.lambda_parameter) * xy_term \
             + self.lambda_parameter * dt * mixed_term
-
         # Corrector step, first split; left-hand side.
         for idx in range(self.nstates[1]):
+            self.set_propagator_x(idx)
             operator = self.identity_x \
-                - self.theta_parameter * dt * self.propagator_x_tmp[idx]
+                - self.theta_parameter * dt * self.propagator_x
             tmp[:, idx] = solve_banded(dimension, operator, tmp[:, idx])
         # Corrector step, second split; right-hand side.
         tmp -= self.theta_parameter * y_term
         # Corrector step, second split; left-hand side.
         for idx in range(self.nstates[0]):
+            self.set_propagator_y(idx)
             operator = self.identity_y \
-                - self.theta_parameter * dt * self.propagator_y_tmp[idx]
+                - self.theta_parameter * dt * self.propagator_y
             tmp[idx, :] = solve_banded(dimension, operator, tmp[idx, :])
         # Update solution.
         self.solution = tmp
 
 
-def setup_solver(instrument,
-                 x_grid: np.ndarray,
-                 y_grid: np.ndarray,
-                 band: str = "tri",
-                 equidistant: bool = False,
-                 theta_parameter: float = 0.5) -> CraigSneyd2D:
+def setup_solver(
+        instrument,
+        x_grid: np.ndarray,
+        y_grid: np.ndarray,
+        band: str = "tri",
+        equidistant: bool = False,
+        theta_parameter: float = 0.5):
     """Setting up finite difference solver.
 
     Args:
         instrument: Instrument object.
         x_grid: Grid in x dimension.
         y_grid: Grid in y dimension.
-        band: Tri- or pentadiagonal matrix representation of operators.
-            Default is tridiagonal.
+        band: Tri- ("tri") or pentadiagonal ("penta") matrix
+            representation of operators. Default is tridiagonal.
         equidistant: Is grid equidistant? Default is false.
         theta_parameter: Determines the specific method
 
     Returns:
         Finite difference solver.
     """
-    solver = CraigSneyd2D(x_grid, y_grid, band, equidistant, theta_parameter)
-    # Model specifications.
+    instrument.fd = (
+        CraigSneyd2D(x_grid, y_grid, band, equidistant, theta_parameter))
+    update(instrument)
+    # Terminal solution to PDE. TODO: Use payoff method of instrument object?
+    if instrument.type == global_types.Instrument.EUROPEAN_CALL:
+        solution = payoffs.call(instrument.fd.grid_x, instrument.strike)
+        instrument.fd.solution = (
+            np.outer(solution, np.ones(instrument.fd.grid_y.size)))
+    else:
+        raise ValueError("Unknown instrument.")
+
+
+def update(
+        instrument,
+        event_idx: int = -1):
+    """Update drift, diffusion and rate vectors.
+
+    Args:
+        instrument: Instrument object.
+        event_idx: Index on event grid. Default is -1.
+    """
     if instrument.model == global_types.Model.HESTON:
+        drift_x = instrument.rate * instrument.fd.grid_x
+        drift_x = np.outer(drift_x, np.ones(instrument.fd.grid_y.size))
+        drift_y = instrument.kappa * (instrument.eta - instrument.fd.grid_y)
+        drift_y = np.outer(np.ones(instrument.fd.grid_x.size), drift_y)
+        diffusion_x = np.outer(instrument.fd.grid_x, np.sqrt(instrument.fd.grid_y))
+        diffusion_y = instrument.vol * np.sqrt(instrument.fd.grid_y)
+        diffusion_y = np.outer(np.ones(instrument.fd.grid_x.size), diffusion_y)
+        rate_x = instrument.rate + 0 * instrument.fd.grid_x
+        rate_x = np.outer(rate_x, np.ones(instrument.fd.grid_y.size))
+        rate_y = instrument.rate + 0 * instrument.fd.grid_y
+        rate_y = np.outer(np.ones(instrument.fd.grid_x.size), rate_y)
+        instrument.fd.coupling = instrument.correlation
 
-        drift_x = instrument.rate * solver.grid_x
-        drift_x = np.outer(drift_x, np.ones(solver.grid_y.size))
-        drift_y = instrument.kappa * (instrument.eta - solver.grid_y)
-        drift_y = np.outer(np.ones(solver.grid_x.size), drift_y)
-
-        diffusion_x = np.outer(solver.grid_x, np.sqrt(solver.grid_y))
-        diffusion_y = instrument.vol * np.sqrt(solver.grid_y)
-        diffusion_y = np.outer(np.ones(solver.grid_x.size), diffusion_y)
-
-        # Should rate matrix every be x- or y-dependent?
-        rate_x = instrument.rate + 0 * solver.grid_x
-        rate_x = np.outer(rate_x, np.ones(solver.grid_y.size))
-        rate_y = instrument.rate + 0 * solver.grid_y
-        rate_y = np.outer(np.ones(solver.grid_x.size), rate_y)
-
+    # TODO: NM delete
     elif instrument.model == global_types.Model.SABR:
-
-        drift_x = instrument.rate * solver.grid_x
-        drift_x = np.outer(drift_x, np.ones(solver.grid_y.size))
-        drift_y = 0 * solver.grid_y
-        drift_y = np.outer(np.ones(solver.grid_x.size), drift_y)
+        drift_x = instrument.rate * instrument.fd.grid_x
+        drift_x = np.outer(drift_x, np.ones(instrument.fd.grid_y.size))
+        drift_y = 0 * instrument.fd.grid_y
+        drift_y = np.outer(np.ones(instrument.fd.grid_x.size), drift_y)
 
         # Remember discount factor, D^(1-beta)...
-        diffusion_x = np.power(solver.grid_x, instrument.beta)
-        diffusion_x = np.outer(diffusion_x, solver.grid_y)
-        diffusion_y = instrument.vol * solver.grid_y
-        diffusion_y = np.outer(np.ones(solver.grid_x.size), diffusion_y)
+        diffusion_x = np.power(instrument.fd.grid_x, instrument.beta)
+        diffusion_x = np.outer(diffusion_x, instrument.fd.grid_y)
+        diffusion_y = instrument.vol * instrument.fd.grid_y
+        diffusion_y = np.outer(np.ones(instrument.fd.grid_x.size), diffusion_y)
 
-        # Should rate matrix every be x- or y-dependent?
-        rate_x = instrument.rate + 0 * solver.grid_x
-        rate_x = np.outer(rate_x, np.ones(solver.grid_y.size))
-        rate_y = instrument.rate + 0 * solver.grid_y
-        rate_y = np.outer(np.ones(solver.grid_x.size), rate_y)
+        rate_x = instrument.rate + 0 * instrument.fd.grid_x
+        rate_x = np.outer(rate_x, np.ones(instrument.fd.grid_y.size))
+        rate_y = instrument.rate + 0 * instrument.fd.grid_y
+        rate_y = np.outer(np.ones(instrument.fd.grid_x.size), rate_y)
+        instrument.fd.coupling = instrument.correlation
 
     else:
-        raise ValueError("Model is not recognized.")
-    solver.set_drift(drift_x, drift_y)
-    solver.set_diffusion(diffusion_x, diffusion_y)
-    solver.set_rate(rate_x, rate_y)
-    # Terminal solution to PDE. TODO: Use payoff method of instrument object...
-    if instrument.type == global_types.Instrument.EUROPEAN_CALL:
-        solution = payoffs.call(solver.grid_x, instrument.strike)
-        solver.solution = np.outer(solution, np.ones(solver.grid_y.size))
-    else:
-        raise ValueError("Instrument is not recognized.")
-    return solver
+        raise ValueError(f"Unknown model: {instrument.model}")
+    instrument.fd.set_drift(drift_x, drift_y)
+    instrument.fd.set_diffusion(diffusion_x, diffusion_y)
+    instrument.fd.set_rate(rate_x, rate_y)

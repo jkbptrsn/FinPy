@@ -10,7 +10,7 @@ from utils import global_types
 from utils import payoffs
 
 
-class Call(options.EuropeanOption2D):
+class Call(options.Option2F):
     """European call option in SABR model.
 
     European call option written on stock price modelled by SABR SDE.
@@ -113,5 +113,5 @@ class Call(options.EuropeanOption2D):
     def fd_solve(self):
         """Run solver on event_grid..."""
         for dt in np.flip(np.diff(self.event_grid)):
-            self.fd.set_propagator()
+#            self.fd.set_propagator()
             self.fd.propagation(dt)

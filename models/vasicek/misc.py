@@ -8,14 +8,15 @@ from models.vasicek import zero_coupon_bond as zcbond
 from utils.global_types import Instrument
 
 
-def a_function(time1: float,
-               time2: float,
-               kappa: float,
-               mean_rate: float,
-               vol: float) -> float:
+def a_function(
+        time1: float,
+        time2: float,
+        kappa: float,
+        mean_rate: float,
+        vol: float) -> float:
     """Calculate A-function.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
+    See Andersen & Piterbarg (2010), Proposition 10.1.4.
 
     Args:
         time1: Initial time.
@@ -34,12 +35,13 @@ def a_function(time1: float,
         * (b - (time2 - time1)) - vol_sq * b ** 2 / (4 * kappa)
 
 
-def b_function(time1: float,
-               time2: float,
-               kappa: float) -> float:
+def b_function(
+        time1: float,
+        time2: float,
+        kappa: float) -> float:
     """Calculate B-function.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
+    See Andersen & Piterbarg (2010), Proposition 10.1.4.
 
     Args:
         time1: Initial time.
@@ -52,14 +54,15 @@ def b_function(time1: float,
     return (1 - math.exp(-kappa * (time2 - time1))) / kappa
 
 
-def dadt(time1: float,
-         time2: float,
-         kappa: float,
-         mean_rate: float,
-         vol: float) -> float:
+def dadt(
+        time1: float,
+        time2: float,
+        kappa: float,
+        mean_rate: float,
+        vol: float) -> float:
     """Calculate 1st order partial derivative of A-function wrt time1.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
+    See Andersen & Piterbarg (2010), Proposition 10.1.4.
 
     Args:
         time1: Initial time.
@@ -73,17 +76,19 @@ def dadt(time1: float,
     """
     vol_sq = vol ** 2
     two_kappa_sq = 2 * kappa ** 2
+    b = b_function(time1, time2, kappa)
     db = dbdt(time1, time2, kappa)
     return (mean_rate - vol_sq / two_kappa_sq) * (db + 1) \
-        - vol_sq * b_function(time1, time2, kappa) * db / (2 * kappa)
+        - vol_sq * b * db / (2 * kappa)
 
 
-def dbdt(time1: float,
-         time2: float,
-         kappa: float) -> float:
+def dbdt(
+        time1: float,
+        time2: float,
+        kappa: float) -> float:
     """Calculate 1st order partial derivative of B-function wrt time1.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.4.
+    See Andersen & Piterbarg (2010), Proposition 10.1.4.
 
     Args:
         time1: Initial time.
@@ -96,14 +101,15 @@ def dbdt(time1: float,
     return -math.exp(-kappa * (time2 - time1))
 
 
-def sigma_p(time1: float,
-            time2: float,
-            time3: float,
-            kappa: float,
-            vol: float) -> float:
+def sigma_p(
+        time1: float,
+        time2: float,
+        time3: float,
+        kappa: float,
+        vol: float) -> float:
     """Calculate sigma_p function.
 
-    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
+    See Brigo & Mercurio (2007), Eq. (3.10).
 
     Args:
         time1: Initial time.
@@ -121,13 +127,14 @@ def sigma_p(time1: float,
     return vol * b * math.sqrt((1 - exp_kappa) / two_kappa)
 
 
-def h_function(zc1_price: typing.Union[float, np.ndarray],
-               zc2_price: typing.Union[float, np.ndarray],
-               s_p: float,
-               strike: float) -> typing.Union[float, np.ndarray]:
+def h_function(
+        zc1_price: typing.Union[float, np.ndarray],
+        zc2_price: typing.Union[float, np.ndarray],
+        s_p: float,
+        strike: float) -> typing.Union[float, np.ndarray]:
     """Calculate h function.
 
-    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
+    See Brigo & Mercurio (2007), Eq. (3.10).
 
     Args:
         zc1_price: Price of zero-coupon bond with maturity at
@@ -143,20 +150,21 @@ def h_function(zc1_price: typing.Union[float, np.ndarray],
     return np.log(zc2_price / (zc1_price * strike)) / s_p + s_p / 2
 
 
-def european_option_price(spot: typing.Union[float, np.ndarray],
-                          event_idx: int,
-                          kappa: float,
-                          mean_rate: float,
-                          vol: float,
-                          strike: float,
-                          expiry_idx: int,
-                          maturity_idx: int,
-                          event_grid: np.ndarray,
-                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def european_option_price(
+        spot: typing.Union[float, np.ndarray],
+        event_idx: int,
+        kappa: float,
+        mean_rate: float,
+        vol: float,
+        strike: float,
+        expiry_idx: int,
+        maturity_idx: int,
+        event_grid: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option price.
 
-    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
+    See Brigo & Mercurio (2007), Eq. (3.10).
 
     Args:
         spot: Spot short rate.
@@ -178,7 +186,7 @@ def european_option_price(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # Bond prices.
     zc1 = zcbond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
     zc1_price = zc1.price(spot, event_idx)
@@ -195,20 +203,21 @@ def european_option_price(spot: typing.Union[float, np.ndarray],
                     - strike * zc1_price * norm.cdf(omega * (h - s_p)))
 
 
-def european_option_delta(spot: typing.Union[float, np.ndarray],
-                          event_idx: int,
-                          kappa: float,
-                          mean_rate: float,
-                          vol: float,
-                          strike: float,
-                          expiry_idx: int,
-                          maturity_idx: int,
-                          event_grid: np.ndarray,
-                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def european_option_delta(
+        spot: typing.Union[float, np.ndarray],
+        event_idx: int,
+        kappa: float,
+        mean_rate: float,
+        vol: float,
+        strike: float,
+        expiry_idx: int,
+        maturity_idx: int,
+        event_grid: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option delta.
 
-    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
+    See Brigo & Mercurio (2007), Eq. (3.10).
 
     Args:
         spot: Spot short rate.
@@ -230,7 +239,7 @@ def european_option_delta(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # Bond prices and deltas.
     zc1 = zcbond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
     zc1_price = zc1.price(spot, event_idx)
@@ -254,20 +263,21 @@ def european_option_delta(spot: typing.Union[float, np.ndarray],
     return omega * delta
 
 
-def european_option_gamma(spot: typing.Union[float, np.ndarray],
-                          event_idx: int,
-                          kappa: float,
-                          mean_rate: float,
-                          vol: float,
-                          strike: float,
-                          expiry_idx: int,
-                          maturity_idx: int,
-                          event_grid: np.ndarray,
-                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def european_option_gamma(
+        spot: typing.Union[float, np.ndarray],
+        event_idx: int,
+        kappa: float,
+        mean_rate: float,
+        vol: float,
+        strike: float,
+        expiry_idx: int,
+        maturity_idx: int,
+        event_grid: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option gamma.
 
-    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
+    See Brigo & Mercurio (2007), Eq. (3.10).
 
     Args:
         spot: Spot short rate.
@@ -289,7 +299,7 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # Bond prices, deltas and gammas.
     zc1 = zcbond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
     zc1_price = zc1.price(spot, event_idx)
@@ -314,30 +324,31 @@ def european_option_gamma(spot: typing.Union[float, np.ndarray],
     gamma += 2 * omega * dhdr * \
         (zc2_delta * norm.pdf(omega * h)
          - strike * zc1_delta * norm.pdf(omega * (h - s_p)))
-    # See notes.
     gamma -= dhdr ** 2 * \
         (zc2_price * omega * h * norm.pdf(omega * h)
-         - strike * zc1_price * omega * (h - s_p) * norm.pdf(omega * (h - s_p)))
+         - strike * zc1_price * omega * (h - s_p)
+         * norm.pdf(omega * (h - s_p)))
     gamma += omega * d2hdr2 * \
         (zc2_price * norm.pdf(omega * h)
          - strike * zc1_price * norm.pdf(omega * (h - s_p)))
     return omega * gamma
 
 
-def european_option_theta(spot: typing.Union[float, np.ndarray],
-                          event_idx: int,
-                          kappa: float,
-                          mean_rate: float,
-                          vol: float,
-                          strike: float,
-                          expiry_idx: int,
-                          maturity_idx: int,
-                          event_grid: np.ndarray,
-                          option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def european_option_theta(
+        spot: typing.Union[float, np.ndarray],
+        event_idx: int,
+        kappa: float,
+        mean_rate: float,
+        vol: float,
+        strike: float,
+        expiry_idx: int,
+        maturity_idx: int,
+        event_grid: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option theta.
 
-    See D. Brigo & F. Mercurio 2007, Eq. (3.10).
+    See Brigo & Mercurio (2007), Eq. (3.10).
 
     Args:
         spot: Spot short rate.
@@ -359,7 +370,7 @@ def european_option_theta(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # Bond prices and deltas.
     zc1 = zcbond.ZCBond(kappa, mean_rate, vol, expiry_idx, event_grid)
     zc1_price = zc1.price(spot, event_idx)
@@ -385,5 +396,6 @@ def european_option_theta(spot: typing.Union[float, np.ndarray],
         - strike * zc1_theta * norm.cdf(omega * (h - s_p))
     theta += omega \
         * (zc2_price * norm.pdf(omega * h) * dhdt
-           - strike * zc1_price * norm.pdf(omega * (h - s_p)) * (dhdt - ds_pdt))
+           - strike * zc1_price * norm.pdf(omega * (h - s_p))
+           * (dhdt - ds_pdt))
     return omega * theta

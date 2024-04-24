@@ -1,207 +1,254 @@
 import unittest
 
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 import numpy as np
 
-from numerics.mc import lsm
-from models.black_scholes import call_option as call
-from models.black_scholes import put_option as put
-from models.black_scholes import binary_option as binary
-from numerics.fd import grid_generation as grid
+from models.black_scholes import european_option as option
 from utils import plots
 
 plot_results = False
 print_results = False
 
+if print_results:
+    print("Unit test results from: " + __name__)
 
-class CallOption(unittest.TestCase):
+
+class EuropeanCall(unittest.TestCase):
     """European call option in Black-Scholes model."""
 
     def setUp(self) -> None:
+        # Model parameters.
         self.rate = 0.05
         self.vol = 0.2
+        # Spot prices.
+        self.spot = np.arange(2, 200, 2)
+        # FD spatial grid.
+        self.x_min = 2
+        self.x_max = 200
+        self.x_steps = 201
+        self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
+        self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
+        # Option strike.
         self.strike = 50
+        # Current time.
         self.time = 0
         self.time_idx = 0
+        # Option expiry.
         self.expiry = 5
+        # Event grid used in decomposition.
         self.expiry_idx = 2
         self.event_grid = np.array([self.time, self.expiry / 2, self.expiry])
-        self.spot = np.arange(2, 200, 2)
+        # FD event grid.
+        self.fd_t_steps = 201
+        self.fd_dt = self.expiry / (self.fd_t_steps - 1)
+        self.fd_event_grid = self.fd_dt * np.arange(self.fd_t_steps)
+        self.fd_expiry_idx = self.fd_t_steps - 1
+        # MC event grid; exact discretization.
+        self.mc_t_steps = 3
+        self.mc_dt = self.expiry / (self.mc_t_steps - 1)
+        self.mc_event_grid = self.mc_dt * np.arange(self.mc_t_steps)
+        self.mc_expiry_idx = self.mc_t_steps - 1
+        # MC event grid; Euler discretization.
+        self.mc_euler_t_steps = 51
+        self.mc_euler_dt = self.expiry / (self.mc_euler_t_steps - 1)
+        self.mc_euler_event_grid = \
+            self.mc_euler_dt * np.arange(self.mc_euler_t_steps)
+        self.mc_euler_expiry_idx = self.mc_euler_t_steps - 1
+        # Call option.
+        self.fd_call = option.EuropeanOption(
+            self.rate, self.vol, self.strike, self.fd_expiry_idx,
+            self.fd_event_grid, type_="Call")
+        self.mc_call = option.EuropeanOption(
+            self.rate, self.vol, self.strike, self.mc_expiry_idx,
+            self.mc_event_grid, type_="Call")
+        self.mc_euler_call = option.EuropeanOption(
+            self.rate, self.vol, self.strike, self.mc_euler_expiry_idx,
+            self.mc_euler_event_grid, type_="Call")
 
-    def test_expiry(self) -> None:
-        """Test expiry property."""
-        c = call.Call(self.rate, self.vol, self.strike, self.expiry_idx,
-                      self.event_grid)
-        self.assertTrue(c.expiry == self.expiry)
-
-    def test_decomposition(self) -> None:
-        """Decompose call option price.
-
-        The payoff of European call option can be decomposed into
-        payoffs of European asset-or-nothing and cash-or-nothing call
-        options written on same underlying:
-            (S - K)^+ = S * I_{S > K} - K * I_{S > K}.
-        """
-        c = call.Call(self.rate, self.vol, self.strike, self.expiry_idx,
-                      self.event_grid)
-        b_asset = binary.BinaryAssetCall(self.rate, self.vol, self.strike,
-                                         self.expiry_idx, self.event_grid)
-        b_cash = binary.BinaryCashCall(self.rate, self.vol, self.strike,
-                                       self.expiry_idx, self.event_grid)
-        price_c = c.price(self.spot, self.time_idx)
-        price_ba = b_asset.price(self.spot, self.time_idx)
-        price_bc = self.strike * b_cash.price(self.spot, self.time_idx)
-        call_decomposed = price_ba - price_bc
-        diff = np.abs(price_c - call_decomposed)
-        if print_results:
-            print(np.max(diff))
-        self.assertTrue(np.max(diff) < 5.0e-14)
+    def test_theta_method(self):
+        """Finite difference pricing of European call option."""
+        self.fd_call.fd_setup(self.x_grid, equidistant=True)
+        self.fd_call.fd_solve()
+        # Check price.
+        numerical = self.fd_call.fd.solution
+        analytical = self.fd_call.price(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
         if plot_results:
-            plt.plot(self.spot, c.payoff(self.spot), "-k", label="Call payoff")
-            plt.plot(self.spot, price_c, "-ob", label="Call")
-            plt.plot(self.spot, price_ba, "-r", label="Asset-or-nothing call")
-            plt.plot(self.spot, price_bc, "-g", label="Cash-or-nothing call")
-            plt.plot(self.spot, call_decomposed, "-y", label="Composition")
-            plt.title("Call option, Black-Scholes model")
-            plt.xlabel("Stock price")
-            plt.ylabel("Option price")
-            plt.legend()
-            plt.pause(2)
-            plt.clf()
-
-    def test_greeks_by_fd(self) -> None:
-        """Finite difference approximation of greeks."""
-        n_steps = 500
-        dt = (self.event_grid[-1] - self.event_grid[0]) / (n_steps - 1)
-        event_grid = dt * np.arange(n_steps) + self.event_grid[0]
-        c = call.Call(self.rate, self.vol, self.strike, event_grid.size - 1,
-                      event_grid)
-
-        equidistant = False
-        x_steps = 100
-        if equidistant:
-            # Equidistant grid.
-            x_grid = grid.equidistant(self.spot[0], self.spot[-1], x_steps)
-        else:
-            # Non-equidistant grid.
-            _, x_grid = grid.hyperbolic(self.spot[0], self.spot[-1],
-                                        x_steps, self.strike)
-
-        c.fd_setup(x_grid, equidistant=equidistant)
-
-        c.fd.solution = c.payoff(x_grid)
-        c.fd_solve()
-        if plot_results:
-            plots.plot_price_and_greeks(c)
-        # Check convergence in reduced interval around strike.
-        idx_min = np.argwhere(x_grid < self.strike - 25)[-1][0]
-        idx_max = np.argwhere(x_grid < self.strike + 25)[-1][0]
-        # Compare delta.
-        diff = (c.delta(x_grid, 0) - c.fd.delta()) / c.delta(x_grid, 0)
+            plots.plot_price_and_greeks(self.fd_call)
+        # Maximum error in interval around short rate of 0.1.
+        idx_min = np.argwhere(self.x_grid < 30)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 80)[-1][0]
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
-            print(np.max(np.abs(diff[idx_min:idx_max])))
-        self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 2.0e-3)
-        # Compare gamma.
-        diff = (c.gamma(x_grid, 0) - c.fd.gamma()) / c.gamma(x_grid, 0)
+            print(f"Maximum error of price: {max_error:2.5f}")
+        self.assertTrue(max_error < 8.0e-5)
+        # Check delta.
+        numerical = self.fd_call.fd.delta()
+        analytical = self.fd_call.delta(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
-            print(np.max(np.abs(diff[idx_min:idx_max])))
-        self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 3.0e-3)
-        # Compare theta.
-        diff = (c.theta(x_grid, 0) - c.fd.theta(0.0001)) / c.theta(x_grid, 0)
+            print(f"Maximum error of delta: {max_error:2.5f}")
+        self.assertTrue(max_error < 4.0e-4)
+        # Check gamma.
+        numerical = self.fd_call.fd.gamma()
+        analytical = self.fd_call.gamma(self.x_grid, 0)
+        relative_error = np.abs((analytical - numerical) / analytical)
+        max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
-            print(np.max(np.abs(diff[idx_min:idx_max])))
-        self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 1.0e-3)
-        # Compare rho.
-        new_rate = self.rate * 1.0001
-        c_rho = call.Call(new_rate, self.vol, self.strike, event_grid.size - 1,
-                          event_grid)
-        c_rho.fd_setup(x_grid, equidistant=equidistant)
-        c_rho.fd.solution = c.payoff(x_grid)
-        c_rho.fd_solve()
-        rho = (c_rho.fd.solution - c.fd.solution) / (new_rate - self.rate)
-        if plot_results:
-            plt.plot(x_grid, rho, "-b")
-            plt.plot(x_grid, c.rho(x_grid, 0), "-r")
-            plt.xlabel("Stock price")
-            plt.ylabel("Rho")
-            plt.pause(2)
-            plt.clf()
-        diff = (c.rho(x_grid, 0) - rho) / c.rho(x_grid, 0)
+            print(f"Maximum error of gamma: {max_error:2.5f}")
+        self.assertTrue(max_error < 3.4e-4)
+        # Check theta.
+        numerical = self.fd_call.fd.theta()
+        analytical = self.fd_call.theta(self.x_grid, 0)
+        error = np.abs((analytical - numerical))
+        max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
-            print(np.max(np.abs(diff[idx_min:idx_max])))
-        self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 2.0e-3)
-        # Compare vega.
-        new_vol = self.vol * 1.00001
-        c_vega = call.Call(self.rate, new_vol, self.strike,
-                           event_grid.size - 1, event_grid)
-        c_vega.fd_setup(x_grid, equidistant=equidistant)
-        c_vega.fd.solution = c.payoff(x_grid)
-        c_vega.fd_solve()
-        vega = (c_vega.fd.solution - c.fd.solution) / (new_vol - self.vol)
-        if plot_results:
-            plt.plot(x_grid, vega, "-b")
-            plt.plot(x_grid, c.vega(x_grid, 0), "-r")
-            plt.xlabel("Stock price")
-            plt.ylabel("Vega")
-            plt.pause(2)
-            plt.clf()
-        diff = (c.vega(x_grid, 0) - vega) / c.vega(x_grid, 0)
-        if print_results:
-            print(np.max(np.abs(diff[idx_min:idx_max])))
-        self.assertTrue(np.max(np.abs(diff[idx_min:idx_max])) < 3.0e-3)
+            print(f"Maximum error of theta: {max_error:2.5f}")
+        self.assertTrue(max_error < 2.0e-3)
 
-    def test_monte_carlo(self) -> None:
-        """Monte-Carlo simulation."""
-        t_steps = 100
-        expiry_idx = t_steps - 1
-        dt = (self.expiry - self.time) / (t_steps - 1)
-        integration_grid = dt * np.arange(t_steps) + self.time
-        c = call.Call(self.rate, self.vol, self.strike, expiry_idx,
-                      integration_grid)
-        c.mc_exact_setup()
-        n_paths = 100
-        mc_spot = np.arange(25, 200, 25)
-        price_array = np.zeros(mc_spot.size)
-        std_array = np.zeros(mc_spot.size)
-        mc_error = np.zeros(mc_spot.size)
-        for idx, s in enumerate(mc_spot):
-            c.mc_exact.initialization(s, n_paths, antithetic=True)
-            c.mc_exact_solve()
+    def test_monte_carlo_exact(self):
+        """Monte-Carlo pricing of European call option."""
+        self.mc_call.mc_exact_setup()
+        # Spot stock price.
+        spot_vector = np.arange(30, 81, 10)
+        # Initialize random number generator.
+        rng = np.random.default_rng(0)
+        # Number of paths for each Monte-Carlo estimate.
+        n_paths = 5000
+        # Number of repetitions of Monte-Carlo simulation.
+        n_rep = 50
+        for s in spot_vector:
+            # Analytical result.
+            price_a = self.mc_call.price(s, 0)
+            # Numerical result; no variance reduction.
+            price_n = np.zeros(n_rep)
+            for rep in range(n_rep):
+                self.mc_call.mc_exact_solve(s, n_paths, rng=rng)
+                price_n[rep] = self.mc_call.mc_exact.mc_estimate
+            error = np.abs((price_n - price_a) / price_a)
+            if print_results:
+                print(f"No variance reduction: "
+                      f"Stock price = {s:5.2f}, "
+                      f"option price = {price_a:2.3f}, "
+                      f"error mean = {error.mean():2.5f}, "
+                      f"error std = {error.std():2.5f}")
+            self.assertTrue(error.mean() < 2.8e-2 and error.std() < 2.1e-2)
+            # Numerical result; Antithetic sampling.
+            price_n_anti = np.zeros(n_rep)
+            for rep in range(n_rep):
+                self.mc_call.mc_exact_solve(
+                    s, n_paths, rng=rng, antithetic=True)
+                price_n_anti[rep] = self.mc_call.mc_exact.mc_estimate
+            error = np.abs((price_n_anti - price_a) / price_a)
+            if print_results:
+                print(f"Antithetic sampling:   "
+                      f"Stock price = {s:5.2f}, "
+                      f"option price = {price_a:2.3f}, "
+                      f"error mean = {error.mean():2.5f}, "
+                      f"error std = {error.std():2.5f}")
+            self.assertTrue(error.mean() < 2.7e-2 and error.std() < 2.2e-2)
             if plot_results:
-                plt.plot(c.event_grid, c.mc_exact.solution)
-                plt.xlabel("Time")
-                plt.ylabel("Stock price")
-                plt.pause(1)
+                y, x, _ = plt.hist(price_n)
+                plt.vlines(price_a, 0, y.max(), colors="r")
+                plt.xlabel("Price")
+                plt.ylabel("Count")
+                plt.pause(0.5)
                 plt.clf()
-            price_array[idx], std_array[idx], mc_error[idx] = \
-                c.mc_exact.price(c, expiry_idx)
+
+    def test_monte_carlo_euler(self) -> None:
+        """Monte-Carlo pricing of European call option."""
+        self.mc_euler_call.mc_euler_setup()
+        # Spot stock price.
+        spot_vector = np.arange(30, 81, 10)
+        # Initialize random number generator.
+        rng = np.random.default_rng(0)
+        # Number of paths for each Monte-Carlo estimate.
+        n_paths = 5000
+        # Number of repetitions of Monte-Carlo simulation.
+        n_rep = 50
+        for s in spot_vector:
+            # Analytical result.
+            price_a = self.mc_euler_call.price(s, 0)
+            # Numerical result; no variance reduction.
+            price_n = np.zeros(n_rep)
+            for rep in range(n_rep):
+                self.mc_euler_call.mc_euler_solve(s, n_paths, rng=rng)
+                price_n[rep] = self.mc_euler_call.mc_euler.mc_estimate
+            error = abs((price_n - price_a) / price_a)
+            if print_results:
+                print(f"No variance reduction: "
+                      f"Stock price = {s:5.2f}, "
+                      f"option price = {price_a:2.3f}, "
+                      f"error mean = {error.mean():2.5f}, "
+                      f"error std = {error.std():2.5f}")
+            self.assertTrue(error.mean() < 3.1e-2 and error.std() < 2.2e-2)
+            # Numerical result; Antithetic sampling.
+            price_n_anti = np.zeros(n_rep)
+            for rep in range(n_rep):
+                self.mc_euler_call.mc_euler_solve(
+                    s, n_paths, rng=rng, antithetic=True)
+                price_n_anti[rep] = self.mc_euler_call.mc_euler.mc_estimate
+            error = abs((price_n_anti - price_a) / price_a)
+            if print_results:
+                print(f"Antithetic sampling:   "
+                      f"Stock price = {s:5.2f}, "
+                      f"option price = {price_a:2.3f}, "
+                      f"error mean = {error.mean():2.5f}, "
+                      f"error std = {error.std():2.5f}")
+            self.assertTrue(error.mean() < 3.4e-2 and error.std() < 2.2e-2)
+            if plot_results:
+                y, x, _ = plt.hist(price_n)
+                plt.vlines(price_a, 0, y.max(), colors="r")
+                plt.xlabel("Price")
+                plt.ylabel("Count")
+                plt.pause(2)
+                plt.clf()
+
+    def test_monte_carlo_plot(self) -> None:
+        """Monte-Carlo pricing of European call option."""
+        self.mc_call.mc_exact_setup()
+        self.mc_euler_call.mc_euler_setup()
+        # Spot stock price.
+        spot_vector = np.arange(30, 81, 10)
+        # Initialize random number generator.
+        rng = np.random.default_rng(0)
+        p_a = np.zeros(spot_vector.shape)
+        p_n_exact = np.zeros(spot_vector.shape)
+        p_n_euler = np.zeros(spot_vector.shape)
+        p_n_exact_error = np.zeros(spot_vector.shape)
+        p_n_euler_error = np.zeros(spot_vector.shape)
+        # Number of paths for each Monte-Carlo estimate.
+        n_paths = 2000
+        for idx, s in enumerate(spot_vector):
+            p_a[idx] = self.mc_call.price(s, 0)
+            self.mc_call.mc_exact_solve(s, n_paths, rng)
+            p_n_exact[idx] = self.mc_call.mc_exact.mc_estimate
+            p_n_exact_error[idx] = self.mc_call.mc_exact.mc_error
+            self.mc_euler_call.mc_euler_solve(s, n_paths, rng)
+            p_n_euler[idx] = self.mc_euler_call.mc_euler.mc_estimate
+            p_n_euler_error[idx] = self.mc_euler_call.mc_euler.mc_error
+        # Plot error bars corresponding to 95%-confidence intervals.
+        p_n_exact_error *= 1.96
+        p_n_euler_error *= 1.96
         if plot_results:
-            plt.plot(self.spot, c.payoff(self.spot), "-k")
-            plt.plot(self.spot, c.price(self.spot, 0), "-r")
-            plt.errorbar(mc_spot, price_array, yerr=mc_error,
+            plt.plot(spot_vector, p_a, "-b")
+            plt.errorbar(spot_vector, p_n_exact, p_n_exact_error,
                          linestyle="none", marker="o", color="b", capsize=5)
-            plt.xlabel("Stock price")
-            plt.ylabel("Option price")
-            plt.pause(5)
+            plt.title(f"95% confidence intervals ({n_paths} samples)")
+            plt.xlabel("Spot rate")
+            plt.ylabel("Price")
+            plt.show()
 
 
-class LongstaffSchwartz(unittest.TestCase):
-    """Numerical examples in Longstaff-Schwartz article.
-
-    See Longstaff & Schwartz 2001.
-    """
+class AmericanCall(unittest.TestCase):
+    """Numerical examples in Longstaff & Schwartz 2001."""
 
     def setUp(self) -> None:
-        # Finite-difference prices of American put option in
-        # Black-Scholes model, Tabel 1.
-        self.fd_american = \
-            (4.478, 4.840, 7.101, 8.508,
-             3.250, 3.745, 6.148, 7.670,
-             2.314, 2.885, 5.312, 6.920,
-             1.617, 2.212, 4.582, 6.248,
-             1.110, 1.690, 3.948, 5.647)
         # Threshold for testing.
-        self.threshold = 6e-3
+        self.threshold = 7e-4
+        self.threshold_ = 2.2e-2
+
         # Short term interest rate.
         self.rate = 0.06
         # Strike price of put.
@@ -212,246 +259,219 @@ class LongstaffSchwartz(unittest.TestCase):
         self.vol2 = 0.4
 
         # Event grids used in FD pricing.
-        self.frequency_fd = 500
-        self.event_grid_fd1 = \
-            np.arange(int(1 * self.frequency_fd) + 1) / self.frequency_fd
-        self.event_grid_fd2 = \
-            np.arange(int(2 * self.frequency_fd) + 1) / self.frequency_fd
+        self.frequency_fd = 100
+        self.event_grid_fd1 = (
+            np.arange(1 * self.frequency_fd + 1) / self.frequency_fd)
+        self.event_grid_fd2 = (
+            np.arange(2 * self.frequency_fd + 1) / self.frequency_fd)
 
         # Event grids used in MC pricing.
-        self.frequency_mc = 500
-        self.skip = 10
-        self.event_grid_mc1 = \
-            np.arange(int(1 * self.frequency_mc) + 1) / self.frequency_mc
-        self.event_grid_mc2 = \
-            np.arange(int(2 * self.frequency_mc) + 1) / self.frequency_mc
+        self.frequency_mc = 100
+        self.skip = 2
+        self.event_grid_mc1 = (
+            np.arange(1 * self.frequency_mc + 1) / self.frequency_mc)
+        self.event_grid_mc2 = (
+            np.arange(2 * self.frequency_mc + 1) / self.frequency_mc)
 
-        self.exercise_indices_mc1 = np.arange(1 * self.frequency_mc, 0, -self.skip)
-        self.exercise_indices_mc2 = np.arange(2 * self.frequency_mc, 0, -self.skip)
+        # List of exercise indices in ascending order.
+        self.exercise_indices_1 = (
+            np.arange(self.skip, 1 * self.frequency_mc + 1, self.skip))
+        self.exercise_indices_2 = (
+            np.arange(self.skip, 2 * self.frequency_mc + 1, self.skip))
 
         # Spatial grid used in FD pricing.
-        self.x_grid = np.arange(801) / 4
+        self.x_grid = np.arange(603 + 1) / 3
         self.x_grid = self.x_grid[1:]
 
         # Number of MC paths.
-        self.n_paths = 30000
+        self.n_paths = 50000
 
-        self.pFDa11 = \
-            call.CallAmerican(self.rate,
-                            self.vol1,
-                            self.strike,
-                            self.exercise_indices_mc1,
-                            self.event_grid_fd1)
+        # Option objects.
+        self.cFDa11 = option.AmericanOption(
+            self.rate, self.vol1, self.strike, self.exercise_indices_1,
+            self.event_grid_fd1, type_="Call")
+        self.cMCa11 = option.AmericanOption(
+            self.rate, self.vol1, self.strike, self.exercise_indices_1,
+            self.event_grid_mc1, type_="Call")
+        self.c11 = option.EuropeanOption(
+            self.rate, self.vol1, self.strike, self.event_grid_fd1.size - 1,
+            self.event_grid_fd1, type_="Call")
 
-        self.pMCa11 = \
-            call.CallAmerican(self.rate,
-                            self.vol1,
-                            self.strike,
-                            self.exercise_indices_mc1,
-                            self.event_grid_mc1)
+        self.cFDa12 = option.AmericanOption(
+            self.rate, self.vol1, self.strike, self.exercise_indices_2,
+            self.event_grid_fd2, type_="Call")
+        self.cMCa12 = option.AmericanOption(
+            self.rate, self.vol1, self.strike, self.exercise_indices_2,
+            self.event_grid_mc2, type_="Call")
+        self.c12 = option.EuropeanOption(
+            self.rate, self.vol1, self.strike, self.event_grid_fd2.size - 1,
+            self.event_grid_fd2, type_="Call")
 
-        self.p11 = \
-            call.Call(self.rate,
-                    self.vol1,
-                    self.strike,
-                    self.event_grid_fd1.size - 1,
-                    self.event_grid_fd1)
+        self.cFDa21 = option.AmericanOption(
+            self.rate, self.vol2, self.strike, self.exercise_indices_1,
+            self.event_grid_fd1, type_="Call")
+        self.cMCa21 = option.AmericanOption(
+            self.rate, self.vol2, self.strike, self.exercise_indices_1,
+            self.event_grid_mc1, type_="Call")
+        self.c21 = option.EuropeanOption(
+            self.rate, self.vol2, self.strike, self.event_grid_fd1.size - 1,
+            self.event_grid_fd1, type_="Call")
 
-        self.pFDa12 = \
-            call.CallAmerican(self.rate,
-                            self.vol1,
-                            self.strike,
-                            self.exercise_indices_mc2,
-                            self.event_grid_fd2)
-
-        self.pMCa12 = \
-            call.CallAmerican(self.rate,
-                            self.vol1,
-                            self.strike,
-                            self.exercise_indices_mc2,
-                            self.event_grid_mc2)
-
-        self.p12 = \
-            call.Call(self.rate,
-                    self.vol1,
-                    self.strike,
-                    self.event_grid_fd2.size - 1,
-                    self.event_grid_fd2)
-
-        self.pFDa21 = \
-            call.CallAmerican(self.rate,
-                            self.vol2,
-                            self.strike,
-                            self.exercise_indices_mc1,
-                            self.event_grid_fd1)
-
-        self.pMCa21 = \
-            call.CallAmerican(self.rate,
-                            self.vol2,
-                            self.strike,
-                            self.exercise_indices_mc1,
-                            self.event_grid_mc1)
-
-        self.p21 = \
-            call.Call(self.rate,
-                    self.vol2,
-                    self.strike,
-                    self.event_grid_fd1.size - 1,
-                    self.event_grid_fd1)
-
-        self.pFDa22 = \
-            call.CallAmerican(self.rate,
-                            self.vol2,
-                            self.strike,
-                            self.exercise_indices_mc2,
-                            self.event_grid_fd2)
-
-        self.pMCa22 = \
-            call.CallAmerican(self.rate,
-                            self.vol2,
-                            self.strike,
-                            self.exercise_indices_mc2,
-                            self.event_grid_mc2)
-
-        self.p22 = \
-            call.Call(self.rate,
-                    self.vol2,
-                    self.strike,
-                    self.event_grid_fd2.size - 1,
-                    self.event_grid_fd2)
+        self.cFDa22 = option.AmericanOption(
+            self.rate, self.vol2, self.strike, self.exercise_indices_2,
+            self.event_grid_fd2, type_="Call")
+        self.cMCa22 = option.AmericanOption(
+            self.rate, self.vol2, self.strike, self.exercise_indices_2,
+            self.event_grid_mc2, type_="Call")
+        self.c22 = option.EuropeanOption(
+            self.rate, self.vol2, self.strike, self.event_grid_fd2.size - 1,
+            self.event_grid_fd2, type_="Call")
 
     def test_pricing(self):
-        """..."""
-        self.pFDa11.fd_setup(self.x_grid, equidistant=True)
-        self.pMCa11.mc_exact_setup()
-        self.p11.mc_exact_setup()
-        self.pFDa11.fd_solve()
-        analytical11 = self.p11.price(self.x_grid, 0)
+        """Compare prices."""
+        self.cFDa11.fd_setup(self.x_grid, equidistant=True)
+        self.cMCa11.mc_exact_setup()
+        self.c11.mc_exact_setup()
+        self.cFDa11.fd_solve()
+        analytical11 = self.c11.price(self.x_grid, 0)
 
-        self.pFDa12.fd_setup(self.x_grid, equidistant=True)
-        self.pMCa12.mc_exact_setup()
-        self.p12.mc_exact_setup()
-        self.pFDa12.fd_solve()
-        analytical12 = self.p12.price(self.x_grid, 0)
+        self.cFDa12.fd_setup(self.x_grid, equidistant=True)
+        self.cMCa12.mc_exact_setup()
+        self.c12.mc_exact_setup()
+        self.cFDa12.fd_solve()
+        analytical12 = self.c12.price(self.x_grid, 0)
 
-        self.pFDa21.fd_setup(self.x_grid, equidistant=True)
-        self.pMCa21.mc_exact_setup()
-        self.p21.mc_exact_setup()
-        self.pFDa21.fd_solve()
-        analytical21 = self.p21.price(self.x_grid, 0)
+        self.cFDa21.fd_setup(self.x_grid, equidistant=True)
+        self.cMCa21.mc_exact_setup()
+        self.c21.mc_exact_setup()
+        self.cFDa21.fd_solve()
+        analytical21 = self.c21.price(self.x_grid, 0)
 
-        self.pFDa22.fd_setup(self.x_grid, equidistant=True)
-        self.pMCa22.mc_exact_setup()
-        self.p22.mc_exact_setup()
-        self.pFDa22.fd_solve()
-        analytical22 = self.p22.price(self.x_grid, 0)
+        self.cFDa22.fd_setup(self.x_grid, equidistant=True)
+        self.cMCa22.mc_exact_setup()
+        self.c22.mc_exact_setup()
+        self.cFDa22.fd_solve()
+        analytical22 = self.c22.price(self.x_grid, 0)
 
         counter = 0
         if print_results:
-            print("  S  FD European  MC European     "
+            print("  S  CF European  MC European     "
                   "MC error  FD American  MC American")
+
+        rng = np.random.default_rng(0)
+
         for y in (36, 38, 40, 42, 44):
 
-            self.p11.mc_exact.initialization(y, self.n_paths,
-                                             seed=0, antithetic=True)
-            self.p11.mc_exact_solve()
-            p11_mean, _, p11_error = \
-                self.p11.mc_exact.price(self.p11, self.event_grid_fd1.size - 1)
+            self.c11.mc_exact_solve(y, self.n_paths, rng=rng, antithetic=True)
+            c11_mean = self.c11.mc_exact.mc_estimate
+            c11_error = self.c11.mc_exact.mc_error
 
-            self.pMCa11.mc_exact.initialization(y, self.n_paths,
-                                                seed=0, antithetic=True)
-            self.pMCa11.mc_exact_solve()
-            pa11_mc = lsm.american_option(self.pMCa11)
+            self.cMCa11.mc_exact_solve(
+                y, self.n_paths, rng=rng, antithetic=True)
+            ca11_mc = self.cMCa11.mc_exact.mc_estimate
 
-            self.p12.mc_exact.initialization(y, self.n_paths,
-                                             seed=0, antithetic=True)
-            self.p12.mc_exact_solve()
-            p12_mean, _, p12_error = \
-                self.p12.mc_exact.price(self.p12, self.event_grid_fd2.size - 1)
+            self.c12.mc_exact_solve(y, self.n_paths, rng=rng, antithetic=True)
+            c12_mean = self.c12.mc_exact.mc_estimate
+            c12_error = self.c12.mc_exact.mc_error
 
-            self.pMCa12.mc_exact.initialization(y, self.n_paths,
-                                                seed=0, antithetic=True)
-            self.pMCa12.mc_exact_solve()
-            pa12_mc = lsm.american_option(self.pMCa12)
+            self.cMCa12.mc_exact_solve(
+                y, self.n_paths, rng=rng, antithetic=True)
+            ca12_mc = self.cMCa12.mc_exact.mc_estimate
 
-            self.p21.mc_exact.initialization(y, self.n_paths,
-                                             seed=0, antithetic=True)
-            self.p21.mc_exact_solve()
-            p21_mean, _, p21_error = \
-                self.p21.mc_exact.price(self.p21, self.event_grid_fd1.size - 1)
+            self.c21.mc_exact_solve(y, self.n_paths, rng=rng, antithetic=True)
+            c21_mean = self.c21.mc_exact.mc_estimate
+            c21_error = self.c21.mc_exact.mc_error
 
-            self.pMCa21.mc_exact.initialization(y, self.n_paths,
-                                                seed=0, antithetic=True)
-            self.pMCa21.mc_exact_solve()
-            pa21_mc = lsm.american_option(self.pMCa21)
+            self.cMCa21.mc_exact_solve(
+                y, self.n_paths, rng=rng, antithetic=True)
+            ca21_mc = self.cMCa21.mc_exact.mc_estimate
 
-            self.p22.mc_exact.initialization(y, self.n_paths,
-                                             seed=0, antithetic=True)
-            self.p22.mc_exact_solve()
-            p22_mean, _, p22_error = \
-                self.p22.mc_exact.price(self.p22, self.event_grid_fd2.size - 1)
+            self.c22.mc_exact_solve(y, self.n_paths, rng=rng, antithetic=True)
+            c22_mean = self.c22.mc_exact.mc_estimate
+            c22_error = self.c22.mc_exact.mc_error
 
-            self.pMCa22.mc_exact.initialization(y, self.n_paths,
-                                                seed=0, antithetic=True)
-            self.pMCa22.mc_exact_solve()
-            pa22_mc = lsm.american_option(self.pMCa22)
+            self.cMCa22.mc_exact_solve(
+                y, self.n_paths, rng=rng, antithetic=True)
+            ca22_mc = self.cMCa22.mc_exact.mc_estimate
 
-            for x, pa, p in \
-                    zip(self.x_grid, self.pFDa11.fd.solution, analytical11):
+            for x, ca, c in \
+                    zip(self.x_grid, self.cFDa11.fd.solution, analytical11):
                 if abs(x - y) < 1.e-6:
-                    diff = self.fd_american[counter] - pa
                     counter += 1
-#                    self.assertTrue(abs(diff) < self.threshold)
+                    if print_results:
+                        print(f"Price diff: {abs(ca - c):2.5f}")
+                        print(f"European price diff: "
+                              f"{abs((c - c11_mean) / c):2.5f}")
+                        print(f"American price diff: "
+                              f"{abs((ca - ca11_mc) / ca):2.5f}")
+                    self.assertTrue(abs(ca - c) < self.threshold)
+                    self.assertTrue(abs((c - c11_mean) / c) < self.threshold_)
+                    self.assertTrue(abs((ca - ca11_mc) / ca) < self.threshold_)
                     if print_results:
                         print(f"{int(x):3}  "
-                              f"{p:11.3f}  "
-                              f"{p11_mean:11.3f}  "
-                              f"{p11_error:11.3f}  "
-                              f"{pa:11.3f}  "
-                              f"{pa11_mc:11.3f}  ")
-            for x, pa, p in \
-                    zip(self.x_grid, self.pFDa12.fd.solution, analytical12):
+                              f"{c:11.3f}  "
+                              f"{c11_mean:11.3f}  "
+                              f"{c11_error:11.3f}  "
+                              f"{ca:11.3f}  "
+                              f"{ca11_mc:11.3f}  ")
+            for x, ca, c in \
+                    zip(self.x_grid, self.cFDa12.fd.solution, analytical12):
                 if abs(x - y) < 1.e-6:
-                    diff = self.fd_american[counter] - pa
                     counter += 1
-#                    self.assertTrue(abs(diff) < self.threshold)
+                    if print_results:
+                        print(f"Price diff: {abs(ca - c):2.5f}")
+                        print(f"European price diff: "
+                              f"{abs((c - c12_mean) / c):2.5f}")
+                        print(f"American price diff: "
+                              f"{abs((ca - ca12_mc) / ca):2.5f}")
+                    self.assertTrue(abs(ca - c) < self.threshold)
+                    self.assertTrue(abs((c - c12_mean) / c) < self.threshold_)
+                    self.assertTrue(abs((ca - ca12_mc) / ca) < self.threshold_)
                     if print_results:
                         print(f"{int(x):3}  "
-                              f"{p:11.3f}  "
-                              f"{p12_mean:11.3f}  "
-                              f"{p12_error:11.3f}  "
-                              f"{pa:11.3f}  "
-                              f"{pa12_mc:11.3f}  ")
-            for x, pa, p in \
-                    zip(self.x_grid, self.pFDa21.fd.solution, analytical21):
+                              f"{c:11.3f}  "
+                              f"{c12_mean:11.3f}  "
+                              f"{c12_error:11.3f}  "
+                              f"{ca:11.3f}  "
+                              f"{ca12_mc:11.3f}  ")
+            for x, ca, c in \
+                    zip(self.x_grid, self.cFDa21.fd.solution, analytical21):
                 if abs(x - y) < 1.e-6:
-                    diff = self.fd_american[counter] - pa
                     counter += 1
-#                    self.assertTrue(abs(diff) < self.threshold)
+                    if print_results:
+                        print(f"Price diff: {abs(ca - c):2.5f}")
+                        print(f"European price diff: "
+                              f"{abs((c - c21_mean) / c):2.5f}")
+                        print(f"American price diff: "
+                              f"{abs((ca - ca21_mc) / ca):2.5f}")
+                    self.assertTrue(abs(ca - c) < self.threshold)
+                    self.assertTrue(abs((c - c21_mean) / c) < self.threshold_)
+                    self.assertTrue(abs((ca - ca21_mc) / ca) < self.threshold_)
                     if print_results:
                         print(f"{int(x):3}  "
-                              f"{p:11.3f}  "
-                              f"{p21_mean:11.3f}  "
-                              f"{p21_error:11.3f}  "
-                              f"{pa:11.3f}  "
-                              f"{pa21_mc:11.3f}  ")
-            for x, pa, p in \
-                    zip(self.x_grid, self.pFDa22.fd.solution, analytical22):
+                              f"{c:11.3f}  "
+                              f"{c21_mean:11.3f}  "
+                              f"{c21_error:11.3f}  "
+                              f"{ca:11.3f}  "
+                              f"{ca21_mc:11.3f}  ")
+            for x, ca, c in \
+                    zip(self.x_grid, self.cFDa22.fd.solution, analytical22):
                 if abs(x - y) < 1.e-6:
-                    diff = self.fd_american[counter] - pa
                     counter += 1
-#                    self.assertTrue(abs(diff) < self.threshold)
+                    if print_results:
+                        print(f"Price diff: {abs(ca - c):2.5f}")
+                        print(f"European price diff: "
+                              f"{abs((c - c22_mean) / c):2.5f}")
+                        print(f"American price diff: "
+                              f"{abs((ca - ca22_mc) / ca):2.5f}")
+                    self.assertTrue(abs(ca - c) < self.threshold)
+                    self.assertTrue(abs((c - c22_mean) / c) < self.threshold_)
+                    self.assertTrue(abs((ca - ca22_mc) / ca) < self.threshold_)
                     if print_results:
                         print(f"{int(x):3}  "
-                              f"{p:11.3f}  "
-                              f"{p22_mean:11.3f}  "
-                              f"{p22_error:11.3f}  "
-                              f"{pa:11.3f}  "
-                              f"{pa22_mc:11.3f}  ")
+                              f"{c:11.3f}  "
+                              f"{c22_mean:11.3f}  "
+                              f"{c22_error:11.3f}  "
+                              f"{ca:11.3f}  "
+                              f"{ca22_mc:11.3f}  ")
             print("")
-        if plot_results:
-            plots.plot_price_and_greeks(self.pFDa11)
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -1,5 +1,6 @@
 import unittest
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from models.vasicek import european_option as option
@@ -150,7 +151,7 @@ class PutOption(unittest.TestCase):
                       f"Short rate = {s:5.2f}, price = {price_a:2.3f}, "
                       f"error mean = {error.mean():2.5f}, "
                       f"error std = {error.std():2.5f}")
-            self.assertTrue(error.mean() < 1.8e-2 and error.std() < 1.5e-2)
+            self.assertTrue(error.mean() < 4.3e-3 and error.std() < 2.8e-3)
 
     def test_monte_carlo_euler(self) -> None:
         """Monte-Carlo pricing of zero-coupon bond."""
@@ -193,6 +194,38 @@ class PutOption(unittest.TestCase):
                       f"error std = {error.std():2.5f}")
             self.assertTrue(error.mean() < 1.8e-2 and error.std() < 4.4e-3)
 
-
-if __name__ == '__main__':
-    unittest.main()
+    def test_monte_carlo_plot(self) -> None:
+        """Monte-Carlo pricing of zero-coupon bond."""
+        self.mc_put.mc_exact_setup()
+        self.mc_euler_put.mc_euler_setup()
+        # Spot rate.
+        spot = 0.02
+        spot_vector = np.arange(-4, 5, 1) * spot
+        # Initialize random number generator.
+        rng = np.random.default_rng(0)
+        p_a = np.zeros(spot_vector.shape)
+        p_n_exact = np.zeros(spot_vector.shape)
+        p_n_euler = np.zeros(spot_vector.shape)
+        p_n_exact_error = np.zeros(spot_vector.shape)
+        p_n_euler_error = np.zeros(spot_vector.shape)
+        # Number of paths for each Monte-Carlo estimate.
+        n_paths = 10000
+        for idx, s in enumerate(spot_vector):
+            p_a[idx] = self.mc_put.price(s, 0)
+            self.mc_put.mc_exact_solve(s, n_paths, rng)
+            p_n_exact[idx] = self.mc_put.mc_exact.mc_estimate
+            p_n_exact_error[idx] = self.mc_put.mc_exact.mc_error
+            self.mc_euler_put.mc_euler_solve(s, n_paths, rng)
+            p_n_euler[idx] = self.mc_euler_put.mc_euler.mc_estimate
+            p_n_euler_error[idx] = self.mc_euler_put.mc_euler.mc_error
+        # Plot error bars corresponding to 95%-confidence intervals.
+        p_n_exact_error *= 1.96
+        p_n_euler_error *= 1.96
+        if plot_results:
+            plt.plot(spot_vector, p_a, "-b")
+            plt.errorbar(spot_vector, p_n_exact, p_n_exact_error,
+                         linestyle="none", marker="o", color="b", capsize=5)
+            plt.title(f"95% confidence intervals ({n_paths} samples)")
+            plt.xlabel("Spot rate")
+            plt.ylabel("Price")
+            plt.show()

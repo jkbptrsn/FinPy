@@ -1,5 +1,6 @@
 import unittest
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from models.vasicek import european_option as option
@@ -109,7 +110,7 @@ class CallOption(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.5f}")
-        self.assertTrue(max_error < 5.1e-3)
+        self.assertTrue(max_error < 1.9e-3)
 
     def test_monte_carlo_exact(self):
         """Monte-Carlo pricing of European call option."""
@@ -193,6 +194,38 @@ class CallOption(unittest.TestCase):
                       f"error std = {error.std():2.5f}")
             self.assertTrue(error.mean() < 2.2e-2 and error.std() < 1.7e-2)
 
-
-if __name__ == '__main__':
-    unittest.main()
+    def test_monte_carlo_plot(self) -> None:
+        """Monte-Carlo pricing of zero-coupon bond."""
+        self.mc_call.mc_exact_setup()
+        self.mc_euler_call.mc_euler_setup()
+        # Spot rate.
+        spot = 0.02
+        spot_vector = np.arange(-4, 5, 1) * spot
+        # Initialize random number generator.
+        rng = np.random.default_rng(0)
+        p_a = np.zeros(spot_vector.shape)
+        p_n_exact = np.zeros(spot_vector.shape)
+        p_n_euler = np.zeros(spot_vector.shape)
+        p_n_exact_error = np.zeros(spot_vector.shape)
+        p_n_euler_error = np.zeros(spot_vector.shape)
+        # Number of paths for each Monte-Carlo estimate.
+        n_paths = 2000
+        for idx, s in enumerate(spot_vector):
+            p_a[idx] = self.mc_call.price(s, 0)
+            self.mc_call.mc_exact_solve(s, n_paths, rng)
+            p_n_exact[idx] = self.mc_call.mc_exact.mc_estimate
+            p_n_exact_error[idx] = self.mc_call.mc_exact.mc_error
+            self.mc_euler_call.mc_euler_solve(s, n_paths, rng)
+            p_n_euler[idx] = self.mc_euler_call.mc_euler.mc_estimate
+            p_n_euler_error[idx] = self.mc_euler_call.mc_euler.mc_error
+        # Plot error bars corresponding to 95%-confidence intervals.
+        p_n_exact_error *= 1.96
+        p_n_euler_error *= 1.96
+        if plot_results:
+            plt.plot(spot_vector, p_a, "-b")
+            plt.errorbar(spot_vector, p_n_exact, p_n_exact_error,
+                         linestyle="none", marker="o", color="b", capsize=5)
+            plt.title(f"95% confidence intervals ({n_paths} samples)")
+            plt.xlabel("Spot rate")
+            plt.ylabel("Price")
+            plt.show()
