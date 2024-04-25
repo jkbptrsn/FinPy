@@ -18,7 +18,7 @@ class ZCBond(bonds.Bond1FAnalytical):
     Price of Zero-coupon bond dependent on pseudo short rate modelled by
     1-factor Hull-White SDE.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+    See Andersen & Piterbarg (2010), Proposition 10.1.7.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -35,14 +35,15 @@ class ZCBond(bonds.Bond1FAnalytical):
         int_dt: Integration step size. Default is 1 / 52.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 maturity_idx: int,
-                 event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52):
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            maturity_idx: int,
+            event_grid: np.ndarray,
+            time_dependence: str = "piecewise",
+            int_dt: float = 1 / 52):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
@@ -131,8 +132,9 @@ class ZCBond(bonds.Bond1FAnalytical):
                                         self.g_eg,
                                         self.int_kappa_eg)
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -144,9 +146,10 @@ class ZCBond(bonds.Bond1FAnalytical):
         """
         return payoffs.zero_coupon_bond(spot)
 
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -163,9 +166,10 @@ class ZCBond(bonds.Bond1FAnalytical):
                 - self.forward_rate_eg[event_idx]
         return self._price_delta_gamma(spot_tmp, event_idx, "price")
 
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt short rate.
 
         Args:
@@ -182,9 +186,10 @@ class ZCBond(bonds.Bond1FAnalytical):
                 - self.forward_rate_eg[event_idx]
         return self._price_delta_gamma(spot_tmp, event_idx, "delta")
 
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt short rate.
 
         Args:
@@ -201,10 +206,11 @@ class ZCBond(bonds.Bond1FAnalytical):
                 - self.forward_rate_eg[event_idx]
         return self._price_delta_gamma(spot_tmp, event_idx, "gamma")
 
-    def _price_delta_gamma(self,
-                           spot: typing.Union[float, np.ndarray],
-                           event_idx: int,
-                           type_: str = "price") \
+    def _price_delta_gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            type_: str = "price") \
             -> typing.Union[float, np.ndarray]:
         """Calculate zero-coupon bond price, delta or gamma.
 
@@ -238,9 +244,10 @@ class ZCBond(bonds.Bond1FAnalytical):
         else:
             raise ValueError(f"Calculation type is unknown: {type_}")
 
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -287,31 +294,26 @@ class ZCBond(bonds.Bond1FAnalytical):
     def mc_exact_setup(self):
         """Setup exact Monte-Carlo solver."""
         if self.time_dependence == "constant":
-            self.mc_exact = mc_a.SdeExactConstant(self.kappa,
-                                                  self.vol,
-                                                  self.discount_curve,
-                                                  self.event_grid)
+            self.mc_exact = mc_a.SdeExactConstant(
+                self.kappa, self.vol, self.discount_curve, self.event_grid)
         elif self.time_dependence == "piecewise":
-            self.mc_exact = mc_a.SdeExactPiecewise(self.kappa,
-                                                   self.vol,
-                                                   self.discount_curve,
-                                                   self.event_grid)
+            self.mc_exact = mc_a.SdeExactPiecewise(
+                self.kappa, self.vol, self.discount_curve, self.event_grid)
         elif self.time_dependence == "general":
-            self.mc_exact = mc_a.SdeExactGeneral(self.kappa,
-                                                 self.vol,
-                                                 self.discount_curve,
-                                                 self.event_grid,
-                                                 self.int_dt)
+            self.mc_exact = mc_a.SdeExactGeneral(
+                self.kappa, self.vol, self.discount_curve, self.event_grid,
+                self.int_dt)
         else:
-            raise ValueError(f"Time dependence is unknown: "
-                             f"{self.time_dependence}")
+            raise ValueError(
+                f"Unknown time dependence: {self.time_dependence}")
 
-    def mc_exact_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False):
+    def mc_exact_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False):
         """Run Monte-Carlo solver on event grid.
 
         Monte-Carlo paths constructed using exact discretization.
@@ -339,12 +341,13 @@ class ZCBond(bonds.Bond1FAnalytical):
                                       self.time_dependence,
                                       self.int_dt)
 
-    def mc_euler_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False):
+    def mc_euler_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False):
         """Run Monte-Carlo solver on event grid.
 
         Monte-Carlo paths constructed using Euler-Maruyama discretization.
@@ -363,8 +366,9 @@ class ZCBond(bonds.Bond1FAnalytical):
         self.mc_euler.mc_error = price.std(ddof=1)
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
-    def mc_present_value(self,
-                         mc_object):
+    def mc_present_value(
+            self,
+            mc_object):
         """Present value for each Monte-Carlo path."""
         # Adjustment of discount paths.
         discount_paths = \
@@ -380,7 +384,7 @@ class ZCBondPelsser(ZCBond):
     Price of zero-coupon bond dependent on pseudo short rate modelled by
     1-factor Hull-White SDE.
 
-    See A. Pelsser 2000, chapter 5.
+    See Pelsser (2000), Chapter 5.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -397,21 +401,17 @@ class ZCBondPelsser(ZCBond):
         int_dt: Integration step size. Default is 1 / 52.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 maturity_idx: int,
-                 event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52):
-        super().__init__(kappa,
-                         vol,
-                         discount_curve,
-                         maturity_idx,
-                         event_grid,
-                         time_dependence,
-                         int_dt)
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            maturity_idx: int,
+            event_grid: np.ndarray,
+            time_dependence: str = "piecewise",
+            int_dt: float = 1 / 52):
+        super().__init__(kappa, vol, discount_curve, maturity_idx, event_grid,
+                         time_dependence, int_dt)
 
         self.transformation = global_types.Transformation.PELSSER
 
@@ -420,33 +420,25 @@ class ZCBondPelsser(ZCBond):
     def adjustment_function(self):
         """Adjustment of short rate transformation."""
         if self.time_dependence == "constant":
-            alpha = misc_hw.alpha_constant(self.kappa_eg[0],
-                                           self.vol_eg[0],
-                                           self.event_grid)
-            int_alpha = misc_hw.int_alpha_constant(self.kappa_eg[0],
-                                                   self.vol_eg[0],
-                                                   self.event_grid)
+            alpha = misc_hw.alpha_constant(
+                self.kappa_eg[0], self.vol_eg[0], self.event_grid)
+            int_alpha = misc_hw.int_alpha_constant(
+                self.kappa_eg[0], self.vol_eg[0], self.event_grid)
         elif self.time_dependence == "piecewise":
-            alpha = misc_hw.alpha_piecewise(self.kappa_eg[0],
-                                            self.vol_eg,
-                                            self.event_grid)
-            int_alpha = misc_hw.int_alpha_piecewise(self.kappa_eg[0],
-                                                    self.vol_eg,
-                                                    self.event_grid)
+            alpha = misc_hw.alpha_piecewise(
+                self.kappa_eg[0], self.vol_eg, self.event_grid)
+            int_alpha = misc_hw.int_alpha_piecewise(
+                self.kappa_eg[0], self.vol_eg, self.event_grid)
         elif self.time_dependence == "general":
-            alpha = misc_hw.alpha_general(self.int_grid,
-                                          self.int_event_idx,
-                                          self.int_kappa_step_ig,
-                                          self.vol_ig,
-                                          self.event_grid)
-            int_alpha = misc_hw.int_alpha_general(self.int_grid,
-                                                  self.int_event_idx,
-                                                  self.int_kappa_step_ig,
-                                                  self.vol_ig,
-                                                  self.event_grid)
+            alpha = misc_hw.alpha_general(
+                self.int_grid, self.int_event_idx, self.int_kappa_step_ig,
+                self.vol_ig, self.event_grid)
+            int_alpha = misc_hw.int_alpha_general(
+                self.int_grid, self.int_event_idx, self.int_kappa_step_ig,
+                self.vol_ig, self.event_grid)
         else:
-            raise ValueError(f"Time-dependence is unknown: "
-                             f"{self.time_dependence}")
+            raise ValueError(
+                f"Unknown time-dependence: {self.time_dependence}")
         self.adjust_rate = self.forward_rate_eg + alpha
         self.adjust_discount_steps = \
             self.discount_curve_eg[1:] / self.discount_curve_eg[:-1]
@@ -457,30 +449,21 @@ class ZCBondPelsser(ZCBond):
     def mc_exact_setup(self):
         """Setup exact Monte-Carlo solver."""
         if self.time_dependence == "constant":
-            self.mc_exact = mc_p.SdeExactConstant(self.kappa,
-                                                  self.vol,
-                                                  self.discount_curve,
-                                                  self.event_grid)
+            self.mc_exact = mc_p.SdeExactConstant(
+                self.kappa, self.vol, self.discount_curve, self.event_grid)
         elif self.time_dependence == "piecewise":
-            self.mc_exact = mc_p.SdeExactPiecewise(self.kappa,
-                                                   self.vol,
-                                                   self.discount_curve,
-                                                   self.event_grid)
+            self.mc_exact = mc_p.SdeExactPiecewise(
+                self.kappa, self.vol, self.discount_curve, self.event_grid)
         elif self.time_dependence == "general":
-            self.mc_exact = mc_p.SdeExactGeneral(self.kappa,
-                                                 self.vol,
-                                                 self.discount_curve,
-                                                 self.event_grid,
-                                                 self.int_dt)
+            self.mc_exact = mc_p.SdeExactGeneral(
+                self.kappa, self.vol, self.discount_curve, self.event_grid,
+                self.int_dt)
         else:
-            raise ValueError(f"Time-dependence is unknown: "
-                             f"{self.time_dependence}")
+            raise ValueError(
+                f"Unknown time-dependence: {self.time_dependence}")
 
     def mc_euler_setup(self):
         """Setup Euler Monte-Carlo solver."""
-        self.mc_euler = mc_p.SdeEuler(self.kappa,
-                                      self.vol,
-                                      self.discount_curve,
-                                      self.event_grid,
-                                      self.time_dependence,
-                                      self.int_dt)
+        self.mc_euler = mc_p.SdeEuler(
+            self.kappa, self.vol, self.discount_curve, self.event_grid,
+            self.time_dependence, self.int_dt)
