@@ -68,7 +68,7 @@ def setup_model_parameters(inst):
                                  inst.vol_ig,
                                  inst.event_grid)
     else:
-        raise ValueError(f"Time dependence is unknown: {inst.time_dependence}")
+        raise ValueError(f"Unknown time dependence: {inst.time_dependence}")
 
 
 def integration_grid(event_grid: np.ndarray,

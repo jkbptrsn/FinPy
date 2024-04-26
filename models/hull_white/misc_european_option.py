@@ -234,7 +234,7 @@ def option_price(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # P(t,T): Zero-coupon bond price at time t with maturity T.
     zcbond.mat_idx = expiry_idx
     price1 = zcbond.price(spot, event_idx)
@@ -283,7 +283,7 @@ def option_delta(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # P(t,T): Zero-coupon bond price at time t with maturity T.
     zcbond.mat_idx = expiry_idx
     price1 = zcbond.price(spot, event_idx)
@@ -340,7 +340,7 @@ def option_gamma(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # P(t,T): Zero-coupon bond price at time t with maturity T.
     zcbond.mat_idx = expiry_idx
     price1 = zcbond.price(spot, event_idx)
@@ -410,7 +410,7 @@ def option_theta(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # P(t,T): Zero-coupon bond price at time t with maturity T.
     zcbond.mat_idx = expiry_idx
     price1 = zcbond.price(spot, event_idx)

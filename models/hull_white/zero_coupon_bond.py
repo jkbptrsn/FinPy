@@ -242,7 +242,7 @@ class ZCBond(bonds.Bond1FAnalytical):
         elif type_ == "gamma":
             return g ** 2 * bond_price
         else:
-            raise ValueError(f"Calculation type is unknown: {type_}")
+            raise ValueError(f"Unknown calculation type: {type_}")
 
     def theta(
             self,

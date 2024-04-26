@@ -170,8 +170,8 @@ class Caplet(options.Option1FAnalytical):
                                       self.zcbond.vol_ig,
                                       self.fixing_idx)
         else:
-            raise ValueError(f"Time dependence unknown: "
-                             f"{self.time_dependence}")
+            raise ValueError(
+                f"Unknown time dependence: {self.time_dependence}")
         self.update_v_function()
 
     def update_v_function(self):
