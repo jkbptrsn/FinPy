@@ -16,7 +16,7 @@ class Swap(bonds.Bond1FAnalytical):
     Price of fixed-for-floating swap based on "simple rate" fixing.
     Priced from the point of view of the fixed rate payer.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, section 5.5.
+    See Andersen & Piterbarg (2010), Section 5.5.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -568,7 +568,7 @@ class SwapPelsser(Swap):
     Price of fixed-for-floating swap based on "simple rate" fixing.
     Priced from the point of view of the fixed rate payer.
 
-    See A. Pelsser, chapter 5.
+    See Pelsser (2000), Chapter 5.
 
     Attributes:
         kappa: Speed of mean reversion.

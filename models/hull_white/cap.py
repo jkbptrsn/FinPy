@@ -14,8 +14,8 @@ class Cap(options.Option1FAnalytical):
 
     Price of cap of floor.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.2, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -306,10 +306,10 @@ class CapPelsser(Cap):
 
     Price of cap of floor.
 
-    See A. Pelsser, chapter 5.
+    See Pelsser (2000), Chapter 5.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.2, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Attributes:
         kappa: Speed of mean reversion.

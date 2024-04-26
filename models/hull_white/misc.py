@@ -111,7 +111,7 @@ def g_function(maturity_idx: int,
                int_kappa_eg: np.ndarray) -> np.ndarray:
     """Calculate G-function, G(t,t_maturity), on event grid.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, remark 10.1.9.
+    See Andersen & Piterbarg (2010), Remark 10.1.9.
 
     Args:
         maturity_idx: Maturity index on event grid.
@@ -151,7 +151,7 @@ def g_general(int_grid: np.ndarray,
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+    See Andersen & Piterbarg (2010), Proposition 10.1.7.
 
     Args:
         int_grid: Integration grid.
@@ -187,7 +187,7 @@ def y_constant(kappa: float,
 
     The speed of mean reversion and volatility are constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+    See Andersen & Piterbarg (2010), Proposition 10.1.7.
 
     Args:
         kappa: Speed of mean reversion.
@@ -208,7 +208,7 @@ def int_y_constant(kappa: float,
 
     The speed of mean reversion and volatility are constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010c
+    See Andersen & Piterbarg (2010c)... TODO
 
     Args:
         kappa: Speed of mean reversion.
@@ -235,7 +235,7 @@ def int_int_y_constant(kappa: float,
 
     The speed of mean reversion and volatility are constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+    See Andersen & Piterbarg (2010), Eq. (10.42).
 
     Args:
         kappa: Speed of mean reversion.
@@ -266,7 +266,7 @@ def y_piecewise(kappa: float,
     The speed of mean reversion is constant and volatility is piecewise
     constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+    See Andersen & Piterbarg (2010), Proposition 10.1.7.
 
     Args:
         kappa: Speed of mean reversion.
@@ -299,7 +299,7 @@ def int_y_piecewise(kappa: float,
     The speed of mean reversion is constant and volatility is piecewise
     constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+    See Andersen & Piterbarg (2010), Eq. (10.40).
 
     Args:
         kappa: Speed of mean reversion.
@@ -353,7 +353,7 @@ def int_int_y_piecewise(kappa: float,
     The speed of mean reversion is constant and volatility is piecewise
     constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+    See Andersen & Piterbarg (2010), Eq. (10.42).
 
     Args:
         kappa: Speed of mean reversion.
@@ -427,7 +427,7 @@ def y_general(int_grid: np.ndarray,
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+    See Andersen & Piterbarg (2010), Proposition 10.1.7.
 
     Args:
         int_grid: Integration grid.
@@ -470,7 +470,7 @@ def int_y_general(int_grid: np.ndarray,
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+    See Andersen & Piterbarg (2010), Eq. (10.40).
 
     Args:
         int_grid: Integration grid.
@@ -511,7 +511,7 @@ def int_int_y_general(int_grid: np.ndarray,
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+    See Andersen & Piterbarg (2010), Eq. (10.42).
 
     Args:
         int_grid: Integration grid.
@@ -556,7 +556,7 @@ def alpha_constant(kappa: float,
     The speed of mean reversion and volatility are constant.
 
     The function doesn't include the instantaneous forward rate.
-    See Pelsser, section 5.3.
+    See Pelsser (2000), Section 5.3.
 
     Args:
         kappa: Speed of mean reversion.
@@ -577,7 +577,7 @@ def int_alpha_constant(kappa: float,
     The speed of mean reversion and volatility are constant.
 
     The integrand doesn't include the instantaneous forward rate.
-    See Pelsser, section 5.3.
+    See Pelsser (2000), Section 5.3.
 
     Args:
         kappa: Speed of mean reversion.
@@ -609,7 +609,7 @@ def alpha_general(int_grid: np.ndarray,
     and the volatility.
 
     The function doesn't include the instantaneous forward rate.
-    See Pelsser, section 5.3.
+    See Pelsser (2000), section 5.3.
 
     Args:
         int_grid: Integration grid.
@@ -649,7 +649,7 @@ def int_alpha_general(int_grid: np.ndarray,
     and the volatility.
 
     The integrand doesn't include the instantaneous forward rate.
-    See Pelsser, section 5.3.
+    See Pelsser (2000), Section 5.3.
 
     Args:
         int_grid: Integration grid.
@@ -693,7 +693,7 @@ def alpha_piecewise(kappa: float,
     constant.
 
     The function doesn't include the instantaneous forward rate.
-    See Pelsser, section 5.3.
+    See Pelsser (2000), Section 5.3.
 
     Args:
         kappa: Speed of mean reversion.
@@ -739,7 +739,7 @@ def int_alpha_piecewise(kappa: float,
     constant.
 
     The integrand doesn't include the instantaneous forward rate.
-    See Pelsser, section 5.3.
+    See Pelsser (2000), Section 5.3.
 
     Args:
         kappa: Speed of mean reversion.

@@ -19,7 +19,7 @@ class Payer(options.Option1FAnalytical):
     Price of European payer swaption based on a fixed-for-floating swap
     (based on "simple rate" fixing).
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, section 5.10 and 10.1.3.
+    See Andersen & Piterbarg (2010), Sections 5.10 and 10.1.3.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -365,7 +365,7 @@ class PayerPelsser(Payer):
     Price of European payer swaption based on a fixed-for-floating swap
     (based on "simple rate" fixing).
 
-    See A. Pelsser, chapter 5.
+    See Pelsser (2000), Chapter 5.
 
     Attributes:
         kappa: Speed of mean reversion.

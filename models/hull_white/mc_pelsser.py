@@ -58,7 +58,7 @@ class SdeExactConstant(mc_a.SdeExactConstant):
     The pseudo short rate is related to the short rate by
         x_t = r_t - f(0,t) - alpha_t.
 
-    See A. Pelsser 2000, chapter 5.
+    See Pelsser (2000), Chapter 5.
 
     Monte-Carlo paths constructed using exact discretization.
 
@@ -111,7 +111,7 @@ class SdeExactPiecewise(mc_a.SdeExactPiecewise):
     The pseudo short rate is related to the short rate by
         x_t = r_t - f(0,t) - alpha_t.
 
-    See A. Pelsser 2000, chapter 5.
+    See Pelsser (2000), Chapter 5.
 
     Monte-Carlo paths constructed using exact discretization.
 
@@ -169,7 +169,7 @@ class SdeExactGeneral(mc_a.SdeExactGeneral):
     The pseudo short rate is related to the short rate by
         x_t = r_t - f(0,t) - alpha_t.
 
-    See A. Pelsser 2000, chapter 5.
+    See Pelsser (2000), Chapter 5.
 
     Monte-Carlo paths constructed using exact discretization.
 
@@ -229,7 +229,7 @@ class SdeEuler(mc_a.SdeEuler):
     The pseudo short rate is related to the short rate by
         x_t = r_t - f(0,t) - alpha_t.
 
-    See A. Pelsser 2000, chapter 5.
+    See Pelsser (2000), Chapter 5.
 
     Monte-Carlo paths constructed using Euler-Maruyama discretization.
 

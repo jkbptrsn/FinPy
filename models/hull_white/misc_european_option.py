@@ -14,7 +14,7 @@ def v_function(expiry_idx: int,
                v_eg: np.ndarray) -> np.ndarray:
     """Calculate v- or dv_dt-function on event grid until expiry.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         expiry_idx: Option expiry index on event grid.
@@ -36,7 +36,7 @@ def v_constant(kappa: float,
 
     The speed of mean reversion is constant and volatility is constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         kappa: Speed of mean reversion.
@@ -61,7 +61,7 @@ def dv_dt_constant(kappa: float,
 
     The speed of mean reversion is constant and volatility is constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         kappa: Speed of mean reversion.
@@ -84,7 +84,7 @@ def v_piecewise(kappa: float,
     The speed of mean reversion is constant and volatility is piecewise
     constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         kappa: Speed of mean reversion.
@@ -116,7 +116,7 @@ def dv_dt_piecewise(kappa: float,
     The speed of mean reversion is constant and volatility is piecewise
     constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         kappa: Speed of mean reversion.
@@ -141,7 +141,7 @@ def v_general(int_grid: np.ndarray,
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         int_grid: Integration grid.
@@ -179,7 +179,7 @@ def dv_dt_general(int_event_idx: np.ndarray,
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         int_event_idx: Event indices on integration grid.
@@ -213,8 +213,8 @@ def option_price(spot: typing.Union[float, np.ndarray],
 
     Price of European call or put option written on zero-coupon bond.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Args:
         spot: Spot pseudo short rate.
@@ -262,8 +262,8 @@ def option_delta(spot: typing.Union[float, np.ndarray],
 
     Delta of European call or put option written on zero-coupon bond.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Args:
         spot: Spot pseudo short rate.
@@ -319,8 +319,8 @@ def option_gamma(spot: typing.Union[float, np.ndarray],
 
     Gamma of European call or put option written on zero-coupon bond.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Args:
         spot: Spot pseudo short rate.
@@ -388,8 +388,8 @@ def option_theta(spot: typing.Union[float, np.ndarray],
 
     Theta of European call or put option written on zero-coupon bond.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Args:
         spot: Spot pseudo short rate.
@@ -440,7 +440,7 @@ def d_function(price1: typing.Union[float, np.ndarray],
                v: float) -> tuple:
     """Calculate d-functions.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         price1: Zero-coupon bond price at time t with maturity T.
@@ -464,7 +464,7 @@ def dd_dr(price1: typing.Union[float, np.ndarray],
           v: float) -> typing.Union[float, np.ndarray]:
     """Calculate 1st order spatial derivative of d-functions.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         price1: Zero-coupon bond price at time t with maturity T.
@@ -488,7 +488,7 @@ def d2d_dr2(price1: typing.Union[float, np.ndarray],
             v: float) -> typing.Union[float, np.ndarray]:
     """Calculate 2nd order spatial derivative of d-functions.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         price1: Zero-coupon bond price at time t with maturity T.
@@ -515,7 +515,7 @@ def dd_dt(price1: typing.Union[float, np.ndarray],
           dv_dt: float) -> tuple:
     """Calculate 1st order time derivative of d-functions.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         price1: Zero-coupon bond price at time t with maturity T.

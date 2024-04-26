@@ -21,8 +21,8 @@ def caplet_price(spot: typing.Union[float, np.ndarray],
 
     Price of caplet or floorlet written on simple forward rate.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.2, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Args:
         spot: Spot pseudo short rate.
@@ -73,8 +73,8 @@ def caplet_delta(spot: typing.Union[float, np.ndarray],
 
     Delta of caplet or floorlet written on simple forward rate.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.2, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Args:
         spot: Spot pseudo short rate.
@@ -133,8 +133,8 @@ def caplet_gamma(spot: typing.Union[float, np.ndarray],
 
     Gamma of caplet or floorlet written on simple forward rate.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.2, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Args:
         spot: Spot pseudo short rate.
@@ -205,8 +205,8 @@ def caplet_theta(spot: typing.Union[float, np.ndarray],
 
     Theta of caplet or floorlet written on simple forward rate.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.2, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Args:
         spot: Spot pseudo short rate.
@@ -261,7 +261,7 @@ def d_function(price1: typing.Union[float, np.ndarray],
                v: float) -> tuple:
     """Calculate d-functions.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2.
+    See Andersen & Piterbarg (2010), Proposition 4.5.2.
 
     Args:
         price1: Zero-coupon bond price at time t with maturity T.
@@ -286,7 +286,7 @@ def dd_dr(price1: typing.Union[float, np.ndarray],
           v: float) -> typing.Union[float, np.ndarray]:
     """Calculate 1st order spatial derivative of d-functions.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2.
+    See Andersen & Piterbarg (2010), Proposition 4.5.2.
 
     Args:
         price1: Zero-coupon bond price at time t with maturity T.
@@ -310,7 +310,7 @@ def d2d_dr2(price1: typing.Union[float, np.ndarray],
             v: float) -> typing.Union[float, np.ndarray]:
     """Calculate 2nd order spatial derivative of d-functions.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2.
+    See Andersen & Piterbarg (2010), Proposition 4.5.2.
 
     Args:
         price1: Zero-coupon bond price at time t with maturity T.
@@ -338,7 +338,7 @@ def dd_dt(price1: typing.Union[float, np.ndarray],
           dv_dt: float) -> tuple:
     """Calculate 1st order time derivative of d-functions.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.2.
+    See Andersen & Piterbarg (2010), Proposition 4.5.2.
 
     Args:
         price1: Zero-coupon bond price at time t with maturity T.

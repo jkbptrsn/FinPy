@@ -354,7 +354,7 @@ class EuropeanOptionPelsser(EuropeanOption):
 
     Price of European call/put option written on zero-coupon bond.
 
-    See Pelsser (TODO), Chapter 5.
+    See Pelsser (2000), Chapter 5.
 
     Attributes:
         kappa: Speed of mean reversion.

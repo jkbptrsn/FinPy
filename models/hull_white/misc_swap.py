@@ -12,7 +12,7 @@ def simple_forward_rate(bond_price_t2: typing.Union[float, np.ndarray],
     The simple forward rate at time t in (t1, t2) is defined as:
         (1 + (t2 - t1) * forward_rate(t, t1, t2)) =
             bond_price_t1(t) / bond_price_t2(t).
-    See L.B.G. Andersen & V.V. Piterbarg 2010, section 4.1.
+    See Andersen & Piterbarg (2010), Section 4.1.
 
     Args:
         bond_price_t2: Price of zero-coupon bond with maturity t2.

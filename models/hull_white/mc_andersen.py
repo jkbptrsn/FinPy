@@ -57,7 +57,7 @@ class SdeExact:
     The pseudo short rate is related to the short rate by
         x_t = r_t - f(0,t).
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
+    See Andersen & Piterbarg (2010), Chapter 10.1.
 
     Monte-Carlo paths constructed using exact discretization.
 
@@ -326,7 +326,7 @@ class SdeExactConstant(SdeExact):
     def _calc_rate_mean(self):
         """Conditional mean of pseudo short rate process.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+        See Andersen & Piterbarg (2010), Eq. (10.40).
         """
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
@@ -340,7 +340,7 @@ class SdeExactConstant(SdeExact):
     def _calc_rate_variance(self):
         """Conditional variance of pseudo short rate process.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.41).
+        See Andersen & Piterbarg (2010), Eq. (10.41).
         """
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
@@ -353,7 +353,7 @@ class SdeExactConstant(SdeExact):
         """Conditional mean of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du.
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        See Andersen & Piterbarg (2010), Eq. (10.42).
         """
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
@@ -369,7 +369,7 @@ class SdeExactConstant(SdeExact):
         """Conditional variance of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du.
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        See Andersen & Piterbarg (2010), Eq. (10.42).
         """
         self.discount_variance[0] = 0
         self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
@@ -378,7 +378,7 @@ class SdeExactConstant(SdeExact):
     def _calc_covariance(self):
         """Covariance between short rate and discount processes.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, lemma 10.1.11.
+        See Andersen & Piterbarg (2010), Lemma 10.1.11.
         """
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[0]
@@ -422,7 +422,7 @@ class SdeExactPiecewise(SdeExact):
     def _calc_rate_mean(self):
         """Conditional mean of pseudo short rate process.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+        See Andersen & Piterbarg (2010), Eq. (10.40).
         """
         kappa = self.kappa_eg[0]
         # First term in Eq. (10.40).
@@ -435,7 +435,7 @@ class SdeExactPiecewise(SdeExact):
     def _calc_rate_variance(self):
         """Conditional variance of pseudo short rate process.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.41).
+        See Andersen & Piterbarg (2010), Eq. (10.41).
         """
         kappa = self.kappa_eg[0]
         vol = self.vol_eg[:-1]
@@ -448,7 +448,7 @@ class SdeExactPiecewise(SdeExact):
         """Conditional mean of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du. See
-        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        Andersen & Piterbarg (2010), Eq. (10.42).
         """
         kappa = self.kappa_eg[0]
         # First term in Eq. (10.42).
@@ -463,7 +463,7 @@ class SdeExactPiecewise(SdeExact):
         """Conditional variance of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du. See
-        L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        Andersen & Piterbarg (2010), Eq. (10.42).
         """
         self.discount_variance[0] = 0
         self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
@@ -472,7 +472,7 @@ class SdeExactPiecewise(SdeExact):
     def _calc_covariance(self):
         """Covariance between short rate and discount processes.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, lemma 10.1.11.
+        See Andersen & Piterbarg (2010), Lemma 10.1.11.
         """
         kappa = self.kappa_eg[0]
         exp_kappa = np.exp(-kappa * np.diff(self.event_grid))
@@ -518,7 +518,7 @@ class SdeExactGeneral(SdeExact):
     def _calc_rate_mean(self):
         """Conditional mean of pseudo short rate process.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+        See Andersen & Piterbarg (2010), Eq. (10.40).
         """
         # First term in Eq. (10.40).
         self.rate_mean[0, 0] = 1
@@ -532,7 +532,7 @@ class SdeExactGeneral(SdeExact):
     def _calc_rate_variance(self):
         """Conditional variance of pseudo short rate process.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.41).
+        See Andersen & Piterbarg (2010), Eq. (10.41).
         """
         self.rate_variance[0] = 0
         for event_idx in range(1, self.event_grid.size):
@@ -552,7 +552,7 @@ class SdeExactGeneral(SdeExact):
         """Conditional mean of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du.
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        See Andersen & Piterbarg (2010), Eq. (10.42).
         """
         # First term in Eq. (10.42).
         self.discount_mean[0, :] = 0
@@ -568,7 +568,7 @@ class SdeExactGeneral(SdeExact):
         """Conditional variance of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du.
-        See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+        See Andersen & Piterbarg (2010), Eq. (10.42).
         """
         self.discount_variance[0] = 0
         self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
@@ -577,7 +577,7 @@ class SdeExactGeneral(SdeExact):
     def _calc_covariance(self):
         """Covariance between short rate and discount processes.
 
-        See L.B.G. Andersen & V.V. Piterbarg 2010, lemma 10.1.11.
+        See Andersen & Piterbarg (2010), Lemma 10.1.11.
         """
         self.covariance[0] = 0
         for event_idx in range(1, self.event_grid.size):
@@ -619,7 +619,7 @@ class SdeEuler:
     The pseudo short rate is related to the short rate by
         x_t = r_t - f(0,t) (f is the instantaneous forward rate).
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, chapter 10.1.
+    See Andersen & Piterbarg (2010), Chapter 10.1.
 
     Monte-Carlo paths constructed using Euler-Maruyama discretization.
 
