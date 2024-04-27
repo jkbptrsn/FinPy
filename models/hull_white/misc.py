@@ -71,8 +71,9 @@ def setup_model_parameters(inst):
         raise ValueError(f"Unknown time dependence: {inst.time_dependence}")
 
 
-def integration_grid(event_grid: np.ndarray,
-                     int_dt: float) -> (np.ndarray, np.ndarray):
+def integration_grid(
+        event_grid: np.ndarray,
+        int_dt: float) -> (np.ndarray, np.ndarray):
     """Set up time grid for numerical integration.
 
     Args:
@@ -106,9 +107,10 @@ def integration_grid(event_grid: np.ndarray,
     return int_grid, int_event_idx
 
 
-def g_function(maturity_idx: int,
-               g_eg: np.ndarray,
-               int_kappa_eg: np.ndarray) -> np.ndarray:
+def g_function(
+        maturity_idx: int,
+        g_eg: np.ndarray,
+        int_kappa_eg: np.ndarray) -> np.ndarray:
     """Calculate G-function, G(t,t_maturity), on event grid.
 
     See Andersen & Piterbarg (2010), Remark 10.1.9.
@@ -124,8 +126,9 @@ def g_function(maturity_idx: int,
     return (g_eg[maturity_idx] - g_eg) * np.exp(int_kappa_eg)
 
 
-def g_constant(kappa: float,
-               event_grid: np.ndarray) -> np.ndarray:
+def g_constant(
+        kappa: float,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate G-function, G(0,t), on event grid.
 
     The speed of mean reversion is constant.
@@ -142,10 +145,11 @@ def g_constant(kappa: float,
     return (1 - np.exp(-kappa * event_grid)) / kappa
 
 
-def g_general(int_grid: np.ndarray,
-              int_event_idx: np.ndarray,
-              int_kappa_step_ig: np.ndarray,
-              event_grid: np.ndarray) -> np.ndarray:
+def g_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate G-function, G(0,t), on event grid.
 
     No assumption on the time dependence of the speed of mean reversion
@@ -180,9 +184,10 @@ def g_general(int_grid: np.ndarray,
     return g_eg
 
 
-def y_constant(kappa: float,
-               vol: float,
-               event_grid: np.ndarray) -> np.ndarray:
+def y_constant(
+        kappa: float,
+        vol: float,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate y-function on event grid.
 
     The speed of mean reversion and volatility are constant.
@@ -201,9 +206,10 @@ def y_constant(kappa: float,
     return vol ** 2 * (1 - np.exp(-two_kappa * event_grid)) / two_kappa
 
 
-def int_y_constant(kappa: float,
-                   vol: float,
-                   event_grid: np.ndarray) -> np.ndarray:
+def int_y_constant(
+        kappa: float,
+        vol: float,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "integral" of y-function on event grid.
 
     The speed of mean reversion and volatility are constant.
@@ -228,9 +234,10 @@ def int_y_constant(kappa: float,
     return integral
 
 
-def int_int_y_constant(kappa: float,
-                       vol: float,
-                       event_grid: np.ndarray) -> np.ndarray:
+def int_int_y_constant(
+        kappa: float,
+        vol: float,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "double integral" of y-function on event grid.
 
     The speed of mean reversion and volatility are constant.
@@ -258,9 +265,10 @@ def int_int_y_constant(kappa: float,
     return integral
 
 
-def y_piecewise(kappa: float,
-                vol: np.ndarray,
-                event_grid: np.ndarray) -> np.ndarray:
+def y_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate y-function on event grid.
 
     The speed of mean reversion is constant and volatility is piecewise
@@ -291,9 +299,10 @@ def y_piecewise(kappa: float,
     return y_function
 
 
-def int_y_piecewise(kappa: float,
-                    vol: np.ndarray,
-                    event_grid: np.ndarray) -> np.ndarray:
+def int_y_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "integral" of y-function on event grid.
 
     The speed of mean reversion is constant and volatility is piecewise
@@ -345,9 +354,10 @@ def int_y_piecewise(kappa: float,
     return integral
 
 
-def int_int_y_piecewise(kappa: float,
-                        vol: np.ndarray,
-                        event_grid: np.ndarray) -> np.ndarray:
+def int_int_y_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "double integral" of y-function on event grid.
 
     The speed of mean reversion is constant and volatility is piecewise
@@ -417,11 +427,12 @@ def int_int_y_piecewise(kappa: float,
     return integral
 
 
-def y_general(int_grid: np.ndarray,
-              int_event_idx: np.ndarray,
-              int_kappa_step_ig: np.ndarray,
-              vol_ig: np.ndarray,
-              event_grid: np.ndarray) -> (np.ndarray, np.ndarray):
+def y_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        event_grid: np.ndarray) -> (np.ndarray, np.ndarray):
     """Calculate y-function on event and integration grid.
 
     No assumption on the time dependence of the speed of mean reversion
@@ -460,11 +471,12 @@ def y_general(int_grid: np.ndarray,
     return y_eg, y_ig
 
 
-def int_y_general(int_grid: np.ndarray,
-                  int_event_idx: np.ndarray,
-                  int_kappa_step_ig: np.ndarray,
-                  vol_ig: np.ndarray,
-                  event_grid: np.ndarray) -> np.ndarray:
+def int_y_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "integral" of y-function on event grid.
 
     No assumption on the time dependence of the speed of mean reversion
@@ -501,11 +513,12 @@ def int_y_general(int_grid: np.ndarray,
     return integral
 
 
-def int_int_y_general(int_grid: np.ndarray,
-                      int_event_idx: np.ndarray,
-                      int_kappa_step_ig: np.ndarray,
-                      vol_ig: np.ndarray,
-                      event_grid: np.ndarray) -> np.ndarray:
+def int_int_y_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "double integral" of y-function on event grid.
 
     No assumption on the time dependence of the speed of mean reversion
@@ -548,9 +561,10 @@ def int_int_y_general(int_grid: np.ndarray,
     return integral
 
 
-def alpha_constant(kappa: float,
-                   vol: float,
-                   event_grid: np.ndarray) -> np.ndarray:
+def alpha_constant(
+        kappa: float,
+        vol: float,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate alpha-function on event grid.
 
     The speed of mean reversion and volatility are constant.
@@ -569,9 +583,10 @@ def alpha_constant(kappa: float,
     return vol ** 2 * (1 - np.exp(-kappa * event_grid)) ** 2 / (2 * kappa ** 2)
 
 
-def int_alpha_constant(kappa: float,
-                       vol: float,
-                       event_grid: np.ndarray) -> np.ndarray:
+def int_alpha_constant(
+        kappa: float,
+        vol: float,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate integral of alpha-function on event grid.
 
     The speed of mean reversion and volatility are constant.
@@ -598,11 +613,12 @@ def int_alpha_constant(kappa: float,
     return integral
 
 
-def alpha_general(int_grid: np.ndarray,
-                  int_event_idx: np.ndarray,
-                  int_kappa_step_ig: np.ndarray,
-                  vol_ig: np.ndarray,
-                  event_grid: np.ndarray) -> np.ndarray:
+def alpha_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate alpha-function on event grid.
 
     No assumption on the time dependence of the speed of mean reversion
@@ -638,11 +654,12 @@ def alpha_general(int_grid: np.ndarray,
     return integral
 
 
-def int_alpha_general(int_grid: np.ndarray,
-                      int_event_idx: np.ndarray,
-                      int_kappa_step_ig: np.ndarray,
-                      vol_ig: np.ndarray,
-                      event_grid: np.ndarray) -> np.ndarray:
+def int_alpha_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate integral of alpha-function on event grid.
 
     No assumption on the time dependence of the speed of mean reversion
@@ -684,9 +701,10 @@ def int_alpha_general(int_grid: np.ndarray,
     return integral
 
 
-def alpha_piecewise(kappa: float,
-                    vol: np.ndarray,
-                    event_grid: np.ndarray) -> np.ndarray:
+def alpha_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate alpha-function on event grid.
 
     The speed of mean reversion is constant and volatility is piecewise
@@ -730,9 +748,10 @@ def alpha_piecewise(kappa: float,
     return np.exp(-kappa * event_grid) * np.cumsum(sum_array)
 
 
-def int_alpha_piecewise(kappa: float,
-                        vol: np.ndarray,
-                        event_grid: np.ndarray) -> np.ndarray:
+def int_alpha_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate integral of alpha-function on event grid.
 
     The speed of mean reversion is constant and volatility is piecewise

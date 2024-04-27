@@ -145,11 +145,12 @@ class Theta(ThetaBase):
     TODO: Rannacher (initial) stepping? Not necessary according to Kwant Daddy
     """
 
-    def __init__(self,
-                 grid: np.ndarray,
-                 band: str = "tri",
-                 equidistant: bool = False,
-                 theta_parameter: float = 0.5):
+    def __init__(
+            self,
+            grid: np.ndarray,
+            band: str = "tri",
+            equidistant: bool = False,
+            theta_parameter: float = 0.5):
         super().__init__(grid, band, equidistant)
         self.theta_parameter = theta_parameter
 
@@ -158,7 +159,7 @@ class Theta(ThetaBase):
 
         self.dt_last = None
 
-    def initialization(self):
+    def initialization(self) -> None:
         """Initialization of identity and propagator matrices."""
         self.mat_identity = la.identity_matrix(self.nstates, self.band)
         if self.equidistant:
@@ -170,7 +171,7 @@ class Theta(ThetaBase):
             self.d2dx2 = do.d2dx2(self.grid, self.band)
         self.set_propagator()
 
-    def set_propagator(self):
+    def set_propagator(self) -> None:
         """Propagator as banded matrix."""
         self.mat_propagator = \
             - la.dia_matrix_prod(self.vec_rate, self.mat_identity, self.band) \
@@ -180,7 +181,7 @@ class Theta(ThetaBase):
     def propagation(
             self,
             dt: float,
-            time_dependent: bool = False):
+            time_dependent: bool = False) -> None:
         """Propagation of solution vector for one time step dt."""
         rhs = self.mat_identity \
             + (1 - self.theta_parameter) * dt * self.mat_propagator
@@ -213,7 +214,7 @@ def setup_solver(
         grid: np.ndarray,
         band: str = "tri",
         equidistant: bool = False,
-        theta_parameter: float = 0.5):
+        theta_parameter: float = 0.5) -> None:
     """Setting up finite difference solver.
 
     Args:
@@ -235,7 +236,7 @@ def setup_solver(
 
 def update(
         instrument,
-        event_idx: int = -1):
+        event_idx: int = -1) -> None:
     """Update drift, diffusion and rate vectors.
 
     Args:

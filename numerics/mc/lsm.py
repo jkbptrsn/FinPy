@@ -7,9 +7,10 @@ import numpy.polynomial as poly
 plot_regression = False
 
 
-def black_scholes(instrument,
-                  basis_set: str = "Power",
-                  degree: int = 4) -> (float, float):
+def black_scholes(
+        instrument,
+        basis_set: str = "Power",
+        degree: int = 4) -> (float, float):
     """Pricing American option in Black-Scholes model.
 
     Args:
@@ -157,6 +158,8 @@ def prepayment_option(paths,
         fit_function = poly.Hermite.fit
     else:
         raise ValueError(f"Unknown basis set: {basis_set}")
+
+    # TODO: Only include in-the-money paths???
 
     # Least squares fit.
     ls_fit = fit_function(paths, bond_payoff, deg=degree)

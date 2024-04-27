@@ -25,11 +25,12 @@ class ADI2D:
         equidistant: Is grid equidistant? Default is false.
     """
 
-    def __init__(self,
-                 grid_x: np.ndarray,
-                 grid_y: np.ndarray,
-                 band: str = "tri",
-                 equidistant: bool = False):
+    def __init__(
+            self,
+            grid_x: np.ndarray,
+            grid_y: np.ndarray,
+            band: str = "tri",
+            equidistant: bool = False):
         self.grid_x = grid_x
         self.grid_y = grid_y
         self.band = band

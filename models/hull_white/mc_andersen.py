@@ -9,8 +9,12 @@ from utils import global_types
 from utils import misc
 
 
-def rate_adjustment(rate_paths: np.ndarray,
-                    adjustment: np.ndarray) -> np.ndarray:
+###############################################################################
+
+
+def rate_adjustment(
+        rate_paths: np.ndarray,
+        adjustment: np.ndarray) -> np.ndarray:
     """Adjust pseudo rate paths.
 
     Assume that pseudo rate paths and discount curve are represented
@@ -26,8 +30,9 @@ def rate_adjustment(rate_paths: np.ndarray,
     return (rate_paths.transpose() + adjustment).transpose()
 
 
-def discount_adjustment(discount_paths: np.ndarray,
-                        adjustment: np.ndarray) -> np.ndarray:
+def discount_adjustment(
+        discount_paths: np.ndarray,
+        adjustment: np.ndarray) -> np.ndarray:
     """Adjust pseudo discount paths.
 
     Assume that pseudo discount paths and discount curve are
@@ -43,6 +48,9 @@ def discount_adjustment(discount_paths: np.ndarray,
     """
     tmp = discount_paths.transpose() * adjustment
     return tmp.transpose()
+
+
+###############################################################################
 
 
 class SdeExact:
@@ -75,13 +83,14 @@ class SdeExact:
         int_dt: Integration step size. Default is 1 / 52.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52):
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            event_grid: np.ndarray,
+            time_dependence: str = "piecewise",
+            int_dt: float = 1 / 52):
         self.kappa = kappa
         self.vol = vol
         self.discount_curve = discount_curve
@@ -132,7 +141,7 @@ class SdeExact:
         self.mc_estimate = None
         self.mc_error = None
 
-    def initialization(self):
+    def initialization(self) -> None:
         """Initialization of Monte-Carlo engine.
 
         Calculate time-dependent mean and variance of the pseudo short
@@ -147,27 +156,28 @@ class SdeExact:
         self._calc_discount_variance()
         self._calc_covariance()
 
-    def _setup_int_grid(self):
+    def _setup_int_grid(self) -> None:
         """Set up time grid for numerical integration."""
         self.int_grid, self.int_event_idx = \
             misc_hw.integration_grid(self.event_grid, self.int_dt)
 
-    def _setup_model_parameters(self):
+    def _setup_model_parameters(self) -> None:
         """Set up model parameters on event and integration grids."""
         misc_hw.setup_model_parameters(self)
 
-    def _calc_rate_mean(self):
+    def _calc_rate_mean(self) -> None:
         """Conditional mean of pseudo short rate process."""
         pass
 
-    def _calc_rate_variance(self):
+    def _calc_rate_variance(self) -> None:
         """Conditional variance of pseudo short rate process."""
         pass
 
-    def _rate_increment(self,
-                        spot: typing.Union[float, np.ndarray],
-                        event_idx: int,
-                        normal_rand: typing.Union[float, np.ndarray]) \
+    def _rate_increment(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            normal_rand: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Increment pseudo short rate process.
 
@@ -187,18 +197,19 @@ class SdeExact:
         variance = self.rate_variance[event_idx]
         return mean + math.sqrt(variance) * normal_rand - spot
 
-    def _calc_discount_mean(self):
+    def _calc_discount_mean(self) -> None:
         """Conditional mean of pseudo discount process."""
         pass
 
-    def _calc_discount_variance(self):
+    def _calc_discount_variance(self) -> None:
         """Conditional variance of pseudo discount process."""
         pass
 
-    def _discount_increment(self,
-                            rate_spot: typing.Union[float, np.ndarray],
-                            event_idx: int,
-                            normal_rand: typing.Union[float, np.ndarray]) \
+    def _discount_increment(
+            self,
+            rate_spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            normal_rand: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Increment pseudo discount process.
 
@@ -218,12 +229,13 @@ class SdeExact:
         variance = self.discount_variance[event_idx]
         return mean + math.sqrt(variance) * normal_rand
 
-    def _calc_covariance(self):
+    def _calc_covariance(self) -> None:
         """Covariance between short rate and discount processes."""
         pass
 
-    def _correlation(self,
-                     event_idx: int) -> float:
+    def _correlation(
+            self,
+            event_idx: int) -> float:
         """Correlation between short rate and discount processes.
 
         Args:
@@ -237,12 +249,13 @@ class SdeExact:
         discount_var = self.discount_variance[event_idx]
         return covariance / math.sqrt(rate_var * discount_var)
 
-    def paths(self,
-              spot: float,
-              n_paths: int,
-              rng: np.random.Generator = None,
-              seed: int = None,
-              antithetic: bool = False):
+    def paths(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Generation of Monte-Carlo paths using exact discretization.
 
         Args:
@@ -284,14 +297,16 @@ class SdeExact:
         self.discount_paths = d_paths
 
     @staticmethod
-    def rate_adjustment(rate_paths: np.ndarray,
-                        adjustment: np.ndarray) -> np.ndarray:
+    def rate_adjustment(
+            rate_paths: np.ndarray,
+            adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo rate paths."""
         return rate_adjustment(rate_paths, adjustment)
 
     @staticmethod
-    def discount_adjustment(discount_paths: np.ndarray,
-                            adjustment: np.ndarray) -> np.ndarray:
+    def discount_adjustment(
+            discount_paths: np.ndarray,
+            adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo discount paths."""
         return discount_adjustment(discount_paths, adjustment)
 
@@ -310,20 +325,17 @@ class SdeExactConstant(SdeExact):
         event_grid: Event dates as year fractions from as-of date.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 event_grid: np.ndarray):
-        super().__init__(kappa,
-                         vol,
-                         discount_curve,
-                         event_grid,
-                         "constant")
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            event_grid: np.ndarray):
+        super().__init__(kappa, vol, discount_curve, event_grid, "constant")
 
         self.initialization()
 
-    def _calc_rate_mean(self):
+    def _calc_rate_mean(self) -> None:
         """Conditional mean of pseudo short rate process.
 
         See Andersen & Piterbarg (2010), Eq. (10.40).
@@ -337,7 +349,7 @@ class SdeExactConstant(SdeExact):
         self.rate_mean[:, 1] = \
             misc_hw.int_y_constant(kappa, vol, self.event_grid)
 
-    def _calc_rate_variance(self):
+    def _calc_rate_variance(self) -> None:
         """Conditional variance of pseudo short rate process.
 
         See Andersen & Piterbarg (2010), Eq. (10.41).
@@ -349,7 +361,7 @@ class SdeExactConstant(SdeExact):
             vol ** 2 * (1 - np.exp(-2 * kappa * np.diff(self.event_grid))) \
             / (2 * kappa)
 
-    def _calc_discount_mean(self):
+    def _calc_discount_mean(self) -> None:
         """Conditional mean of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du.
@@ -365,7 +377,7 @@ class SdeExactConstant(SdeExact):
         self.discount_mean[:, 1] = \
             misc_hw.int_int_y_constant(kappa, vol, self.event_grid)
 
-    def _calc_discount_variance(self):
+    def _calc_discount_variance(self) -> None:
         """Conditional variance of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du.
@@ -375,7 +387,7 @@ class SdeExactConstant(SdeExact):
         self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
             - self.y_eg[:-1] * self.discount_mean[1:, 0] ** 2
 
-    def _calc_covariance(self):
+    def _calc_covariance(self) -> None:
         """Covariance between short rate and discount processes.
 
         See Andersen & Piterbarg (2010), Lemma 10.1.11.
@@ -406,20 +418,17 @@ class SdeExactPiecewise(SdeExact):
         event_grid: Event dates as year fractions from as-of date.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 event_grid: np.ndarray):
-        super().__init__(kappa,
-                         vol,
-                         discount_curve,
-                         event_grid,
-                         "piecewise")
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            event_grid: np.ndarray):
+        super().__init__(kappa, vol, discount_curve, event_grid, "piecewise")
 
         self.initialization()
 
-    def _calc_rate_mean(self):
+    def _calc_rate_mean(self) -> None:
         """Conditional mean of pseudo short rate process.
 
         See Andersen & Piterbarg (2010), Eq. (10.40).
@@ -432,7 +441,7 @@ class SdeExactPiecewise(SdeExact):
         self.rate_mean[:, 1] = \
             misc_hw.int_y_piecewise(kappa, self.vol_eg, self.event_grid)
 
-    def _calc_rate_variance(self):
+    def _calc_rate_variance(self) -> None:
         """Conditional variance of pseudo short rate process.
 
         See Andersen & Piterbarg (2010), Eq. (10.41).
@@ -444,7 +453,7 @@ class SdeExactPiecewise(SdeExact):
             vol ** 2 * (1 - np.exp(-2 * kappa * np.diff(self.event_grid))) \
             / (2 * kappa)
 
-    def _calc_discount_mean(self):
+    def _calc_discount_mean(self) -> None:
         """Conditional mean of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du. See
@@ -459,7 +468,7 @@ class SdeExactPiecewise(SdeExact):
         self.discount_mean[:, 1] = \
             misc_hw.int_int_y_piecewise(kappa, self.vol_eg, self.event_grid)
 
-    def _calc_discount_variance(self):
+    def _calc_discount_variance(self) -> None:
         """Conditional variance of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du. See
@@ -469,7 +478,7 @@ class SdeExactPiecewise(SdeExact):
         self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
             - self.y_eg[:-1] * self.discount_mean[1:, 0] ** 2
 
-    def _calc_covariance(self):
+    def _calc_covariance(self) -> None:
         """Covariance between short rate and discount processes.
 
         See Andersen & Piterbarg (2010), Lemma 10.1.11.
@@ -500,22 +509,19 @@ class SdeExactGeneral(SdeExact):
         int_dt: Integration step size. Default is 1 / 52.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 event_grid: np.ndarray,
-                 int_dt: float = 1 / 52):
-        super().__init__(kappa,
-                         vol,
-                         discount_curve,
-                         event_grid,
-                         "general",
-                         int_dt)
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            event_grid: np.ndarray,
+            int_dt: float = 1 / 52):
+        super().__init__(
+            kappa, vol,  discount_curve, event_grid, "general", int_dt)
 
         self.initialization()
 
-    def _calc_rate_mean(self):
+    def _calc_rate_mean(self) -> None:
         """Conditional mean of pseudo short rate process.
 
         See Andersen & Piterbarg (2010), Eq. (10.40).
@@ -529,7 +535,7 @@ class SdeExactGeneral(SdeExact):
                                   self.int_kappa_step_ig, self.vol_ig,
                                   self.event_grid)
 
-    def _calc_rate_variance(self):
+    def _calc_rate_variance(self) -> None:
         """Conditional variance of pseudo short rate process.
 
         See Andersen & Piterbarg (2010), Eq. (10.41).
@@ -548,7 +554,7 @@ class SdeExactGeneral(SdeExact):
             variance = np.sum(misc.trapz(int_grid_tmp, integrand))
             self.rate_variance[event_idx] = variance
 
-    def _calc_discount_mean(self):
+    def _calc_discount_mean(self) -> None:
         """Conditional mean of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du.
@@ -564,7 +570,7 @@ class SdeExactGeneral(SdeExact):
                                       self.int_kappa_step_ig, self.vol_ig,
                                       self.event_grid)
 
-    def _calc_discount_variance(self):
+    def _calc_discount_variance(self) -> None:
         """Conditional variance of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du.
@@ -574,7 +580,7 @@ class SdeExactGeneral(SdeExact):
         self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
             - self.y_eg[:-1] * self.discount_mean[1:, 0] ** 2
 
-    def _calc_covariance(self):
+    def _calc_covariance(self) -> None:
         """Covariance between short rate and discount processes.
 
         See Andersen & Piterbarg (2010), Lemma 10.1.11.
@@ -637,13 +643,14 @@ class SdeEuler:
         int_dt: Integration step size. Default is 1 / 52.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52):
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            event_grid: np.ndarray,
+            time_dependence: str = "piecewise",
+            int_dt: float = 1 / 52):
         self.kappa = kappa
         self.vol = vol
         self.discount_curve = discount_curve
@@ -689,7 +696,7 @@ class SdeEuler:
         self.mc_estimate = None
         self.mc_error = None
 
-    def initialization(self):
+    def initialization(self) -> None:
         """Initialization of Monte-Carlo engine.
 
         Calculate time-dependent mean and variance of the pseudo short
@@ -699,20 +706,21 @@ class SdeEuler:
             self._setup_int_grid()
         self._setup_model_parameters()
 
-    def _setup_int_grid(self):
+    def _setup_int_grid(self) -> None:
         """Set up time grid for numerical integration."""
         self.int_grid, self.int_event_idx = \
             misc_hw.integration_grid(self.event_grid, self.int_dt)
 
-    def _setup_model_parameters(self):
+    def _setup_model_parameters(self) -> None:
         """Set up model parameters on event and integration grids."""
         misc_hw.setup_model_parameters(self)
 
-    def _rate_increment(self,
-                        spot: typing.Union[float, np.ndarray],
-                        event_idx: int,
-                        dt: float,
-                        normal_rand: typing.Union[float, np.ndarray]) \
+    def _rate_increment(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            dt: float,
+            normal_rand: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Increment short rate process one time step.
 
@@ -734,12 +742,13 @@ class SdeEuler:
             + self.vol_eg[event_idx] * wiener_increment - spot
         return rate_increment
 
-    def paths(self,
-              spot: float,
-              n_paths: int,
-              rng: np.random.Generator = None,
-              seed: int = None,
-              antithetic: bool = False):
+    def paths(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Generation of Monte-Carlo paths using Euler discretization.
 
         Args:
@@ -780,13 +789,15 @@ class SdeEuler:
         self.discount_paths = d_paths
 
     @staticmethod
-    def rate_adjustment(rate_paths: np.ndarray,
-                        adjustment: np.ndarray) -> np.ndarray:
+    def rate_adjustment(
+            rate_paths: np.ndarray,
+            adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo rate paths."""
         return rate_adjustment(rate_paths, adjustment)
 
     @staticmethod
-    def discount_adjustment(discount_paths: np.ndarray,
-                            adjustment: np.ndarray) -> np.ndarray:
+    def discount_adjustment(
+            discount_paths: np.ndarray,
+            adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo discount paths."""
         return discount_adjustment(discount_paths, adjustment)

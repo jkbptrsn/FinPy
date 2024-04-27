@@ -8,8 +8,9 @@ from utils import data_types
 from utils import global_types
 
 
-def rate_adjustment(rate_paths: np.ndarray,
-                    adjustment: np.ndarray) -> np.ndarray:
+def rate_adjustment(
+        rate_paths: np.ndarray,
+        adjustment: np.ndarray) -> np.ndarray:
     """Adjust pseudo rate paths.
 
     Assume that pseudo rate paths and discount curve are represented
@@ -26,8 +27,9 @@ def rate_adjustment(rate_paths: np.ndarray,
     return (rate_paths.transpose() + adjustment).transpose()
 
 
-def discount_adjustment(discount_paths: np.ndarray,
-                        adjustment: np.ndarray) -> np.ndarray:
+def discount_adjustment(
+        discount_paths: np.ndarray,
+        adjustment: np.ndarray) -> np.ndarray:
     """Adjust pseudo discount paths.
 
     Assume that pseudo discount paths and discount curve are
@@ -71,15 +73,13 @@ class SdeExactConstant(mc_a.SdeExactConstant):
         event_grid: Event dates as year fractions from as-of date.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 event_grid: np.ndarray):
-        super().__init__(kappa,
-                         vol,
-                         discount_curve,
-                         event_grid)
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            event_grid: np.ndarray):
+        super().__init__(kappa, vol, discount_curve, event_grid)
 
         self.transformation = global_types.Transformation.PELSSER
 
@@ -87,14 +87,16 @@ class SdeExactConstant(mc_a.SdeExactConstant):
         self.discount_mean[:, 1] = 0
 
     @staticmethod
-    def rate_adjustment(rate_paths: np.ndarray,
-                        adjustment: np.ndarray) -> np.ndarray:
+    def rate_adjustment(
+            rate_paths: np.ndarray,
+            adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo rate paths."""
         return rate_adjustment(rate_paths, adjustment)
 
     @staticmethod
-    def discount_adjustment(discount_paths: np.ndarray,
-                            adjustment: np.ndarray) -> np.ndarray:
+    def discount_adjustment(
+            discount_paths: np.ndarray,
+            adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo discount paths."""
         return discount_adjustment(discount_paths, adjustment)
 
@@ -128,15 +130,13 @@ class SdeExactPiecewise(mc_a.SdeExactPiecewise):
         event_grid: Event dates as year fractions from as-of date.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 event_grid: np.ndarray):
-        super().__init__(kappa,
-                         vol,
-                         discount_curve,
-                         event_grid)
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            event_grid: np.ndarray):
+        super().__init__(kappa, vol, discount_curve, event_grid)
 
         self.transformation = global_types.Transformation.PELSSER
 
@@ -144,14 +144,16 @@ class SdeExactPiecewise(mc_a.SdeExactPiecewise):
         self.discount_mean[:, 1] = 0
 
     @staticmethod
-    def rate_adjustment(rate_paths: np.ndarray,
-                        adjustment: np.ndarray) -> np.ndarray:
+    def rate_adjustment(
+            rate_paths: np.ndarray,
+            adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo rate paths."""
         return rate_adjustment(rate_paths, adjustment)
 
     @staticmethod
-    def discount_adjustment(discount_paths: np.ndarray,
-                            adjustment: np.ndarray) -> np.ndarray:
+    def discount_adjustment(
+            discount_paths: np.ndarray,
+            adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo discount paths."""
         return discount_adjustment(discount_paths, adjustment)
 
@@ -187,17 +189,14 @@ class SdeExactGeneral(mc_a.SdeExactGeneral):
         int_dt: Integration step size. Default is 1 / 52.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 event_grid: np.ndarray,
-                 int_dt: float = 1 / 52):
-        super().__init__(kappa,
-                         vol,
-                         discount_curve,
-                         event_grid,
-                         int_dt)
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            event_grid: np.ndarray,
+            int_dt: float = 1 / 52):
+        super().__init__(kappa, vol, discount_curve, event_grid, int_dt)
 
         self.transformation = global_types.Transformation.PELSSER
 
@@ -205,14 +204,16 @@ class SdeExactGeneral(mc_a.SdeExactGeneral):
         self.discount_mean[:, 1] = 0
 
     @staticmethod
-    def rate_adjustment(rate_paths: np.ndarray,
-                        adjustment: np.ndarray) -> np.ndarray:
+    def rate_adjustment(
+            rate_paths: np.ndarray,
+            adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo rate paths."""
         return rate_adjustment(rate_paths, adjustment)
 
     @staticmethod
-    def discount_adjustment(discount_paths: np.ndarray,
-                            adjustment: np.ndarray) -> np.ndarray:
+    def discount_adjustment(
+            discount_paths: np.ndarray,
+            adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo discount paths."""
         return discount_adjustment(discount_paths, adjustment)
 
@@ -247,27 +248,25 @@ class SdeEuler(mc_a.SdeEuler):
         int_dt: Integration step size. Default is 1 / 52.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52):
-        super().__init__(kappa,
-                         vol,
-                         discount_curve,
-                         event_grid,
-                         time_dependence,
-                         int_dt)
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            event_grid: np.ndarray,
+            time_dependence: str = "piecewise",
+            int_dt: float = 1 / 52):
+        super().__init__(
+            kappa, vol, discount_curve, event_grid, time_dependence, int_dt)
 
         self.transformation = global_types.Transformation.ANDERSEN
 
-    def _rate_increment(self,
-                        spot: typing.Union[float, np.ndarray],
-                        event_idx: int,
-                        dt: float,
-                        normal_rand: typing.Union[float, np.ndarray]) \
+    def _rate_increment(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            dt: float,
+            normal_rand: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Increment short rate process one time step.
 
@@ -289,13 +288,15 @@ class SdeEuler(mc_a.SdeEuler):
         return rate_increment
 
     @staticmethod
-    def rate_adjustment(rate_paths: np.ndarray,
-                        adjustment: np.ndarray) -> np.ndarray:
+    def rate_adjustment(
+            rate_paths: np.ndarray,
+            adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo rate paths."""
         return rate_adjustment(rate_paths, adjustment)
 
     @staticmethod
-    def discount_adjustment(discount_paths: np.ndarray,
-                            adjustment: np.ndarray) -> np.ndarray:
+    def discount_adjustment(
+            discount_paths: np.ndarray,
+            adjustment: np.ndarray) -> np.ndarray:
         """Adjust pseudo discount paths."""
         return discount_adjustment(discount_paths, adjustment)

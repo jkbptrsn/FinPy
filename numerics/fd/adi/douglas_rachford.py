@@ -28,12 +28,13 @@ class DouglasRachford2D(base_class.ADI2D):
         theta_parameter: Determines the form of the time derivative.
     """
 
-    def __init__(self,
-                 grid_x: np.ndarray,
-                 grid_y: np.ndarray,
-                 band: str = "tri",
-                 equidistant: bool = False,
-                 theta_parameter: float = 0.5):
+    def __init__(
+            self,
+            grid_x: np.ndarray,
+            grid_y: np.ndarray,
+            band: str = "tri",
+            equidistant: bool = False,
+            theta_parameter: float = 0.5):
         super().__init__(grid_x, grid_y, band, equidistant)
         self.theta_parameter = theta_parameter
 
