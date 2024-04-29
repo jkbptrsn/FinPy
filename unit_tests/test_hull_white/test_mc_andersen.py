@@ -526,7 +526,3 @@ class SDE(unittest.TestCase):
             plt.ylabel("Covariance")
             plt.legend()
             plt.show()
-
-
-if __name__ == '__main__':
-    unittest.main()

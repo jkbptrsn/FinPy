@@ -248,7 +248,3 @@ class Bond(unittest.TestCase):
         if print_results:
             print("max error: ", max_error)
         self.assertTrue(max_error < 8.4e-3)
-
-
-if __name__ == '__main__':
-    unittest.main()

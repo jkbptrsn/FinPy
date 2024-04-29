@@ -140,7 +140,3 @@ class JointDistributions(unittest.TestCase):
             print(np.max(r_diff), np.max(d_diff))
         self.assertTrue(np.max(r_diff) < 3.7e-16)
         self.assertTrue(np.max(d_diff) < 2.2e-14)
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -374,7 +374,3 @@ class SDE(unittest.TestCase):
         if print_results:
             print(f"SDE Euler: Diff = {np.max(diff)}")
         self.assertTrue(np.max(diff) < 1.9e-2)
-
-
-if __name__ == '__main__':
-    unittest.main()

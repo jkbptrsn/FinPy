@@ -341,7 +341,3 @@ class CapletFloorlet(unittest.TestCase):
         if print_results:
             print("max error: ", max_error)
         self.assertTrue(max_error < 1.3e-4)
-
-
-if __name__ == '__main__':
-    unittest.main()
