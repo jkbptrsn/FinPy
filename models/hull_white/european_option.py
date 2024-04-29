@@ -28,10 +28,10 @@ class EuropeanOption(options.Option1FAnalytical):
         maturity_idx: Bond maturity index on event grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
         option_type: Option type. Default is call.
@@ -109,7 +109,7 @@ class EuropeanOption(options.Option1FAnalytical):
         return self.expiry_idx
 
     @exp_idx.setter
-    def exp_idx(self, idx: int):
+    def exp_idx(self, idx: int) -> None:
         self.expiry_idx = idx
         self.initialization()
 
@@ -118,12 +118,12 @@ class EuropeanOption(options.Option1FAnalytical):
         return self.maturity_idx
 
     @mat_idx.setter
-    def mat_idx(self, idx: int):
+    def mat_idx(self, idx: int) -> None:
         self.maturity_idx = idx
         self.zcbond.mat_idx = idx
         self.update_v_function()
 
-    def initialization(self):
+    def initialization(self) -> None:
         """Initialization of object."""
         if self.time_dependence == "constant":
             self.v_eg_tmp = misc_ep.v_constant(
@@ -152,7 +152,7 @@ class EuropeanOption(options.Option1FAnalytical):
                 f"Unknown time dependence: {self.time_dependence}")
         self.update_v_function()
 
-    def update_v_function(self):
+    def update_v_function(self) -> None:
         """Update v- and dv_dt-function."""
         # v-function on event grid until expiry.
         self.v_eg = misc_ep.v_function(
@@ -248,7 +248,7 @@ class EuropeanOption(options.Option1FAnalytical):
             spot, self.strike, event_idx, self.expiry_idx, self.maturity_idx,
             self.zcbond, self.v_eg, self.dv_dt_eg, self.type)
 
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
         # Set terminal condition.
@@ -268,7 +268,7 @@ class EuropeanOption(options.Option1FAnalytical):
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
 
-    def mc_exact_setup(self):
+    def mc_exact_setup(self) -> None:
         """Setup exact Monte-Carlo solver."""
         self.zcbond.mc_exact_setup()
         self.mc_exact = self.zcbond.mc_exact
@@ -279,8 +279,10 @@ class EuropeanOption(options.Option1FAnalytical):
             n_paths: int,
             rng: np.random.Generator = None,
             seed: int = None,
-            antithetic: bool = False):
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
+
+        Exact discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -289,10 +291,6 @@ class EuropeanOption(options.Option1FAnalytical):
             seed: Seed of random number generator. Default is None.
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
         present_value = self.mc_present_value(self.mc_exact)
@@ -300,7 +298,7 @@ class EuropeanOption(options.Option1FAnalytical):
         self.mc_exact.mc_error = present_value.std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
-    def mc_euler_setup(self):
+    def mc_euler_setup(self) -> None:
         """Setup Euler Monte-Carlo solver."""
         self.zcbond.mc_euler_setup()
         self.mc_euler = self.zcbond.mc_euler
@@ -311,10 +309,10 @@ class EuropeanOption(options.Option1FAnalytical):
             n_paths: int,
             rng: np.random.Generator = None,
             seed: int = None,
-            antithetic: bool = False):
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
-        Monte-Carlo paths constructed using Euler-Maruyama discretization.
+        Euler-Maruyama discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -332,7 +330,7 @@ class EuropeanOption(options.Option1FAnalytical):
 
     def mc_present_value(
             self,
-            mc_object):
+            mc_object) -> np.ndarray:
         """Present value for each Monte-Carlo path."""
         # Adjustment of discount paths.
         discount_paths = \
@@ -365,10 +363,10 @@ class EuropeanOptionPelsser(EuropeanOption):
         maturity_idx: Bond maturity index on event grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
         option_type: Option type. Default is call.

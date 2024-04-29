@@ -22,10 +22,10 @@ class Bond(bonds.Bond1FAnalytical):
         cash_flow: Cash flow.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
     """
@@ -169,7 +169,7 @@ class Bond(bonds.Bond1FAnalytical):
             _theta += discount * self.cash_flow[count]
         return _theta
 
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
         # Set terminal condition.
@@ -262,7 +262,7 @@ class Bond(bonds.Bond1FAnalytical):
             self.zcbond.mat_idx = maturity_idx
         return self.zcbond.theta(spot, event_idx)
 
-    def mc_exact_setup(self):
+    def mc_exact_setup(self) -> None:
         """Setup exact Monte-Carlo solver."""
         self.zcbond.mc_exact_setup()
         self.mc_exact = self.zcbond.mc_exact
@@ -272,8 +272,10 @@ class Bond(bonds.Bond1FAnalytical):
                        n_paths: int,
                        rng: np.random.Generator = None,
                        seed: int = None,
-                       antithetic: bool = False):
+                       antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
+
+        Exact discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -282,10 +284,6 @@ class Bond(bonds.Bond1FAnalytical):
             seed: Seed of random number generator. Default is None.
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
         present_value = self.mc_present_value(self.mc_exact)
@@ -293,7 +291,7 @@ class Bond(bonds.Bond1FAnalytical):
         self.mc_exact.mc_error = present_value.std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
-    def mc_euler_setup(self):
+    def mc_euler_setup(self) -> None:
         """Setup Euler Monte-Carlo solver."""
         self.zcbond.mc_euler_setup()
         self.mc_euler = self.zcbond.mc_euler
@@ -303,10 +301,10 @@ class Bond(bonds.Bond1FAnalytical):
                        n_paths: int,
                        rng: np.random.Generator = None,
                        seed: int = None,
-                       antithetic: bool = False):
+                       antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
-        Monte-Carlo paths constructed using Euler-Maruyama discretization.
+        Euler-Maruyama discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -323,12 +321,11 @@ class Bond(bonds.Bond1FAnalytical):
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
     def mc_present_value(self,
-                         mc_object):
+                         mc_object) -> np.ndarray:
         """Present value for each Monte-Carlo path."""
         # Adjustment of discount paths.
-        discount_paths = \
-            mc_object.discount_adjustment(mc_object.discount_paths,
-                                          self.adjust_discount)
+        discount_paths = mc_object.discount_adjustment(
+            mc_object.discount_paths, self.adjust_discount)
         bond_payoff = np.zeros(mc_object.discount_paths.shape[1])
         for counter, idx_pay in enumerate(self.cash_flow_schedule):
             bond_payoff += self.cash_flow[counter] * discount_paths[idx_pay]
@@ -348,10 +345,10 @@ class BondPelsser(Bond):
         cash_flow: Cash flow.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
     """

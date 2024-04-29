@@ -278,7 +278,7 @@ class Swap(bonds.Bond1FAnalytical):
             swap_theta -= (1 + tenor * self.fixed_rate) * bond_theta
         return swap_theta
 
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
         # Set terminal condition.
@@ -311,7 +311,7 @@ class Swap(bonds.Bond1FAnalytical):
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
 
-    def mc_exact_setup(self):
+    def mc_exact_setup(self) -> None:
         """Setup exact Monte-Carlo solver."""
         self.zcbond.mc_exact_setup()
         self.mc_exact = self.zcbond.mc_exact
@@ -321,8 +321,10 @@ class Swap(bonds.Bond1FAnalytical):
                        n_paths: int,
                        rng: np.random.Generator = None,
                        seed: int = None,
-                       antithetic: bool = False):
+                       antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
+
+        Exact discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -331,10 +333,6 @@ class Swap(bonds.Bond1FAnalytical):
             seed: Seed of random number generator. Default is None.
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
         present_value = self.mc_present_value(self.mc_exact)
@@ -342,7 +340,7 @@ class Swap(bonds.Bond1FAnalytical):
         self.mc_exact.mc_error = present_value.std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
-    def mc_euler_setup(self):
+    def mc_euler_setup(self) -> None:
         """Setup Euler Monte-Carlo solver."""
         self.zcbond.mc_euler_setup()
         self.mc_euler = self.zcbond.mc_euler
@@ -352,10 +350,10 @@ class Swap(bonds.Bond1FAnalytical):
                        n_paths: int,
                        rng: np.random.Generator = None,
                        seed: int = None,
-                       antithetic: bool = False):
+                       antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
-        Monte-Carlo paths constructed using Euler-Maruyama discretization.
+        Euler-Maruyama discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -397,7 +395,7 @@ class Swap(bonds.Bond1FAnalytical):
         return swap_payoff
 
     def update_remaining(self,
-                         event_idx: int):
+                         event_idx: int) -> None:
         """Update remaining fixing and payment dates.
 
         Args:
@@ -579,10 +577,10 @@ class SwapPelsser(Swap):
         payment_schedule: Payment indices on event grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
     """

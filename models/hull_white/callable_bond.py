@@ -28,10 +28,10 @@ class FixedRate(bonds.Bond1FAnalytical):
         cash_flow: Cash flow on payment grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
         _oas: Option-adjusted spread.
@@ -105,7 +105,7 @@ class FixedRate(bonds.Bond1FAnalytical):
         return self._oas
 
     @oas.setter
-    def oas(self, oas_in):
+    def oas(self, oas_in) -> None:
         self._oas = oas_in
         self.oas_discount_steps = np.exp(-self._oas * np.diff(self.event_grid))
 
@@ -209,7 +209,7 @@ class FixedRate(bonds.Bond1FAnalytical):
             _theta += discount * self.cash_flow[:, counter].sum()
         return _theta
 
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
         # Set terminal condition.
@@ -232,7 +232,7 @@ class FixedRate(bonds.Bond1FAnalytical):
             self._fd_payment_evaluation(0)
 
     def _fd_payment_evaluation(self,
-                               event_idx: int):
+                               event_idx: int) -> None:
         """Evaluation of payment at deadline event.
 
         Args:
@@ -273,7 +273,7 @@ class FixedRate(bonds.Bond1FAnalytical):
             self.fd.solution += \
                 self.cash_flow[:, counter].sum() * zcbond_pv_tmp
 
-    def mc_exact_setup(self):
+    def mc_exact_setup(self) -> None:
         """Setup exact Monte-Carlo solver."""
         self.zcbond.mc_exact_setup()
         self.mc_exact = self.zcbond.mc_exact
@@ -283,8 +283,10 @@ class FixedRate(bonds.Bond1FAnalytical):
                        n_paths: int,
                        rng: np.random.Generator = None,
                        seed: int = None,
-                       antithetic: bool = False):
+                       antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
+
+        Exact discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -293,10 +295,6 @@ class FixedRate(bonds.Bond1FAnalytical):
             seed: Seed of random number generator. Default is None.
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
         present_value = self.mc_present_value(self.mc_exact)
@@ -304,7 +302,7 @@ class FixedRate(bonds.Bond1FAnalytical):
         self.mc_exact.mc_error = present_value.std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
-    def mc_euler_setup(self):
+    def mc_euler_setup(self) -> None:
         """Setup Euler Monte-Carlo solver."""
         self.zcbond.mc_euler_setup()
         self.mc_euler = self.zcbond.mc_euler
@@ -314,10 +312,10 @@ class FixedRate(bonds.Bond1FAnalytical):
                        n_paths: int,
                        rng: np.random.Generator = None,
                        seed: int = None,
-                       antithetic: bool = False):
+                       antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
-        Monte-Carlo paths constructed using Euler-Maruyama discretization.
+        Euler-Maruyama discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -334,7 +332,7 @@ class FixedRate(bonds.Bond1FAnalytical):
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
     def mc_present_value(self,
-                         mc_object):
+                         mc_object) -> np.ndarray:
         """Present value for each Monte-Carlo path."""
         # Adjustment of discount paths.
         discount_paths = \
@@ -486,10 +484,10 @@ class FixedRatePelsser(FixedRate):
         cash_flow: Cash flow on payment grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
         _oas: Option-adjusted spread.

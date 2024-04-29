@@ -30,10 +30,10 @@ class Caplet(options.Option1FAnalytical):
         payment_idx: Payment index on event grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
         option_type: Caplet or floorlet. Default is caplet.
@@ -119,7 +119,7 @@ class Caplet(options.Option1FAnalytical):
         return self.fixing_idx
 
     @fix_idx.setter
-    def fix_idx(self, idx: int):
+    def fix_idx(self, idx: int) -> None:
         self.fixing_idx = idx
         self.initialization()
 
@@ -128,12 +128,12 @@ class Caplet(options.Option1FAnalytical):
         return self.payment_idx
 
     @pay_idx.setter
-    def pay_idx(self, idx: int):
+    def pay_idx(self, idx: int) -> None:
         self.payment_idx = idx
         self.zcbond.mat_idx = idx
         self.update_v_function()
 
-    def initialization(self):
+    def initialization(self) -> None:
         """Initialization of object."""
         if self.time_dependence == "constant":
             self.v_eg_tmp = \
@@ -174,7 +174,7 @@ class Caplet(options.Option1FAnalytical):
                 f"Unknown time dependence: {self.time_dependence}")
         self.update_v_function()
 
-    def update_v_function(self):
+    def update_v_function(self) -> None:
         """Update v- and dv_dt-function."""
         # v-function on event grid until expiry.
         self.v_eg = \
@@ -283,7 +283,7 @@ class Caplet(options.Option1FAnalytical):
                                     self.zcbond, self.v_eg, self.dv_dt_eg,
                                     self.type)
 
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
         self.fd.set_propagator()
         # Set terminal condition.
@@ -375,7 +375,7 @@ class Caplet(options.Option1FAnalytical):
             self.zcbond.mat_idx = maturity_idx
         return self.zcbond.theta(spot, event_idx)
 
-    def mc_exact_setup(self):
+    def mc_exact_setup(self) -> None:
         """Setup exact Monte-Carlo solver."""
         self.zcbond.mc_exact_setup()
         self.mc_exact = self.zcbond.mc_exact
@@ -385,7 +385,7 @@ class Caplet(options.Option1FAnalytical):
                        n_paths: int,
                        rng: np.random.Generator = None,
                        seed: int = None,
-                       antithetic: bool = False):
+                       antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Args:
@@ -395,10 +395,6 @@ class Caplet(options.Option1FAnalytical):
             seed: Seed of random number generator. Default is None.
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
         present_value = self.mc_present_value(self.mc_exact)
@@ -406,7 +402,7 @@ class Caplet(options.Option1FAnalytical):
         self.mc_exact.mc_error = present_value.std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
-    def mc_euler_setup(self):
+    def mc_euler_setup(self) -> None:
         """Setup Euler Monte-Carlo solver."""
         self.zcbond.mc_euler_setup()
         self.mc_euler = self.zcbond.mc_euler
@@ -416,10 +412,10 @@ class Caplet(options.Option1FAnalytical):
                        n_paths: int,
                        rng: np.random.Generator = None,
                        seed: int = None,
-                       antithetic: bool = False):
+                       antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
-        Monte-Carlo paths constructed using Euler-Maruyama discretization.
+        Euler-Maruyama discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -436,7 +432,7 @@ class Caplet(options.Option1FAnalytical):
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
     def mc_present_value(self,
-                         mc_object):
+                         mc_object) -> np.ndarray:
         """Present value for each Monte-Carlo path."""
         # Adjustment of discount paths.
         discount_paths = \
@@ -467,10 +463,10 @@ class CapletPelsser(Caplet):
         payment_idx: Payment index on event grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
         option_type: Caplet or floorlet. Default is caplet.
