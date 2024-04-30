@@ -71,6 +71,9 @@ def setup_model_parameters(inst):
         raise ValueError(f"Unknown time dependence: {inst.time_dependence}")
 
 
+###############################################################################
+
+
 def integration_grid(
         event_grid: np.ndarray,
         int_dt: float) -> (np.ndarray, np.ndarray):
@@ -93,11 +96,11 @@ def integration_grid(
     for idx, step_size in enumerate(step_size_grid):
         # Number of integration steps.
         steps = math.floor(step_size / int_dt)
-        initial_date = event_grid[idx]
+        initial_time = event_grid[idx]
         if steps == 0:
-            grid = np.array(initial_date + step_size)
+            grid = np.array(initial_time + step_size)
         else:
-            grid = int_dt * np.arange(1, steps + 1) + initial_date
+            grid = int_dt * np.arange(1, steps + 1) + initial_time
             diff_step = step_size - steps * int_dt
             if diff_step > 1.0e-12:
                 grid = np.append(grid, grid[-1] + diff_step)
@@ -133,7 +136,7 @@ def g_constant(
 
     The speed of mean reversion is constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+    See Andersen & Piterbarg (2010), Proposition 10.1.7.
 
     Args:
         kappa: Speed of mean reversion.
@@ -214,7 +217,7 @@ def int_y_constant(
 
     The speed of mean reversion and volatility are constant.
 
-    See Andersen & Piterbarg (2010c)... TODO
+    See Andersen & Piterbarg (2010), Eq. (10.40).
 
     Args:
         kappa: Speed of mean reversion.
@@ -254,13 +257,14 @@ def int_int_y_constant(
     """
     exp_kappa_1 = (np.exp(-2 * kappa * event_grid[:-1])
                    - np.exp(-2 * kappa * event_grid[1:])) / 2
-    exp_kappa_2 = np.exp(-kappa * np.diff(event_grid)) - 1
+    event_grid_diff = np.diff(event_grid)
+    exp_kappa_2 = np.exp(-kappa * event_grid_diff) - 1
     event_grid_sum = event_grid[1:] + event_grid[:-1]
     exp_kappa_3 = \
         np.exp(-kappa * event_grid_sum) - np.exp(-2 * kappa * event_grid[:-1])
     integral = np.zeros(event_grid.size)
     integral[1:] = \
-        vol ** 2 * (kappa * np.diff(event_grid) + exp_kappa_1
+        vol ** 2 * (kappa * event_grid_diff + exp_kappa_1
                     + exp_kappa_2 + exp_kappa_3) / (2 * kappa ** 3)
     return integral
 
@@ -328,19 +332,15 @@ def int_y_piecewise(
         vol_values = vol[event_filter]
         # First term.
         delta_t = event_grid[idx] - vol_times
-        y = np.exp(-two_kappa * delta_t[:-1]) \
-            - np.exp(-two_kappa * delta_t[1:])
+        y = (np.exp(-two_kappa * delta_t[:-1])
+             - np.exp(-two_kappa * delta_t[1:]))
         y *= vol_values[:-1] ** 2 / two_kappa_sq
         integral[idx] += y.sum()
-
         # Second term.
-        # TODO: Make unit tests.
-#        delta_t = event_grid[idx] - event_grid[idx - 1]
         delta_t = event_grid[idx] - vol_times[-1]
         y = 1 + math.exp(-two_kappa * delta_t)
         y *= vol_values[-1] ** 2 / two_kappa_sq
         integral[idx] += y
-
         # Third term.
         delta_t = event_grid[idx] + event_grid[idx - 1] - 2 * vol_times
         y = np.exp(-kappa * delta_t[:-1]) - np.exp(-kappa * delta_t[1:])
@@ -373,6 +373,7 @@ def int_int_y_piecewise(
     Returns:
         "Double integral" of y-function.
     """
+
     integral = np.zeros(event_grid.size)
     two_kappa = 2 * kappa
     two_kappa_cubed = 2 * kappa ** 3
@@ -396,15 +397,8 @@ def int_int_y_piecewise(
         y = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / two_kappa_cubed
         integral[idx] -= y.sum()
-
-        # TODO: Make unit tests.
-#        delta_t = event_grid[idx] - event_grid[idx - 1]
-#        y = math.exp(-kappa * delta_t)
-#        delta_t = event_grid[idx] + event_grid[idx - 1] - 2 * vol_times[-1]
-#        y += math.exp(-kappa * delta_t)
         delta_t = event_grid[idx] - event_grid[idx - 1]
         y = 2 * math.exp(-kappa * delta_t)
-
         y *= vol_values[-1] ** 2 / two_kappa_cubed
         integral[idx] += y
         # Third term.
@@ -495,8 +489,8 @@ def int_y_general(
     Returns:
         "Integral" of y-function.
     """
-    _, y_ig = y_general(int_grid, int_event_idx, int_kappa_step_ig,
-                        vol_ig, event_grid)
+    _, y_ig = y_general(
+        int_grid, int_event_idx, int_kappa_step_ig, vol_ig, event_grid)
     # Calculation of "integral" of y-function on event grid.
     integral = np.zeros(event_grid.size)
     for event_idx in range(1, event_grid.size):
@@ -507,6 +501,7 @@ def int_y_general(
         int_grid_tmp = int_grid[idx1:idx2]
         # Slice of time-integrated kappa for each integration step.
         int_kappa = np.append(int_kappa_step_ig[idx1 + 1:idx2], 0)
+        # Cumulative sum from "right to left".
         int_kappa = np.flip(np.cumsum(np.flip(int_kappa)))
         integrand = np.exp(-int_kappa) * y_ig[idx1:idx2]
         integral[event_idx] = np.sum(misc.trapz(int_grid_tmp, integrand))
@@ -537,8 +532,8 @@ def int_int_y_general(
     Returns:
         "Double integral" of y-function.
     """
-    _, y_ig = y_general(int_grid, int_event_idx, int_kappa_step_ig,
-                        vol_ig, event_grid)
+    _, y_ig = y_general(
+        int_grid, int_event_idx, int_kappa_step_ig, vol_ig, event_grid)
     # Calculation of "double integral" of y-function on event grid.
     integral = np.zeros(event_grid.size)
     for event_idx in range(1, event_grid.size):
@@ -549,16 +544,20 @@ def int_int_y_general(
         inner_integral = np.array(0)
         for idx in range(idx1 + 1, idx2):
             int_grid_tmp = int_grid[idx1:idx + 1]
+            # Slice of time-integrated kappa for each integration step.
             int_kappa_tmp = np.append(int_kappa_step_ig[idx1 + 1:idx + 1], 0)
+            # Cumulative sum from "right to left".
             int_kappa_tmp = np.flip(np.cumsum(np.flip(int_kappa_tmp)))
             integrand = np.exp(-int_kappa_tmp) * y_ig[idx1:idx + 1]
-            inner_integral = \
-                np.append(inner_integral,
-                          np.sum(misc.trapz(int_grid_tmp, integrand)))
+            inner_integral = np.append(
+                inner_integral, np.sum(misc.trapz(int_grid_tmp, integrand)))
         # Slice of integration grid.
         int_grid_tmp = int_grid[idx1:idx2]
         integral[event_idx] = np.sum(misc.trapz(int_grid_tmp, inner_integral))
     return integral
+
+
+###############################################################################
 
 
 def alpha_constant(

@@ -60,8 +60,9 @@ def cholesky_2d(correlation: float,
         corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
 
 
-def trapz(grid: np.ndarray,
-          function: np.ndarray) -> np.ndarray:
+def trapz(
+        grid: np.ndarray,
+        function: np.ndarray) -> np.ndarray:
     """Trapezoidal integration.
 
     Args:
