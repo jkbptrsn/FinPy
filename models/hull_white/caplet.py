@@ -24,7 +24,7 @@ class Caplet(options.Option1FAnalytical):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         strike_rate: Caplet or floorlet rate.
         fixing_idx: Fixing index on event grid.
         payment_idx: Payment index on event grid.
@@ -457,7 +457,7 @@ class CapletPelsser(Caplet):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         strike_rate: Caplet or floorlet rate.
         fixing_idx: Fixing index on event grid.
         payment_idx: Payment index on event grid.

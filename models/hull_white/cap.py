@@ -20,7 +20,7 @@ class Cap(options.Option1FAnalytical):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         strike_rate: Cap or floor rate.
         fixing_schedule: Fixing indices on event grid.
         payment_schedule: Payment indices on event grid.
@@ -312,7 +312,7 @@ class CapPelsser(Cap):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         strike_rate: Cap or floor rate.
         fixing_schedule: Fixing indices on event grid.
         payment_schedule: Payment indices on event grid.

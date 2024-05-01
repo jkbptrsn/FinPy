@@ -20,7 +20,7 @@ class FixedRate(bonds.Bond1FAnalytical):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         coupon: Yearly coupon rate.
         frequency: Yearly payment frequency.
         deadline_schedule: Deadline indices on event grid.
@@ -476,7 +476,7 @@ class FixedRatePelsser(FixedRate):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         coupon: Yearly coupon rate.
         frequency: Yearly payment frequency.
         deadline_schedule: Deadline indices on event grid.

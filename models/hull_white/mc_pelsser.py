@@ -70,7 +70,7 @@ class SdeExactConstant(mc_a.SdeExactConstant):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         event_grid: Event dates as year fractions from as-of date.
     """
 
@@ -128,7 +128,7 @@ class SdeExactPiecewise(mc_a.SdeExactPiecewise):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         event_grid: Event dates as year fractions from as-of date.
     """
 
@@ -186,7 +186,7 @@ class SdeExactGeneral(mc_a.SdeExactGeneral):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         event_grid: Event dates as year fractions from as-of date.
         int_dt: Integration step size. Default is 1 / 52.
     """
@@ -240,7 +240,7 @@ class SdeEuler(mc_a.SdeEuler):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
             "constant": kappa and vol are constant.

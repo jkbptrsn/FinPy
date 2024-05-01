@@ -17,7 +17,7 @@ class Bond(bonds.Bond1FAnalytical):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         cash_flow_schedule: Cash flow indices on event grid.
         cash_flow: Cash flow.
         event_grid: Event dates as year fractions from as-of date.
@@ -340,7 +340,7 @@ class BondPelsser(Bond):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         cash_flow_schedule: Cash flow indices on event grid.
         cash_flow: Cash flow.
         event_grid: Event dates as year fractions from as-of date.

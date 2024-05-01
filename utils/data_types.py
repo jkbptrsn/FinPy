@@ -11,23 +11,23 @@ class DiscreteFunc:
         name: Name of the function.
         event_grid: Event dates as year fractions from as-of date.
         values: Function value at each point on event grid.
-        interp_scheme: Interpolation scheme.
-            * zero
-            * linear
-            * quadratic
-            * cubic
-            Default is flat interpolation ("zero").For more information,
-            see the scipy documentation.
+        interp_scheme: Interpolation scheme
+            - zero
+            - linear
+            - quadratic
+            - cubic
+            Default is zero (flat interpolation).
         extrap_scheme: Use corresponding extrapolation scheme.
             Default is True.
     """
 
-    def __init__(self,
-                 name: str,
-                 event_grid: np.ndarray,
-                 values: np.ndarray,
-                 interp_scheme: str = "zero",
-                 extrap_scheme: bool = True):
+    def __init__(
+            self,
+            name: str,
+            event_grid: np.ndarray,
+            values: np.ndarray,
+            interp_scheme: str = "zero",
+            extrap_scheme: bool = True):
         self.name = name
         self.event_grid = event_grid
         self.values = values
@@ -43,17 +43,19 @@ class DiscreteFunc:
             extrap = "extrapolate"
         else:
             extrap = None
-        self.f_interpolation = \
-            interp1d(self.event_grid, self.values,
-                     kind=self.interp_scheme, fill_value=extrap)
+        self.f_interpolation = interp1d(
+            self.event_grid, self.values, kind=self.interp_scheme,
+            fill_value=extrap)
 
-    def interpolation(self,
-                      interp_grid: typing.Union[float, np.ndarray]) \
+    def interpolation(
+            self,
+            interp_grid: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Interpolate (and extrapolate) on interp_grid.
 
         Args:
-            interp_grid: Interpolation grid in year fractions.
+            interp_grid: Interpolation grid in year fractions from as-of
+                date.
 
         Returns:
             Interpolated values.

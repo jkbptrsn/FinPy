@@ -24,7 +24,7 @@ class Payer(options.Option1FAnalytical):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         fixed_rate: Fixed rate.
         fixing_schedule: Fixing indices on event grid.
         payment_schedule: Payment indices on event grid.
@@ -368,7 +368,7 @@ class PayerPelsser(Payer):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         fixed_rate: Fixed rate.
         fixing_schedule: Fixing indices on event grid.
         payment_schedule: Payment indices on event grid.

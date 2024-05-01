@@ -22,7 +22,7 @@ class EuropeanOption(options.Option1FAnalytical):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         strike: Strike value of underlying zero-coupon bond.
         expiry_idx: Option expiry index on event grid.
         maturity_idx: Bond maturity index on event grid.
@@ -357,7 +357,7 @@ class EuropeanOptionPelsser(EuropeanOption):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         strike: Strike value of underlying zero-coupon bond.
         expiry_idx: Option expiry index on event grid.
         maturity_idx: Bond maturity index on event grid.
