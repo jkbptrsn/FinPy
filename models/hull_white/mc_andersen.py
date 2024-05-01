@@ -58,14 +58,15 @@ class SdeExact:
 
     The pseudo short rate is defined by
         dx_t = (y_t - kappa_t * x_t) * dt + vol_t * dW_t,
-    where kappa and mean_rate are the speed of mean reversion and mean
-    reversion level, respectively, and vol denotes the volatility. W_t
-    is a Brownian motion process under the risk-neutral measure Q.
+    where kappa_t is the speed of mean reversion and vol_t denotes the
+    volatility. W_t is a Brownian motion process under the risk-neutral
+    measure Q.
 
     The pseudo short rate is related to the short rate by
-        x_t = r_t - f(0,t).
+        x_t = r_t - f(0,t),
+    where f is the instantaneous forward rate.
 
-    See Andersen & Piterbarg (2010), Chapter 10.1.
+    See Andersen & Piterbarg (2010), Section 10.1.
 
     Monte-Carlo paths constructed using exact discretization.
 
@@ -75,10 +76,10 @@ class SdeExact:
         discount_curve: Discount curve represented on event grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
     """
@@ -618,14 +619,15 @@ class SdeEuler:
 
     The pseudo short rate is defined by
         dx_t = (y_t - kappa_t * x_t) * dt + vol_t * dW_t,
-    where kappa and mean_rate are the speed of mean reversion and mean
-    reversion level, respectively, and vol denotes the volatility. W_t
-    is a Brownian motion process under the risk-neutral measure Q.
+    where kappa_t is the speed of mean reversion and vol_t denotes the
+    volatility. W_t is a Brownian motion process under the risk-neutral
+    measure Q.
 
     The pseudo short rate is related to the short rate by
-        x_t = r_t - f(0,t) (f is the instantaneous forward rate).
+        x_t = r_t - f(0,t),
+    where f is the instantaneous forward rate.
 
-    See Andersen & Piterbarg (2010), Chapter 10.1.
+    See Andersen & Piterbarg (2010), Section 10.1.
 
     Monte-Carlo paths constructed using Euler-Maruyama discretization.
 
@@ -635,10 +637,10 @@ class SdeEuler:
         discount_curve: Discount curve represented on event grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
     """

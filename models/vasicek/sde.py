@@ -69,7 +69,7 @@ class SdeExact(Sde):
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
 
-    See Andersen & Piterbarg (2010), Chapter 10.1.
+    See Andersen & Piterbarg (2010), Section 10.1.
 
     Monte-Carlo paths constructed using exact discretization.
 
@@ -287,7 +287,7 @@ class SdeEuler(Sde):
     reversion level, respectively, and vol denotes the volatility. W_t
     is a Brownian motion process under the risk-neutral measure Q.
 
-    See Andersen & Piterbarg (2010), Chapter 10.1.
+    See Andersen & Piterbarg (2010), Section 10.1.
 
     Monte-Carlo paths constructed using Euler-Maruyama discretization.
 

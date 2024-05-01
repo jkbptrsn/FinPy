@@ -53,12 +53,13 @@ class SdeExactConstant(mc_a.SdeExactConstant):
 
     The pseudo short rate is defined by
         dx_t = -kappa_t * x_t * dt + vol_t * dW_t,
-    where kappa and mean_rate are the speed of mean reversion and mean
-    reversion level, respectively, and vol denotes the volatility. W_t
-    is a Brownian motion process under the risk-neutral measure Q.
+    where kappa_t is the speed of mean reversion and vol_t denotes the
+    volatility. W_t is a Brownian motion process under the risk-neutral
+    measure Q.
 
     The pseudo short rate is related to the short rate by
-        x_t = r_t - f(0,t) - alpha_t.
+        x_t = r_t - f(0,t) - alpha_t,
+    where f is the instantaneous forward rate.
 
     See Pelsser (2000), Chapter 5.
 
@@ -105,13 +106,14 @@ class SdeExactPiecewise(mc_a.SdeExactPiecewise):
     """SDE for pseudo short rate process in 1-factor Hull-White model.
 
     The pseudo short rate is defined by
-        dx_t = -kappa_t * x_t) * dt + vol_t * dW_t,
-    where kappa and mean_rate are the speed of mean reversion and mean
-    reversion level, respectively, and vol denotes the volatility. W_t
-    is a Brownian motion process under the risk-neutral measure Q.
+        dx_t = -kappa_t * x_t * dt + vol_t * dW_t,
+    where kappa_t is the speed of mean reversion and vol_t denotes the
+    volatility. W_t is a Brownian motion process under the risk-neutral
+    measure Q.
 
     The pseudo short rate is related to the short rate by
-        x_t = r_t - f(0,t) - alpha_t.
+        x_t = r_t - f(0,t) - alpha_t,
+    where f is the instantaneous forward rate.
 
     See Pelsser (2000), Chapter 5.
 
@@ -161,15 +163,15 @@ class SdeExactPiecewise(mc_a.SdeExactPiecewise):
 class SdeExactGeneral(mc_a.SdeExactGeneral):
     """SDE for pseudo short rate process in 1-factor Hull-White model.
 
-
     The pseudo short rate is defined by
-        dx_t = -kappa_t * x_t) * dt + vol_t * dW_t,
-    where kappa and mean_rate are the speed of mean reversion and mean
-    reversion level, respectively, and vol denotes the volatility. W_t
-    is a Brownian motion process under the risk-neutral measure Q.
+        dx_t = -kappa_t * x_t * dt + vol_t * dW_t,
+    where kappa_t is the speed of mean reversion and vol_t denotes the
+    volatility. W_t is a Brownian motion process under the risk-neutral
+    measure Q.
 
     The pseudo short rate is related to the short rate by
-        x_t = r_t - f(0,t) - alpha_t.
+        x_t = r_t - f(0,t) - alpha_t,
+    where f is the instantaneous forward rate.
 
     See Pelsser (2000), Chapter 5.
 
@@ -223,12 +225,13 @@ class SdeEuler(mc_a.SdeEuler):
 
     The pseudo short rate is defined by
         dx_t = -kappa_t * x_t * dt + vol_t * dW_t,
-    where kappa and mean_rate are the speed of mean reversion and mean
-    reversion level, respectively, and vol denotes the volatility. W_t
-    is a Brownian motion process under the risk-neutral measure Q.
+    where kappa_t is the speed of mean reversion and vol_t denotes the
+    volatility. W_t is a Brownian motion process under the risk-neutral
+    measure Q.
 
     The pseudo short rate is related to the short rate by
-        x_t = r_t - f(0,t) - alpha_t.
+        x_t = r_t - f(0,t) - alpha_t,
+    where f is the instantaneous forward rate.
 
     See Pelsser (2000), Chapter 5.
 
