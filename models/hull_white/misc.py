@@ -19,8 +19,8 @@ def setup_model_parameters(inst):
     # TODO: Test accuracy
     log_discount = np.log(inst.discount_curve_eg)
     smoothing = 0
-    log_discount_spline = \
-        UnivariateSpline(inst.event_grid, log_discount, s=smoothing)
+    log_discount_spline = UnivariateSpline(
+        inst.event_grid, log_discount, s=smoothing)
     forward_rate = log_discount_spline.derivative()
     inst.forward_rate_eg = -forward_rate(inst.event_grid)
 
@@ -31,9 +31,8 @@ def setup_model_parameters(inst):
         # G-function, G(0,t), on event grid.
         inst.g_eg = g_constant(inst.kappa_eg[0], inst.event_grid)
         # y-function on event grid.
-        inst.y_eg = y_constant(inst.kappa_eg[0],
-                               inst.vol_eg[0],
-                               inst.event_grid)
+        inst.y_eg = y_constant(
+            inst.kappa_eg[0], inst.vol_eg[0], inst.event_grid)
     # Kappa is constant and vol is piecewise constant.
     elif inst.time_dependence == "piecewise":
         # Integration of kappa on event grid.
@@ -49,24 +48,21 @@ def setup_model_parameters(inst):
         # Vol interpolated on integration grid.
         inst.vol_ig = inst.vol.interpolation(inst.int_grid)
         # Step-wise integration of kappa on integration grid.
-        inst.int_kappa_step_ig = \
-            np.append(0, misc.trapz(inst.int_grid, inst.kappa_ig))
+        inst.int_kappa_step_ig = (
+            np.append(0, misc.trapz(inst.int_grid, inst.kappa_ig)))
         # Integration of kappa on event grid.
         inst.int_kappa_eg = np.zeros(inst.event_grid.size)
         for event_idx, int_idx in enumerate(inst.int_event_idx):
             inst.int_kappa_eg[event_idx] = \
                 np.sum(inst.int_kappa_step_ig[:int_idx + 1])
         # G-function, G(0,t), on event grid.
-        inst.g_eg = g_general(inst.int_grid,
-                              inst.int_event_idx,
-                              inst.int_kappa_step_ig,
-                              inst.event_grid)
+        inst.g_eg = g_general(
+            inst.int_grid, inst.int_event_idx, inst.int_kappa_step_ig,
+            inst.event_grid)
         # y-function on event grid.
-        inst.y_eg, _ = y_general(inst.int_grid,
-                                 inst.int_event_idx,
-                                 inst.int_kappa_step_ig,
-                                 inst.vol_ig,
-                                 inst.event_grid)
+        inst.y_eg, _ = y_general(
+            inst.int_grid, inst.int_event_idx, inst.int_kappa_step_ig,
+            inst.vol_ig, inst.event_grid)
     else:
         raise ValueError(f"Unknown time dependence: {inst.time_dependence}")
 
