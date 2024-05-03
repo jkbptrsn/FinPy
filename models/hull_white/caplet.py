@@ -39,17 +39,17 @@ class Caplet(options.Option1FAnalytical):
         option_type: Caplet or floorlet. Default is caplet.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 strike_rate: float,
-                 fixing_idx: int,
-                 payment_idx: int,
-                 event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52,
-                 option_type: str = "caplet"):
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            strike_rate: float,
+            fixing_idx: int,
+            payment_idx: int,
+            event_grid: np.ndarray,
+            time_dependence: str = "piecewise",
+            int_dt: float = 1 / 52,option_type: str = "caplet"):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
@@ -62,14 +62,9 @@ class Caplet(options.Option1FAnalytical):
         self.int_dt = int_dt
 
         # Zero-coupon bond.
-        self.zcbond = \
-            zcbond.ZCBond(kappa,
-                          vol,
-                          discount_curve,
-                          payment_idx,
-                          event_grid,
-                          time_dependence,
-                          int_dt)
+        self.zcbond = zcbond.ZCBond(
+            kappa, vol, discount_curve, payment_idx, event_grid,
+            time_dependence, int_dt)
         # Kappa on event grid.
         self.kappa_eg = self.zcbond.kappa_eg
         # Vol on event grid.
@@ -136,39 +131,27 @@ class Caplet(options.Option1FAnalytical):
     def initialization(self) -> None:
         """Initialization of object."""
         if self.time_dependence == "constant":
-            self.v_eg_tmp = \
-                misc_ep.v_constant(self.zcbond.kappa_eg[0],
-                                   self.zcbond.vol_eg[0],
-                                   self.fixing_idx,
-                                   self.event_grid)
-            self.dv_dt_eg_tmp = \
-                misc_ep.dv_dt_constant(self.zcbond.kappa_eg[0],
-                                       self.zcbond.vol_eg[0],
-                                       self.fixing_idx,
-                                       self.event_grid)
+            self.v_eg_tmp = misc_ep.v_constant(
+                self.zcbond.kappa_eg[0], self.zcbond.vol_eg[0],
+                self.fixing_idx, self.event_grid)
+            self.dv_dt_eg_tmp = misc_ep.dv_dt_constant(
+                self.zcbond.kappa_eg[0], self.zcbond.vol_eg[0],
+                self.fixing_idx, self.event_grid)
         elif self.time_dependence == "piecewise":
-            self.v_eg_tmp = \
-                misc_ep.v_piecewise(self.zcbond.kappa_eg[0],
-                                    self.zcbond.vol_eg,
-                                    self.fixing_idx,
-                                    self.event_grid)
-            self.dv_dt_eg_tmp = \
-                misc_ep.dv_dt_piecewise(self.zcbond.kappa_eg[0],
-                                        self.zcbond.vol_eg,
-                                        self.fixing_idx,
-                                        self.event_grid)
+            self.v_eg_tmp = misc_ep.v_piecewise(
+                self.zcbond.kappa_eg[0], self.zcbond.vol_eg,
+                self.fixing_idx, self.event_grid)
+            self.dv_dt_eg_tmp = misc_ep.dv_dt_piecewise(
+                self.zcbond.kappa_eg[0], self.zcbond.vol_eg,
+                self.fixing_idx, self.event_grid)
         elif self.time_dependence == "general":
-            self.v_eg_tmp = \
-                misc_ep.v_general(self.zcbond.int_grid,
-                                  self.zcbond.int_event_idx,
-                                  self.zcbond.int_kappa_step_ig,
-                                  self.zcbond.vol_ig,
-                                  self.fixing_idx)
-            self.dv_dt_eg_tmp = \
-                misc_ep.dv_dt_general(self.zcbond.int_event_idx,
-                                      self.zcbond.int_kappa_step_ig,
-                                      self.zcbond.vol_ig,
-                                      self.fixing_idx)
+            self.v_eg_tmp = misc_ep.v_general(
+                self.zcbond.int_grid, self.zcbond.int_event_idx,
+                self.zcbond.int_kappa_step_ig, self.zcbond.vol_ig,
+                self.fixing_idx)
+            self.dv_dt_eg_tmp = misc_ep.dv_dt_general(
+                self.zcbond.int_event_idx, self.zcbond.int_kappa_step_ig,
+                self.zcbond.vol_ig, self.fixing_idx)
         else:
             raise ValueError(
                 f"Unknown time dependence: {self.time_dependence}")
@@ -177,21 +160,17 @@ class Caplet(options.Option1FAnalytical):
     def update_v_function(self) -> None:
         """Update v- and dv_dt-function."""
         # v-function on event grid until expiry.
-        self.v_eg = \
-            misc_ep.v_function(self.fixing_idx,
-                               self.payment_idx,
-                               self.zcbond.g_eg,
-                               self.v_eg_tmp)
+        self.v_eg = misc_ep.v_function(
+            self.fixing_idx, self.payment_idx, self.zcbond.g_eg, self.v_eg_tmp)
         # dv_dt-function on event grid until expiry.
-        self.dv_dt_eg = \
-            misc_ep.v_function(self.fixing_idx,
-                               self.payment_idx,
-                               self.zcbond.g_eg,
-                               self.dv_dt_eg_tmp)
+        self.dv_dt_eg = misc_ep.v_function(
+            self.fixing_idx, self.payment_idx, self.zcbond.g_eg,
+            self.dv_dt_eg_tmp)
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray],
-               discounting: bool = False) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            discounting: bool = False) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -218,9 +197,10 @@ class Caplet(options.Option1FAnalytical):
         else:
             return _payoff
 
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -230,13 +210,14 @@ class Caplet(options.Option1FAnalytical):
         Returns:
             Price.
         """
-        return misc_cf.caplet_price(spot, self.strike_rate, self.tenor,
-                                    event_idx, self.fix_idx, self.pay_idx,
-                                    self.zcbond, self.v_eg, self.type)
+        return misc_cf.caplet_price(
+            spot, self.strike_rate, self.tenor, event_idx, self.fix_idx,
+            self.pay_idx, self.zcbond, self.v_eg, self.type)
 
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt short rate.
 
         Args:
@@ -246,13 +227,14 @@ class Caplet(options.Option1FAnalytical):
         Returns:
             Delta.
         """
-        return misc_cf.caplet_delta(spot, self.strike_rate, self.tenor,
-                                    event_idx, self.fix_idx, self.pay_idx,
-                                    self.zcbond, self.v_eg, self.type)
+        return misc_cf.caplet_delta(
+            spot, self.strike_rate, self.tenor, event_idx, self.fix_idx,
+            self.pay_idx, self.zcbond, self.v_eg, self.type)
 
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt short rate.
 
         Args:
@@ -262,13 +244,14 @@ class Caplet(options.Option1FAnalytical):
         Returns:
             Gamma.
         """
-        return misc_cf.caplet_gamma(spot, self.strike_rate, self.tenor,
-                                    event_idx, self.fix_idx, self.pay_idx,
-                                    self.zcbond, self.v_eg, self.type)
+        return misc_cf.caplet_gamma(
+            spot, self.strike_rate, self.tenor, event_idx, self.fix_idx,
+            self.pay_idx, self.zcbond, self.v_eg, self.type)
 
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -278,10 +261,9 @@ class Caplet(options.Option1FAnalytical):
         Returns:
             Theta.
         """
-        return misc_cf.caplet_theta(spot, self.strike_rate, self.tenor,
-                                    event_idx, self.fix_idx, self.pay_idx,
-                                    self.zcbond, self.v_eg, self.dv_dt_eg,
-                                    self.type)
+        return misc_cf.caplet_theta(
+            spot, self.strike_rate, self.tenor, event_idx, self.fix_idx,
+            self.pay_idx, self.zcbond, self.v_eg, self.dv_dt_eg, self.type)
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
@@ -303,10 +285,11 @@ class Caplet(options.Option1FAnalytical):
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
 
-    def zcbond_price(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+    def zcbond_price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            maturity_idx: int) -> typing.Union[float, np.ndarray]:
         """Price of zero-coupon bond.
 
         Args:
@@ -321,10 +304,11 @@ class Caplet(options.Option1FAnalytical):
             self.zcbond.mat_idx = maturity_idx
         return self.zcbond.price(spot, event_idx)
 
-    def zcbond_delta(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+    def zcbond_delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            maturity_idx: int) -> typing.Union[float, np.ndarray]:
         """Delta of zero-coupon bond.
 
         Args:
@@ -339,10 +323,11 @@ class Caplet(options.Option1FAnalytical):
             self.zcbond.mat_idx = maturity_idx
         return self.zcbond.delta(spot, event_idx)
 
-    def zcbond_gamma(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+    def zcbond_gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            maturity_idx: int) -> typing.Union[float, np.ndarray]:
         """Gamma of zero-coupon bond.
 
         Args:
@@ -357,10 +342,11 @@ class Caplet(options.Option1FAnalytical):
             self.zcbond.mat_idx = maturity_idx
         return self.zcbond.gamma(spot, event_idx)
 
-    def zcbond_theta(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+    def zcbond_theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            maturity_idx: int) -> typing.Union[float, np.ndarray]:
         """Theta of zero-coupon bond.
 
         Args:
@@ -380,12 +366,13 @@ class Caplet(options.Option1FAnalytical):
         self.zcbond.mc_exact_setup()
         self.mc_exact = self.zcbond.mc_exact
 
-    def mc_exact_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False) -> None:
+    def mc_exact_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Args:
@@ -407,12 +394,13 @@ class Caplet(options.Option1FAnalytical):
         self.zcbond.mc_euler_setup()
         self.mc_euler = self.zcbond.mc_euler
 
-    def mc_euler_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False) -> None:
+    def mc_euler_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Euler-Maruyama discretization.
@@ -431,13 +419,13 @@ class Caplet(options.Option1FAnalytical):
         self.mc_euler.mc_error = present_value.std(ddof=1)
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
-    def mc_present_value(self,
-                         mc_object) -> np.ndarray:
+    def mc_present_value(
+            self,
+            mc_object) -> np.ndarray:
         """Present value for each Monte-Carlo path."""
         # Adjustment of discount paths.
-        discount_paths = \
-            mc_object.discount_adjustment(mc_object.discount_paths,
-                                          self.adjust_discount)
+        discount_paths = mc_object.discount_adjustment(
+            mc_object.discount_paths, self.adjust_discount)
         # Pseudo short rate at fixing event.
         spot = mc_object.rate_paths[self.fix_idx]
         # Option payoff at fixing event.
@@ -472,37 +460,26 @@ class CapletPelsser(Caplet):
         option_type: Caplet or floorlet. Default is caplet.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 strike_rate: float,
-                 fixing_idx: int,
-                 payment_idx: int,
-                 event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52,
-                 option_type: str = "caplet"):
-        super().__init__(kappa,
-                         vol,
-                         discount_curve,
-                         strike_rate,
-                         fixing_idx,
-                         payment_idx,
-                         event_grid,
-                         time_dependence,
-                         int_dt,
-                         option_type)
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            strike_rate: float,
+            fixing_idx: int,
+            payment_idx: int,
+            event_grid: np.ndarray,
+            time_dependence: str = "piecewise",
+            int_dt: float = 1 / 52,
+            option_type: str = "caplet"):
+        super().__init__(
+            kappa, vol, discount_curve, strike_rate, fixing_idx, payment_idx,
+            event_grid, time_dependence, int_dt, option_type)
 
         # Zero-coupon bond.
-        self.zcbond = \
-            zcbond.ZCBondPelsser(kappa,
-                                 vol,
-                                 discount_curve,
-                                 fixing_idx,
-                                 event_grid,
-                                 time_dependence,
-                                 int_dt)
+        self.zcbond = zcbond.ZCBondPelsser(
+            kappa, vol, discount_curve, fixing_idx, event_grid,
+            time_dependence, int_dt)
 
         self.transformation = self.zcbond.transformation
 
