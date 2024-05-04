@@ -485,8 +485,8 @@ class SdeExactGeneral(SdeExact):
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
 
-    TODO: Implicit assumption that all vol-strip events are represented
-     on event grid.
+    Note: Implicit assumption that all vol-strip events are represented
+    on event grid.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -504,7 +504,7 @@ class SdeExactGeneral(SdeExact):
             event_grid: np.ndarray,
             int_dt: float = 1 / 52):
         super().__init__(
-            kappa, vol,  discount_curve, event_grid, "general", int_dt)
+            kappa, vol, discount_curve, event_grid, "general", int_dt)
 
         self.initialization()
 
@@ -517,10 +517,9 @@ class SdeExactGeneral(SdeExact):
         self.rate_mean[0, 0] = 1
         self.rate_mean[1:, 0] = np.exp(-np.diff(self.int_kappa_eg))
         # Second term in Eq. (10.40).
-        self.rate_mean[:, 1] = \
-            misc_hw.int_y_general(self.int_grid, self.int_event_idx,
-                                  self.int_kappa_step_ig, self.vol_ig,
-                                  self.event_grid)
+        self.rate_mean[:, 1] = misc_hw.int_y_general(
+            self.int_grid, self.int_event_idx, self.int_kappa_step_ig,
+            self.vol_ig, self.event_grid)
 
     def _calc_rate_variance(self) -> None:
         """Conditional variance of pseudo short rate process.
@@ -534,9 +533,17 @@ class SdeExactGeneral(SdeExact):
             idx2 = self.int_event_idx[event_idx] + 1
             # Slice of integration grid.
             int_grid_tmp = self.int_grid[idx1:idx2]
+
+            # TODO: Remove!
             # Slice of time-integrated kappa for each integration step.
-            int_kappa = np.append(self.int_kappa_step_ig[idx1 + 1:idx2], 0)
+#            int_kappa = np.append(self.int_kappa_step_ig[idx1 + 1:idx2], 0)
+
+            int_kappa = np.append(0, self.int_kappa_step_ig[idx1 + 1:idx2])
+            # Cumulative sum from "right to left".
             int_kappa = np.flip(np.cumsum(np.flip(int_kappa)))
+            # Shift to the left.
+            int_kappa[:-1] = int_kappa[1:]
+            int_kappa[-1] = 0
             integrand = (np.exp(-int_kappa) * self.vol_ig[idx1:idx2]) ** 2
             variance = np.sum(misc.trapz(int_grid_tmp, integrand))
             self.rate_variance[event_idx] = variance
@@ -553,9 +560,9 @@ class SdeExactGeneral(SdeExact):
             (self.g_eg[1:] - self.g_eg[:-1]) * np.exp(self.int_kappa_eg[:-1])
         # Second term in Eq. (10.42).
         self.discount_mean[:, 1] = \
-            misc_hw.int_int_y_general(self.int_grid, self.int_event_idx,
-                                      self.int_kappa_step_ig, self.vol_ig,
-                                      self.event_grid)
+            misc_hw.int_int_y_general(
+                self.int_grid, self.int_event_idx, self.int_kappa_step_ig,
+                self.vol_ig, self.event_grid)
 
     def _calc_discount_variance(self) -> None:
         """Conditional variance of pseudo discount process.
@@ -577,20 +584,24 @@ class SdeExactGeneral(SdeExact):
             # Integration indices of two adjacent events.
             idx1 = self.int_event_idx[event_idx - 1]
             idx2 = self.int_event_idx[event_idx] + 1
-
             # Slice of time-integrated kappa for each integration step.
-            # TODO: Make unit tests!
-#            int_kappa = np.append(0, self.int_kappa_step_ig[idx1 + 1:idx2])
-            int_kappa = np.append(self.int_kappa_step_ig[idx1 + 1:idx2], 0)
-
+            int_kappa = np.append(0, self.int_kappa_step_ig[idx1 + 1:idx2])
+            # Cumulative sum from "right to left".
             int_kappa = np.flip(np.cumsum(np.flip(int_kappa)))
+            # Shift to the left.
+            int_kappa[:-1] = int_kappa[1:]
+            int_kappa[-1] = 0
             exp_kappa = np.exp(-int_kappa)
             cov = np.array(0)
             for idx in range(idx1 + 1, idx2):
                 int_grid_tmp = self.int_grid[idx1:idx + 1]
-                int_kappa_tmp = \
-                    np.append(self.int_kappa_step_ig[idx1 + 1:idx + 1], 0)
+                int_kappa_tmp = (
+                    np.append(0, self.int_kappa_step_ig[idx1 + 1:idx + 1]))
+                # Cumulative sum from "right to left".
                 int_kappa_tmp = np.flip(np.cumsum(np.flip(int_kappa_tmp)))
+                # Shift to the left.
+                int_kappa_tmp[:-1] = int_kappa_tmp[1:]
+                int_kappa_tmp[-1] = 0
                 integrand = self.vol_ig[idx1:idx + 1] ** 2 * \
                     np.exp(-int_kappa_tmp) * exp_kappa[:idx + 1 - idx1]
                 cov = np.append(cov,
