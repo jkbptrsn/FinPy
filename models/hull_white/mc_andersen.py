@@ -184,7 +184,7 @@ class SdeExact:
                 variables.
 
         Returns:
-            Incremented pseudo short rate process.
+            Increment of pseudo short rate process.
         """
         mean = \
             self.rate_mean[event_idx, 0] * spot + self.rate_mean[event_idx, 1]
@@ -216,7 +216,7 @@ class SdeExact:
                 variables.
 
         Returns:
-            Incremented pseudo discount process.
+            Increment of pseudo discount process.
         """
         mean = - rate_spot * self.discount_mean[event_idx, 0] \
             - self.discount_mean[event_idx, 1]
@@ -290,7 +290,6 @@ class SdeExact:
         self.rate_paths = r_paths
         self.discount_paths = d_paths
 
-    # TODO: Why static?
     @staticmethod
     def rate_adjustment(
             rate_paths: np.ndarray,
@@ -298,7 +297,6 @@ class SdeExact:
         """Adjust pseudo rate paths."""
         return rate_adjustment(rate_paths, adjustment)
 
-    # TODO: Why static?
     @staticmethod
     def discount_adjustment(
             discount_paths: np.ndarray,
@@ -672,7 +670,7 @@ class SdeEuler:
         # G-function, G(t,t_maturity), on event grid.
         self.gt_eg = None
         # y-function on event grid.
-        self.y_eg =  None
+        self.y_eg = None
 
         # Integration grid.
         self.int_grid = None
@@ -721,17 +719,20 @@ class SdeEuler:
             dt: float,
             normal_rand: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
-        """Increment short rate process one time step.
+        """Increment pseudo short rate process.
+
+        See Andersen & Piterbarg (2010), Section 10.1.6.2.
+
+        The spot value is subtracted to get the increment.
 
         Args:
-            spot: Short rate at event corresponding to event_idx.
+            spot: Pseudo short rate at event event_idx.
             event_idx: Index on event grid.
-            dt: Time step.
-            normal_rand: Realizations of independent standard normal
-                random variables.
+            normal_rand: Realizations of standard normal random
+                variables.
 
         Returns:
-            Increment of short rate process.
+            Increment of pseudo short rate process.
         """
         kappa = self.kappa_eg[event_idx]
         exp_kappa = math.exp(-kappa * dt)
@@ -751,7 +752,7 @@ class SdeEuler:
         """Generation of Monte-Carlo paths using Euler discretization.
 
         Args:
-            spot: Short rate at as-of date.
+            spot: Pseudo short rate at as-of date.
             n_paths: Number of Monte-Carlo paths.
             rng: Random number generator. Default is None.
             seed: Seed of random number generator. Default is None.
@@ -759,8 +760,8 @@ class SdeEuler:
                 Default is False.
 
         Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
+            Realizations of correlated pseudo short rate and pseudo
+            discount processes represented on event_grid.
         """
         if rng is None:
             rng = np.random.default_rng(seed)
@@ -774,9 +775,8 @@ class SdeEuler:
             # Realizations of standard normal random variables.
             x_rate = misc.normal_realizations(n_paths, rng, antithetic)
             # Increment of rate process, and update.
-            r_increment = \
-                self._rate_increment(r_paths[event_idx - 1],
-                                     event_idx - 1, dt, x_rate)
+            r_increment = self._rate_increment(
+                r_paths[event_idx - 1], event_idx - 1, dt, x_rate)
             r_paths[event_idx] = r_paths[event_idx - 1] + r_increment
             # Increment of discount process, and update.
             d_increment = -r_paths[event_idx - 1] * dt
