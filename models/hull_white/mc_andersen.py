@@ -130,7 +130,7 @@ class SdeExact:
         self.model = global_types.Model.HULL_WHITE_1F
         self.transformation = global_types.Transformation.ANDERSEN
 
-        # Arrays used for discretization.
+        # Arrays used for exact discretization.
         self.rate_mean = np.zeros((event_grid.size, 2))
         self.rate_variance = np.zeros(event_grid.size)
         self.discount_mean = np.zeros((event_grid.size, 2))
@@ -280,17 +280,21 @@ class SdeExact:
         d_paths = np.zeros((self.event_grid.size, n_paths))
         for event_idx in range(1, self.event_grid.size):
             correlation = self._correlation(event_idx)
+
             # Realizations of standard normal random variables.
-            x_rate, x_discount = \
-                misc.cholesky_2d(correlation, n_paths, rng, antithetic)
+            x_rate, x_discount = misc.cholesky_2d(
+                correlation, n_paths, rng, antithetic)
+
             # Increment pseudo short rate process, and update.
-            r_increment = self._rate_increment(r_paths[event_idx - 1],
-                                               event_idx, x_rate)
+            r_increment = self._rate_increment(
+                r_paths[event_idx - 1], event_idx, x_rate)
             r_paths[event_idx] = r_paths[event_idx - 1] + r_increment
+
             # Increment pseudo discount process, and update.
-            d_increment = self._discount_increment(r_paths[event_idx - 1],
-                                                   event_idx, x_discount)
+            d_increment = self._discount_increment(
+                r_paths[event_idx - 1], event_idx, x_discount)
             d_paths[event_idx] = d_paths[event_idx - 1] + d_increment
+
         # Get pseudo discount factors on event_grid.
         d_paths = np.exp(d_paths)
         # Update.

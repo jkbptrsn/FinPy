@@ -35,17 +35,18 @@ class Cap(options.Option1FAnalytical):
         option_type: Cap or floor. Default is cap.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 strike_rate: float,
-                 fixing_schedule: np.ndarray,
-                 payment_schedule: np.ndarray,
-                 event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52,
-                 option_type: str = "cap"):
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            strike_rate: float,
+            fixing_schedule: np.ndarray,
+            payment_schedule: np.ndarray,
+            event_grid: np.ndarray,
+            time_dependence: str = "piecewise",
+            int_dt: float = 1 / 52,
+            option_type: str = "cap"):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
@@ -58,17 +59,10 @@ class Cap(options.Option1FAnalytical):
         self.int_dt = int_dt
 
         # Caplet/floorlet.
-        self.xlet = \
-            caplet.Caplet(kappa,
-                          vol,
-                          discount_curve,
-                          strike_rate,
-                          fixing_schedule[0],
-                          payment_schedule[0],
-                          event_grid,
-                          time_dependence,
-                          int_dt,
-                          option_type + "let")
+        self.xlet = caplet.Caplet(
+            kappa, vol, discount_curve, strike_rate, fixing_schedule[0],
+            payment_schedule[0], event_grid, time_dependence, int_dt,
+            option_type + "let")
         # Zero-coupon bond.
         self.zcbond = self.xlet.zcbond
         # Kappa on event grid.
@@ -95,9 +89,10 @@ class Cap(options.Option1FAnalytical):
         self.adjust_discount_steps = self.zcbond.adjust_discount_steps
         self.adjust_discount = self.zcbond.adjust_discount
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray],
-               discounting: bool = False) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            discounting: bool = False) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 

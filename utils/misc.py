@@ -1,15 +1,14 @@
 import math
 
 import numpy as np
-import scipy
-from scipy.interpolate import interp1d
 from scipy.optimize import brentq
 
 
-def normal_realizations(n_realizations: int,
-                        rng: np.random.Generator,
-                        antithetic: bool = False) -> np.ndarray:
-    """Realizations of a standard normal random variable.
+def normal_realizations(
+        n_realizations: int,
+        rng: np.random.Generator,
+        antithetic: bool = False) -> np.ndarray:
+    """Realizations of standard normal random variable.
 
     Args:
         n_realizations: Number of realizations.
@@ -32,25 +31,26 @@ def normal_realizations(n_realizations: int,
     return realizations
 
 
-def cholesky_2d(correlation: float,
-                n_sets: int,
-                rng: np.random.Generator,
-                antithetic: bool = False) -> (np.ndarray, np.ndarray):
+def cholesky_2d(
+        correlation: float,
+        n_sets: int,
+        rng: np.random.Generator,
+        antithetic: bool = False) -> (np.ndarray, np.ndarray):
     """Cholesky decomposition of correlation matrix in 2-D.
 
-    In the 2-D case, the transformation is simply:
-    (x1, correlation * x1 + sqrt{1 - correlation ** 2} * x2)
+    In 2-D, the transformation is simply:
+        (x1, correlation * x1 + sqrt{1 - correlation ** 2} * x2).
 
     Args:
         correlation: Correlation scalar.
-        n_sets: Number of realization sets of two correlated normal
+        n_sets: Number of realization of two correlated standard normal
             random variables.
         rng: Random number generator.
         antithetic: Antithetic sampling for variance reduction.
             Default is False.
 
     Returns:
-        Realization sets of two correlated normal random variables.
+        Realizations of two correlated standard normal random variables.
     """
     corr_matrix = np.array([[1, correlation], [correlation, 1]])
     corr_matrix = np.linalg.cholesky(corr_matrix)

@@ -49,7 +49,8 @@ class Caplet(options.Option1FAnalytical):
             payment_idx: int,
             event_grid: np.ndarray,
             time_dependence: str = "piecewise",
-            int_dt: float = 1 / 52,option_type: str = "caplet"):
+            int_dt: float = 1 / 52,
+            option_type: str = "caplet"):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
