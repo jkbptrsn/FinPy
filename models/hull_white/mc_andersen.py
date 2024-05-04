@@ -9,16 +9,13 @@ from utils import global_types
 from utils import misc
 
 
-###############################################################################
-
-
 def rate_adjustment(
         rate_paths: np.ndarray,
         adjustment: np.ndarray) -> np.ndarray:
     """Adjust pseudo rate paths.
 
-    Assume that pseudo rate paths and discount curve are represented
-    on identical event grids.
+    Assume that pseudo rate paths and instantaneous forward rate curve
+    are represented on identical event grids.
 
     Args:
         rate_paths: Pseudo short rate along Monte-Carlo paths.
@@ -35,12 +32,11 @@ def discount_adjustment(
         adjustment: np.ndarray) -> np.ndarray:
     """Adjust pseudo discount paths.
 
-    Assume that pseudo discount paths and discount curve are
-    represented on identical event grids.
+    Assume that pseudo discount paths and discount curve are represented
+    on identical event grids.
 
     Args:
-        discount_paths: Pseudo discount factor along Monte-Carlo
-            paths.
+        discount_paths: Pseudo discount factor along Monte-Carlo paths.
         adjustment: Discount curve on event grid.
 
     Returns:
@@ -48,9 +44,6 @@ def discount_adjustment(
     """
     tmp = discount_paths.transpose() * adjustment
     return tmp.transpose()
-
-
-###############################################################################
 
 
 class SdeExact:
@@ -280,27 +273,24 @@ class SdeExact:
         d_paths = np.zeros((self.event_grid.size, n_paths))
         for event_idx in range(1, self.event_grid.size):
             correlation = self._correlation(event_idx)
-
             # Realizations of standard normal random variables.
             x_rate, x_discount = misc.cholesky_2d(
                 correlation, n_paths, rng, antithetic)
-
             # Increment pseudo short rate process, and update.
             r_increment = self._rate_increment(
                 r_paths[event_idx - 1], event_idx, x_rate)
             r_paths[event_idx] = r_paths[event_idx - 1] + r_increment
-
             # Increment pseudo discount process, and update.
             d_increment = self._discount_increment(
                 r_paths[event_idx - 1], event_idx, x_discount)
             d_paths[event_idx] = d_paths[event_idx - 1] + d_increment
-
         # Get pseudo discount factors on event_grid.
         d_paths = np.exp(d_paths)
         # Update.
         self.rate_paths = r_paths
         self.discount_paths = d_paths
 
+    # TODO: Why static?
     @staticmethod
     def rate_adjustment(
             rate_paths: np.ndarray,
@@ -308,6 +298,7 @@ class SdeExact:
         """Adjust pseudo rate paths."""
         return rate_adjustment(rate_paths, adjustment)
 
+    # TODO: Why static?
     @staticmethod
     def discount_adjustment(
             discount_paths: np.ndarray,
