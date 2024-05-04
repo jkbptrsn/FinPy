@@ -336,26 +336,23 @@ class SdeExactConstant(SdeExact):
 
         See Andersen & Piterbarg (2010), Eq. (10.40).
         """
-        kappa = self.kappa_eg[0]
-        vol = self.vol_eg[0]
         # First term in Eq. (10.40).
         self.rate_mean[0, 0] = 1
-        self.rate_mean[1:, 0] = np.exp(-kappa * np.diff(self.event_grid))
+        self.rate_mean[1:, 0] = np.exp(-np.diff(self.int_kappa_eg))
         # Second term in Eq. (10.40).
-        self.rate_mean[:, 1] = \
-            misc_hw.int_y_constant(kappa, vol, self.event_grid)
+        self.rate_mean[:, 1] = misc_hw.int_y_constant(
+            self.kappa_eg[0], self.vol_eg[0], self.event_grid)
 
     def _calc_rate_variance(self) -> None:
         """Conditional variance of pseudo short rate process.
 
         See Andersen & Piterbarg (2010), Eq. (10.41).
         """
-        kappa = self.kappa_eg[0]
-        vol = self.vol_eg[0]
+        two_kappa = 2.0 * self.kappa_eg[0]
+        exp_kappa = np.exp(-two_kappa * np.diff(self.event_grid))
         self.rate_variance[0] = 0
         self.rate_variance[1:] = \
-            vol ** 2 * (1 - np.exp(-2 * kappa * np.diff(self.event_grid))) \
-            / (2 * kappa)
+            self.vol_eg[0] ** 2 * (1 - exp_kappa) / two_kappa
 
     def _calc_discount_mean(self) -> None:
         """Conditional mean of pseudo discount process.
@@ -363,21 +360,19 @@ class SdeExactConstant(SdeExact):
         The pseudo discount process is really -int_t^{t+dt} x_u du.
         See Andersen & Piterbarg (2010), Eq. (10.42).
         """
-        kappa = self.kappa_eg[0]
-        vol = self.vol_eg[0]
         # First term in Eq. (10.42).
         self.discount_mean[0, :] = 0
         self.discount_mean[1:, 0] = \
             (self.g_eg[1:] - self.g_eg[:-1]) * np.exp(self.int_kappa_eg[:-1])
         # Second term in Eq. (10.42).
-        self.discount_mean[:, 1] = \
-            misc_hw.int_int_y_constant(kappa, vol, self.event_grid)
+        self.discount_mean[:, 1] = misc_hw.int_int_y_constant(
+            self.kappa_eg[0], self.vol_eg[0], self.event_grid)
 
     def _calc_discount_variance(self) -> None:
         """Conditional variance of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du.
-        See Andersen & Piterbarg (2010), Eq. (10.42).
+        See Andersen & Piterbarg (2010), Eq. (10.43).
         """
         self.discount_variance[0] = 0
         self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
@@ -388,12 +383,11 @@ class SdeExactConstant(SdeExact):
 
         See Andersen & Piterbarg (2010), Lemma 10.1.11.
         """
-        kappa = self.kappa_eg[0]
-        vol = self.vol_eg[0]
-        exp_kappa = np.exp(-kappa * np.diff(self.event_grid))
+        exp_kappa_sq = \
+            (1 - np.exp(-self.kappa_eg[0] * np.diff(self.event_grid))) ** 2
         self.covariance[0] = 0
         self.covariance[1:] = \
-            -vol ** 2 * (1 - exp_kappa) ** 2 / (2 * kappa ** 2)
+            -self.vol_eg[0] ** 2 * exp_kappa_sq / (2 * self.kappa_eg[0] ** 2)
 
 
 class SdeExactPiecewise(SdeExact):
@@ -468,7 +462,7 @@ class SdeExactPiecewise(SdeExact):
         """Conditional variance of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du. See
-        Andersen & Piterbarg (2010), Eq. (10.42).
+        Andersen & Piterbarg (2010), Eq. (10.43).
         """
         self.discount_variance[0] = 0
         self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
@@ -570,7 +564,7 @@ class SdeExactGeneral(SdeExact):
         """Conditional variance of pseudo discount process.
 
         The pseudo discount process is really -int_t^{t+dt} x_u du.
-        See Andersen & Piterbarg (2010), Eq. (10.42).
+        See Andersen & Piterbarg (2010), Eq. (10.43).
         """
         self.discount_variance[0] = 0
         self.discount_variance[1:] = 2 * self.discount_mean[1:, 1] \
