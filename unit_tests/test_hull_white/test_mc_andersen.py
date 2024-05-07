@@ -20,51 +20,42 @@ class Misc(unittest.TestCase):
         # Speed of mean reversion strip.
         self.kappa_scalar = 0.02
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
-        self.kappa1 = data_types.DiscreteFunc("kappa1",
-                                              self.event_grid,
-                                              self.kappa_vector1)
+        self.kappa1 = data_types.DiscreteFunc(
+            "kappa1", self.event_grid, self.kappa_vector1)
         # Volatility strip.
         self.vol_scalar = 0.05
         self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)
         # Constant vol strip.
-        self.vol1 = \
-            data_types.DiscreteFunc("vol1", self.event_grid, self.vol_vector1)
+        self.vol1 = data_types.DiscreteFunc(
+            "vol1", self.event_grid, self.vol_vector1)
         self.vol_vector2 = np.zeros(self.event_grid.size)
         for idx in range(self.event_grid.size):
             self.vol_vector2[idx] = (idx % 4 + 1) * self.vol_vector1[idx]
         # Piecewise-constant vol strip.
-        self.vol2 = \
-            data_types.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
+        self.vol2 = data_types.DiscreteFunc(
+            "vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
-        self.discount_curve = \
-            data_types.DiscreteFunc("discount", self.event_grid,
-                                    np.ones(self.event_grid.size))
+        self.discount_curve = data_types.DiscreteFunc(
+            "discount", self.event_grid, np.ones(self.event_grid.size))
         # SDE object, constant vol strip.
-        self.sde1 = sde.SdeExactGeneral(self.kappa1,
-                                        self.vol1,
-                                        self.discount_curve,
-                                        self.event_grid,
-                                        int_dt=1 / 10)
+        self.sde1 = sde.SdeExactGeneral(
+            self.kappa1, self.vol1, self.discount_curve, self.event_grid,
+            int_dt=1 / 10)
         # SDE object, piecewise-constant vol strip.
-        self.sde2 = sde.SdeExactGeneral(self.kappa1,
-                                        self.vol2,
-                                        self.discount_curve,
-                                        self.event_grid,
-                                        int_dt=1 / 200)
+        self.sde2 = sde.SdeExactGeneral(
+            self.kappa1, self.vol2, self.discount_curve, self.event_grid,
+            int_dt=1 / 200)
 
     def test_y_constant(self):
         """Numerical evaluation of y-function."""
-        y_constant = misc_hw.y_constant(self.kappa_scalar,
-                                        self.vol_scalar,
-                                        self.event_grid)
-        y_piecewise = misc_hw.y_piecewise(self.kappa_scalar,
-                                          self.vol_vector1,
-                                          self.event_grid)
-        y_general, _ = misc_hw.y_general(self.sde1.int_grid,
-                                         self.sde1.int_event_idx,
-                                         self.sde1.int_kappa_step_ig,
-                                         self.sde1.vol_ig,
-                                         self.sde1.event_grid)
+        y_constant = misc_hw.y_constant(
+            self.kappa_scalar, self.vol_scalar, self.event_grid)
+        y_piecewise = misc_hw.y_piecewise(
+            self.kappa_scalar, self.vol_vector1, self.event_grid)
+        y_general, _ = misc_hw.y_general(
+            self.sde1.int_grid, self.sde1.int_event_idx,
+            self.sde1.int_kappa_step_ig, self.sde1.vol_ig,
+            self.sde1.event_grid)
         if plot_results:
             plt.plot(self.event_grid, y_constant, "-b", label="Constant")
             plt.plot(self.event_grid, y_piecewise, "or", label="Piecewise")
@@ -85,14 +76,12 @@ class Misc(unittest.TestCase):
 
     def test_y_piecewise(self):
         """Numerical evaluation of y-function."""
-        y_piecewise = misc_hw.y_piecewise(self.kappa_scalar,
-                                          self.vol_vector2,
-                                          self.event_grid)
-        y_general, _ = misc_hw.y_general(self.sde2.int_grid,
-                                         self.sde2.int_event_idx,
-                                         self.sde2.int_kappa_step_ig,
-                                         self.sde2.vol_ig,
-                                         self.sde2.event_grid)
+        y_piecewise = misc_hw.y_piecewise(
+            self.kappa_scalar, self.vol_vector2, self.event_grid)
+        y_general, _ = misc_hw.y_general(
+            self.sde2.int_grid, self.sde2.int_event_idx,
+            self.sde2.int_kappa_step_ig, self.sde2.vol_ig,
+            self.sde2.event_grid)
         if plot_results:
             plt.plot(self.event_grid, y_piecewise, "-or", label="Piecewise")
             plt.plot(self.event_grid, y_general, "xk", label="General")
@@ -109,17 +98,14 @@ class Misc(unittest.TestCase):
 
     def test_int_y_constant(self):
         """Numerical evaluation of "integral" of y-function."""
-        y_constant = misc_hw.int_y_constant(self.kappa_scalar,
-                                            self.vol_scalar,
-                                            self.event_grid)
-        y_piecewise = misc_hw.int_y_piecewise(self.kappa_scalar,
-                                              self.vol_vector1,
-                                              self.event_grid)
-        y_general = misc_hw.int_y_general(self.sde1.int_grid,
-                                          self.sde1.int_event_idx,
-                                          self.sde1.int_kappa_step_ig,
-                                          self.sde1.vol_ig,
-                                          self.sde1.event_grid)
+        y_constant = misc_hw.int_y_constant(
+            self.kappa_scalar, self.vol_scalar, self.event_grid)
+        y_piecewise = misc_hw.int_y_piecewise(
+            self.kappa_scalar, self.vol_vector1, self.event_grid)
+        y_general = misc_hw.int_y_general(
+            self.sde1.int_grid, self.sde1.int_event_idx,
+            self.sde1.int_kappa_step_ig, self.sde1.vol_ig,
+            self.sde1.event_grid)
         if plot_results:
             plt.plot(self.event_grid, y_constant, "-b", label="Constant")
             plt.plot(self.event_grid, y_piecewise, "or", label="Piecewise")
@@ -140,14 +126,12 @@ class Misc(unittest.TestCase):
 
     def test_int_y_piecewise(self):
         """Test numerical evaluation of "integral" of y-function."""
-        y_piecewise = misc_hw.int_y_piecewise(self.kappa_scalar,
-                                              self.vol_vector2,
-                                              self.event_grid)
-        y_general = misc_hw.int_y_general(self.sde2.int_grid,
-                                          self.sde2.int_event_idx,
-                                          self.sde2.int_kappa_step_ig,
-                                          self.sde2.vol_ig,
-                                          self.sde2.event_grid)
+        y_piecewise = misc_hw.int_y_piecewise(
+            self.kappa_scalar, self.vol_vector2, self.event_grid)
+        y_general = misc_hw.int_y_general(
+            self.sde2.int_grid, self.sde2.int_event_idx,
+            self.sde2.int_kappa_step_ig, self.sde2.vol_ig,
+            self.sde2.event_grid)
         if plot_results:
             plt.plot(self.event_grid, y_piecewise, "-or", label="Piecewise")
             plt.plot(self.event_grid, y_general, "xk", label="General")
@@ -164,17 +148,14 @@ class Misc(unittest.TestCase):
 
     def test_double_int_y_constant(self):
         """Numerical evaluation of "double integral" of y-function."""
-        y_constant = misc_hw.int_int_y_constant(self.kappa_scalar,
-                                                self.vol_scalar,
-                                                self.event_grid)
-        y_piecewise = misc_hw.int_int_y_piecewise(self.kappa_scalar,
-                                                  self.vol_vector1,
-                                                  self.event_grid)
-        y_general = misc_hw.int_int_y_general(self.sde1.int_grid,
-                                              self.sde1.int_event_idx,
-                                              self.sde1.int_kappa_step_ig,
-                                              self.sde1.vol_ig,
-                                              self.sde1.event_grid)
+        y_constant = misc_hw.int_int_y_constant(
+            self.kappa_scalar, self.vol_scalar, self.event_grid)
+        y_piecewise = misc_hw.int_int_y_piecewise(
+            self.kappa_scalar, self.vol_vector1, self.event_grid)
+        y_general = misc_hw.int_int_y_general(
+            self.sde1.int_grid, self.sde1.int_event_idx,
+            self.sde1.int_kappa_step_ig, self.sde1.vol_ig,
+            self.sde1.event_grid)
         if plot_results:
             plt.plot(self.event_grid, y_constant, "-b", label="Constant")
             plt.plot(self.event_grid, y_piecewise, "or", label="Piecewise")
@@ -195,14 +176,12 @@ class Misc(unittest.TestCase):
 
     def test_double_int_y_piecewise(self):
         """Test numerical evaluation of "double integral" of y-function."""
-        y_piecewise = misc_hw.int_int_y_piecewise(self.kappa_scalar,
-                                                  self.vol_vector2,
-                                                  self.event_grid)
-        y_general = misc_hw.int_int_y_general(self.sde2.int_grid,
-                                              self.sde2.int_event_idx,
-                                              self.sde2.int_kappa_step_ig,
-                                              self.sde2.vol_ig,
-                                              self.sde2.event_grid)
+        y_piecewise = misc_hw.int_int_y_piecewise(
+            self.kappa_scalar, self.vol_vector2, self.event_grid)
+        y_general = misc_hw.int_int_y_general(
+            self.sde2.int_grid, self.sde2.int_event_idx,
+            self.sde2.int_kappa_step_ig, self.sde2.vol_ig,
+            self.sde2.event_grid)
         if plot_results:
             plt.plot(self.event_grid, y_piecewise, "-or", label="Piecewise")
             plt.plot(self.event_grid, y_general, "xk", label="General")
@@ -219,8 +198,8 @@ class Misc(unittest.TestCase):
 
     def test_g_constant(self):
         """Numerical evaluation of G-function, G(0,t)."""
-        g_constant = misc_hw.g_constant(self.kappa_scalar,
-                                        self.event_grid)
+        g_constant = misc_hw.g_constant(
+            self.kappa_scalar, self.event_grid)
         g_general = self.sde1.g_eg
         diff = np.abs((g_constant[1:] - g_general[1:]) / g_constant[1:])
         if plot_results:
@@ -245,14 +224,14 @@ class SDE(unittest.TestCase):
         # Speed of mean reversion strip.
         self.kappa_scalar = 0.15
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
-        self.kappa1 = data_types.DiscreteFunc("kappa1", self.event_grid,
-                                              self.kappa_vector1)
+        self.kappa1 = data_types.DiscreteFunc(
+            "kappa1", self.event_grid, self.kappa_vector1)
         # Volatility strip.
         self.vol_scalar = 0.05
         self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)
         # Constant vol strip.
-        self.vol1 = \
-            data_types.DiscreteFunc("vol1", self.event_grid, self.vol_vector1)
+        self.vol1 = data_types.DiscreteFunc(
+            "vol1", self.event_grid, self.vol_vector1)
         self.vol_vector2 = np.zeros(self.event_grid.size)
         for idx in range(self.event_grid.size):
             if idx % 2 == 0:
@@ -260,46 +239,30 @@ class SDE(unittest.TestCase):
             else:
                 self.vol_vector2[idx] = 2 * self.vol_vector1[idx]
         # Piecewise-constant vol strip.
-        self.vol2 = \
-            data_types.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
+        self.vol2 = data_types.DiscreteFunc(
+            "vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
-        self.discount_curve = \
-            data_types.DiscreteFunc("discount", self.event_grid,
-                                    np.ones(self.event_grid.size))
-        self.discount_curve_mc = \
-            data_types.DiscreteFunc("discount", self.event_grid_mc,
-                                    np.ones(self.event_grid_mc.size))
+        self.discount_curve = data_types.DiscreteFunc(
+            "discount", self.event_grid, np.ones(self.event_grid.size))
+        self.discount_curve_mc = data_types.DiscreteFunc(
+            "discount", self.event_grid_mc, np.ones(self.event_grid_mc.size))
         # SDE objects.
-        self.sde_constant = sde.SdeExactConstant(self.kappa1,
-                                                 self.vol1,
-                                                 self.discount_curve,
-                                                 self.event_grid)
-        self.sde_piecewise1 = sde.SdeExactPiecewise(self.kappa1,
-                                                    self.vol1,
-                                                    self.discount_curve,
-                                                    self.event_grid)
-        self.sde_piecewise2 = sde.SdeExactPiecewise(self.kappa1,
-                                                    self.vol2,
-                                                    self.discount_curve,
-                                                    self.event_grid)
-        self.sde_general1 = sde.SdeExactGeneral(self.kappa1,
-                                                self.vol1,
-                                                self.discount_curve,
-                                                self.event_grid,
-                                                int_dt=1 / 50)
-        self.sde_general2 = sde.SdeExactGeneral(self.kappa1,
-                                                self.vol2,
-                                                self.discount_curve,
-                                                self.event_grid,
-                                                int_dt=1 / 50)
-        self.sde_euler1 = sde.SdeEuler(self.kappa1,
-                                       self.vol1,
-                                       self.discount_curve_mc,
-                                       self.event_grid_mc)
-        self.sde_euler2 = sde.SdeEuler(self.kappa1,
-                                       self.vol2,
-                                       self.discount_curve_mc,
-                                       self.event_grid_mc)
+        self.sde_constant = sde.SdeExactConstant(
+            self.kappa1, self.vol1, self.discount_curve, self.event_grid)
+        self.sde_piecewise1 = sde.SdeExactPiecewise(
+            self.kappa1, self.vol1, self.discount_curve, self.event_grid)
+        self.sde_piecewise2 = sde.SdeExactPiecewise(
+            self.kappa1, self.vol2, self.discount_curve, self.event_grid)
+        self.sde_general1 = sde.SdeExactGeneral(
+            self.kappa1, self.vol1, self.discount_curve, self.event_grid,
+            int_dt=1 / 50)
+        self.sde_general2 = sde.SdeExactGeneral(
+            self.kappa1, self.vol2, self.discount_curve, self.event_grid,
+            int_dt=1 / 50)
+        self.sde_euler1 = sde.SdeEuler(
+            self.kappa1, self.vol1, self.discount_curve_mc, self.event_grid_mc)
+        self.sde_euler2 = sde.SdeEuler(
+            self.kappa1, self.vol2, self.discount_curve_mc, self.event_grid_mc)
 
     def test_sde_constant_vol(self):
         """Test SDE classes for constant vol-strip."""
