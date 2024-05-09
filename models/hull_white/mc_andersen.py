@@ -531,11 +531,6 @@ class SdeExactGeneral(SdeExact):
             idx2 = self.int_event_idx[event_idx] + 1
             # Slice of integration grid.
             int_grid_tmp = self.int_grid[idx1:idx2]
-
-            # TODO: Remove!
-            # Slice of time-integrated kappa for each integration step.
-#            int_kappa = np.append(self.int_kappa_step_ig[idx1 + 1:idx2], 0)
-
             int_kappa = np.append(0, self.int_kappa_step_ig[idx1 + 1:idx2])
             # Cumulative sum from "right to left".
             int_kappa = np.flip(np.cumsum(np.flip(int_kappa)))

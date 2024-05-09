@@ -8,7 +8,7 @@ from models.hull_white import misc as misc_hw
 from utils import data_types
 
 plot_results = False
-print_results = False
+print_results = True
 
 
 class Misc(unittest.TestCase):
