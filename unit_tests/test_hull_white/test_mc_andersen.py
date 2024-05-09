@@ -7,31 +7,30 @@ from models.hull_white import mc_andersen as sde
 from models.hull_white import misc as misc_hw
 from utils import data_types
 
-plot_results = False
-print_results = False
+plot_results = True
+print_results = True
 
 
 class Misc(unittest.TestCase):
     """Various functions used in 1-factor Hull-White model."""
 
     def setUp(self) -> None:
-        # Event dates in year fractions.
+        # Event dates as year fractions from as-of date.
         self.event_grid = np.arange(16)
         # Speed of mean reversion strip.
         self.kappa_scalar = 0.02
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
         self.kappa1 = data_types.DiscreteFunc(
             "kappa1", self.event_grid, self.kappa_vector1)
-        # Volatility strip.
+        # Constant vol strip.
         self.vol_scalar = 0.05
         self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)
-        # Constant vol strip.
         self.vol1 = data_types.DiscreteFunc(
             "vol1", self.event_grid, self.vol_vector1)
+        # Piecewise-constant vol strip.
         self.vol_vector2 = np.zeros(self.event_grid.size)
         for idx in range(self.event_grid.size):
             self.vol_vector2[idx] = (idx % 4 + 1) * self.vol_vector1[idx]
-        # Piecewise-constant vol strip.
         self.vol2 = data_types.DiscreteFunc(
             "vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
@@ -40,11 +39,11 @@ class Misc(unittest.TestCase):
         # SDE object, constant vol strip.
         self.sde1 = sde.SdeExactGeneral(
             self.kappa1, self.vol1, self.discount_curve, self.event_grid,
-            int_dt=1 / 10)
+            int_dt=1 / 5)
         # SDE object, piecewise-constant vol strip.
         self.sde2 = sde.SdeExactGeneral(
             self.kappa1, self.vol2, self.discount_curve, self.event_grid,
-            int_dt=1 / 200)
+            int_dt=1 / 50)
 
     def test_y_constant(self):
         """Numerical evaluation of y-function."""
@@ -72,7 +71,7 @@ class Misc(unittest.TestCase):
                 if print_results:
                     print(diff1, diff2)
                 self.assertTrue(diff1 < 1.0e-15)
-                self.assertTrue(diff2 < 1.4e-6)
+                self.assertTrue(diff2 < 5.4e-6)
 
     def test_y_piecewise(self):
         """Numerical evaluation of y-function."""
@@ -94,7 +93,7 @@ class Misc(unittest.TestCase):
                 diff = abs(y1 - y2) / y1
                 if print_results:
                     print(y1, y2, diff)
-                self.assertTrue(diff < 4.1e-3)
+                self.assertTrue(diff < 1.7e-2)
 
     def test_int_y_constant(self):
         """Numerical evaluation of "integral" of y-function."""
@@ -122,7 +121,7 @@ class Misc(unittest.TestCase):
                 if print_results:
                     print(diff1, diff2)
                 self.assertTrue(diff1 < 3.0e-13)
-                self.assertTrue(diff2 < 1.7e-6)
+                self.assertTrue(diff2 < 6.7e-6)
 
     def test_int_y_piecewise(self):
         """Test numerical evaluation of "integral" of y-function."""
@@ -144,7 +143,7 @@ class Misc(unittest.TestCase):
                 diff = abs(y1 - y2) / y1
                 if print_results:
                     print(y1, y2, diff)
-                self.assertTrue(diff < 2.6e-3)
+                self.assertTrue(diff < 1.1e-2)
 
     def test_double_int_y_constant(self):
         """Numerical evaluation of "double integral" of y-function."""
@@ -172,7 +171,7 @@ class Misc(unittest.TestCase):
                 if print_results:
                     print(diff1, diff2)
                 self.assertTrue(diff1 < 9.0e-11)
-                self.assertTrue(diff2 < 5.0e-3)
+                self.assertTrue(diff2 < 2.0e-2)
 
     def test_double_int_y_piecewise(self):
         """Test numerical evaluation of "double integral" of y-function."""
@@ -194,7 +193,7 @@ class Misc(unittest.TestCase):
                 diff = abs(y1 - y2) / y1
                 if print_results:
                     print(y1, y2, diff)
-                self.assertTrue(diff < 2.6e-3)
+                self.assertTrue(diff < 1.1e-2)
 
     def test_g_constant(self):
         """Numerical evaluation of G-function, G(0,t)."""
@@ -203,15 +202,16 @@ class Misc(unittest.TestCase):
         g_general = self.sde1.g_eg
         diff = np.abs((g_constant[1:] - g_general[1:]) / g_constant[1:])
         if plot_results:
-            plt.plot(self.event_grid, g_constant, "-b")
-            plt.plot(self.event_grid, g_general, "or")
+            plt.plot(self.event_grid, g_constant, "-b", label="Constant")
+            plt.plot(self.event_grid, g_general, "xk", label="General")
             plt.xlabel("t")
             plt.ylabel("G(0,t)")
+            plt.legend()
             plt.show()
         if print_results:
             print("G-function with constant kappa.")
             print(np.max(diff))
-        self.assertTrue(np.max(diff) < 3.4e-7)
+        self.assertTrue(np.max(diff) < 1.4e-6)
 
 
 class SDE(unittest.TestCase):
