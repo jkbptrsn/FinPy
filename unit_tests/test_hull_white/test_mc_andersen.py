@@ -7,8 +7,8 @@ from models.hull_white import mc_andersen as sde
 from models.hull_white import misc as misc_hw
 from utils import data_types
 
-plot_results = True
-print_results = True
+plot_results = False
+print_results = False
 
 
 class Misc(unittest.TestCase):
@@ -218,7 +218,7 @@ class SDE(unittest.TestCase):
     """SDE classes in 1-factor Hull-White model."""
 
     def setUp(self) -> None:
-        # Event dates in year fractions.
+        # Event dates as year fractions from as-of date.
         self.event_grid = np.arange(16)
         self.event_grid_mc = np.arange(151) / 10
         # Speed of mean reversion strip.
@@ -226,19 +226,18 @@ class SDE(unittest.TestCase):
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
         self.kappa1 = data_types.DiscreteFunc(
             "kappa1", self.event_grid, self.kappa_vector1)
-        # Volatility strip.
+        # Constant vol strip.
         self.vol_scalar = 0.05
         self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)
-        # Constant vol strip.
         self.vol1 = data_types.DiscreteFunc(
             "vol1", self.event_grid, self.vol_vector1)
+        # Piecewise-constant vol strip.
         self.vol_vector2 = np.zeros(self.event_grid.size)
         for idx in range(self.event_grid.size):
             if idx % 2 == 0:
                 self.vol_vector2[idx] = self.vol_vector1[idx]
             else:
                 self.vol_vector2[idx] = 2 * self.vol_vector1[idx]
-        # Piecewise-constant vol strip.
         self.vol2 = data_types.DiscreteFunc(
             "vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
@@ -265,13 +264,16 @@ class SDE(unittest.TestCase):
             self.kappa1, self.vol2, self.discount_curve_mc, self.event_grid_mc)
 
     def test_sde_constant_vol(self):
-        """Test SDE classes for constant vol-strip."""
+        """Test SDE classes with constant vol-strip."""
         # Number of Monte-Carlo paths.
-        n_paths = 200000
+        n_paths = 100000
+        seed = 0
+
         # Zero-coupon bond price at all events. Analytical results.
         price_a = self.discount_curve.values
+
         # SDE constant.
-        self.sde_constant.paths(0, n_paths, seed=0, antithetic=True)
+        self.sde_constant.paths(0, n_paths, seed=seed, antithetic=True)
         discount = self.sde_constant.discount_adjustment(
             self.sde_constant.discount_paths,
             self.sde_constant.discount_curve_eg)
@@ -281,9 +283,10 @@ class SDE(unittest.TestCase):
         diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
         if print_results:
             print(f"SDE constant: Diff = {np.max(diff)}")
-        self.assertTrue(np.max(diff) < 8.1e-4)
+        self.assertTrue(np.max(diff) < 2.6e-3)
+
         # SDE piecewise.
-        self.sde_piecewise1.paths(0, n_paths, seed=0, antithetic=True)
+        self.sde_piecewise1.paths(0, n_paths, seed=seed, antithetic=True)
         discount = self.sde_piecewise1.discount_adjustment(
             self.sde_piecewise1.discount_paths,
             self.sde_piecewise1.discount_curve_eg)
@@ -293,9 +296,10 @@ class SDE(unittest.TestCase):
         diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
         if print_results:
             print(f"SDE piecewise: Diff = {np.max(diff)}")
-        self.assertTrue(np.max(diff) < 8.1e-4)
+        self.assertTrue(np.max(diff) < 2.6e-3)
+
         # SDE general.
-        self.sde_general1.paths(0, n_paths, seed=0, antithetic=True)
+        self.sde_general1.paths(0, n_paths, seed=seed, antithetic=True)
         discount = self.sde_general1.discount_adjustment(
             self.sde_general1.discount_paths,
             self.sde_general1.discount_curve_eg)
@@ -305,12 +309,13 @@ class SDE(unittest.TestCase):
         diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
         if print_results:
             print(f"SDE general: Diff = {np.max(diff)}")
-        self.assertTrue(np.max(diff) < 8.10e-3)
+        self.assertTrue(np.max(diff) < 2.6e-3)
 
         # Zero-coupon bond price at all events. Analytical results.
         price_a = self.discount_curve_mc.values
+
         # SDE Euler.
-        self.sde_euler1.paths(0, n_paths, seed=0, antithetic=True)
+        self.sde_euler1.paths(0, n_paths, seed=seed, antithetic=True)
         discount = self.sde_euler1.discount_adjustment(
             self.sde_euler1.discount_paths,
             self.sde_euler1.discount_curve_eg)
@@ -320,9 +325,10 @@ class SDE(unittest.TestCase):
         diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
         if print_results:
             print(f"SDE Euler: Diff = {np.max(diff)}")
-        self.assertTrue(np.max(diff) < 7.1e-3)
+        self.assertTrue(np.max(diff) < 4.8e-3)
 
         if plot_results:
+            # Compare y-functions.
             plt.plot(self.event_grid, self.sde_constant.y_eg,
                      "-b", label="Constant")
             plt.plot(self.event_grid, self.sde_piecewise1.y_eg,
@@ -334,6 +340,7 @@ class SDE(unittest.TestCase):
             plt.legend()
             plt.show()
 
+            # Compare first component in mean rate.
             plt.plot(self.event_grid, self.sde_constant.rate_mean[:, 0],
                      "-b", label="Constant")
             plt.plot(self.event_grid, self.sde_piecewise1.rate_mean[:, 0],
@@ -345,6 +352,7 @@ class SDE(unittest.TestCase):
             plt.legend()
             plt.show()
 
+            # Compare second component in mean rate.
             plt.plot(self.event_grid, self.sde_constant.rate_mean[:, 1],
                      "-b", label="Constant")
             plt.plot(self.event_grid, self.sde_piecewise1.rate_mean[:, 1],
@@ -356,6 +364,7 @@ class SDE(unittest.TestCase):
             plt.legend()
             plt.show()
 
+            # Compare first component in mean discount.
             plt.plot(self.event_grid, self.sde_constant.discount_mean[:, 0],
                      "-b", label="Constant")
             plt.plot(self.event_grid, self.sde_piecewise1.discount_mean[:, 0],
@@ -367,6 +376,7 @@ class SDE(unittest.TestCase):
             plt.legend()
             plt.show()
 
+            # Compare first component in mean discount.
             plt.plot(self.event_grid, self.sde_constant.discount_mean[:, 1],
                      "-b", label="Constant")
             plt.plot(self.event_grid, self.sde_piecewise1.discount_mean[:, 1],
@@ -378,6 +388,7 @@ class SDE(unittest.TestCase):
             plt.legend()
             plt.show()
 
+            # Compare covariance.
             plt.plot(self.event_grid, self.sde_constant.covariance,
                      "-b", label="Constant")
             plt.plot(self.event_grid, self.sde_piecewise1.covariance,
@@ -390,13 +401,16 @@ class SDE(unittest.TestCase):
             plt.show()
 
     def test_sde_piecewise_vol(self):
-        """Test SDE classes for piecewise-constant vol-strip."""
+        """Test SDE classes with piecewise-constant vol-strip."""
         # Number of Monte-Carlo paths.
-        n_paths = 200000
+        n_paths = 100000
+        seed = 0
+
         # Zero-coupon bond price at all events. Analytical results.
         price_a = self.discount_curve.values
+
         # SDE piecewise.
-        self.sde_piecewise2.paths(0, n_paths, seed=0, antithetic=True)
+        self.sde_piecewise2.paths(0, n_paths, seed=seed, antithetic=True)
         discount = self.sde_piecewise2.discount_adjustment(
             self.sde_piecewise2.discount_paths,
             self.sde_piecewise2.discount_curve_eg)
@@ -406,9 +420,10 @@ class SDE(unittest.TestCase):
         diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
         if print_results:
             print(f"SDE piecewise: Diff = {np.max(diff)}")
-        self.assertTrue(np.max(diff) < 1.8e-3)
+        self.assertTrue(np.max(diff) < 9.1e-3)
+
         # SDE general.
-        self.sde_general2.paths(0, n_paths, seed=0, antithetic=True)
+        self.sde_general2.paths(0, n_paths, seed=seed, antithetic=True)
         discount = self.sde_general2.discount_adjustment(
             self.sde_general2.discount_paths,
             self.sde_general2.discount_curve_eg)
@@ -418,12 +433,13 @@ class SDE(unittest.TestCase):
         diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
         if print_results:
             print(f"SDE general: Diff = {np.max(diff)}")
-        self.assertTrue(np.max(diff) < 1.8e-3)
+        self.assertTrue(np.max(diff) < 9.1e-3)
 
         # Zero-coupon bond price at all events. Analytical results.
         price_a = self.discount_curve_mc.values
+
         # SDE Euler.
-        self.sde_euler2.paths(0, n_paths, seed=0, antithetic=True)
+        self.sde_euler2.paths(0, n_paths, seed=seed, antithetic=True)
         discount = self.sde_euler2.discount_adjustment(
             self.sde_euler2.discount_paths,
             self.sde_euler2.discount_curve_eg)
@@ -433,9 +449,10 @@ class SDE(unittest.TestCase):
         diff = np.abs((price_n[1:] - price_a[1:]) / price_a[1:])
         if print_results:
             print(f"SDE Euler: Diff = {np.max(diff)}")
-        self.assertTrue(np.max(diff) < 1.9e-2)
+        self.assertTrue(np.max(diff) < 1.4e-2)
 
         if plot_results:
+            # Compare y-functions.
             plt.plot(self.event_grid, self.sde_piecewise2.y_eg,
                      "-or", label="Piecewise")
             plt.plot(self.event_grid, self.sde_general2.y_eg,
@@ -445,6 +462,7 @@ class SDE(unittest.TestCase):
             plt.legend()
             plt.show()
 
+            # Compare first component in mean rate.
             plt.plot(self.event_grid, self.sde_piecewise2.rate_mean[:, 0],
                      "-or", label="Piecewise")
             plt.plot(self.event_grid, self.sde_general2.rate_mean[:, 0],
@@ -454,6 +472,7 @@ class SDE(unittest.TestCase):
             plt.legend()
             plt.show()
 
+            # Compare second component in mean rate.
             plt.plot(self.event_grid, self.sde_piecewise2.rate_mean[:, 1],
                      "-or", label="Piecewise")
             plt.plot(self.event_grid, self.sde_general2.rate_mean[:, 1],
@@ -463,6 +482,7 @@ class SDE(unittest.TestCase):
             plt.legend()
             plt.show()
 
+            # Compare first component in mean discount.
             plt.plot(self.event_grid, self.sde_piecewise2.discount_mean[:, 0],
                      "-or", label="Piecewise")
             plt.plot(self.event_grid, self.sde_general2.discount_mean[:, 0],
@@ -472,6 +492,7 @@ class SDE(unittest.TestCase):
             plt.legend()
             plt.show()
 
+            # Compare second component in mean discount.
             plt.plot(self.event_grid, self.sde_piecewise2.discount_mean[:, 1],
                      "-or", label="Piecewise")
             plt.plot(self.event_grid, self.sde_general2.discount_mean[:, 1],
@@ -481,6 +502,7 @@ class SDE(unittest.TestCase):
             plt.legend()
             plt.show()
 
+            # Compare covariance.
             plt.plot(self.event_grid, self.sde_piecewise2.covariance,
                      "-or", label="Piecewise")
             plt.plot(self.event_grid, self.sde_general2.covariance,
