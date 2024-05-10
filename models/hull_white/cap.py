@@ -106,18 +106,20 @@ class Cap(options.Option1FAnalytical):
         """
         return 0 * spot
 
-    def xlet_payoff(self,
-                    spot: typing.Union[float, np.ndarray],
-                    fixing_idx: int,
-                    payment_idx: int) -> typing.Union[float, np.ndarray]:
+    def xlet_payoff(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            fixing_idx: int,
+            payment_idx: int) -> typing.Union[float, np.ndarray]:
         """Payoff function for caplet or floorlet."""
         self.xlet.fix_idx = fixing_idx
         self.xlet.pay_idx = payment_idx
         return self.xlet.payoff(spot, discounting=True)
 
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -129,15 +131,17 @@ class Cap(options.Option1FAnalytical):
         """
         _price = 0
         # Assuming that event_idx <= self.fixing_schedule[0]
-        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
+        for idx_fix, idx_pay in (
+                zip(self.fixing_schedule, self.payment_schedule)):
             self.xlet.fix_idx = idx_fix
             self.xlet.pay_idx = idx_pay
             _price += self.xlet.price(spot, event_idx)
         return _price
 
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt short rate.
 
         Args:
@@ -149,15 +153,17 @@ class Cap(options.Option1FAnalytical):
         """
         _delta = 0
         # Assuming that event_idx <= self.fixing_schedule[0]
-        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
+        for idx_fix, idx_pay in (
+                zip(self.fixing_schedule, self.payment_schedule)):
             self.xlet.fix_idx = idx_fix
             self.xlet.pay_idx = idx_pay
             _delta += self.xlet.delta(spot, event_idx)
         return _delta
 
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt short rate.
 
         Args:
@@ -169,15 +175,17 @@ class Cap(options.Option1FAnalytical):
         """
         _gamma = 0
         # Assuming that event_idx <= self.fixing_schedule[0]
-        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
+        for idx_fix, idx_pay in (
+                zip(self.fixing_schedule, self.payment_schedule)):
             self.xlet.fix_idx = idx_fix
             self.xlet.pay_idx = idx_pay
             _gamma += self.xlet.gamma(spot, event_idx)
         return _gamma
 
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -189,7 +197,8 @@ class Cap(options.Option1FAnalytical):
         """
         _theta = 0
         # Assuming that event_idx <= self.fixing_schedule[0]
-        for idx_fix, idx_pay in zip(self.fixing_schedule, self.payment_schedule):
+        for idx_fix, idx_pay in (
+                zip(self.fixing_schedule, self.payment_schedule)):
             self.xlet.fix_idx = idx_fix
             self.xlet.pay_idx = idx_pay
             _theta += self.xlet.theta(spot, event_idx)
@@ -197,17 +206,16 @@ class Cap(options.Option1FAnalytical):
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
-        self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = np.zeros(self.fd.grid.size)
-        # Update drift, diffusion and rate vectors.
-        self.fd_update(self.event_grid.size - 1)
         # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid))
-        for count, dt in enumerate(time_steps):
-            event_idx = (self.event_grid.size - 1) - count
-            # Update drift, diffusion and rate vectors at previous event.
+        for idx, dt in enumerate(time_steps):
+            event_idx = (self.event_grid.size - 1) - idx
+            # Update drift, diffusion and rate vectors at previous
+            # event.
             self.fd_update(event_idx - 1)
+
             # Payoff at payment event, discounted to fixing event.
             if event_idx in self.fixing_schedule:
                 idx_fix = event_idx
@@ -215,6 +223,8 @@ class Cap(options.Option1FAnalytical):
                 idx_pay = self.payment_schedule[which_fix][0]
                 self.fd.solution += \
                     self.xlet_payoff(self.fd.grid, idx_fix, idx_pay)
+
+            # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
@@ -224,12 +234,13 @@ class Cap(options.Option1FAnalytical):
         self.zcbond.mc_exact_setup()
         self.mc_exact = self.zcbond.mc_exact
 
-    def mc_exact_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False) -> None:
+    def mc_exact_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Exact discretization.
@@ -253,12 +264,13 @@ class Cap(options.Option1FAnalytical):
         self.zcbond.mc_euler_setup()
         self.mc_euler = self.zcbond.mc_euler
 
-    def mc_euler_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False) -> None:
+    def mc_euler_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Euler-Maruyama discretization.
@@ -277,13 +289,13 @@ class Cap(options.Option1FAnalytical):
         self.mc_euler.mc_error = present_value.std(ddof=1)
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
-    def mc_present_value(self,
-                         mc_object) -> np.ndarray:
+    def mc_present_value(
+            self,
+            mc_object) -> np.ndarray:
         """Present value for each Monte-Carlo path."""
         # Adjustment of discount paths.
-        discount_paths = \
-            mc_object.discount_adjustment(mc_object.discount_paths,
-                                          self.adjust_discount)
+        discount_paths = mc_object.discount_adjustment(
+            mc_object.discount_paths, self.adjust_discount)
         payoff = np.zeros(mc_object.discount_paths.shape[1])
         for idx_fix, idx_pay in \
                 zip(self.fixing_schedule, self.payment_schedule):
@@ -322,40 +334,28 @@ class CapPelsser(Cap):
         option_type: Cap or floor. Default is cap.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 strike_rate: float,
-                 fixing_schedule: np.ndarray,
-                 payment_schedule: np.ndarray,
-                 event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52,
-                 option_type: str = "cap"):
-        super().__init__(kappa,
-                         vol,
-                         discount_curve,
-                         strike_rate,
-                         fixing_schedule,
-                         payment_schedule,
-                         event_grid,
-                         time_dependence,
-                         int_dt,
-                         option_type)
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            strike_rate: float,
+            fixing_schedule: np.ndarray,
+            payment_schedule: np.ndarray,
+            event_grid: np.ndarray,
+            time_dependence: str = "piecewise",
+            int_dt: float = 1 / 52,
+            option_type: str = "cap"):
+        super().__init__(
+            kappa, vol, discount_curve, strike_rate, fixing_schedule,
+            payment_schedule, event_grid, time_dependence, int_dt, option_type)
 
         # Caplet/floorlet.
-        self.xlet = \
-            caplet.CapletPelsser(kappa,
-                                 vol,
-                                 discount_curve,
-                                 strike_rate,
-                                 fixing_schedule[0],
-                                 payment_schedule[0],
-                                 event_grid,
-                                 time_dependence,
-                                 int_dt,
-                                 option_type + "let")
+        self.xlet = caplet.CapletPelsser(
+            kappa, vol, discount_curve, strike_rate, fixing_schedule[0],
+            payment_schedule[0], event_grid, time_dependence, int_dt,
+            option_type + "let")
+
         # Zero-coupon bond.
         self.zcbond = self.xlet.zcbond
 
