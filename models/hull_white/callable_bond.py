@@ -212,22 +212,24 @@ class FixedRate(bonds.Bond1FAnalytical):
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
-        self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = np.zeros(self.fd.grid.size)
-        # Update drift, diffusion and rate vectors.
-        self.fd_update(self.event_grid.size - 1)
         # Backwards propagation.
         time_steps = np.flip(np.diff(self.event_grid))
-        for counter, dt in enumerate(time_steps):
-            event_idx = (self.event_grid.size - 1) - counter
-            # Update drift, diffusion and rate vectors at previous event.
+        for idx, dt in enumerate(time_steps):
+            event_idx = (self.event_grid.size - 1) - idx
+            # Update drift, diffusion and rate vectors at previous
+            # event.
             self.fd_update(event_idx - 1)
+
             if event_idx in self.deadline_schedule:
                 self._fd_payment_evaluation(event_idx)
+
+            # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
+
         # TODO: Is this correct?
         if self.deadline_schedule[0] == 0:
             self._fd_payment_evaluation(0)
