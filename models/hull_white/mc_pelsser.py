@@ -13,8 +13,8 @@ def rate_adjustment(
         adjustment: np.ndarray) -> np.ndarray:
     """Adjust pseudo rate paths.
 
-    Assume that pseudo rate paths and discount curve are represented
-    on identical event grids.
+    Assume that pseudo rate paths and instantaneous forward rate curve
+    are represented on identical event grids.
 
     Args:
         rate_paths: Pseudo short rate along Monte-Carlo paths.
@@ -32,12 +32,11 @@ def discount_adjustment(
         adjustment: np.ndarray) -> np.ndarray:
     """Adjust pseudo discount paths.
 
-    Assume that pseudo discount paths and discount curve are
-    represented on identical event grids.
+    Assume that pseudo discount paths and discount curve are represented
+    on identical event grids.
 
     Args:
-        discount_paths: Pseudo discount factor along Monte-Carlo
-            paths.
+        discount_paths: Pseudo discount factor along Monte-Carlo paths.
         adjustment: Product of discount curve and exponentiation of
             time-integrated alpha function on event grid.
 
@@ -122,9 +121,6 @@ class SdeExactPiecewise(mc_a.SdeExactPiecewise):
     The speed of mean reversion is constant and the volatility is
     piecewise constant.
 
-    TODO: Implicit assumption that all vol-strip events are represented
-     on event grid.
-
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
@@ -179,9 +175,6 @@ class SdeExactGeneral(mc_a.SdeExactGeneral):
 
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
-
-    TODO: Implicit assumption that all vol-strip events are represented
-     on event grid.
 
     Attributes:
         kappa: Speed of mean reversion.
@@ -243,10 +236,10 @@ class SdeEuler(mc_a.SdeEuler):
         discount_curve: Discount curve.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
     """
@@ -271,17 +264,20 @@ class SdeEuler(mc_a.SdeEuler):
             dt: float,
             normal_rand: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
-        """Increment short rate process one time step.
+        """Increment pseudo short rate process.
+
+        See Pelsser (2000), Chapter 5.
+
+        The spot value is subtracted to get the increment.
 
         Args:
-            spot: Short rate at event corresponding to event_idx.
+            spot: Pseudo short rate at event event_idx.
             event_idx: Index on event grid.
-            dt: Time step.
-            normal_rand: Realizations of independent standard normal
-                random variables.
+            normal_rand: Realizations of standard normal random
+                variables.
 
         Returns:
-            Increment of short rate process.
+            Increment of pseudo short rate process.
         """
         kappa = self.kappa_eg[event_idx]
         exp_kappa = math.exp(-kappa * dt)
