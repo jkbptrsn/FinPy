@@ -24,7 +24,7 @@ def v_function(
         v_eg: "v-function" on event grid until expiry. See notes.
 
     Returns:
-        v- og dv_dt-function. See notes.
+        v- og dv_dt-function.
     """
     return (g_eg[maturity_idx] - g_eg[expiry_idx]) ** 2 * v_eg
 
@@ -47,7 +47,7 @@ def v_constant(
         event_grid: Event dates as year fractions from as-of date.
 
     Returns:
-        "v-function". See notes.
+        "v-function".
     """
     two_kappa = 2 * kappa
     exp_kappa1 = math.exp(two_kappa * event_grid[expiry_idx])
@@ -73,7 +73,7 @@ def dv_dt_constant(
         event_grid: Event dates as year fractions from as-of date.
 
     Returns:
-        1st order time derivative of "v-function". See notes.
+        1st order time derivative of "v-function".
     """
     return -vol ** 2 * np.exp(2 * kappa * event_grid[:expiry_idx + 1])
 
@@ -97,7 +97,7 @@ def v_piecewise(
         event_grid: Event dates as year fractions from as-of date.
 
     Returns:
-        "v-function". See notes.
+        "v-function".
     """
     two_kappa = 2 * kappa
     v_return = np.zeros(expiry_idx + 1)
@@ -130,7 +130,7 @@ def dv_dt_piecewise(
         event_grid: Event dates as year fractions from as-of date.
 
     Returns:
-        1st order time derivative of "v-function". See notes.
+        1st order time derivative of "v-function".
     """
     return -vol[:expiry_idx + 1] ** 2 \
         * np.exp(2 * kappa * event_grid[:expiry_idx + 1])
@@ -158,7 +158,7 @@ def v_general(
         expiry_idx: Option expiry index on event grid.
 
     Returns:
-        "v-function". See notes.
+        "v-function".
     """
     int_kappa = np.cumsum(int_kappa_step_ig[:int_event_idx[expiry_idx] + 1])
     v_return = np.zeros(expiry_idx + 1)
@@ -196,7 +196,7 @@ def dv_dt_general(
         expiry_idx: Option expiry index on event grid.
 
     Returns:
-        1st order time derivative of "v-function". See notes.
+        1st order time derivative of "v-function".
     """
     int_kappa = np.cumsum(int_kappa_step_ig[:int_event_idx[expiry_idx] + 1])
     v_return = np.zeros(expiry_idx + 1)

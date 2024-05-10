@@ -318,9 +318,9 @@ class ZCBond(bonds.Bond1FAnalytical):
                 Default is False.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
-        price = self.mc_present_value(self.mc_exact)
-        self.mc_exact.mc_estimate = price.mean()
-        self.mc_exact.mc_error = price.std(ddof=1)
+        present_value = self.mc_present_value(self.mc_exact)
+        self.mc_exact.mc_estimate = present_value.mean()
+        self.mc_exact.mc_error = present_value.std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
     def mc_euler_setup(self) -> None:
@@ -349,9 +349,9 @@ class ZCBond(bonds.Bond1FAnalytical):
                 Default is False.
         """
         self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
-        price = self.mc_present_value(self.mc_euler)
-        self.mc_euler.mc_estimate = price.mean()
-        self.mc_euler.mc_error = price.std(ddof=1)
+        present_value = self.mc_present_value(self.mc_euler)
+        self.mc_euler.mc_estimate = present_value.mean()
+        self.mc_euler.mc_error = present_value.std(ddof=1)
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
     def mc_present_value(

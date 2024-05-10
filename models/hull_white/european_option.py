@@ -74,12 +74,15 @@ class EuropeanOption(options.Option1FAnalytical):
         self.forward_rate_eg = self.zcbond.forward_rate_eg
         # y-function on event grid.
         self.y_eg = self.zcbond.y_eg
+
+        # TODO: Check v-function and dv_dt-function.
         # v-function on event grid until expiry.
         self.v_eg_tmp = None
         self.v_eg = None
         # dv_dt-function on event grid until expiry.
         self.dv_dt_eg_tmp = None
         self.dv_dt_eg = None
+
 
         self.model = self.zcbond.model
         self.transformation = self.zcbond.transformation
@@ -127,18 +130,18 @@ class EuropeanOption(options.Option1FAnalytical):
         """Initialization of object."""
         if self.time_dependence == "constant":
             self.v_eg_tmp = misc_ep.v_constant(
-                self.zcbond.kappa_eg[0], self.zcbond.vol_eg[0],
-                self.expiry_idx, self.event_grid)
+                self.kappa_eg[0], self.vol_eg[0], self.expiry_idx,
+                self.event_grid)
             self.dv_dt_eg_tmp = misc_ep.dv_dt_constant(
-                self.zcbond.kappa_eg[0], self.zcbond.vol_eg[0],
-                self.expiry_idx, self.event_grid)
+                self.kappa_eg[0], self.vol_eg[0], self.expiry_idx,
+                self.event_grid)
         elif self.time_dependence == "piecewise":
             self.v_eg_tmp = misc_ep.v_piecewise(
-                self.zcbond.kappa_eg[0], self.zcbond.vol_eg,
-                self.expiry_idx, self.event_grid)
+                self.kappa_eg[0], self.vol_eg, self.expiry_idx,
+                self.event_grid)
             self.dv_dt_eg_tmp = misc_ep.dv_dt_piecewise(
-                self.zcbond.kappa_eg[0], self.zcbond.vol_eg,
-                self.expiry_idx, self.event_grid)
+                self.kappa_eg[0], self.vol_eg, self.expiry_idx,
+                self.event_grid)
         elif self.time_dependence == "general":
             self.v_eg_tmp = misc_ep.v_general(
                 self.zcbond.int_grid, self.zcbond.int_event_idx,
@@ -250,16 +253,14 @@ class EuropeanOption(options.Option1FAnalytical):
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
-        self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = self.zcbond.payoff(self.fd.grid)
-        # Update drift, diffusion and rate vectors.
-        self.fd_update(self.event_grid.size - 1)
         # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid))
-        for counter, dt in enumerate(time_steps):
-            event_idx = (self.event_grid.size - 1) - counter
-            # Update drift, diffusion and rate vectors at previous event.
+        for idx, dt in enumerate(time_steps):
+            event_idx = (self.event_grid.size - 1) - idx
+            # Update drift, diffusion and rate vectors at previous
+            # event.
             self.fd_update(event_idx - 1)
             # Payoff at option expiry.
             if event_idx == self.expiry_idx:
