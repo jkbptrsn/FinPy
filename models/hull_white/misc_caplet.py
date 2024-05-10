@@ -7,15 +7,16 @@ from scipy.stats import norm
 from utils.global_types import Instrument
 
 
-def caplet_price(spot: typing.Union[float, np.ndarray],
-                 strike_rate: float,
-                 tenor: float,
-                 event_idx: int,
-                 fixing_idx: int,
-                 payment_idx: int,
-                 zcbond,
-                 v_eg: np.ndarray,
-                 option_type: Instrument = Instrument.CAPLET) \
+def caplet_price(
+        spot: typing.Union[float, np.ndarray],
+        strike_rate: float,
+        tenor: float,
+        event_idx: int,
+        fixing_idx: int,
+        payment_idx: int,
+        zcbond,
+        v_eg: np.ndarray,
+        option_type: Instrument = Instrument.CAPLET) \
         -> typing.Union[float, np.ndarray]:
     """Calculate caplet/floorlet price.
 
@@ -59,15 +60,16 @@ def caplet_price(spot: typing.Union[float, np.ndarray],
                     - price1 * norm.cdf(omega * d_minus))
 
 
-def caplet_delta(spot: typing.Union[float, np.ndarray],
-                 strike_rate: float,
-                 tenor: float,
-                 event_idx: int,
-                 fixing_idx: int,
-                 payment_idx: int,
-                 zcbond,
-                 v_eg: np.ndarray,
-                 option_type: Instrument = Instrument.CAPLET) \
+def caplet_delta(
+        spot: typing.Union[float, np.ndarray],
+        strike_rate: float,
+        tenor: float,
+        event_idx: int,
+        fixing_idx: int,
+        payment_idx: int,
+        zcbond,
+        v_eg: np.ndarray,
+        option_type: Instrument = Instrument.CAPLET) \
         -> typing.Union[float, np.ndarray]:
     """Calculate caplet/floorlet delta.
 
@@ -119,15 +121,16 @@ def caplet_delta(spot: typing.Union[float, np.ndarray],
     return omega * first_term + omega ** 2 * second_term
 
 
-def caplet_gamma(spot: typing.Union[float, np.ndarray],
-                 strike_rate: float,
-                 tenor: float,
-                 event_idx: int,
-                 fixing_idx: int,
-                 payment_idx: int,
-                 zcbond,
-                 v_eg: np.ndarray,
-                 option_type: Instrument = Instrument.CAPLET) \
+def caplet_gamma(
+        spot: typing.Union[float, np.ndarray],
+        strike_rate: float,
+        tenor: float,
+        event_idx: int,
+        fixing_idx: int,
+        payment_idx: int,
+        zcbond,
+        v_eg: np.ndarray,
+        option_type: Instrument = Instrument.CAPLET) \
         -> typing.Union[float, np.ndarray]:
     """Calculate caplet/floorlet gamma.
 
@@ -190,16 +193,17 @@ def caplet_gamma(spot: typing.Union[float, np.ndarray],
     return omega * first_term + omega ** 2 * second_term
 
 
-def caplet_theta(spot: typing.Union[float, np.ndarray],
-                 strike_rate: float,
-                 tenor: float,
-                 event_idx: int,
-                 fixing_idx: int,
-                 payment_idx: int,
-                 zcbond,
-                 v_eg: np.ndarray,
-                 dv_dt_eg: np.ndarray,
-                 option_type: Instrument = Instrument.CAPLET) \
+def caplet_theta(
+        spot: typing.Union[float, np.ndarray],
+        strike_rate: float,
+        tenor: float,
+        event_idx: int,
+        fixing_idx: int,
+        payment_idx: int,
+        zcbond,
+        v_eg: np.ndarray,
+        dv_dt_eg: np.ndarray,
+        option_type: Instrument = Instrument.CAPLET) \
         -> typing.Union[float, np.ndarray]:
     """Calculate caplet/floorlet theta.
 
@@ -245,8 +249,8 @@ def caplet_theta(spot: typing.Union[float, np.ndarray],
     d_plus, d_minus = d_function(price1, price2, strike_rate, tenor, v)
     factor = (1 + strike_rate * tenor)
     # 1st order time derivative of d-functions at time t.
-    d_theta = dd_dt(price1, theta1, price2, theta2,
-                    strike_rate, tenor, v, dv_dt)
+    d_theta = dd_dt(
+        price1, theta1, price2, theta2, strike_rate, tenor, v, dv_dt)
     first_term = factor * theta2 * norm.cdf(omega * d_plus) \
         - theta1 * norm.cdf(omega * d_minus)
     second_term = factor * price2 * norm.pdf(omega * d_plus) * d_theta[0] \
@@ -254,11 +258,12 @@ def caplet_theta(spot: typing.Union[float, np.ndarray],
     return omega * first_term + omega ** 2 * second_term
 
 
-def d_function(price1: typing.Union[float, np.ndarray],
-               price2: typing.Union[float, np.ndarray],
-               strike_rate: float,
-               tenor: float,
-               v: float) -> tuple:
+def d_function(
+        price1: typing.Union[float, np.ndarray],
+        price2: typing.Union[float, np.ndarray],
+        strike_rate: float,
+        tenor: float,
+        v: float) -> tuple:
     """Calculate d-functions.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.2.
@@ -279,11 +284,12 @@ def d_function(price1: typing.Union[float, np.ndarray],
     return d_plus, d_minus
 
 
-def dd_dr(price1: typing.Union[float, np.ndarray],
-          delta1: typing.Union[float, np.ndarray],
-          price2: typing.Union[float, np.ndarray],
-          delta2: typing.Union[float, np.ndarray],
-          v: float) -> typing.Union[float, np.ndarray]:
+def dd_dr(
+        price1: typing.Union[float, np.ndarray],
+        delta1: typing.Union[float, np.ndarray],
+        price2: typing.Union[float, np.ndarray],
+        delta2: typing.Union[float, np.ndarray],
+        v: float) -> typing.Union[float, np.ndarray]:
     """Calculate 1st order spatial derivative of d-functions.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.2.
@@ -301,13 +307,14 @@ def dd_dr(price1: typing.Union[float, np.ndarray],
     return (delta2 / price2 - delta1 / price1) / math.sqrt(v)
 
 
-def d2d_dr2(price1: typing.Union[float, np.ndarray],
-            delta1: typing.Union[float, np.ndarray],
-            gamma1: typing.Union[float, np.ndarray],
-            price2: typing.Union[float, np.ndarray],
-            delta2: typing.Union[float, np.ndarray],
-            gamma2: typing.Union[float, np.ndarray],
-            v: float) -> typing.Union[float, np.ndarray]:
+def d2d_dr2(
+        price1: typing.Union[float, np.ndarray],
+        delta1: typing.Union[float, np.ndarray],
+        gamma1: typing.Union[float, np.ndarray],
+        price2: typing.Union[float, np.ndarray],
+        delta2: typing.Union[float, np.ndarray],
+        gamma2: typing.Union[float, np.ndarray],
+        v: float) -> typing.Union[float, np.ndarray]:
     """Calculate 2nd order spatial derivative of d-functions.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.2.
@@ -328,14 +335,15 @@ def d2d_dr2(price1: typing.Union[float, np.ndarray],
             - gamma1 / price1 + delta1 ** 2 / price1 ** 2) / math.sqrt(v)
 
 
-def dd_dt(price1: typing.Union[float, np.ndarray],
-          theta1: typing.Union[float, np.ndarray],
-          price2: typing.Union[float, np.ndarray],
-          theta2: typing.Union[float, np.ndarray],
-          strike_rate: float,
-          tenor: float,
-          v: float,
-          dv_dt: float) -> tuple:
+def dd_dt(
+        price1: typing.Union[float, np.ndarray],
+        theta1: typing.Union[float, np.ndarray],
+        price2: typing.Union[float, np.ndarray],
+        theta2: typing.Union[float, np.ndarray],
+        strike_rate: float,
+        tenor: float,
+        v: float,
+        dv_dt: float) -> tuple:
     """Calculate 1st order time derivative of d-functions.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.2.
