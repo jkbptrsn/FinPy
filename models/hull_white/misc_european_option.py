@@ -8,10 +8,11 @@ from utils.global_types import Instrument
 from utils import misc
 
 
-def v_function(expiry_idx: int,
-               maturity_idx: int,
-               g_eg: np.ndarray,
-               v_eg: np.ndarray) -> np.ndarray:
+def v_function(
+        expiry_idx: int,
+        maturity_idx: int,
+        g_eg: np.ndarray,
+        v_eg: np.ndarray) -> np.ndarray:
     """Calculate v- or dv_dt-function on event grid until expiry.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.1.
@@ -28,10 +29,11 @@ def v_function(expiry_idx: int,
     return (g_eg[maturity_idx] - g_eg[expiry_idx]) ** 2 * v_eg
 
 
-def v_constant(kappa: float,
-               vol: float,
-               expiry_idx: int,
-               event_grid: np.ndarray) -> np.ndarray:
+def v_constant(
+        kappa: float,
+        vol: float,
+        expiry_idx: int,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "v-function" on event grid until expiry.
 
     The speed of mean reversion is constant and volatility is constant.
@@ -53,10 +55,11 @@ def v_constant(kappa: float,
     return vol ** 2 * (exp_kappa1 - exp_kappa2) / two_kappa
 
 
-def dv_dt_constant(kappa: float,
-                   vol: float,
-                   expiry_idx: int,
-                   event_grid: np.ndarray) -> np.ndarray:
+def dv_dt_constant(
+        kappa: float,
+        vol: float,
+        expiry_idx: int,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate 1st order time derivative of "v-function".
 
     The speed of mean reversion is constant and volatility is constant.
@@ -75,10 +78,11 @@ def dv_dt_constant(kappa: float,
     return -vol ** 2 * np.exp(2 * kappa * event_grid[:expiry_idx + 1])
 
 
-def v_piecewise(kappa: float,
-                vol: np.ndarray,
-                expiry_idx: int,
-                event_grid: np.ndarray) -> np.ndarray:
+def v_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        expiry_idx: int,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "v-function" on event grid until expiry.
 
     The speed of mean reversion is constant and volatility is piecewise
@@ -107,10 +111,11 @@ def v_piecewise(kappa: float,
     return v_return
 
 
-def dv_dt_piecewise(kappa: float,
-                    vol: np.ndarray,
-                    expiry_idx: int,
-                    event_grid: np.ndarray) -> np.ndarray:
+def dv_dt_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        expiry_idx: int,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate 1st order time derivative of "v-function".
 
     The speed of mean reversion is constant and volatility is piecewise
@@ -131,11 +136,12 @@ def dv_dt_piecewise(kappa: float,
         * np.exp(2 * kappa * event_grid[:expiry_idx + 1])
 
 
-def v_general(int_grid: np.ndarray,
-              int_event_idx: np.ndarray,
-              int_kappa_step_ig: np.ndarray,
-              vol_ig: np.ndarray,
-              expiry_idx: int) -> np.ndarray:
+def v_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        expiry_idx: int) -> np.ndarray:
     """Calculate "v-function" on event grid until expiry.
 
     No assumption on the time dependence of the speed of mean reversion
@@ -170,10 +176,11 @@ def v_general(int_grid: np.ndarray,
     return v_return
 
 
-def dv_dt_general(int_event_idx: np.ndarray,
-                  int_kappa_step_ig: np.ndarray,
-                  vol_ig: np.ndarray,
-                  expiry_idx: int) -> np.ndarray:
+def dv_dt_general(
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        expiry_idx: int) -> np.ndarray:
     """Calculate 1st order time derivative of "v-function".
 
     No assumption on the time dependence of the speed of mean reversion
@@ -200,14 +207,15 @@ def dv_dt_general(int_event_idx: np.ndarray,
     return v_return
 
 
-def option_price(spot: typing.Union[float, np.ndarray],
-                 strike: float,
-                 event_idx: int,
-                 expiry_idx: int,
-                 maturity_idx: int,
-                 zcbond,
-                 v_eg: np.ndarray,
-                 option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def option_price(
+        spot: typing.Union[float, np.ndarray],
+        strike: float,
+        event_idx: int,
+        expiry_idx: int,
+        maturity_idx: int,
+        zcbond,
+        v_eg: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option price.
 
@@ -249,14 +257,15 @@ def option_price(spot: typing.Union[float, np.ndarray],
                     - strike * price1 * norm.cdf(omega * d_minus))
 
 
-def option_delta(spot: typing.Union[float, np.ndarray],
-                 strike: float,
-                 event_idx: int,
-                 expiry_idx: int,
-                 maturity_idx: int,
-                 zcbond,
-                 v_eg: np.ndarray,
-                 option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def option_delta(
+        spot: typing.Union[float, np.ndarray],
+        strike: float,
+        event_idx: int,
+        expiry_idx: int,
+        maturity_idx: int,
+        zcbond,
+        v_eg: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option delta.
 
@@ -306,14 +315,15 @@ def option_delta(spot: typing.Union[float, np.ndarray],
     return omega * first_term + omega ** 2 * second_term
 
 
-def option_gamma(spot: typing.Union[float, np.ndarray],
-                 strike: float,
-                 event_idx: int,
-                 expiry_idx: int,
-                 maturity_idx: int,
-                 zcbond,
-                 v_eg: np.ndarray,
-                 option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def option_gamma(
+        spot: typing.Union[float, np.ndarray],
+        strike: float,
+        event_idx: int,
+        expiry_idx: int,
+        maturity_idx: int,
+        zcbond,
+        v_eg: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option gamma.
 
@@ -374,15 +384,16 @@ def option_gamma(spot: typing.Union[float, np.ndarray],
     return omega * first_term + omega ** 2 * second_term
 
 
-def option_theta(spot: typing.Union[float, np.ndarray],
-                 strike: float,
-                 event_idx: int,
-                 expiry_idx: int,
-                 maturity_idx: int,
-                 zcbond,
-                 v_eg: np.ndarray,
-                 dv_dt_eg: np.ndarray,
-                 option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def option_theta(
+        spot: typing.Union[float, np.ndarray],
+        strike: float,
+        event_idx: int,
+        expiry_idx: int,
+        maturity_idx: int,
+        zcbond,
+        v_eg: np.ndarray,
+        dv_dt_eg: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option theta.
 
@@ -434,10 +445,11 @@ def option_theta(spot: typing.Union[float, np.ndarray],
     return omega * first_term + omega ** 2 * second_term
 
 
-def d_function(price1: typing.Union[float, np.ndarray],
-               price2: typing.Union[float, np.ndarray],
-               strike: float,
-               v: float) -> tuple:
+def d_function(
+        price1: typing.Union[float, np.ndarray],
+        price2: typing.Union[float, np.ndarray],
+        strike: float,
+        v: float) -> tuple:
     """Calculate d-functions.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.1.
@@ -457,11 +469,12 @@ def d_function(price1: typing.Union[float, np.ndarray],
     return d_plus, d_minus
 
 
-def dd_dr(price1: typing.Union[float, np.ndarray],
-          delta1: typing.Union[float, np.ndarray],
-          price2: typing.Union[float, np.ndarray],
-          delta2: typing.Union[float, np.ndarray],
-          v: float) -> typing.Union[float, np.ndarray]:
+def dd_dr(
+        price1: typing.Union[float, np.ndarray],
+        delta1: typing.Union[float, np.ndarray],
+        price2: typing.Union[float, np.ndarray],
+        delta2: typing.Union[float, np.ndarray],
+        v: float) -> typing.Union[float, np.ndarray]:
     """Calculate 1st order spatial derivative of d-functions.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.1.
@@ -479,13 +492,14 @@ def dd_dr(price1: typing.Union[float, np.ndarray],
     return (delta2 / price2 - delta1 / price1) / math.sqrt(v)
 
 
-def d2d_dr2(price1: typing.Union[float, np.ndarray],
-            delta1: typing.Union[float, np.ndarray],
-            gamma1: typing.Union[float, np.ndarray],
-            price2: typing.Union[float, np.ndarray],
-            delta2: typing.Union[float, np.ndarray],
-            gamma2: typing.Union[float, np.ndarray],
-            v: float) -> typing.Union[float, np.ndarray]:
+def d2d_dr2(
+        price1: typing.Union[float, np.ndarray],
+        delta1: typing.Union[float, np.ndarray],
+        gamma1: typing.Union[float, np.ndarray],
+        price2: typing.Union[float, np.ndarray],
+        delta2: typing.Union[float, np.ndarray],
+        gamma2: typing.Union[float, np.ndarray],
+        v: float) -> typing.Union[float, np.ndarray]:
     """Calculate 2nd order spatial derivative of d-functions.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.1.
@@ -506,13 +520,14 @@ def d2d_dr2(price1: typing.Union[float, np.ndarray],
             - gamma1 / price1 + delta1 ** 2 / price1 ** 2) / math.sqrt(v)
 
 
-def dd_dt(price1: typing.Union[float, np.ndarray],
-          theta1: typing.Union[float, np.ndarray],
-          price2: typing.Union[float, np.ndarray],
-          theta2: typing.Union[float, np.ndarray],
-          strike: float,
-          v: float,
-          dv_dt: float) -> tuple:
+def dd_dt(
+        price1: typing.Union[float, np.ndarray],
+        theta1: typing.Union[float, np.ndarray],
+        price2: typing.Union[float, np.ndarray],
+        theta2: typing.Union[float, np.ndarray],
+        strike: float,
+        v: float,
+        dv_dt: float) -> tuple:
     """Calculate 1st order time derivative of d-functions.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.1.

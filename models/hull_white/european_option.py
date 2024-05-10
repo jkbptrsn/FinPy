@@ -61,9 +61,9 @@ class EuropeanOption(options.Option1FAnalytical):
         self.int_dt = int_dt
 
         # Underlying zero-coupon bond.
-        self.zcbond = \
-            zcbond.ZCBond(kappa, vol, discount_curve, maturity_idx,
-                          event_grid, time_dependence, int_dt)
+        self.zcbond = zcbond.ZCBond(
+            kappa, vol, discount_curve, maturity_idx, event_grid,
+            time_dependence, int_dt)
         # Kappa on event grid.
         self.kappa_eg = self.zcbond.kappa_eg
         # Vol on event grid.
@@ -333,9 +333,8 @@ class EuropeanOption(options.Option1FAnalytical):
             mc_object) -> np.ndarray:
         """Present value for each Monte-Carlo path."""
         # Adjustment of discount paths.
-        discount_paths = \
-            mc_object.discount_adjustment(mc_object.discount_paths,
-                                          self.adjust_discount)
+        discount_paths = mc_object.discount_adjustment(
+            mc_object.discount_paths, self.adjust_discount)
         # Pseudo short rate at expiry.
         spot = mc_object.rate_paths[self.expiry_idx]
         # Zero-coupon bond price at expiry.
