@@ -278,6 +278,7 @@ class ZCBond(bonds.Bond1FAnalytical):
             # Update drift, diffusion and rate vectors at previous
             # event.
             self.fd_update(event_idx - 1)
+            # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]

@@ -265,6 +265,7 @@ class EuropeanOption(options.Option1FAnalytical):
             # Payoff at option expiry.
             if event_idx == self.expiry_idx:
                 self.fd.solution = self.payoff(self.fd.solution)
+            # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
