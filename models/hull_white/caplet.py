@@ -268,20 +268,21 @@ class Caplet(options.Option1FAnalytical):
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
-        self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = np.zeros(self.fd.grid.size)
-        # Update drift, diffusion and rate vectors.
-        self.fd_update(self.event_grid.size - 1)
         # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid))
-        for counter, dt in enumerate(time_steps):
-            event_idx = (self.event_grid.size - 1) - counter
-            # Update drift, diffusion and rate vectors at previous event.
+        for idx, dt in enumerate(time_steps):
+            event_idx = (self.event_grid.size - 1) - idx
+            # Update drift, diffusion and rate vectors at previous
+            # event.
             self.fd_update(event_idx - 1)
+
             # Payoff at payment event, discounted to fixing event.
             if event_idx == self.fix_idx:
                 self.fd.solution += self.payoff(self.fd.grid, True)
+
+            # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
