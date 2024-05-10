@@ -35,16 +35,17 @@ class Swap(bonds.Bond1FAnalytical):
         int_dt: Integration step size. Default is 1 / 52.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 fixed_rate: float,
-                 fixing_schedule: np.ndarray,
-                 payment_schedule: np.ndarray,
-                 event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52):
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            fixed_rate: float,
+            fixing_schedule: np.ndarray,
+            payment_schedule: np.ndarray,
+            event_grid: np.ndarray,
+            time_dependence: str = "piecewise",
+            int_dt: float = 1 / 52):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
@@ -64,10 +65,9 @@ class Swap(bonds.Bond1FAnalytical):
         self.slice_start = None
 
         # Zero-coupon bond used in analytical pricing.
-        self.zcbond = \
-            zcbond.ZCBond(kappa, vol, discount_curve,
-                          event_grid.size - 1,
-                          event_grid, time_dependence, int_dt)
+        self.zcbond = zcbond.ZCBond(
+            kappa, vol, discount_curve, event_grid.size - 1, event_grid,
+            time_dependence, int_dt)
         # Kappa on event grid.
         self.kappa_eg = self.zcbond.kappa_eg
         # Vol on event grid.
@@ -90,9 +90,10 @@ class Swap(bonds.Bond1FAnalytical):
     def maturity(self) -> float:
         return self.event_grid[self.payment_schedule[-1]]
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray],
-               discounting: bool = False) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            discounting: bool = False) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -118,9 +119,10 @@ class Swap(bonds.Bond1FAnalytical):
         else:
             return _payoff
 
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -158,9 +160,10 @@ class Swap(bonds.Bond1FAnalytical):
             swap_price -= (1 + tenor * self.fixed_rate) * bond_price
         return swap_price
 
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt short rate.
 
         Args:
@@ -198,9 +201,10 @@ class Swap(bonds.Bond1FAnalytical):
             swap_delta -= (1 + tenor * self.fixed_rate) * bond_delta
         return swap_delta
 
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt short rate.
 
         Args:
@@ -238,9 +242,10 @@ class Swap(bonds.Bond1FAnalytical):
             swap_gamma -= (1 + tenor * self.fixed_rate) * bond_gamma
         return swap_gamma
 
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -280,17 +285,16 @@ class Swap(bonds.Bond1FAnalytical):
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
-        self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = np.zeros(self.fd.grid.size)
-        # Update drift, diffusion and rate vectors.
-        self.fd_update(self.event_grid.size - 1)
         # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid))
-        for count, dt in enumerate(time_steps):
-            event_idx = (self.event_grid.size - 1) - count
-            # Update drift, diffusion and rate vectors at previous event.
+        for idx, dt in enumerate(time_steps):
+            event_idx = (self.event_grid.size - 1) - idx
+            # Update drift, diffusion and rate vectors at previous
+            # event.
             self.fd_update(event_idx - 1)
+
             # Payments.
             if event_idx in self.fixing_schedule:
                 idx_fix = event_idx
@@ -307,6 +311,8 @@ class Swap(bonds.Bond1FAnalytical):
                 # Analytical discounting from payment date to fixing date.
                 payment *= bond_price
                 self.fd.solution += payment
+
+            # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
@@ -316,12 +322,13 @@ class Swap(bonds.Bond1FAnalytical):
         self.zcbond.mc_exact_setup()
         self.mc_exact = self.zcbond.mc_exact
 
-    def mc_exact_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False) -> None:
+    def mc_exact_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Exact discretization.
@@ -345,12 +352,13 @@ class Swap(bonds.Bond1FAnalytical):
         self.zcbond.mc_euler_setup()
         self.mc_euler = self.zcbond.mc_euler
 
-    def mc_euler_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False) -> None:
+    def mc_euler_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Euler-Maruyama discretization.
@@ -369,13 +377,13 @@ class Swap(bonds.Bond1FAnalytical):
         self.mc_euler.mc_error = present_value.std(ddof=1)
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
-    def mc_present_value(self,
-                         mc_object) -> np.ndarray:
+    def mc_present_value(
+            self,
+            mc_object) -> np.ndarray:
         """Present value for each Monte-Carlo path."""
         # Adjustment of discount paths.
-        discount_paths = \
-            mc_object.discount_adjustment(mc_object.discount_paths,
-                                          self.adjust_discount)
+        discount_paths = mc_object.discount_adjustment(
+            mc_object.discount_paths, self.adjust_discount)
         swap_payoff = np.zeros(mc_object.discount_paths.shape[1])
         for idx_fix, idx_pay in \
                 zip(self.fixing_schedule, self.payment_schedule):
@@ -394,8 +402,9 @@ class Swap(bonds.Bond1FAnalytical):
             swap_payoff += payment
         return swap_payoff
 
-    def update_remaining(self,
-                         event_idx: int) -> None:
+    def update_remaining(
+            self,
+            event_idx: int) -> None:
         """Update remaining fixing and payment dates.
 
         Args:
@@ -413,9 +422,10 @@ class Swap(bonds.Bond1FAnalytical):
         else:
             self.slice_start = 0
 
-    def annuity(self,
-                spot: typing.Union[float, np.ndarray],
-                event_idx: int) -> typing.Union[float, np.ndarray]:
+    def annuity(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Calculate Present Value of a Basis Point (PVBP).
 
         Args:
@@ -447,10 +457,11 @@ class Swap(bonds.Bond1FAnalytical):
             pvbp += tenor * bond_price
         return pvbp
 
-    def par_rate(self,
-                 spot: typing.Union[float, np.ndarray],
-                 event_idx: int,
-                 floating_rate_fixed: float = 0) \
+    def par_rate(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            floating_rate_fixed: float = 0) \
             -> typing.Union[float, np.ndarray]:
         """Calculate par rate, also referred to as forward swap rate.
 
@@ -482,15 +493,16 @@ class Swap(bonds.Bond1FAnalytical):
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
             # Simple forward_rate rate.
-            rate = misc_sw.simple_forward_rate(bond_price_pay, tenor,
-                                               bond_price_fix)
+            rate = misc_sw.simple_forward_rate(
+                bond_price_pay, tenor, bond_price_fix)
             forward_rate += tenor * bond_price_pay * rate
         return forward_rate / self.annuity(spot, event_idx)
 
-    def zcbond_price(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+    def zcbond_price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            maturity_idx: int) -> typing.Union[float, np.ndarray]:
         """Price of zero-coupon bond.
 
         Args:
@@ -505,10 +517,11 @@ class Swap(bonds.Bond1FAnalytical):
             self.zcbond.mat_idx = maturity_idx
         return self.zcbond.price(spot, event_idx)
 
-    def zcbond_delta(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+    def zcbond_delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            maturity_idx: int) -> typing.Union[float, np.ndarray]:
         """Delta of zero-coupon bond.
 
         Args:
@@ -523,10 +536,11 @@ class Swap(bonds.Bond1FAnalytical):
             self.zcbond.mat_idx = maturity_idx
         return self.zcbond.delta(spot, event_idx)
 
-    def zcbond_gamma(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+    def zcbond_gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            maturity_idx: int) -> typing.Union[float, np.ndarray]:
         """Gamma of zero-coupon bond.
 
         Args:
@@ -541,10 +555,11 @@ class Swap(bonds.Bond1FAnalytical):
             self.zcbond.mat_idx = maturity_idx
         return self.zcbond.gamma(spot, event_idx)
 
-    def zcbond_theta(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+    def zcbond_theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            maturity_idx: int) -> typing.Union[float, np.ndarray]:
         """Theta of zero-coupon bond.
 
         Args:
@@ -585,31 +600,25 @@ class SwapPelsser(Swap):
         int_dt: Integration step size. Default is 1 / 52.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 fixed_rate: float,
-                 fixing_schedule: np.ndarray,
-                 payment_schedule: np.ndarray,
-                 event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52):
-        super().__init__(kappa,
-                         vol,
-                         discount_curve,
-                         fixed_rate,
-                         fixing_schedule,
-                         payment_schedule,
-                         event_grid,
-                         time_dependence,
-                         int_dt)
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            fixed_rate: float,
+            fixing_schedule: np.ndarray,
+            payment_schedule: np.ndarray,
+            event_grid: np.ndarray,
+            time_dependence: str = "piecewise",
+            int_dt: float = 1 / 52):
+        super().__init__(
+            kappa, vol, discount_curve, fixed_rate, fixing_schedule,
+            payment_schedule, event_grid, time_dependence, int_dt)
 
         # Underlying zero-coupon bond.
-        self.zcbond = \
-            zcbond.ZCBondPelsser(kappa, vol, discount_curve,
-                                 event_grid.size - 1,
-                                 event_grid, time_dependence, int_dt)
+        self.zcbond = zcbond.ZCBondPelsser(
+            kappa, vol, discount_curve, event_grid.size - 1, event_grid,
+            time_dependence, int_dt)
 
         self.transformation = self.zcbond.transformation
 
