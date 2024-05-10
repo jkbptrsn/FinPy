@@ -24,25 +24,23 @@ class VFunction(unittest.TestCase):
         # Speed of mean reversion strip.
         self.kappa_scalar = 0.02
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
-        self.kappa1 = data_types.DiscreteFunc("kappa1",
-                                              self.event_grid,
-                                              self.kappa_vector1)
+        self.kappa1 = data_types.DiscreteFunc(
+            "kappa1", self.event_grid, self.kappa_vector1)
         # Volatility strip.
         self.vol_scalar = 0.05
         self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)
         # Constant vol strip.
-        self.vol1 = \
-            data_types.DiscreteFunc("vol1", self.event_grid, self.vol_vector1)
+        self.vol1 = data_types.DiscreteFunc(
+            "vol1", self.event_grid, self.vol_vector1)
         self.vol_vector2 = np.zeros(self.event_grid.size)
         for idx in range(self.event_grid.size):
             self.vol_vector2[idx] = (idx % 4 + 1) * self.vol_vector1[idx]
         # Piecewise-constant vol strip.
-        self.vol2 = \
-            data_types.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
+        self.vol2 = data_types.DiscreteFunc(
+            "vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
-        self.discount_curve = \
-            data_types.DiscreteFunc("discount", self.event_grid,
-                                    np.ones(self.event_grid.size))
+        self.discount_curve = data_types.DiscreteFunc(
+            "discount", self.event_grid, np.ones(self.event_grid.size))
         # Bond maturity.
         self.maturity_idx = self.event_grid.size - 1
         self.maturity = self.event_grid[self.maturity_idx]
@@ -52,110 +50,64 @@ class VFunction(unittest.TestCase):
         # Option strike price.
         self.strike = 0.8
         # Call objects.
-        self.call_constant1 = \
-            option.EuropeanOption(self.kappa1,
-                                  self.vol1,
-                                  self.discount_curve,
-                                  self.strike,
-                                  self.expiry_idx,
-                                  self.maturity_idx,
-                                  self.event_grid,
-                                  "constant",
-                                  1 / 10)
-        self.call_piecewise2 = \
-            option.EuropeanOption(self.kappa1,
-                                  self.vol2,
-                                  self.discount_curve,
-                                  self.strike,
-                                  self.expiry_idx,
-                                  self.maturity_idx,
-                                  self.event_grid,
-                                  "piecewise",
-                                  1 / 10)
-        self.call_general1 = \
-            option.EuropeanOption(self.kappa1,
-                                  self.vol1,
-                                  self.discount_curve,
-                                  self.strike,
-                                  self.expiry_idx,
-                                  self.maturity_idx,
-                                  self.event_grid,
-                                  "general",
-                                  1 / 100)
-        self.call_general2 = \
-            option.EuropeanOption(self.kappa1,
-                                  self.vol2,
-                                  self.discount_curve,
-                                  self.strike,
-                                  self.expiry_idx,
-                                  self.maturity_idx,
-                                  self.event_grid,
-                                  "general",
-                                  1 / 100)
+        self.call_constant1 = option.EuropeanOption(
+            self.kappa1, self.vol1, self.discount_curve, self.strike,
+            self.expiry_idx, self.maturity_idx, self.event_grid, "constant",
+            1 / 10)
+        self.call_piecewise2 = option.EuropeanOption(
+            self.kappa1, self.vol2, self.discount_curve, self.strike,
+            self.expiry_idx, self.maturity_idx, self.event_grid, "piecewise",
+            1 / 10)
+        self.call_general1 = option.EuropeanOption(
+            self.kappa1, self.vol1, self.discount_curve, self.strike,
+            self.expiry_idx, self.maturity_idx, self.event_grid, "general",
+            1 / 100)
+        self.call_general2 = option.EuropeanOption(
+            self.kappa1, self.vol2, self.discount_curve, self.strike,
+            self.expiry_idx, self.maturity_idx, self.event_grid, "general",
+            1 / 100)
 
     def test_constant(self):
         """Constant vol strip."""
-        v_constant = \
-            misc_ep.v_constant(self.kappa_scalar,
-                               self.vol_scalar,
-                               self.expiry_idx,
-                               self.event_grid)
-        v_constant = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_constant1.zcbond.g_eg,
-                               v_constant)
-        dv_dt_constant = \
-            misc_ep.dv_dt_constant(self.kappa_scalar,
-                                   self.vol_scalar,
-                                   self.expiry_idx,
-                                   self.event_grid)
-        dv_dt_constant = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_constant1.zcbond.g_eg,
-                               dv_dt_constant)
-        v_piecewise = \
-            misc_ep.v_piecewise(self.kappa_scalar,
-                                self.call_constant1.vol_eg,
-                                self.expiry_idx,
-                                self.event_grid)
-        v_piecewise = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_constant1.zcbond.g_eg,
-                               v_piecewise)
-        dv_dt_piecewise = \
-            misc_ep.dv_dt_piecewise(self.kappa_scalar,
-                                    self.call_constant1.vol_eg,
-                                    self.expiry_idx,
-                                    self.event_grid)
-        dv_dt_piecewise = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_constant1.zcbond.g_eg,
-                               dv_dt_piecewise)
-        v_general = \
-            misc_ep.v_general(self.call_general1.zcbond.int_grid,
-                              self.call_general1.zcbond.int_event_idx,
-                              self.call_general1.zcbond.int_kappa_step_ig,
-                              self.call_general1.zcbond.vol_ig,
-                              self.expiry_idx)
-        v_general = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_constant1.zcbond.g_eg,
-                               v_general)
-        dv_dt_general = \
-            misc_ep.dv_dt_general(self.call_general1.zcbond.int_event_idx,
-                                  self.call_general1.zcbond.int_kappa_step_ig,
-                                  self.call_general1.zcbond.vol_ig,
-                                  self.expiry_idx)
-        dv_dt_general = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_constant1.zcbond.g_eg,
-                               dv_dt_general)
+        v_constant = misc_ep.v_constant(
+            self.kappa_scalar, self.vol_scalar, self.expiry_idx,
+            self.event_grid)
+        v_constant = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_constant1.zcbond.g_eg, v_constant)
+        dv_dt_constant = misc_ep.dv_dt_constant(
+            self.kappa_scalar, self.vol_scalar, self.expiry_idx,
+            self.event_grid)
+        dv_dt_constant = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_constant1.zcbond.g_eg, dv_dt_constant)
+        v_piecewise = misc_ep.v_piecewise(
+            self.kappa_scalar, self.call_constant1.vol_eg, self.expiry_idx,
+            self.event_grid)
+        v_piecewise = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_constant1.zcbond.g_eg, v_piecewise)
+        dv_dt_piecewise = misc_ep.dv_dt_piecewise(
+            self.kappa_scalar, self.call_constant1.vol_eg, self.expiry_idx,
+            self.event_grid)
+        dv_dt_piecewise = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_constant1.zcbond.g_eg, dv_dt_piecewise)
+        v_general = misc_ep.v_general(
+            self.call_general1.zcbond.int_grid,
+            self.call_general1.zcbond.int_event_idx,
+            self.call_general1.zcbond.int_kappa_step_ig,
+            self.call_general1.zcbond.vol_ig, self.expiry_idx)
+        v_general = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_constant1.zcbond.g_eg, v_general)
+        dv_dt_general = misc_ep.dv_dt_general(
+            self.call_general1.zcbond.int_event_idx,
+            self.call_general1.zcbond.int_kappa_step_ig,
+            self.call_general1.zcbond.vol_ig, self.expiry_idx)
+        dv_dt_general = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_constant1.zcbond.g_eg, dv_dt_general)
         if plot_results:
             event_grid_plot = self.event_grid[:self.expiry_idx + 1]
             plt.plot(event_grid_plot, v_constant, "-b", label="Constant")
@@ -194,47 +146,33 @@ class VFunction(unittest.TestCase):
 
     def test_piecewise(self):
         """Piecewise constant vol strip."""
-        v_piecewise = \
-            misc_ep.v_piecewise(self.kappa_scalar,
-                                self.call_piecewise2.vol_eg,
-                                self.expiry_idx,
-                                self.event_grid)
-        v_piecewise = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_piecewise2.zcbond.g_eg,
-                               v_piecewise)
-        dv_dt_piecewise = \
-            misc_ep.dv_dt_piecewise(self.kappa_scalar,
-                                    self.call_piecewise2.vol_eg,
-                                    self.expiry_idx,
-                                    self.event_grid)
-        dv_dt_piecewise = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_piecewise2.zcbond.g_eg,
-                               dv_dt_piecewise)
-        v_general = \
-            misc_ep.v_general(self.call_general2.zcbond.int_grid,
-                              self.call_general2.zcbond.int_event_idx,
-                              self.call_general2.zcbond.int_kappa_step_ig,
-                              self.call_general2.zcbond.vol_ig,
-                              self.expiry_idx)
-        v_general = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_general2.zcbond.g_eg,
-                               v_general)
-        dv_dt_general = \
-            misc_ep.dv_dt_general(self.call_general2.zcbond.int_event_idx,
-                                  self.call_general2.zcbond.int_kappa_step_ig,
-                                  self.call_general2.zcbond.vol_ig,
-                                  self.expiry_idx)
-        dv_dt_general = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_general2.zcbond.g_eg,
-                               dv_dt_general)
+        v_piecewise = misc_ep.v_piecewise(
+            self.kappa_scalar, self.call_piecewise2.vol_eg, self.expiry_idx,
+            self.event_grid)
+        v_piecewise = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_piecewise2.zcbond.g_eg, v_piecewise)
+        dv_dt_piecewise = misc_ep.dv_dt_piecewise(
+            self.kappa_scalar, self.call_piecewise2.vol_eg, self.expiry_idx,
+            self.event_grid)
+        dv_dt_piecewise = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_piecewise2.zcbond.g_eg, dv_dt_piecewise)
+        v_general = misc_ep.v_general(
+            self.call_general2.zcbond.int_grid,
+            self.call_general2.zcbond.int_event_idx,
+            self.call_general2.zcbond.int_kappa_step_ig,
+            self.call_general2.zcbond.vol_ig, self.expiry_idx)
+        v_general = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx, self.call_general2.zcbond.g_eg,
+            v_general)
+        dv_dt_general = misc_ep.dv_dt_general(
+            self.call_general2.zcbond.int_event_idx,
+            self.call_general2.zcbond.int_kappa_step_ig,
+            self.call_general2.zcbond.vol_ig, self.expiry_idx)
+        dv_dt_general = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx, self.call_general2.zcbond.g_eg,
+            dv_dt_general)
         if plot_results:
             event_grid_plot = self.event_grid[:self.expiry_idx + 1]
             plt.plot(event_grid_plot, v_piecewise, "or", label="Piecewise")
@@ -296,27 +234,15 @@ class Call(unittest.TestCase):
         self.int_step_size = self.fd_dt / self.int_step_factor
         # Call option.
         self.time_dependence = "piecewise"
-        self.call = \
-            option.EuropeanOption(self.kappa,
-                                  self.vol,
-                                  self.discount_curve,
-                                  self.strike,
-                                  self.fd_expiry_idx,
-                                  self.fd_maturity_idx,
-                                  self.fd_event_grid,
-                                  self.time_dependence,
-                                  self.int_step_size)
+        self.call = option.EuropeanOption(
+            self.kappa, self.vol, self.discount_curve, self.strike,
+            self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
+            self.time_dependence, self.int_step_size)
 
-        self.callPelsser = \
-            option.EuropeanOptionPelsser(self.kappa,
-                                         self.vol,
-                                         self.discount_curve,
-                                         self.strike,
-                                         self.fd_expiry_idx,
-                                         self.fd_maturity_idx,
-                                         self.fd_event_grid,
-                                         self.time_dependence,
-                                         self.int_step_size)
+        self.callPelsser = option.EuropeanOptionPelsser(
+            self.kappa, self.vol, self.discount_curve, self.strike,
+            self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
+            self.time_dependence, self.int_step_size)
 
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
@@ -467,12 +393,12 @@ class Call(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.callPelsser.mc_exact_solve(s, n_paths, rng=rng,
-                                            antithetic=True)
+            self.callPelsser.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.callPelsser.mc_exact.mc_estimate
             error_exact[idx] = self.callPelsser.mc_exact.mc_error
-            self.callPelsser.mc_euler_solve(s, n_paths, rng=rng,
-                                            antithetic=True)
+            self.callPelsser.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.callPelsser.mc_euler.mc_estimate
             error_euler[idx] = self.callPelsser.mc_euler.mc_error
         if plot_results:
@@ -525,29 +451,15 @@ class Put(unittest.TestCase):
         self.int_step_size = self.fd_dt / self.int_step_factor
         # Call option.
         self.time_dependence = "piecewise"
-        self.put = \
-            option.EuropeanOption(self.kappa,
-                                  self.vol,
-                                  self.discount_curve,
-                                  self.strike,
-                                  self.fd_expiry_idx,
-                                  self.fd_maturity_idx,
-                                  self.fd_event_grid,
-                                  self.time_dependence,
-                                  self.int_step_size,
-                                  option_type="Put")
+        self.put = option.EuropeanOption(
+            self.kappa, self.vol, self.discount_curve, self.strike,
+            self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
+            self.time_dependence, self.int_step_size, option_type="Put")
 
-        self.putPelsser = \
-            option.EuropeanOptionPelsser(self.kappa,
-                                         self.vol,
-                                         self.discount_curve,
-                                         self.strike,
-                                         self.fd_expiry_idx,
-                                         self.fd_maturity_idx,
-                                         self.fd_event_grid,
-                                         self.time_dependence,
-                                         self.int_step_size,
-                                         option_type="Put")
+        self.putPelsser = option.EuropeanOptionPelsser(
+            self.kappa, self.vol, self.discount_curve, self.strike,
+            self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
+            self.time_dependence, self.int_step_size, option_type="Put")
 
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
@@ -698,12 +610,12 @@ class Put(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.putPelsser.mc_exact_solve(s, n_paths, rng=rng,
-                                           antithetic=True)
+            self.putPelsser.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.putPelsser.mc_exact.mc_estimate
             error_exact[idx] = self.putPelsser.mc_exact.mc_error
-            self.putPelsser.mc_euler_solve(s, n_paths, rng=rng,
-                                           antithetic=True)
+            self.putPelsser.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.putPelsser.mc_euler.mc_estimate
             error_euler[idx] = self.putPelsser.mc_euler.mc_error
         if plot_results:
