@@ -3,9 +3,10 @@ import typing
 import numpy as np
 
 
-def simple_forward_rate(bond_price_t2: typing.Union[float, np.ndarray],
-                        tau: float,
-                        bond_price_t1: typing.Union[float, np.ndarray] = 1.0) \
+def simple_forward_rate(
+        bond_price_t2: typing.Union[float, np.ndarray],
+        tau: float,
+        bond_price_t1: typing.Union[float, np.ndarray] = 1.0) \
         -> typing.Union[float, np.ndarray]:
     """Calculate simple forward rate.
 
@@ -26,10 +27,11 @@ def simple_forward_rate(bond_price_t2: typing.Union[float, np.ndarray],
     return (bond_price_t1 / bond_price_t2 - 1) / tau
 
 
-def swap_schedule(fixing_start: int,
-                  fixing_end: int,
-                  fixing_frequency: int,
-                  events_per_fixing: int) \
+def swap_schedule(
+        fixing_start: int,
+        fixing_end: int,
+        fixing_frequency: int,
+        events_per_fixing: int) \
         -> (np.ndarray, np.ndarray, np.ndarray):
     """Equidistant schedules for fixing, payment and event grids.
 
