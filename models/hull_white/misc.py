@@ -18,7 +18,7 @@ def setup_model_parameters(inst):
     inst.vol_eg = inst.vol.interpolation(inst.event_grid)
     # Discount curve interpolated on event grid.
     inst.discount_curve_eg = inst.discount_curve.interpolation(inst.event_grid)
-    # Instantaneous forward rate on event grid. TODO: Test accuracy of derivative!
+    # Instantaneous forward rate on event grid.
     log_discount = np.log(inst.discount_curve_eg)
     smoothing = 0
     log_discount_spline = UnivariateSpline(

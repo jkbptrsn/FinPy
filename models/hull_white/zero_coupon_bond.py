@@ -32,7 +32,7 @@ class ZCBond(bonds.Bond1FAnalytical):
                 constant.
             - "general": General time dependence.
             Default is "piecewise".
-        int_dt: Integration step size. TODO: Default is 1 / 52.
+        int_dt: Integration step size. Default is 1 / 52.
     """
 
     def __init__(
@@ -117,8 +117,7 @@ class ZCBond(bonds.Bond1FAnalytical):
         self.adjust_discount_steps = \
             self.discount_curve_eg[1:] / self.discount_curve_eg[:-1]
         self.adjust_discount_steps = np.append(1, self.adjust_discount_steps)
-        # TODO: The same as discount_curve_eg???
-        self.adjust_discount = np.cumprod(self.adjust_discount_steps)
+        self.adjust_discount = self.discount_curve_eg
 
     def _setup_int_grid(self) -> None:
         """Set up time grid for numerical integration."""
@@ -144,7 +143,6 @@ class ZCBond(bonds.Bond1FAnalytical):
         Returns:
             Payoff.
         """
-        # TODO: In general, use transformation of short rate?
         return payoffs.zero_coupon_bond(spot)
 
     def price(
@@ -281,8 +279,7 @@ class ZCBond(bonds.Bond1FAnalytical):
             # event.
             self.fd_update(event_idx - 1)
             self.fd.propagation(dt, True)
-
-            # Transformation adjustment. TODO: Why?
+            # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
 
     def mc_exact_setup(self) -> None:
