@@ -36,47 +36,23 @@ class CapletFloorlet(unittest.TestCase):
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         self.time_dependence = "piecewise"
         # Caplet.
-        self.caplet = \
-            cf_hw.Caplet(self.kappa,
-                         self.vol,
-                         self.discount_curve,
-                         self.strike_rate,
-                         self.fixing_idx,
-                         self.payment_idx,
-                         self.event_grid,
-                         self.time_dependence,
-                         option_type="caplet")
-        self.caplet_pelsser = \
-            cf_hw.CapletPelsser(self.kappa,
-                                self.vol,
-                                self.discount_curve,
-                                self.strike_rate,
-                                self.fixing_idx,
-                                self.payment_idx,
-                                self.event_grid,
-                                self.time_dependence,
-                                option_type="caplet")
+        self.caplet = cf_hw.Caplet(
+            self.kappa, self.vol, self.discount_curve, self.strike_rate,
+            self.fixing_idx, self.payment_idx, self.event_grid,
+            self.time_dependence, option_type="caplet")
+        self.caplet_pelsser = cf_hw.CapletPelsser(
+            self.kappa, self.vol, self.discount_curve, self.strike_rate,
+            self.fixing_idx, self.payment_idx, self.event_grid,
+            self.time_dependence, option_type="caplet")
         # Floorlet.
-        self.floorlet = \
-            cf_hw.Caplet(self.kappa,
-                         self.vol,
-                         self.discount_curve,
-                         self.strike_rate,
-                         self.fixing_idx,
-                         self.payment_idx,
-                         self.event_grid,
-                         self.time_dependence,
-                         option_type="floorlet")
-        self.floorlet_pelsser = \
-            cf_hw.CapletPelsser(self.kappa,
-                                self.vol,
-                                self.discount_curve,
-                                self.strike_rate,
-                                self.fixing_idx,
-                                self.payment_idx,
-                                self.event_grid,
-                                self.time_dependence,
-                                option_type="floorlet")
+        self.floorlet = cf_hw.Caplet(
+            self.kappa, self.vol, self.discount_curve, self.strike_rate,
+            self.fixing_idx, self.payment_idx, self.event_grid,
+            self.time_dependence, option_type="floorlet")
+        self.floorlet_pelsser = cf_hw.CapletPelsser(
+            self.kappa, self.vol, self.discount_curve, self.strike_rate,
+            self.fixing_idx, self.payment_idx, self.event_grid,
+            self.time_dependence, option_type="floorlet")
 
     def test_theta_method_caplet(self):
         """Finite difference pricing of caplet."""
@@ -315,12 +291,12 @@ class CapletFloorlet(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.floorlet_pelsser.mc_exact_solve(s, n_paths, rng=rng,
-                                                 antithetic=True)
+            self.floorlet_pelsser.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.floorlet_pelsser.mc_exact.mc_estimate
             error_exact[idx] = self.floorlet_pelsser.mc_exact.mc_error
-            self.floorlet_pelsser.mc_euler_solve(s, n_paths, rng=rng,
-                                                 antithetic=True)
+            self.floorlet_pelsser.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.floorlet_pelsser.mc_euler.mc_estimate
             error_euler[idx] = self.floorlet_pelsser.mc_euler.mc_error
         if plot_results:
