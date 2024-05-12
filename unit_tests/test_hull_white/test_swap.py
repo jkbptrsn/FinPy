@@ -31,24 +31,14 @@ class Swap(unittest.TestCase):
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         # Swap.
         self.time_dependence = "piecewise"
-        self.swap = \
-            swap.Swap(self.kappa,
-                      self.vol,
-                      self.discount_curve,
-                      self.fixed_rate,
-                      self.fixing_schedule,
-                      self.payment_schedule,
-                      self.event_grid,
-                      self.time_dependence)
-        self.swapPelsser = \
-            swap.SwapPelsser(self.kappa,
-                             self.vol,
-                             self.discount_curve,
-                             self.fixed_rate,
-                             self.fixing_schedule,
-                             self.payment_schedule,
-                             self.event_grid,
-                             self.time_dependence)
+        self.swap = swap.Swap(
+            self.kappa, self.vol, self.discount_curve, self.fixed_rate,
+            self.fixing_schedule, self.payment_schedule, self.event_grid,
+            self.time_dependence)
+        self.swapPelsser = swap.SwapPelsser(
+            self.kappa, self.vol, self.discount_curve, self.fixed_rate,
+            self.fixing_schedule, self.payment_schedule, self.event_grid,
+            self.time_dependence)
 
     def test_pricing(self):
         """Compare pricing functions."""
@@ -210,12 +200,12 @@ class Swap(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.swapPelsser.mc_exact_solve(s, n_paths, rng=rng,
-                                            antithetic=True)
+            self.swapPelsser.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.swapPelsser.mc_exact.mc_estimate
             error_exact[idx] = self.swapPelsser.mc_exact.mc_error
-            self.swapPelsser.mc_euler_solve(s, n_paths, rng=rng,
-                                            antithetic=True)
+            self.swapPelsser.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.swapPelsser.mc_euler.mc_estimate
             error_euler[idx] = self.swapPelsser.mc_euler.mc_error
         if plot_results:
