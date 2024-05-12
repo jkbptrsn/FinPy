@@ -37,28 +37,18 @@ class FixedRate(unittest.TestCase):
         # Number of terms in issuance period.
         self.n_issuance_terms = 4
         # Cash flow with issuance period.
-        self.payment_grid = \
-            cash_flows.set_payment_grid_issuance(
-                self.t_i,
-                self.t_f,
-                self.frequency,
-                self.n_issuance_terms)
-        self.cash_flow = \
-            cash_flows.cash_flow_split_issuance(
-                self.coupon,
-                self.frequency,
-                self.payment_grid,
-                self.n_issuance_terms,
-                self.principal,
-                self.cf_type,
-                self.n_io_terms)
+        self.payment_grid = cash_flows.set_payment_grid_issuance(
+            self.t_i, self.t_f, self.frequency, self.n_issuance_terms)
+        self.cash_flow = cash_flows.cash_flow_split_issuance(
+            self.coupon, self.frequency, self.payment_grid,
+            self.n_issuance_terms, self.principal, self.cf_type,
+            self.n_io_terms)
         # Move payment grid to "positive" times.
         self.payment_grid += self.n_issuance_terms / self.frequency
         # Event grid, and payment and deadline schedules.
         event_dt = 1 / 12
         self.event_grid, self.payment_schedule, self.deadline_schedule = \
-            cash_flows.set_event_grid(self.payment_grid,
-                                      event_dt)
+            cash_flows.set_event_grid(self.payment_grid, event_dt)
         # FD spatial grid.
         self.x_min = -0.15
         self.x_max = 0.15
@@ -67,28 +57,14 @@ class FixedRate(unittest.TestCase):
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         self.time_dependence = "piecewise"
         # Bond.
-        self.bond = \
-            bond.FixedRate(self.kappa,
-                           self.vol,
-                           self.discount_curve,
-                           self.coupon,
-                           self.frequency,
-                           self.deadline_schedule,
-                           self.payment_schedule,
-                           self.cash_flow,
-                           self.event_grid,
-                           self.time_dependence)
-        self.bond_pelsser = \
-            bond.FixedRatePelsser(self.kappa,
-                                  self.vol,
-                                  self.discount_curve,
-                                  self.coupon,
-                                  self.frequency,
-                                  self.deadline_schedule,
-                                  self.payment_schedule,
-                                  self.cash_flow,
-                                  self.event_grid,
-                                  self.time_dependence)
+        self.bond = bond.FixedRate(
+            self.kappa, self.vol, self.discount_curve, self.coupon,
+            self.frequency, self.deadline_schedule, self.payment_schedule,
+            self.cash_flow, self.event_grid, self.time_dependence)
+        self.bond_pelsser = bond.FixedRatePelsser(
+            self.kappa, self.vol, self.discount_curve, self.coupon,
+            self.frequency, self.deadline_schedule, self.payment_schedule,
+            self.cash_flow, self.event_grid, self.time_dependence)
 
     def test_theta_method(self):
         """Finite difference pricing of bond."""
@@ -329,12 +305,12 @@ class FixedRate(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.bond_pelsser.mc_exact_solve(s, n_paths, rng=rng,
-                                             antithetic=True)
+            self.bond_pelsser.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.bond_pelsser.mc_exact.mc_estimate
             error_exact[idx] = self.bond_pelsser.mc_exact.mc_error
-            self.bond_pelsser.mc_euler_solve(s, n_paths, rng=rng,
-                                             antithetic=True)
+            self.bond_pelsser.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.bond_pelsser.mc_euler.mc_estimate
             error_euler[idx] = self.bond_pelsser.mc_euler.mc_error
         if plot_results:
@@ -374,12 +350,12 @@ class FixedRate(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.bond_pelsser.mc_exact_solve(s, n_paths, rng=rng,
-                                             antithetic=True)
+            self.bond_pelsser.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.bond_pelsser.mc_exact.mc_estimate
             error_exact[idx] = self.bond_pelsser.mc_exact.mc_error
-            self.bond_pelsser.mc_euler_solve(s, n_paths, rng=rng,
-                                             antithetic=True)
+            self.bond_pelsser.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.bond_pelsser.mc_euler.mc_estimate
             error_euler[idx] = self.bond_pelsser.mc_euler.mc_error
         if plot_results:

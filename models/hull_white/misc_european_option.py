@@ -20,8 +20,8 @@ def v_function(
     Args:
         expiry_idx: Option expiry index on event grid.
         maturity_idx: Bond maturity index on event grid.
-        g_eg: G-function, G(0,t) on event grid.
-        v_eg: "v-function" on event grid until expiry. See notes.
+        g_eg: G-function, G(0,t), on event grid.
+        v_eg: "v-function" on event grid until expiry.
 
     Returns:
         v- og dv_dt-function.
@@ -134,6 +134,9 @@ def dv_dt_piecewise(
     """
     return -vol[:expiry_idx + 1] ** 2 \
         * np.exp(2 * kappa * event_grid[:expiry_idx + 1])
+
+
+###############################################################################
 
 
 def v_general(
