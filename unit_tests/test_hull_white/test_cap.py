@@ -36,47 +36,23 @@ class CaplFloor(unittest.TestCase):
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         self.time_dependence = "piecewise"
         # Cap.
-        self.cap = \
-            cf_hw.Cap(self.kappa,
-                      self.vol,
-                      self.discount_curve,
-                      self.strike_rate,
-                      self.fixing_schedule,
-                      self.payment_schedule,
-                      self.event_grid,
-                      self.time_dependence,
-                      option_type="cap")
-        self.cap_pelsser = \
-            cf_hw.CapPelsser(self.kappa,
-                             self.vol,
-                             self.discount_curve,
-                             self.strike_rate,
-                             self.fixing_schedule,
-                             self.payment_schedule,
-                             self.event_grid,
-                             self.time_dependence,
-                             option_type="cap")
+        self.cap = cf_hw.Cap(
+            self.kappa, self.vol, self.discount_curve, self.strike_rate,
+            self.fixing_schedule, self.payment_schedule, self.event_grid,
+            self.time_dependence, option_type="cap")
+        self.cap_pelsser = cf_hw.CapPelsser(
+            self.kappa, self.vol, self.discount_curve, self.strike_rate,
+            self.fixing_schedule, self.payment_schedule, self.event_grid,
+            self.time_dependence, option_type="cap")
         # Floor.
-        self.floor = \
-            cf_hw.Cap(self.kappa,
-                      self.vol,
-                      self.discount_curve,
-                      self.strike_rate,
-                      self.fixing_schedule,
-                      self.payment_schedule,
-                      self.event_grid,
-                      self.time_dependence,
-                      option_type="floor")
-        self.floor_pelsser = \
-            cf_hw.CapPelsser(self.kappa,
-                             self.vol,
-                             self.discount_curve,
-                             self.strike_rate,
-                             self.fixing_schedule,
-                             self.payment_schedule,
-                             self.event_grid,
-                             self.time_dependence,
-                             option_type="floor")
+        self.floor = cf_hw.Cap(
+            self.kappa, self.vol, self.discount_curve, self.strike_rate,
+            self.fixing_schedule, self.payment_schedule, self.event_grid,
+            self.time_dependence, option_type="floor")
+        self.floor_pelsser = cf_hw.CapPelsser(
+            self.kappa, self.vol, self.discount_curve, self.strike_rate,
+            self.fixing_schedule, self.payment_schedule, self.event_grid,
+            self.time_dependence, option_type="floor")
 
     def test_theta_method_cap(self):
         """Finite difference pricing of cap."""
@@ -315,12 +291,12 @@ class CaplFloor(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.floor_pelsser.mc_exact_solve(s, n_paths, rng=rng,
-                                              antithetic=True)
+            self.floor_pelsser.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.floor_pelsser.mc_exact.mc_estimate
             error_exact[idx] = self.floor_pelsser.mc_exact.mc_error
-            self.floor_pelsser.mc_euler_solve(s, n_paths, rng=rng,
-                                              antithetic=True)
+            self.floor_pelsser.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.floor_pelsser.mc_euler.mc_estimate
             error_euler[idx] = self.floor_pelsser.mc_euler.mc_error
         if plot_results:
