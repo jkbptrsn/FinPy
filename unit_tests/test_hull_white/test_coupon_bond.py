@@ -33,21 +33,15 @@ class Bond(unittest.TestCase):
         # Term frequency per year.
         self.frequency = 1
         # Cash flows.
-        self.cash_flow_grid = \
-            cash_flows.set_payment_grid(self.t_i,
-                                        self.t_f,
-                                        self.frequency)
-        self.cash_flow = \
-            cash_flows.cash_flow(self.coupon,
-                                 self.frequency,
-                                 self.cash_flow_grid,
-                                 self.principal,
-                                 self.cf_type)
+        self.cash_flow_grid = cash_flows.set_payment_grid(
+            self.t_i, self.t_f, self.frequency)
+        self.cash_flow = cash_flows.cash_flow(
+            self.coupon, self.frequency, self.cash_flow_grid, self.principal,
+            self.cf_type)
         # Event grid
         event_dt = 0.01
         self.event_grid, self.cash_flow_schedule, _ = \
-            cash_flows.set_event_grid(self.cash_flow_grid,
-                                      event_dt)
+            cash_flows.set_event_grid(self.cash_flow_grid, event_dt)
         # FD spatial grid.
         self.x_min = -0.15
         self.x_max = 0.15
@@ -56,22 +50,12 @@ class Bond(unittest.TestCase):
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         self.time_dependence = "piecewise"
         # Bond.
-        self.bond = \
-            bond.Bond(self.kappa,
-                      self.vol,
-                      self.discount_curve,
-                      self.cash_flow_schedule,
-                      self.cash_flow,
-                      self.event_grid,
-                      self.time_dependence)
-        self.bond_pelsser = \
-            bond.BondPelsser(self.kappa,
-                             self.vol,
-                             self.discount_curve,
-                             self.cash_flow_schedule,
-                             self.cash_flow,
-                             self.event_grid,
-                             self.time_dependence)
+        self.bond = bond.Bond(
+            self.kappa, self.vol, self.discount_curve, self.cash_flow_schedule,
+            self.cash_flow, self.event_grid, self.time_dependence)
+        self.bond_pelsser = bond.BondPelsser(
+            self.kappa, self.vol, self.discount_curve, self.cash_flow_schedule,
+            self.cash_flow, self.event_grid, self.time_dependence)
 
     def test_theta_method(self):
         """Finite difference pricing of bond."""
@@ -222,12 +206,12 @@ class Bond(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.bond_pelsser.mc_exact_solve(s, n_paths, rng=rng,
-                                             antithetic=True)
+            self.bond_pelsser.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.bond_pelsser.mc_exact.mc_estimate
             error_exact[idx] = self.bond_pelsser.mc_exact.mc_error
-            self.bond_pelsser.mc_euler_solve(s, n_paths, rng=rng,
-                                             antithetic=True)
+            self.bond_pelsser.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.bond_pelsser.mc_euler.mc_estimate
             error_euler[idx] = self.bond_pelsser.mc_euler.mc_error
         if plot_results:
