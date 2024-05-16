@@ -46,15 +46,15 @@ class ZeroCouponBond(unittest.TestCase):
             self.mc_euler_dt * np.arange(self.mc_euler_t_steps)
         self.mc_euler_maturity_idx = self.mc_euler_t_steps - 1
         # Zero-coupon bond objects.
-        self.fd_bond = \
-            zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                          self.fd_maturity_idx, self.fd_event_grid)
-        self.mc_bond = \
-            zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                          self.mc_maturity_idx, self.mc_event_grid)
-        self.mc_euler_bond = \
-            zcbond.ZCBond(self.kappa, self.mean_rate, self.vol,
-                          self.mc_euler_maturity_idx, self.mc_euler_event_grid)
+        self.fd_bond = zcbond.ZCBond(
+            self.kappa, self.mean_rate, self.vol, self.fd_maturity_idx,
+            self.fd_event_grid)
+        self.mc_bond = zcbond.ZCBond(
+            self.kappa, self.mean_rate, self.vol, self.mc_maturity_idx,
+            self.mc_event_grid)
+        self.mc_euler_bond = zcbond.ZCBond(
+            self.kappa, self.mean_rate, self.vol, self.mc_euler_maturity_idx,
+            self.mc_euler_event_grid)
 
     def test_theta_method(self) -> None:
         """Finite difference pricing of zero-coupon bond."""
@@ -128,8 +128,8 @@ class ZeroCouponBond(unittest.TestCase):
             # Numerical result; Antithetic sampling.
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                self.mc_bond.mc_exact_solve(s, n_paths, rng=rng,
-                                            antithetic=True)
+                self.mc_bond.mc_exact_solve(
+                    s, n_paths, rng=rng, antithetic=True)
                 price_n = self.mc_bond.mc_exact.mc_estimate
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
@@ -169,8 +169,8 @@ class ZeroCouponBond(unittest.TestCase):
             # Numerical result; Antithetic sampling.
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                self.mc_euler_bond.mc_euler_solve(s, n_paths, rng=rng,
-                                                  antithetic=True)
+                self.mc_euler_bond.mc_euler_solve(
+                    s, n_paths, rng=rng, antithetic=True)
                 price_n = self.mc_euler_bond.mc_euler.mc_estimate
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:

@@ -53,22 +53,18 @@ class PutOption(unittest.TestCase):
         self.mc_euler_maturity_idx = self.mc_euler_t_steps - 1
         self.mc_euler_expiry_idx = (self.mc_euler_t_steps - 1) // 2
         # Put option.
-        self.fd_put = \
-            option.EuropeanOption(self.kappa, self.mean_rate, self.vol,
-                                  self.strike,
-                                  self.fd_expiry_idx, self.fd_maturity_idx,
-                                  self.fd_event_grid, "Put")
-        self.mc_put = \
-            option.EuropeanOption(self.kappa, self.mean_rate, self.vol,
-                                  self.strike,
-                                  self.mc_expiry_idx, self.mc_maturity_idx,
-                                  self.mc_event_grid, "Put")
-        self.mc_euler_put = \
-            option.EuropeanOption(self.kappa, self.mean_rate, self.vol,
-                                  self.strike,
-                                  self.mc_euler_expiry_idx,
-                                  self.mc_euler_maturity_idx,
-                                  self.mc_euler_event_grid, "Put")
+        self.fd_put = option.EuropeanOption(
+            self.kappa, self.mean_rate, self.vol, self.strike,
+            self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
+            "Put")
+        self.mc_put = option.EuropeanOption(
+            self.kappa, self.mean_rate, self.vol, self.strike,
+            self.mc_expiry_idx, self.mc_maturity_idx, self.mc_event_grid,
+            "Put")
+        self.mc_euler_put = option.EuropeanOption(
+            self.kappa, self.mean_rate, self.vol, self.strike,
+            self.mc_euler_expiry_idx, self.mc_euler_maturity_idx,
+            self.mc_euler_event_grid, "Put")
 
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
@@ -142,8 +138,8 @@ class PutOption(unittest.TestCase):
             # Numerical result; Antithetic sampling.
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                self.mc_put.mc_exact_solve(s, n_paths, rng=rng,
-                                           antithetic=True)
+                self.mc_put.mc_exact_solve(
+                    s, n_paths, rng=rng, antithetic=True)
                 price_n = self.mc_put.mc_exact.mc_estimate
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
@@ -183,8 +179,8 @@ class PutOption(unittest.TestCase):
             # Numerical result; Antithetic sampling.
             error = np.zeros(n_rep)
             for rep in range(n_rep):
-                self.mc_euler_put.mc_euler_solve(s, n_paths, rng=rng,
-                                                 antithetic=True)
+                self.mc_euler_put.mc_euler_solve(
+                    s, n_paths, rng=rng, antithetic=True)
                 price_n = self.mc_euler_put.mc_euler.mc_estimate
                 error[rep] += abs((price_n - price_a) / price_a)
             if print_results:
