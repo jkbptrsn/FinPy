@@ -44,13 +44,13 @@ class CallOption(unittest.TestCase):
         self.dt = (self.t_max - self.t_min) / (self.t_steps - 1)
         self.event_grid = self.dt * np.arange(self.t_steps) + self.t_min
         self.expiry_idx = self.event_grid.size - 1
-        self.instrument = call.Call(self.rate, self.kappa, self.eta, self.vol,
-                                    self.correlation, self.strike,
-                                    self.expiry_idx, self.event_grid)
+        self.instrument = call.Call(
+            self.rate, self.kappa, self.eta, self.vol, self.correlation,
+            self.strike, self.expiry_idx, self.event_grid)
 
-        self.instrument_zero = call.Call(self.rate, self.kappa, self.eta,
-                                         self.vol,0, self.strike,
-                                         self.expiry_idx, self.event_grid)
+        self.instrument_zero = call.Call(
+            self.rate, self.kappa, self.eta, self.vol,0, self.strike,
+            self.expiry_idx, self.event_grid)
 
         if not self.equidistant:
             const_c = 10
