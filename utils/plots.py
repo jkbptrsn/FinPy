@@ -21,9 +21,8 @@ def plot_price_and_greeks(instrument, show=True):
                              global_types.Model.HULL_WHITE_1F]
             and instrument.type in [global_types.Instrument.EUROPEAN_CALL,
                                     global_types.Instrument.EUROPEAN_PUT]):
-        payoff = \
-            instrument.payoff(instrument.zcbond.price(grid,
-                                                      instrument.expiry_idx))
+        payoff = instrument.payoff(
+            instrument.zcbond.price(grid, instrument.expiry_idx))
         ax1[0].plot(grid, payoff, '-.k', label="Payoff")
     else:
         ax1[0].plot(grid, instrument.payoff(grid), '-.k', label="Payoff")
