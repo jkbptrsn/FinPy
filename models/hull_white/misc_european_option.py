@@ -136,9 +136,6 @@ def dv_dt_piecewise(
         * np.exp(2 * kappa * event_grid[:expiry_idx + 1])
 
 
-###############################################################################
-
-
 def v_general(
         int_grid: np.ndarray,
         int_event_idx: np.ndarray,
@@ -208,6 +205,9 @@ def dv_dt_general(
         idx = int_event_idx[event_idx]
         v_return[event_idx] = -vol_ig[idx] ** 2 * np.exp(2 * int_kappa[idx])
     return v_return
+
+
+###############################################################################
 
 
 def option_price(

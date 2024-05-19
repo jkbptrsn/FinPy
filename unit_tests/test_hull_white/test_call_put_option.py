@@ -9,8 +9,8 @@ from unit_tests.test_hull_white import input
 from utils import data_types
 from utils import plots
 
-plot_results = False
-print_results = False
+plot_results = True
+print_results = True
 
 
 class VFunction(unittest.TestCase):
@@ -53,11 +53,11 @@ class VFunction(unittest.TestCase):
         self.call_constant1 = option.EuropeanOption(
             self.kappa1, self.vol1, self.discount_curve, self.strike,
             self.expiry_idx, self.maturity_idx, self.event_grid, "constant",
-            1 / 10)
+            1 / 5)
         self.call_piecewise2 = option.EuropeanOption(
             self.kappa1, self.vol2, self.discount_curve, self.strike,
             self.expiry_idx, self.maturity_idx, self.event_grid, "piecewise",
-            1 / 10)
+            1 / 5)
         self.call_general1 = option.EuropeanOption(
             self.kappa1, self.vol1, self.discount_curve, self.strike,
             self.expiry_idx, self.maturity_idx, self.event_grid, "general",
@@ -238,7 +238,6 @@ class Call(unittest.TestCase):
             self.kappa, self.vol, self.discount_curve, self.strike,
             self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
             self.time_dependence, self.int_step_size)
-
         self.callPelsser = option.EuropeanOptionPelsser(
             self.kappa, self.vol, self.discount_curve, self.strike,
             self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,

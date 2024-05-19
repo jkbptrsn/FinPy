@@ -74,15 +74,12 @@ class EuropeanOption(options.Option1FAnalytical):
         self.forward_rate_eg = self.zcbond.forward_rate_eg
         # y-function on event grid.
         self.y_eg = self.zcbond.y_eg
-
-        # TODO: Check v-function and dv_dt-function.
         # v-function on event grid until expiry.
         self.v_eg_tmp = None
         self.v_eg = None
         # dv_dt-function on event grid until expiry.
         self.dv_dt_eg_tmp = None
         self.dv_dt_eg = None
-
 
         self.model = self.zcbond.model
         self.transformation = self.zcbond.transformation
