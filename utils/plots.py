@@ -17,8 +17,10 @@ def plot_price_and_greeks(instrument, show=True):
     f1.suptitle("Price and greeks of instrument")
 
     # Plot of instrument payoff and price.
-    if instrument.model == global_types.Model.VASICEK and \
-            instrument.type == global_types.Instrument.EUROPEAN_CALL:
+    if (instrument.model in [global_types.Model.VASICEK,
+                             global_types.Model.HULL_WHITE_1F]
+            and instrument.type in [global_types.Instrument.EUROPEAN_CALL,
+                                    global_types.Instrument.EUROPEAN_PUT]):
         payoff = \
             instrument.payoff(instrument.zcbond.price(grid,
                                                       instrument.expiry_idx))

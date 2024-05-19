@@ -448,12 +448,15 @@ def option_theta(
     return omega * first_term + omega ** 2 * second_term
 
 
+###############################################################################
+
+
 def d_function(
         price1: typing.Union[float, np.ndarray],
         price2: typing.Union[float, np.ndarray],
         strike: float,
         v: float) -> tuple:
-    """Calculate d-functions.
+    """Calculate d-function.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
@@ -464,7 +467,7 @@ def d_function(
         v: Value of v-function at time t.
 
     Returns:
-        d-functions.
+        d-function.
     """
     d = np.log(price2 / (strike * price1))
     d_plus = (d + v / 2) / math.sqrt(v)
@@ -478,7 +481,7 @@ def dd_dr(
         price2: typing.Union[float, np.ndarray],
         delta2: typing.Union[float, np.ndarray],
         v: float) -> typing.Union[float, np.ndarray]:
-    """Calculate 1st order spatial derivative of d-functions.
+    """Calculate 1st order spatial derivative of d-function.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
@@ -490,7 +493,7 @@ def dd_dr(
         v: Value of v-function at time t.
 
     Returns:
-        1st order spatial derivative of d-functions.
+        1st order spatial derivative of d-function.
     """
     return (delta2 / price2 - delta1 / price1) / math.sqrt(v)
 
@@ -503,7 +506,7 @@ def d2d_dr2(
         delta2: typing.Union[float, np.ndarray],
         gamma2: typing.Union[float, np.ndarray],
         v: float) -> typing.Union[float, np.ndarray]:
-    """Calculate 2nd order spatial derivative of d-functions.
+    """Calculate 2nd order spatial derivative of d-function.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
@@ -517,7 +520,7 @@ def d2d_dr2(
         v: Value of v-function at time t.
 
     Returns:
-        2nd order spatial derivative of d-functions.
+        2nd order spatial derivative of d-function.
     """
     return (gamma2 / price2 - delta2 ** 2 / price2 ** 2
             - gamma1 / price1 + delta1 ** 2 / price1 ** 2) / math.sqrt(v)
@@ -531,7 +534,7 @@ def dd_dt(
         strike: float,
         v: float,
         dv_dt: float) -> tuple:
-    """Calculate 1st order time derivative of d-functions.
+    """Calculate 1st order time derivative of d-function.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
@@ -545,7 +548,7 @@ def dd_dt(
         dv_dt: Value of dv_dt-function at time t.
 
     Returns:
-        1st order time derivative of d-functions.
+        1st order time derivative of d-function.
     """
     d_plus, d_minus = d_function(price1, price2, strike, v)
     factor = dv_dt / (2 * v)
