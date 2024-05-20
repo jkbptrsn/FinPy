@@ -249,19 +249,18 @@ class Call(unittest.TestCase):
             print(self.call.transformation)
         self.call.fd_setup(self.x_grid, equidistant=True)
         self.call.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.call)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.call.fd.solution
         analytical = self.call.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.call)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
-        self.assertTrue(max_error < 6.1e-3)
+        self.assertTrue(max_error < 4.8e-3)
         # Check delta.
         numerical = self.call.fd.delta()
         analytical = self.call.delta(self.x_grid, 0)
@@ -269,7 +268,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 4.2e-3)
+        self.assertTrue(max_error < 3.1e-3)
         # Check gamma.
         numerical = self.call.fd.gamma()
         analytical = self.call.gamma(self.x_grid, 0)
@@ -277,7 +276,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 3.2e-3)
+        self.assertTrue(max_error < 2.3e-3)
         # Check theta.
         numerical = self.call.fd.theta()
         analytical = self.call.theta(self.x_grid, 0)
@@ -285,23 +284,22 @@ class Call(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.5f}")
-        self.assertTrue(max_error < 1.6e-4)
+        self.assertTrue(max_error < 1.4e-4)
 
     def test_theta_method_pelsser(self):
-        """Finite difference pricing of zero-coupon bond."""
+        """Finite difference pricing of European call option."""
         if print_results:
             print(self.callPelsser.transformation)
         self.callPelsser.fd_setup(self.x_grid, equidistant=True)
         self.callPelsser.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.callPelsser)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.callPelsser.fd.solution
         analytical = self.callPelsser.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.callPelsser)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
@@ -357,10 +355,12 @@ class Call(unittest.TestCase):
             error_euler[idx] = self.call.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
             plt.ylabel("Call option price")
             plt.legend()
@@ -402,10 +402,12 @@ class Call(unittest.TestCase):
             error_euler[idx] = self.callPelsser.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
             plt.ylabel("Call option price")
             plt.legend()
@@ -466,19 +468,18 @@ class Put(unittest.TestCase):
             print(self.put.transformation)
         self.put.fd_setup(self.x_grid, equidistant=True)
         self.put.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.put)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.put.fd.solution
         analytical = self.put.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.put)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
-        self.assertTrue(max_error < 1.1e-3)
+        self.assertTrue(max_error < 3.9e-4)
         # Check delta.
         numerical = self.put.fd.delta()
         analytical = self.put.delta(self.x_grid, 0)
@@ -486,7 +487,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 1.3e-3)
+        self.assertTrue(max_error < 1.2e-3)
         # Check gamma.
         numerical = self.put.fd.gamma()
         analytical = self.put.gamma(self.x_grid, 0)
@@ -494,7 +495,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 2.7e-3)
+        self.assertTrue(max_error < 1.7e-3)
         # Check theta.
         numerical = self.put.fd.theta()
         analytical = self.put.theta(self.x_grid, 0)
@@ -505,20 +506,19 @@ class Put(unittest.TestCase):
         self.assertTrue(max_error < 3.0e-5)
 
     def test_theta_method_pelsser(self):
-        """Finite difference pricing of zero-coupon bond."""
+        """Finite difference pricing of European call option."""
         if print_results:
             print(self.putPelsser.transformation)
         self.putPelsser.fd_setup(self.x_grid, equidistant=True)
         self.putPelsser.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.putPelsser)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.putPelsser.fd.solution
         analytical = self.putPelsser.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.putPelsser)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
@@ -574,10 +574,12 @@ class Put(unittest.TestCase):
             error_euler[idx] = self.put.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
             plt.ylabel("Call option price")
             plt.legend()
@@ -619,10 +621,12 @@ class Put(unittest.TestCase):
             error_euler[idx] = self.putPelsser.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
             plt.ylabel("Call option price")
             plt.legend()
