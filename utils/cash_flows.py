@@ -3,12 +3,13 @@ import math
 import numpy as np
 
 
-def cash_flow(coupon: float,
-              frequency: int,
-              payment_grid: np.ndarray,
-              principal: float = 1,
-              _type: str = "annuity",
-              n_io_terms: int = 0) -> np.ndarray:
+def cash_flow(
+        coupon: float,
+        frequency: int,
+        payment_grid: np.ndarray,
+        principal: float = 1,
+        _type: str = "annuity",
+        n_io_terms: int = 0) -> np.ndarray:
     """Cash flow on payment grid.
 
     Args:
@@ -27,17 +28,18 @@ def cash_flow(coupon: float,
     Returns:
         Cash flow.
     """
-    cf = cash_flow_split(coupon, frequency, payment_grid,
-                         principal, _type, n_io_terms)
+    cf = cash_flow_split(
+        coupon, frequency, payment_grid, principal, _type, n_io_terms)
     return cf.sum(axis=0)
 
 
-def cash_flow_split(coupon: float,
-                    frequency: int,
-                    payment_grid: np.ndarray,
-                    principal: float = 1,
-                    _type: str = "annuity",
-                    n_io_terms: int = 0) -> np.ndarray:
+def cash_flow_split(
+        coupon: float,
+        frequency: int,
+        payment_grid: np.ndarray,
+        principal: float = 1,
+        _type: str = "annuity",
+        n_io_terms: int = 0) -> np.ndarray:
     """Cash flows for both redemption and interest payments.
 
     Args:
@@ -59,8 +61,8 @@ def cash_flow_split(coupon: float,
     if _type == "annuity":
         return annuity(coupon, frequency, payment_grid, principal)
     elif _type == "deferred":
-        return deferred_annuity(coupon, frequency, payment_grid,
-                                principal, n_io_terms)
+        return deferred_annuity(
+            coupon, frequency, payment_grid, principal, n_io_terms)
     elif _type == "standing":
         return standing_loan(coupon, frequency, payment_grid, principal)
     elif _type == "serial":
@@ -69,13 +71,14 @@ def cash_flow_split(coupon: float,
         raise ValueError(f"Unknown cash flow type: {_type}")
 
 
-def cash_flow_issuance(coupon: float,
-                       frequency: int,
-                       payment_grid: np.ndarray,
-                       n_issuance_terms: int,
-                       principal: float = 1,
-                       _type: str = "annuity",
-                       n_io_terms: int = 0) -> np.ndarray:
+def cash_flow_issuance(
+        coupon: float,
+        frequency: int,
+        payment_grid: np.ndarray,
+        n_issuance_terms: int,
+        principal: float = 1,
+        _type: str = "annuity",
+        n_io_terms: int = 0) -> np.ndarray:
     """Cash flow on payment grid.
 
         Args:
@@ -95,19 +98,20 @@ def cash_flow_issuance(coupon: float,
     Returns:
         Cash flows.
     """
-    cf = cash_flow_split_issuance(coupon, frequency, payment_grid,
-                                  n_issuance_terms, principal, _type,
-                                  n_io_terms)
+    cf = cash_flow_split_issuance(
+        coupon, frequency, payment_grid, n_issuance_terms, principal, _type,
+        n_io_terms)
     return cf.sum(axis=0)
 
 
-def cash_flow_split_issuance(coupon: float,
-                             frequency: int,
-                             payment_grid: np.ndarray,
-                             n_issuance_terms: int,
-                             principal: float = 1,
-                             _type: str = "annuity",
-                             n_io_terms: int = 0) -> np.ndarray:
+def cash_flow_split_issuance(
+        coupon: float,
+        frequency: int,
+        payment_grid: np.ndarray,
+        n_issuance_terms: int,
+        principal: float = 1,
+        _type: str = "annuity",
+        n_io_terms: int = 0) -> np.ndarray:
     """Cash flows for both redemption and interest payments.
 
     Args:
@@ -132,10 +136,9 @@ def cash_flow_split_issuance(coupon: float,
     cf = np.zeros((2, payment_grid.size))
     for idx in range(n_issuance_terms):
         # For issuance at idx, last payment at idx + n_payments.
-        cf[:, idx:(n_payments + 1) + idx] += \
-            cash_flow_split(coupon, frequency,
-                            payment_grid[idx:(n_payments + 1) + idx],
-                            principal, _type, n_io_terms)
+        cf[:, idx:(n_payments + 1) + idx] += cash_flow_split(
+            coupon, frequency, payment_grid[idx:(n_payments + 1) + idx],
+            principal, _type, n_io_terms)
     # Normalization of redemption payments.
     cf[0] *= principal / cf[0].sum()
     # Determine interest payments.
@@ -143,9 +146,10 @@ def cash_flow_split_issuance(coupon: float,
     return cf
 
 
-def set_payment_grid(t_initial: float,
-                     t_final: float,
-                     frequency: int) -> np.ndarray:
+def set_payment_grid(
+        t_initial: float,
+        t_final: float,
+        frequency: int) -> np.ndarray:
     """Set up grid with payment events.
 
     Args:
@@ -171,10 +175,11 @@ def set_payment_grid(t_initial: float,
     return dt * np.arange(1, n_payments + 1) + t_initial
 
 
-def set_payment_grid_issuance(t_initial: float,
-                              t_final: float,
-                              frequency: int,
-                              n_issuance_terms: int) -> np.ndarray:
+def set_payment_grid_issuance(
+        t_initial: float,
+        t_final: float,
+        frequency: int,
+        n_issuance_terms: int) -> np.ndarray:
     """Set up grid with payment events, including issuance period.
 
     Args:
@@ -193,9 +198,10 @@ def set_payment_grid_issuance(t_initial: float,
     return np.append(issuance_period, payment_grid)
 
 
-def set_deadline_grid(payment_grid: np.ndarray,
-                      deadline_step: float = 1 / 6,
-                      move_origin: bool = True):
+def set_deadline_grid(
+        payment_grid: np.ndarray,
+        deadline_step: float = 1 / 6,
+        move_origin: bool = True) -> np.ndarray:
     """Set up grid with deadline events.
 
     Args:
@@ -217,10 +223,11 @@ def set_deadline_grid(payment_grid: np.ndarray,
     return deadline_grid
 
 
-def set_event_grid(payment_grid: np.ndarray,
-                   time_step: float = 0.01,
-                   *,
-                   deadline_grid: np.ndarray = None) \
+def set_event_grid(
+        payment_grid: np.ndarray,
+        time_step: float = 0.01,
+        *,
+        deadline_grid: np.ndarray = None) \
         -> (np.ndarray, np.ndarray, np.ndarray):
     """Set up event grid, and payment and deadline schedules.
 
@@ -276,8 +283,9 @@ def set_event_grid(payment_grid: np.ndarray,
     return event_grid, payment_schedule, deadline_schedule
 
 
-def annuity_factor(n_terms: int,
-                   coupon_term: float) -> float:
+def annuity_factor(
+        n_terms: int,
+        coupon_term: float) -> float:
     """Calculate annuity factor ("alfahage").
 
     Hint: sum_{t = 1}^{n} 1 / (1 + r)^t = (1 - (1 + r)^{-n}) / r,
@@ -294,9 +302,10 @@ def annuity_factor(n_terms: int,
     return (1 - (1 + coupon_term) ** (-n_terms)) / coupon_term
 
 
-def annuity_yield(n_terms: int,
-                  coupon_term: float,
-                  principal: float = 1) -> float:
+def annuity_yield(
+        n_terms: int,
+        coupon_term: float,
+        principal: float = 1) -> float:
     """Constant yield of annuity.
 
     Args:
@@ -310,8 +319,9 @@ def annuity_yield(n_terms: int,
     return principal / annuity_factor(n_terms, coupon_term)
 
 
-def annuity_interest(coupon_term: float,
-                     principal: float) -> float:
+def annuity_interest(
+        coupon_term: float,
+        principal: float) -> float:
     """Interest payment for current loan principal.
 
     Args:
@@ -324,9 +334,10 @@ def annuity_interest(coupon_term: float,
     return coupon_term * principal
 
 
-def annuity_redemption(coupon_term: float,
-                       principal: float,
-                       _yield: float) -> float:
+def annuity_redemption(
+        coupon_term: float,
+        principal: float,
+        _yield: float) -> float:
     """Redemption payment for current loan principal.
 
     Args:
@@ -340,10 +351,11 @@ def annuity_redemption(coupon_term: float,
     return _yield - annuity_interest(coupon_term, principal)
 
 
-def annuity(coupon: float,
-            frequency: int,
-            payment_grid: np.ndarray,
-            principal: float = 1) -> np.ndarray:
+def annuity(
+        coupon: float,
+        frequency: int,
+        payment_grid: np.ndarray,
+        principal: float = 1) -> np.ndarray:
     """Cash flow of annuity.
 
     Cash flow is split in redemption and interest payments.
@@ -368,8 +380,8 @@ def annuity(coupon: float,
     remaining_principal = principal
     for idx in range(n_payments):
         # Redemption payment.
-        cf[0, idx] = \
-            annuity_redemption(coupon_term, remaining_principal, _yield)
+        cf[0, idx] = annuity_redemption(
+            coupon_term, remaining_principal, _yield)
         # Interest payment.
         cf[1, idx] = annuity_interest(coupon_term, remaining_principal)
         # Subtract redemption payment from principal.
@@ -377,11 +389,12 @@ def annuity(coupon: float,
     return cf
 
 
-def deferred_annuity(coupon: float,
-                     frequency: int,
-                     payment_grid: np.ndarray,
-                     principal: float = 1,
-                     n_io_terms: int = 0) -> np.ndarray:
+def deferred_annuity(
+        coupon: float,
+        frequency: int,
+        payment_grid: np.ndarray,
+        principal: float = 1,
+        n_io_terms: int = 0) -> np.ndarray:
     """Cash flow of deferred annuity.
 
     Cash flow is split in redemption and interest payments.
@@ -411,8 +424,8 @@ def deferred_annuity(coupon: float,
     remaining_principal = principal
     for idx in range(n_io_terms, n_payments):
         # Redemption payment.
-        cf[0, idx] = \
-            annuity_redemption(coupon_term, remaining_principal, _yield)
+        cf[0, idx] = annuity_redemption(
+            coupon_term, remaining_principal, _yield)
         # Interest payment.
         cf[1, idx] = annuity_interest(coupon_term, remaining_principal)
         # Subtract redemption payment from principal.
@@ -420,10 +433,11 @@ def deferred_annuity(coupon: float,
     return cf
 
 
-def standing_loan(coupon: float,
-                  frequency: int,
-                  payment_grid: np.ndarray,
-                  principal: float = 1) -> np.ndarray:
+def standing_loan(
+        coupon: float,
+        frequency: int,
+        payment_grid: np.ndarray,
+        principal: float = 1) -> np.ndarray:
     """Cash flow of standing loan with fixed rate.
 
     Cash flow is split in redemption and interest payments.
@@ -447,10 +461,11 @@ def standing_loan(coupon: float,
     return cf
 
 
-def serial_loan(coupon: float,
-                frequency: int,
-                payment_grid: np.ndarray,
-                principal: float = 1) -> np.ndarray:
+def serial_loan(
+        coupon: float,
+        frequency: int,
+        payment_grid: np.ndarray,
+        principal: float = 1) -> np.ndarray:
     """Cash flow of serial loan with fixed rate.
 
     Cash flow is split in redemption and interest payments.
@@ -476,7 +491,7 @@ def serial_loan(coupon: float,
     return cf
 
 
-def print_cash_flow(cf: np.ndarray):
+def print_cash_flow(cf: np.ndarray) -> None:
     """Print cash flow to screen.
 
     Args:
