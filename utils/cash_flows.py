@@ -17,11 +17,12 @@ def cash_flow(
         frequency: Yearly payment frequency.
         payment_grid: Grid of payment events.
         principal: Loan principal. Default is 1.
-        _type: Type of cash flow. Default is 'annuity'.
-            * 'annuity'
-            * 'deferred'
-            * 'standing'
-            * 'serial'
+        _type: Type of cash flow.
+            - 'annuity'
+            - 'deferred'
+            - 'standing'
+            - 'serial'
+            Default is 'annuity'.
         n_io_terms: Number of 'interest only' terms for deferred
             annuities. Default is 0.
 
@@ -47,11 +48,12 @@ def cash_flow_split(
         frequency: Yearly payment frequency.
         payment_grid: Grid of payment events.
         principal: Loan principal. Default is 1.
-        _type: Type of cash flow. Default is 'annuity'.
-            * 'annuity'
-            * 'deferred'
-            * 'standing'
-            * 'serial'
+        _type: Type of cash flow.
+            - 'annuity'
+            - 'deferred'
+            - 'standing'
+            - 'serial'
+            Default is 'annuity'.
         n_io_terms: Number of 'interest only' terms for deferred
             annuities. Default is 0.
 
@@ -87,11 +89,12 @@ def cash_flow_issuance(
         payment_grid: Grid of payment events.
         n_issuance_terms: Number of terms in issuance period.
         principal: Loan principal. Default is 1.
-        _type: Type of cash flow. Default is 'annuity'.
-            * 'annuity'
-            * 'deferred'
-            * 'standing'
-            * 'serial'
+        _type: Type of cash flow.
+            - 'annuity'
+            - 'deferred'
+            - 'standing'
+            - 'serial'
+            Default is 'annuity'.
         n_io_terms: Number of 'interest only' terms for deferred
             annuities. Default is 0.
 
@@ -120,11 +123,12 @@ def cash_flow_split_issuance(
         payment_grid: Grid of payment events.
         n_issuance_terms: Number of terms in issuance period.
         principal: Loan principal. Default is 1.
-        _type: Type of cash flow. Default is 'annuity'.
-            * 'annuity'
-            * 'deferred'
-            * 'standing'
-            * 'serial'
+        _type: Type of cash flow.
+            - 'annuity'
+            - 'deferred'
+            - 'standing'
+            - 'serial'
+            Default is 'annuity'.
         n_io_terms: Number of 'interest only' terms for deferred
             annuities. Default is 0.
 
