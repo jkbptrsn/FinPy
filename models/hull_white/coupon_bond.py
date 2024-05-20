@@ -54,6 +54,7 @@ class Bond(bonds.Bond1FAnalytical):
         self.zcbond = zcbond.ZCBond(
             kappa, vol, discount_curve, self.cash_flow_schedule[-1],
             event_grid, time_dependence, int_dt)
+
         # Kappa on event grid.
         self.kappa_eg = self.zcbond.kappa_eg
         # Vol on event grid.
