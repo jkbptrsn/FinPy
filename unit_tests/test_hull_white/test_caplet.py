@@ -231,7 +231,7 @@ class CapletFloorlet(unittest.TestCase):
         self.assertTrue(max_error < 1.8e-6)
 
     def test_monte_carlo(self):
-        """Monte-Carlo pricing of European call option."""
+        """Monte-Carlo pricing of caplet."""
         self.caplet.mc_exact_setup()
         self.caplet.mc_euler_setup()
         # Spot rate.
@@ -261,7 +261,7 @@ class CapletFloorlet(unittest.TestCase):
             plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
                          fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
-            plt.ylabel("Call option price")
+            plt.ylabel("Caplet price")
             plt.legend()
             plt.show()
         error = np.abs(price_a - numerical_exact)
@@ -274,7 +274,7 @@ class CapletFloorlet(unittest.TestCase):
         self.assertTrue(max_error < 7.6e-5)
 
     def test_monte_carlo_pelsser(self):
-        """Monte-Carlo pricing of European call option."""
+        """Monte-Carlo pricing of caplet."""
         self.floorlet_pelsser.mc_exact_setup()
         self.floorlet_pelsser.mc_euler_setup()
         # Spot rate.
@@ -306,7 +306,7 @@ class CapletFloorlet(unittest.TestCase):
             plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
                          fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
-            plt.ylabel("Call option price")
+            plt.ylabel("Caplet price")
             plt.legend()
             plt.show()
         error = np.abs(price_a - numerical_exact)

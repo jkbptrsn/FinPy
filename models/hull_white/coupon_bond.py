@@ -106,9 +106,10 @@ class Bond(bonds.Bond1FAnalytical):
         """
         _price = 0
         for count, idx_pay in enumerate(self.cash_flow_schedule):
-            # Discount factor.
-            discount = self.zcbond_price(spot, event_idx, idx_pay)
-            _price += discount * self.cash_flow[count]
+            if event_idx <= idx_pay:
+                # Discount factor.
+                discount = self.zcbond_price(spot, event_idx, idx_pay)
+                _price += discount * self.cash_flow[count]
         return _price
 
     def delta(
@@ -126,9 +127,11 @@ class Bond(bonds.Bond1FAnalytical):
         """
         _delta = 0
         for count, idx_pay in enumerate(self.cash_flow_schedule):
-            # 1st order derivative of discount factor wrt short rate.
-            discount = self.zcbond_delta(spot, event_idx, idx_pay)
-            _delta += discount * self.cash_flow[count]
+            if event_idx <= idx_pay:
+                # 1st order derivative of discount factor wrt short
+                # rate.
+                discount = self.zcbond_delta(spot, event_idx, idx_pay)
+                _delta += discount * self.cash_flow[count]
         return _delta
 
     def gamma(
@@ -146,9 +149,11 @@ class Bond(bonds.Bond1FAnalytical):
         """
         _gamma = 0
         for count, idx_pay in enumerate(self.cash_flow_schedule):
-            # 2nd order derivative of discount factor wrt short rate.
-            discount = self.zcbond_gamma(spot, event_idx, idx_pay)
-            _gamma += discount * self.cash_flow[count]
+            if event_idx <= idx_pay:
+                # 2nd order derivative of discount factor wrt short
+                # rate.
+                discount = self.zcbond_gamma(spot, event_idx, idx_pay)
+                _gamma += discount * self.cash_flow[count]
         return _gamma
 
     def theta(
@@ -166,28 +171,28 @@ class Bond(bonds.Bond1FAnalytical):
         """
         _theta = 0
         for count, idx_pay in enumerate(self.cash_flow_schedule):
-            # 1st order derivative of discount factor wrt time.
-            discount = self.zcbond_theta(spot, event_idx, idx_pay)
-            _theta += discount * self.cash_flow[count]
+            if event_idx <= idx_pay:
+                # 1st order derivative of discount factor wrt time.
+                discount = self.zcbond_theta(spot, event_idx, idx_pay)
+                _theta += discount * self.cash_flow[count]
         return _theta
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
-        self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = np.zeros(self.fd.grid.size)
-        # Update drift, diffusion and rate vectors.
-        self.fd_update(self.event_grid.size - 1)
         # Backwards propagation.
         time_steps = np.flip(np.diff(self.event_grid))
-        for counter, dt in enumerate(time_steps):
-            event_idx = (self.event_grid.size - 1) - counter
-            # Update drift, diffusion and rate vectors at previous event.
+        for idx, dt in enumerate(time_steps):
+            event_idx = (self.event_grid.size - 1) - idx
+            # Update drift, diffusion and rate vectors at previous
+            # event.
             self.fd_update(event_idx - 1)
             # Payment at cash flow event.
             if event_idx in self.cash_flow_schedule:
                 which_pay = np.where(self.cash_flow_schedule == event_idx)[0]
                 self.fd.solution += self.cash_flow[which_pay[0]]
+            # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
@@ -335,7 +340,8 @@ class Bond(bonds.Bond1FAnalytical):
         # Adjustment of discount paths.
         discount_paths = mc_object.discount_adjustment(
             mc_object.discount_paths, self.adjust_discount)
-        bond_payoff = np.zeros(mc_object.discount_paths.shape[1])
+        n_paths = mc_object.discount_paths.shape[1]
+        bond_payoff = np.zeros(n_paths)
         for counter, idx_pay in enumerate(self.cash_flow_schedule):
             bond_payoff += self.cash_flow[counter] * discount_paths[idx_pay]
         return bond_payoff

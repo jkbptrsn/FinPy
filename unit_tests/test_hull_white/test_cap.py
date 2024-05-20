@@ -256,12 +256,14 @@ class CaplFloor(unittest.TestCase):
             error_euler[idx] = self.cap.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
-            plt.ylabel("Call option price")
+            plt.ylabel("Cap price")
             plt.legend()
             plt.show()
         error = np.abs(price_a - numerical_exact)
@@ -301,12 +303,14 @@ class CaplFloor(unittest.TestCase):
             error_euler[idx] = self.floor_pelsser.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
-            plt.ylabel("Call option price")
+            plt.ylabel("Floor price")
             plt.legend()
             plt.show()
         error = np.abs(price_a - numerical_exact)

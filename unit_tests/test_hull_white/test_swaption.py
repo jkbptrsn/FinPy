@@ -51,7 +51,7 @@ class Swaption(unittest.TestCase):
             self.time_dependence)
 
     def test_theta_method(self):
-        """Finite difference pricing of zero-coupon bond."""
+        """Finite difference pricing of swaption."""
         if print_results:
             print(self.swaption.transformation)
         self.swaption.fd_setup(self.x_grid, equidistant=True)
@@ -95,7 +95,7 @@ class Swaption(unittest.TestCase):
         self.assertTrue(max_error < 6.0e-5)
 
     def test_theta_method_pelsser(self):
-        """Finite difference pricing of zero-coupon bond."""
+        """Finite difference pricing of swaption."""
         if print_results:
             print(self.swaptionPelsser.transformation)
         self.swaptionPelsser.fd_setup(self.x_grid, equidistant=True)
@@ -139,7 +139,7 @@ class Swaption(unittest.TestCase):
         self.assertTrue(max_error < 9.7e-5)
 
     def test_monte_carlo(self):
-        """Monte-Carlo pricing of European call option."""
+        """Monte-Carlo pricing of swaption."""
         self.swaption.mc_exact_setup()
         self.swaption.mc_euler_setup()
         # Spot rate.
@@ -164,12 +164,14 @@ class Swaption(unittest.TestCase):
             error_euler[idx] = self.swaption.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
-            plt.ylabel("Call option price")
+            plt.ylabel("Swaption price")
             plt.legend()
             plt.show()
         error = np.abs(price_a - numerical_exact)
@@ -182,7 +184,7 @@ class Swaption(unittest.TestCase):
         self.assertTrue(max_error < 3.1e-4)
 
     def test_monte_carlo_pelsser(self):
-        """Monte-Carlo pricing of European call option."""
+        """Monte-Carlo pricing of swaption."""
         self.swaptionPelsser.mc_exact_setup()
         self.swaptionPelsser.mc_euler_setup()
         # Spot rate.
@@ -209,12 +211,14 @@ class Swaption(unittest.TestCase):
             error_euler[idx] = self.swaptionPelsser.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
-            plt.ylabel("Call option price")
+            plt.ylabel("Swaption price")
             plt.legend()
             plt.show()
         error = np.abs(price_a - numerical_exact)
