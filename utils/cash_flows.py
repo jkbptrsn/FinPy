@@ -73,6 +73,9 @@ def cash_flow_split(
         raise ValueError(f"Unknown cash flow type: {_type}")
 
 
+###############################################################################
+
+
 def cash_flow_issuance(
         coupon: float,
         frequency: int,
@@ -437,6 +440,9 @@ def deferred_annuity(
     return cf
 
 
+###############################################################################
+
+
 def standing_loan(
         coupon: float,
         frequency: int,
@@ -493,6 +499,9 @@ def serial_loan(
     # Interest payment at each term.
     cf[1] = coupon_term * np.flip(np.cumsum(np.flip(cf[0])))
     return cf
+
+
+###############################################################################
 
 
 def print_cash_flow(cf: np.ndarray) -> None:
