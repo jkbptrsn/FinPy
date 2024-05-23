@@ -73,9 +73,6 @@ def cash_flow_split(
         raise ValueError(f"Unknown cash flow type: {_type}")
 
 
-###############################################################################
-
-
 def cash_flow_issuance(
         coupon: float,
         frequency: int,
@@ -177,8 +174,8 @@ def set_payment_grid(
         else:
             n_payments = math.floor(n_payments)
     else:
-        raise ValueError("Mismatch between total payment period and "
-                         "payment frequency.")
+        raise ValueError(
+            "Mismatch between total payment period and payment frequency.")
     return dt * np.arange(1, n_payments + 1) + t_initial
 
 
@@ -242,7 +239,7 @@ def set_event_grid(
         payment_grid: Grid of payment events.
         time_step: Time step between propagation events.
             Default is 0.01.
-        deadline_grid: Grid of deadline event.s
+        deadline_grid: Grid of deadline events.
 
     Returns:
         Event grid, payment schedule, deadline schedule.
@@ -288,6 +285,9 @@ def set_event_grid(
         deadline_schedule[idx + 1:] += n_steps
         payment_schedule[idx:] += n_steps
     return event_grid, payment_schedule, deadline_schedule
+
+
+###############################################################################
 
 
 def annuity_factor(
