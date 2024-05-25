@@ -100,8 +100,8 @@ class CashFlows(unittest.TestCase):
         cf_test = np.zeros(self.cash_flow.shape)
         for n in range(cf_test.shape[1] - 1, -1, -1):
             # Redemption rate of remaining principal.
-            redemption_rate = \
-                self.cash_flow[0, n] / self.cash_flow[0, n:].sum()
+            redemption_rate = (
+                    self.cash_flow[0, n] / self.cash_flow[0, n:].sum())
             cf_test[0, n] = redemption_rate * self.principal
             cf_test[1, n] = self.coupon * self.principal / self.frequency
             cf_test[:, n + 1:] *= (1 - redemption_rate)

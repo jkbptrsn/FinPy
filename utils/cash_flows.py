@@ -287,9 +287,6 @@ def set_event_grid(
     return event_grid, payment_schedule, deadline_schedule
 
 
-###############################################################################
-
-
 def annuity_factor(
         n_terms: int,
         coupon_term: float) -> float:
@@ -440,9 +437,6 @@ def deferred_annuity(
     return cf
 
 
-###############################################################################
-
-
 def standing_loan(
         coupon: float,
         frequency: int,
@@ -499,9 +493,6 @@ def serial_loan(
     # Interest payment at each term.
     cf[1] = coupon_term * np.flip(np.cumsum(np.flip(cf[0])))
     return cf
-
-
-###############################################################################
 
 
 def print_cash_flow(cf: np.ndarray) -> None:
