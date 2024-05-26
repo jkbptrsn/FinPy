@@ -140,16 +140,19 @@ class Swap(bonds.Bond1FAnalytical):
             pay_idx = self.payment_remaining[0]
             which_idx = np.where(self.payment_schedule == pay_idx)
             fix_idx = self.fixing_schedule[which_idx][0]
-            # Price of zero-coupon bond maturing at pay_idx.
-            bond_price = self.zcbond_price(spot, event_idx, pay_idx)
+            # Price of zero-coupon bond at fix_idx, maturing at fix_idx.
+            swap_price = self.zcbond_price(spot, fix_idx, fix_idx)
+            # Price of zero-coupon bond at fix_idx, maturing at pay_idx.
+            bond_price = self.zcbond_price(spot, fix_idx, pay_idx)
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
-
-            # TODO: Is P(event_idx, fix_idx) = 1, when event_idx > fix_idx?
-            swap_price = 1 - (1 + tenor * self.fixed_rate) * bond_price
-
-        for fix_idx, pay_idx in zip(self.fixing_remaining,
-                                    self.payment_remaining[self.slice_start:]):
+            swap_price -= (1 + tenor * self.fixed_rate) * bond_price
+            # Compounding from fix_idx to event_idx.
+            bond_price = self.zcbond_price(spot, fix_idx, event_idx)
+            swap_price /= bond_price
+        for fix_idx, pay_idx in (
+                zip(self.fixing_remaining,
+                    self.payment_remaining[self.slice_start:])):
             # Price of zero-coupon bond maturing at fix_idx.
             bond_price = self.zcbond_price(spot, event_idx, fix_idx)
             swap_price += bond_price
@@ -181,16 +184,17 @@ class Swap(bonds.Bond1FAnalytical):
             pay_idx = self.payment_remaining[0]
             which_idx = np.where(self.payment_schedule == pay_idx)
             fix_idx = self.fixing_schedule[which_idx][0]
-            # Delta of zero-coupon bond maturing at pay_idx.
-            bond_delta = self.zcbond_delta(spot, event_idx, pay_idx)
+            # Delta of zero-coupon bond at fix_idx, maturing at fix_idx.
+            swap_delta = self.zcbond_delta(spot, fix_idx, fix_idx)
+            # Delta of zero-coupon bond at fix_idx, maturing at pay_idx.
+            bond_delta = self.zcbond_delta(spot, fix_idx, pay_idx)
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
-
-            # TODO: Is delta of P(event_idx, fix_idx) = 1, when event_idx > fix_idx?
-            swap_delta = 1 - (1 + tenor * self.fixed_rate) * bond_delta
-
-        for fix_idx, pay_idx in zip(self.fixing_remaining,
-                                    self.payment_remaining[self.slice_start:]):
+            swap_delta -= (1 + tenor * self.fixed_rate) * bond_delta
+            # TODO: "Compounding" is missing.
+        for fix_idx, pay_idx in (
+                zip(self.fixing_remaining,
+                    self.payment_remaining[self.slice_start:])):
             # Delta of zero-coupon bond maturing at fix_idx.
             bond_delta = self.zcbond_delta(spot, event_idx, fix_idx)
             swap_delta += bond_delta
@@ -222,16 +226,17 @@ class Swap(bonds.Bond1FAnalytical):
             pay_idx = self.payment_remaining[0]
             which_idx = np.where(self.payment_schedule == pay_idx)
             fix_idx = self.fixing_schedule[which_idx][0]
-            # Gamma of zero-coupon bond maturing at pay_idx.
-            bond_gamma = self.zcbond_gamma(spot, event_idx, pay_idx)
+            # Gamma of zero-coupon bond at fix_idx, maturing at fix_idx.
+            swap_gamma = self.zcbond_gamma(spot, fix_idx, fix_idx)
+            # Gamma of zero-coupon bond at fix_idx, maturing at pay_idx.
+            bond_gamma = self.zcbond_gamma(spot, fix_idx, pay_idx)
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
-
-            # TODO: Is delta of P(event_idx, fix_idx) = 1, when event_idx > fix_idx?
-            swap_gamma = 1 - (1 + tenor * self.fixed_rate) * bond_gamma
-
-        for fix_idx, pay_idx in zip(self.fixing_remaining,
-                                    self.payment_remaining[self.slice_start:]):
+            swap_gamma -= (1 + tenor * self.fixed_rate) * bond_gamma
+            # TODO: "Compounding" is missing.
+        for fix_idx, pay_idx in (
+                zip(self.fixing_remaining,
+                    self.payment_remaining[self.slice_start:])):
             # Gamma of zero-coupon bond maturing at fix_idx.
             bond_gamma = self.zcbond_gamma(spot, event_idx, fix_idx)
             swap_gamma += bond_gamma
@@ -263,20 +268,21 @@ class Swap(bonds.Bond1FAnalytical):
             pay_idx = self.payment_remaining[0]
             which_idx = np.where(self.payment_schedule == pay_idx)
             fix_idx = self.fixing_schedule[which_idx][0]
-            # Gamma of zero-coupon bond maturing at pay_idx.
-            bond_theta = self.zcbond_theta(spot, event_idx, pay_idx)
+            # Theta of zero-coupon bond at fix_idx, maturing at fix_idx.
+            swap_theta = self.zcbond_theta(spot, fix_idx, fix_idx)
+            # Theta of zero-coupon bond maturing at pay_idx.
+            bond_theta = self.zcbond_theta(spot, fix_idx, pay_idx)
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
-
-            # TODO: Is delta of P(event_idx, fix_idx) = 1, when event_idx > fix_idx?
-            swap_theta = 1 - (1 + tenor * self.fixed_rate) * bond_theta
-
-        for fix_idx, pay_idx in zip(self.fixing_remaining,
-                                    self.payment_remaining[self.slice_start:]):
-            # Gamma of zero-coupon bond maturing at fix_idx.
+            swap_theta -= (1 + tenor * self.fixed_rate) * bond_theta
+            # TODO: "Compounding" is missing.
+        for fix_idx, pay_idx in (
+                zip(self.fixing_remaining,
+                    self.payment_remaining[self.slice_start:])):
+            # Theta of zero-coupon bond maturing at fix_idx.
             bond_theta = self.zcbond_theta(spot, event_idx, fix_idx)
             swap_theta += bond_theta
-            # Gamma of zero-coupon bond maturing at pay_idx.
+            # Theta of zero-coupon bond maturing at pay_idx.
             bond_theta = self.zcbond_theta(spot, event_idx, pay_idx)
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
@@ -294,16 +300,15 @@ class Swap(bonds.Bond1FAnalytical):
             # Update drift, diffusion and rate vectors at previous
             # event.
             self.fd_update(event_idx - 1)
-
             # Payments.
             if event_idx in self.fixing_schedule:
-                idx_fix = event_idx
-                which_fix = np.where(self.fixing_schedule == idx_fix)
-                idx_pay = self.payment_schedule[which_fix][0]
+                fix_idx = event_idx
+                which_fix = np.where(self.fixing_schedule == fix_idx)
+                pay_idx = self.payment_schedule[which_fix][0]
                 # P(t_fixing, t_payment).
-                bond_price = self.zcbond_price(self.fd.grid, idx_fix, idx_pay)
+                bond_price = self.zcbond_price(self.fd.grid, fix_idx, pay_idx)
                 # Tenor.
-                tenor = self.event_grid[idx_pay] - self.event_grid[idx_fix]
+                tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
                 # Simple rate at t_fixing for (t_fixing, t_payment).
                 simple_rate = misc_sw.simple_forward_rate(bond_price, tenor)
                 # Payment.
@@ -311,7 +316,6 @@ class Swap(bonds.Bond1FAnalytical):
                 # Analytical discounting from payment date to fixing date.
                 payment *= bond_price
                 self.fd.solution += payment
-
             # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
@@ -448,8 +452,9 @@ class Swap(bonds.Bond1FAnalytical):
             # Tenor.
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
             pvbp = tenor * bond_price
-        for fix_idx, pay_idx in zip(self.fixing_remaining,
-                                    self.payment_remaining[self.slice_start:]):
+        for fix_idx, pay_idx in (
+                zip(self.fixing_remaining,
+                    self.payment_remaining[self.slice_start:])):
             # Price of zero-coupon bond maturing at pay_idx.
             bond_price = self.zcbond_price(spot, event_idx, pay_idx)
             # Tenor.
@@ -482,10 +487,11 @@ class Swap(bonds.Bond1FAnalytical):
             # Price of zero-coupon bond maturing at pay_idx.
             bond_price = self.zcbond_price(spot, event_idx, pay_idx)
             # Tenor.
-            tenor = self.event_grid[pay_idx] - self.event_grid[event_idx]
+            tenor = self.event_grid[pay_idx] - self.event_grid[idx_idx]
             forward_rate = tenor * bond_price * floating_rate_fixed
-        for fix_idx, pay_idx in zip(self.fixing_remaining,
-                                    self.payment_remaining[self.slice_start:]):
+        for fix_idx, pay_idx in (
+                zip(self.fixing_remaining,
+                    self.payment_remaining[self.slice_start:])):
             # Price of zero-coupon bond maturing at fix_idx.
             bond_price_fix = self.zcbond_price(spot, event_idx, fix_idx)
             # Price of zero-coupon bond maturing at pay_idx.
@@ -568,7 +574,7 @@ class Swap(bonds.Bond1FAnalytical):
             maturity_idx: Maturity index on event grid.
 
         Returns:
-            Zero-coupon bond delta.
+            Zero-coupon bond theta.
         """
         if self.zcbond.mat_idx != maturity_idx:
             self.zcbond.mat_idx = maturity_idx

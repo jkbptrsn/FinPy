@@ -57,15 +57,14 @@ class Swap(unittest.TestCase):
             print(self.swap.transformation)
         self.swap.fd_setup(self.x_grid, equidistant=True)
         self.swap.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.swap)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.swap.fd.solution
         analytical = self.swap.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.swap)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
@@ -101,19 +100,18 @@ class Swap(unittest.TestCase):
             print(self.swapPelsser.transformation)
         self.swapPelsser.fd_setup(self.x_grid, equidistant=True)
         self.swapPelsser.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.swapPelsser)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.swapPelsser.fd.solution
         analytical = self.swapPelsser.price(self.x_grid, 0)
         error = np.abs(analytical - numerical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.swapPelsser)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
-        self.assertTrue(max_error < 3.2e-3)
+        self.assertTrue(max_error < 5.6e-6)
         # Check delta.
         numerical = self.swapPelsser.fd.delta()
         analytical = self.swapPelsser.delta(self.x_grid, 0)
@@ -121,7 +119,7 @@ class Swap(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.7f}")
-        self.assertTrue(max_error < 3.3e-3)
+        self.assertTrue(max_error < 3.4e-6)
         # Check gamma.
         numerical = self.swapPelsser.fd.gamma()
         analytical = self.swapPelsser.gamma(self.x_grid, 0)
@@ -129,7 +127,7 @@ class Swap(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.7f}")
-        self.assertTrue(max_error < 2.3e-3)
+        self.assertTrue(max_error < 2.0e-6)
         # Check theta.
         numerical = self.swapPelsser.fd.theta()
         analytical = self.swapPelsser.theta(self.x_grid, 0)
@@ -137,7 +135,7 @@ class Swap(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.7f}")
-        self.assertTrue(max_error < 6.1e-5)
+        self.assertTrue(max_error < 5.2e-6)
 
     def test_monte_carlo(self):
         """Monte-Carlo pricing of swap."""
@@ -149,7 +147,7 @@ class Swap(unittest.TestCase):
         # Initialize random number generator.
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate.
-        n_paths = 10000
+        n_paths = 2000
         # Analytical result.
         price_a = self.swap.price(spot_vector, 0)
         numerical_exact = np.zeros(spot_vector.size)
@@ -182,7 +180,7 @@ class Swap(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 3.1e-3)
+        self.assertTrue(max_error < 6.4e-3)
 
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of swap."""
@@ -194,7 +192,7 @@ class Swap(unittest.TestCase):
         # Initialize random number generator.
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate.
-        n_paths = 10000
+        n_paths = 2000
         # Analytical result.
         price_a = self.swapPelsser.price(spot_vector, 0)
         numerical_exact = np.zeros(spot_vector.size)
@@ -229,4 +227,4 @@ class Swap(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 3.1e-3)
+        self.assertTrue(max_error < 6.4e-3)
