@@ -1,5 +1,5 @@
-import typing
 import math
+import typing
 
 import numpy as np
 from scipy.optimize import brentq
@@ -60,19 +60,16 @@ class Payer(options.Option1FAnalytical):
         self.time_dependence = time_dependence
         self.int_dt = int_dt
 
-        # Underlying fixed-for-floating Swap.
+        # Underlying fixed-for-floating swap.
         self.swap = swap.Swap(
             kappa, vol, discount_curve, fixed_rate, fixing_schedule,
             payment_schedule, event_grid, time_dependence, int_dt)
-
         # Zero-coupon bond.
         self.zcbond = self.swap.zcbond
-
         # Put option written on zero-coupon bond.
         self.put = option.EuropeanOption(
             kappa, vol, discount_curve, 0, fixing_schedule[0],
             payment_schedule[-1], event_grid, time_dependence, int_dt, "Put")
-
         # Kappa on event grid.
         self.kappa_eg = self.zcbond.kappa_eg
         # Vol on event grid.
@@ -114,6 +111,7 @@ class Payer(options.Option1FAnalytical):
         """
         return payoffs.call(spot, 0)
 
+    # TODO: Create one method for price, delta, gamma and theta.
     def price(
             self,
             spot: (float, np.ndarray),
