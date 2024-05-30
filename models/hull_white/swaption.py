@@ -229,17 +229,16 @@ class Payer(options.Option1FAnalytical):
             # Update drift, diffusion and rate vectors at previous
             # event.
             self.fd_update(event_idx - 1)
-
             # Swap payments.
             if event_idx in self.fixing_schedule:
-                idx_fix = event_idx
-                which_fix = np.where(self.fixing_schedule == idx_fix)
-                idx_pay = self.payment_schedule[which_fix][0]
+                fix_idx = event_idx
+                which_fix = np.where(self.fixing_schedule == fix_idx)
+                pay_idx = self.payment_schedule[which_fix][0]
                 # P(t_fixing, t_payment).
                 bond_price = self.swap.zcbond_price(
-                    self.fd.grid, idx_fix, idx_pay)
+                    self.fd.grid, fix_idx, pay_idx)
                 # Tenor.
-                tenor = self.event_grid[idx_pay] - self.event_grid[idx_fix]
+                tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
                 # Simple rate at t_fixing for (t_fixing, t_payment).
                 simple_rate = misc_sw.simple_forward_rate(bond_price, tenor)
                 # Payment.
@@ -250,7 +249,6 @@ class Payer(options.Option1FAnalytical):
             # Option payoff.
             if event_idx == self.fixing_schedule[0]:
                 self.fd.solution = self.payoff(self.fd.solution)
-
             # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
