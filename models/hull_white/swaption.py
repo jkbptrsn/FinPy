@@ -111,7 +111,6 @@ class Payer(options.Option1FAnalytical):
         """
         return payoffs.call(spot, 0)
 
-    # TODO: Create one method for price, delta, gamma and theta.
     def price(
             self,
             spot: (float, np.ndarray),
@@ -125,22 +124,7 @@ class Payer(options.Option1FAnalytical):
         Returns:
             Price.
         """
-        swaption_price = 0
-        # Pseudo short rate corresponding to zero swap value.
-        expiry_idx = self.fixing_schedule[0]
-        rate_star = brentq(self.swap.price, -0.9, 0.9, args=(expiry_idx,))
-        for fix_idx, pay_idx in \
-                zip(self.fixing_schedule, self.payment_schedule):
-            # "Strike" of put option.
-            self.zcbond.mat_idx = pay_idx
-            self.put.strike = self.zcbond.price(rate_star, expiry_idx)
-            self.put.mat_idx = pay_idx
-            put_price = self.put.price(spot, event_idx)
-            tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
-            swaption_price += self.fixed_rate * tenor * put_price
-            if pay_idx == self.event_grid.size - 1:
-                swaption_price += put_price
-        return swaption_price
+        return self._price_derivatives(spot, event_idx, "price")
 
     def delta(
             self,
@@ -155,22 +139,7 @@ class Payer(options.Option1FAnalytical):
         Returns:
             Delta.
         """
-        swaption_delta = 0
-        # Pseudo short rate corresponding to zero swap value.
-        expiry_idx = self.fixing_schedule[0]
-        rate_star = brentq(self.swap.price, -0.9, 0.9, args=(expiry_idx,))
-        for fix_idx, pay_idx in \
-                zip(self.fixing_schedule, self.payment_schedule):
-            # "Strike" of put option.
-            self.zcbond.mat_idx = pay_idx
-            self.put.strike = self.zcbond.price(rate_star, expiry_idx)
-            self.put.mat_idx = pay_idx
-            put_delta = self.put.delta(spot, event_idx)
-            tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
-            swaption_delta += self.fixed_rate * tenor * put_delta
-            if pay_idx == self.event_grid.size - 1:
-                swaption_delta += put_delta
-        return swaption_delta
+        return self._price_derivatives(spot, event_idx, "delta")
 
     def gamma(
             self,
@@ -185,22 +154,7 @@ class Payer(options.Option1FAnalytical):
         Returns:
             Gamma.
         """
-        swaption_gamma = 0
-        # Pseudo short rate corresponding to zero swap value.
-        expiry_idx = self.fixing_schedule[0]
-        rate_star = brentq(self.swap.price, -0.9, 0.9, args=(expiry_idx,))
-        for fix_idx, pay_idx in \
-                zip(self.fixing_schedule, self.payment_schedule):
-            # "Strike" of put option.
-            self.zcbond.mat_idx = pay_idx
-            self.put.strike = self.zcbond.price(rate_star, expiry_idx)
-            self.put.mat_idx = pay_idx
-            put_gamma = self.put.gamma(spot, event_idx)
-            tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
-            swaption_gamma += self.fixed_rate * tenor * put_gamma
-            if pay_idx == self.event_grid.size - 1:
-                swaption_gamma += put_gamma
-        return swaption_gamma
+        return self._price_derivatives(spot, event_idx, "gamma")
 
     def theta(
             self,
@@ -215,22 +169,54 @@ class Payer(options.Option1FAnalytical):
         Returns:
             Theta.
         """
-        swaption_theta = 0
+        return self._price_derivatives(spot, event_idx, "theta")
+
+    def _price_derivatives(
+            self,
+            spot: (float, np.ndarray),
+            event_idx: int,
+            type_: str = "price") -> (float, np.ndarray):
+        """Price function, delta, gamma or theta.
+
+        Args:
+            spot: Spot pseudo short rate.
+            event_idx: Index on event grid. Assumed smaller than
+                exercise_idx = self.fixing_schedule[0].
+            type_: Calculation type.
+                - "price": Price function.
+                - "delta": 1st order price sensitivity wrt short rate.
+                - "gamma": 2nd order price sensitivity wrt short rate.
+                - "theta": 1st order price sensitivity wrt time.
+                Default is "price".
+
+        Returns:
+            Price, delta, gamma or theta.
+        """
+        result = 0
         # Pseudo short rate corresponding to zero swap value.
         expiry_idx = self.fixing_schedule[0]
         rate_star = brentq(self.swap.price, -0.9, 0.9, args=(expiry_idx,))
         for fix_idx, pay_idx in \
                 zip(self.fixing_schedule, self.payment_schedule):
-            # "Strike" of put option.
             self.zcbond.mat_idx = pay_idx
+            # "Strike" of put option.
             self.put.strike = self.zcbond.price(rate_star, expiry_idx)
             self.put.mat_idx = pay_idx
-            put_theta = self.put.theta(spot, event_idx)
+            if type_ == "price":
+                put_tmp = self.put.price(spot, event_idx)
+            elif type_ == "delta":
+                put_tmp = self.put.delta(spot, event_idx)
+            elif type_ == "gamma":
+                put_tmp = self.put.gamma(spot, event_idx)
+            elif type_ == "theta":
+                put_tmp = self.put.theta(spot, event_idx)
+            else:
+                raise ValueError(f"Unknown calculation type: {type_}")
             tenor = self.event_grid[pay_idx] - self.event_grid[fix_idx]
-            swaption_theta += self.fixed_rate * tenor * put_theta
-            if pay_idx == self.event_grid.size - 1:
-                swaption_theta += put_theta
-        return swaption_theta
+            result += self.fixed_rate * tenor * put_tmp
+            if pay_idx == self.payment_schedule[-1]:
+                result += put_tmp
+        return result
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
