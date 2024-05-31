@@ -18,8 +18,8 @@ class Caplet(options.Option1FAnalytical):
 
     Price of caplet of floorlet.
 
-    See Andersen & Piterbarg (2010), Proposition 4.5.2, and
-    Brigo & Mercurio (2007), Section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.2 and Section 5.8,
+    and Brigo & Mercurio (2007), Section 3.3.
 
     Attributes:
         kappa: Speed of mean reversion.
