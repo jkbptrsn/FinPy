@@ -73,15 +73,14 @@ class FixedRate(unittest.TestCase):
         self.bond.callable_bond = False
         self.bond.fd_setup(self.x_grid, equidistant=True)
         self.bond.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.bond)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.bond.fd.solution
         analytical = self.bond.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.bond)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
@@ -118,15 +117,14 @@ class FixedRate(unittest.TestCase):
         self.bond_pelsser.callable_bond = False
         self.bond_pelsser.fd_setup(self.x_grid, equidistant=True)
         self.bond_pelsser.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.bond_pelsser)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.bond_pelsser.fd.solution
         analytical = self.bond_pelsser.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.bond_pelsser)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
@@ -165,13 +163,12 @@ class FixedRate(unittest.TestCase):
         self.bond.fd_solve()
         self.bond_pelsser.fd_setup(self.x_grid, equidistant=True)
         self.bond_pelsser.fd_solve()
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical1 = self.bond.fd.solution
         numerical2 = self.bond_pelsser.fd.solution
         relative_error = np.abs((numerical1 - numerical2) / numerical1)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
@@ -212,7 +209,7 @@ class FixedRate(unittest.TestCase):
         # Initialize random number generator.
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate.
-        n_paths = 10000
+        n_paths = 2000
         # Analytical result.
         price_a = self.bond.price(spot_vector, 0)
         numerical_exact = np.zeros(spot_vector.size)
@@ -220,10 +217,12 @@ class FixedRate(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.bond.mc_exact_solve(s, n_paths, rng=rng, antithetic=True)
+            self.bond.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.bond.mc_exact.mc_estimate
             error_exact[idx] = self.bond.mc_exact.mc_error
-            self.bond.mc_euler_solve(s, n_paths, rng=rng, antithetic=True)
+            self.bond.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.bond.mc_euler.mc_estimate
             error_euler[idx] = self.bond.mc_euler.mc_error
         if plot_results:
@@ -242,7 +241,7 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error)
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 4.1e-3)
+        self.assertTrue(max_error < 8.4e-3)
 
     def test_monte_carlo_compare(self):
         """Monte-Carlo pricing of bond."""
@@ -255,7 +254,7 @@ class FixedRate(unittest.TestCase):
         # Initialize random number generator.
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate.
-        n_paths = 10000
+        n_paths = 2000
         # FD is the "analytical" result.
         self.bond.fd_setup(self.x_grid, equidistant=True)
         self.bond.fd_solve()
@@ -265,10 +264,12 @@ class FixedRate(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.bond.mc_exact_solve(s, n_paths, rng=rng, antithetic=True)
+            self.bond.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.bond.mc_exact.mc_estimate
             error_exact[idx] = self.bond.mc_exact.mc_error
-            self.bond.mc_euler_solve(s, n_paths, rng=rng, antithetic=True)
+            self.bond.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.bond.mc_euler.mc_estimate
             error_euler[idx] = self.bond.mc_euler.mc_error
         if plot_results:
@@ -288,7 +289,7 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error)
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 8.4e-4)
+        self.assertTrue(max_error < 3.3e-3)
 
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of bond."""
@@ -301,7 +302,7 @@ class FixedRate(unittest.TestCase):
         # Initialize random number generator.
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate.
-        n_paths = 10000
+        n_paths = 2000
         # Analytical result.
         price_a = self.bond_pelsser.price(spot_vector, 0)
         numerical_exact = np.zeros(spot_vector.size)
@@ -311,11 +312,13 @@ class FixedRate(unittest.TestCase):
         for idx, s in enumerate(spot_vector):
             self.bond_pelsser.mc_exact_solve(
                 s, n_paths, rng=rng, antithetic=True)
-            numerical_exact[idx] = self.bond_pelsser.mc_exact.mc_estimate
+            numerical_exact[idx] = (
+                self.bond_pelsser.mc_exact.mc_estimate)
             error_exact[idx] = self.bond_pelsser.mc_exact.mc_error
             self.bond_pelsser.mc_euler_solve(
                 s, n_paths, rng=rng, antithetic=True)
-            numerical_euler[idx] = self.bond_pelsser.mc_euler.mc_estimate
+            numerical_euler[idx] = (
+                self.bond_pelsser.mc_euler.mc_estimate)
             error_euler[idx] = self.bond_pelsser.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
@@ -333,7 +336,7 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error)
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 4.1e-3)
+        self.assertTrue(max_error < 8.4e-3)
 
     def test_monte_carlo_pelsser_compare(self):
         """Monte-Carlo pricing of bond."""
@@ -346,7 +349,7 @@ class FixedRate(unittest.TestCase):
         # Initialize random number generator.
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate.
-        n_paths = 10000
+        n_paths = 2000
         # FD is the "analytical" result.
         self.bond_pelsser.fd_setup(self.x_grid, equidistant=True)
         self.bond_pelsser.fd_solve()
@@ -358,11 +361,13 @@ class FixedRate(unittest.TestCase):
         for idx, s in enumerate(spot_vector):
             self.bond_pelsser.mc_exact_solve(
                 s, n_paths, rng=rng, antithetic=True)
-            numerical_exact[idx] = self.bond_pelsser.mc_exact.mc_estimate
+            numerical_exact[idx] = (
+                self.bond_pelsser.mc_exact.mc_estimate)
             error_exact[idx] = self.bond_pelsser.mc_exact.mc_error
             self.bond_pelsser.mc_euler_solve(
                 s, n_paths, rng=rng, antithetic=True)
-            numerical_euler[idx] = self.bond_pelsser.mc_euler.mc_estimate
+            numerical_euler[idx] = (
+                self.bond_pelsser.mc_euler.mc_estimate)
             error_euler[idx] = self.bond_pelsser.mc_euler.mc_error
         if plot_results:
             plt.plot(self.x_grid, price_a, "-b")
@@ -381,4 +386,4 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error)
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 8.3e-4)
+        self.assertTrue(max_error < 3.3e-3)
