@@ -12,7 +12,7 @@ from utils import global_types
 class Cap(options.Option1FAnalytical):
     """Cap or floor in 1-factor Hull-White model.
 
-    Price of cap of floor.
+    Price of cap or floor.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.2, and
     Brigo & Mercurio (2007), Section 3.3.
@@ -110,11 +110,12 @@ class Cap(options.Option1FAnalytical):
             self,
             spot: typing.Union[float, np.ndarray],
             fixing_idx: int,
-            payment_idx: int) -> typing.Union[float, np.ndarray]:
+            payment_idx: int,
+            discounting: bool = False) -> typing.Union[float, np.ndarray]:
         """Payoff function for caplet or floorlet."""
         self.xlet.fix_idx = fixing_idx
         self.xlet.pay_idx = payment_idx
-        return self.xlet.payoff(spot, discounting=True)
+        return self.xlet.payoff(spot, discounting)
 
     def price(
             self,
@@ -215,15 +216,13 @@ class Cap(options.Option1FAnalytical):
             # Update drift, diffusion and rate vectors at previous
             # event.
             self.fd_update(event_idx - 1)
-
             # Payoff at payment event, discounted to fixing event.
             if event_idx in self.fixing_schedule:
                 idx_fix = event_idx
                 which_fix = np.where(self.fixing_schedule == idx_fix)
                 idx_pay = self.payment_schedule[which_fix][0]
                 self.fd.solution += \
-                    self.xlet_payoff(self.fd.grid, idx_fix, idx_pay)
-
+                    self.xlet_payoff(self.fd.grid, idx_fix, idx_pay, True)
             # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
@@ -302,14 +301,14 @@ class Cap(options.Option1FAnalytical):
             spot = mc_object.rate_paths[idx_fix]
             # Payoff discounted back to present time.
             payoff += self.xlet_payoff(spot, idx_fix, idx_pay) \
-                * discount_paths[idx_fix]
+                * discount_paths[idx_pay]
         return payoff
 
 
 class CapPelsser(Cap):
     """Cap or floor in 1-factor Hull-White model.
 
-    Price of cap of floor.
+    Price of cap or floor.
 
     See Pelsser (2000), Chapter 5.
 
