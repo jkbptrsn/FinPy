@@ -7,8 +7,8 @@ from models.hull_white import caplet as cf_hw
 from unit_tests.test_hull_white import input
 from utils import plots
 
-plot_results = False
-print_results = False
+plot_results = True
+print_results = True
 
 
 class CapletFloorlet(unittest.TestCase):

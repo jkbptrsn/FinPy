@@ -133,18 +133,18 @@ class Caplet(options.Option1FAnalytical):
         """Initialization of object."""
         if self.time_dependence == "constant":
             self.v_eg_tmp = misc_ep.v_constant(
-                self.zcbond.kappa_eg[0], self.zcbond.vol_eg[0],
-                self.fixing_idx, self.event_grid)
+                self.kappa_eg[0], self.vol_eg[0], self.fixing_idx,
+                self.event_grid)
             self.dv_dt_eg_tmp = misc_ep.dv_dt_constant(
-                self.zcbond.kappa_eg[0], self.zcbond.vol_eg[0],
-                self.fixing_idx, self.event_grid)
+                self.kappa_eg[0], self.vol_eg[0], self.fixing_idx,
+                self.event_grid)
         elif self.time_dependence == "piecewise":
             self.v_eg_tmp = misc_ep.v_piecewise(
-                self.zcbond.kappa_eg[0], self.zcbond.vol_eg,
-                self.fixing_idx, self.event_grid)
+                self.kappa_eg[0], self.vol_eg, self.fixing_idx,
+                self.event_grid)
             self.dv_dt_eg_tmp = misc_ep.dv_dt_piecewise(
-                self.zcbond.kappa_eg[0], self.zcbond.vol_eg,
-                self.fixing_idx, self.event_grid)
+                self.kappa_eg[0], self.vol_eg, self.fixing_idx,
+                self.event_grid)
         elif self.time_dependence == "general":
             self.v_eg_tmp = misc_ep.v_general(
                 self.zcbond.int_grid, self.zcbond.int_event_idx,
@@ -277,11 +277,9 @@ class Caplet(options.Option1FAnalytical):
             # Update drift, diffusion and rate vectors at previous
             # event.
             self.fd_update(event_idx - 1)
-
             # Payoff at payment event, discounted to fixing event.
             if event_idx == self.fix_idx:
                 self.fd.solution += self.payoff(self.fd.grid, True)
-
             # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
@@ -377,6 +375,8 @@ class Caplet(options.Option1FAnalytical):
             antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
+        Exact discretization.
+
         Args:
             spot: Short rate at as-of date.
             n_paths: Number of Monte-Carlo paths.
@@ -431,16 +431,16 @@ class Caplet(options.Option1FAnalytical):
         # Pseudo short rate at fixing event.
         spot = mc_object.rate_paths[self.fix_idx]
         # Option payoff at fixing event.
-        option_payoff = self.payoff(spot, True)
+        option_payoff = self.payoff(spot, False)
         # Option payoff discounted back to present time.
-        option_payoff *= discount_paths[self.fix_idx]
+        option_payoff *= discount_paths[self.pay_idx]
         return option_payoff
 
 
 class CapletPelsser(Caplet):
     """Caplet or floorlet in 1-factor Hull-White model.
 
-    Price of caplet of floorlet.
+    Price of caplet or floorlet.
 
     See Pelsser (2000), Chapter 5.
 
