@@ -88,7 +88,7 @@ class EuropeanOption(options.Option1FAnalytical):
         elif option_type == "Put":
             self.type = global_types.Instrument.EUROPEAN_PUT
         else:
-            raise ValueError(f"Unknown instrument type: {option_type}")
+            raise ValueError(f"Unknown option type: {option_type}")
 
         self.initialization()
 

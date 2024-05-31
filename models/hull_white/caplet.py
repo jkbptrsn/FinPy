@@ -16,7 +16,7 @@ from utils import payoffs
 class Caplet(options.Option1FAnalytical):
     """Caplet or floorlet in 1-factor Hull-White model.
 
-    Price of caplet of floorlet.
+    Price of caplet or floorlet.
 
     See Andersen & Piterbarg (2010), Proposition 4.5.2 and Section 5.8,
     and Brigo & Mercurio (2007), Section 3.3.
@@ -76,10 +76,10 @@ class Caplet(options.Option1FAnalytical):
         self.forward_rate_eg = self.zcbond.forward_rate_eg
         # y-function on event grid.
         self.y_eg = self.zcbond.y_eg
-        # v-function on event grid until expiry.
+        # v-function on event grid until payment.
         self.v_eg_tmp = None
         self.v_eg = None
-        # dv_dt-function on event grid until expiry.
+        # dv_dt-function on event grid until payment.
         self.dv_dt_eg_tmp = None
         self.dv_dt_eg = None
 
