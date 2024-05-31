@@ -34,7 +34,7 @@ class FixedRate(bonds.Bond1FAnalytical):
             - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
-        _oas: Option-adjusted spread.
+        oas: Option-adjusted spread.
         callable_bond: Is the bond callable? Default is True.
     """
 
@@ -71,6 +71,7 @@ class FixedRate(bonds.Bond1FAnalytical):
         self.zcbond = zcbond.ZCBond(
             kappa, vol, discount_curve, self.payment_schedule[-1], event_grid,
             time_dependence, int_dt)
+
         # Kappa on event grid.
         self.kappa_eg = self.zcbond.kappa_eg
         # Vol on event grid.
@@ -104,17 +105,55 @@ class FixedRate(bonds.Bond1FAnalytical):
     def oas(self, oas_in: float) -> None:
         self._oas = oas_in
         self.oas_discount_steps = np.exp(-self._oas * np.diff(self.event_grid))
-
-        # TODO: Which one?
-#        self.oas_discount_steps = np.append(1, self.oas_discount_steps)
-        self.oas_discount_steps = np.append(self.oas_discount_steps, 1)
-
+        self.oas_discount_steps = np.append(1, self.oas_discount_steps)
         # Do NOT overwrite -- will affect adjustment in self.zcbond.
         self.adjust_discount_steps = \
             self.adjust_discount_steps * self.oas_discount_steps
         # Do NOT overwrite -- will affect adjustment in self.zcbond.
         self.adjust_discount = \
             self.adjust_discount * np.cumprod(self.oas_discount_steps)
+
+###############################################################################
+
+    def oas_calc(
+            self,
+            marked_price: float,
+            tolerance: float = 1.0e-5,
+            oas_shift: float = 1.0) -> float:
+        """Calculate OAS corresponding to marked_price.
+
+        Args:
+            marked_price: Observable marked price.
+            tolerance: Newton-Raphson tolerance level.
+            oas_shift: OAS step size in Newton-Raphson method.
+
+        Returns:
+            OAS estimate.
+        """
+        # Initial OAS guess.
+        oas_guess = 0.0
+        self.oas = oas_guess
+        # Price according to OAS guess.
+        self.fd_solve()
+        price = self.fd.solution[(self.fd.grid.size - 1) // 2]
+        # Newton-Raphson iteration.
+        while abs(marked_price - price) > tolerance:
+            # Shift OAS guess.
+            self.oas = oas_guess + oas_shift
+            # Price according to shifted OAS guess.
+            self.fd_solve()
+            price_tmp = self.fd.solution[(self.fd.grid.size - 1) // 2]
+            # 1st order price sensitivity wrt OAS.
+            d_price_d_oas = (price_tmp - price) / oas_shift
+            # Update OAS guess.
+            oas_guess -= price / d_price_d_oas
+            self.oas = oas_guess
+            # Price according to updated OAS guess.
+            self.fd_solve()
+            price = self.fd.solution[(self.fd.grid.size - 1) // 2]
+        return oas_guess
+
+###############################################################################
 
     def payoff(
             self,
@@ -144,10 +183,11 @@ class FixedRate(bonds.Bond1FAnalytical):
             Bond price.
         """
         _price = 0
-        for counter, idx_pay in enumerate(self.payment_schedule):
-            # Discount factor.
-            discount = self.zcbond_price(spot, event_idx, idx_pay)
-            _price += discount * self.cash_flow[:, counter].sum()
+        for count, idx_pay in enumerate(self.payment_schedule):
+            if event_idx <= idx_pay:
+                # Discount factor.
+                discount = self.zcbond_price(spot, event_idx, idx_pay)
+                _price += discount * self.cash_flow[:, count].sum()
         return _price
 
     def delta(
@@ -164,10 +204,12 @@ class FixedRate(bonds.Bond1FAnalytical):
             Delta.
         """
         _delta = 0
-        for counter, idx_pay in enumerate(self.payment_schedule):
-            # 1st order derivative of discount factor wrt short rate.
-            discount = self.zcbond_delta(spot, event_idx, idx_pay)
-            _delta += discount * self.cash_flow[:, counter].sum()
+        for count, idx_pay in enumerate(self.payment_schedule):
+            if event_idx <= idx_pay:
+                # 1st order derivative of discount factor wrt short
+                # rate.
+                discount = self.zcbond_delta(spot, event_idx, idx_pay)
+                _delta += discount * self.cash_flow[:, count].sum()
         return _delta
 
     def gamma(
@@ -184,10 +226,12 @@ class FixedRate(bonds.Bond1FAnalytical):
             Gamma.
         """
         _gamma = 0
-        for counter, idx_pay in enumerate(self.payment_schedule):
-            # 2nd order derivative of discount factor wrt short rate.
-            discount = self.zcbond_gamma(spot, event_idx, idx_pay)
-            _gamma += discount * self.cash_flow[:, counter].sum()
+        for count, idx_pay in enumerate(self.payment_schedule):
+            if event_idx <= idx_pay:
+                # 2nd order derivative of discount factor wrt short
+                # rate.
+                discount = self.zcbond_gamma(spot, event_idx, idx_pay)
+                _gamma += discount * self.cash_flow[:, count].sum()
         return _gamma
 
     def theta(
@@ -204,11 +248,14 @@ class FixedRate(bonds.Bond1FAnalytical):
             Theta.
         """
         _theta = 0
-        for counter, idx_pay in enumerate(self.payment_schedule):
-            # 1st order derivative of discount factor wrt short rate.
-            discount = self.zcbond_theta(spot, event_idx, idx_pay)
-            _theta += discount * self.cash_flow[:, counter].sum()
+        for count, idx_pay in enumerate(self.payment_schedule):
+            if event_idx <= idx_pay:
+                # 1st order derivative of discount factor wrt time.
+                discount = self.zcbond_theta(spot, event_idx, idx_pay)
+                _theta += discount * self.cash_flow[:, count].sum()
         return _theta
+
+###############################################################################
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
@@ -222,6 +269,9 @@ class FixedRate(bonds.Bond1FAnalytical):
             # event.
             self.fd_update(event_idx - 1)
 
+            # TODO: Check this!
+            # TODO: What if the deadline corresponding to the first
+            #  payment is in the past?
             if event_idx in self.deadline_schedule:
                 self._fd_payment_evaluation(event_idx)
 
@@ -276,6 +326,8 @@ class FixedRate(bonds.Bond1FAnalytical):
         else:
             self.fd.solution += \
                 self.cash_flow[:, counter].sum() * zcbond_pv_tmp
+
+###############################################################################
 
     def mc_exact_setup(self) -> None:
         """Setup exact Monte-Carlo solver."""
@@ -336,6 +388,8 @@ class FixedRate(bonds.Bond1FAnalytical):
         self.mc_euler.mc_estimate = present_value.mean()
         self.mc_euler.mc_error = present_value.std(ddof=1)
         self.mc_euler.mc_error /= math.sqrt(n_paths)
+
+###############################################################################
 
     def mc_present_value(
             self,
@@ -399,6 +453,8 @@ class FixedRate(bonds.Bond1FAnalytical):
             # Discounting from first deadline event to time zero.
             bond_payoff *= discount_paths[self.deadline_schedule[0]]
         return bond_payoff
+
+###############################################################################
 
     def zcbond_price(
             self,
@@ -499,7 +555,8 @@ class FixedRatePelsser(FixedRate):
             - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
-        _oas: Option-adjusted spread.
+        oas: Option-adjusted spread.
+        callable_bond: Is the bond callable? Default is True.
     """
 
     def __init__(
@@ -515,11 +572,12 @@ class FixedRatePelsser(FixedRate):
             event_grid: np.ndarray,
             time_dependence: str = "piecewise",
             int_dt: float = 1 / 52,
-            oas: float = 0):
+            oas: float = 0,
+            callable_bond: bool = True):
         super().__init__(
             kappa, vol, discount_curve, coupon, frequency, deadline_schedule,
             payment_schedule, cash_flow, event_grid, time_dependence, int_dt,
-            oas)
+            oas, callable_bond)
 
         # Zero-coupon bond.
         self.zcbond = zcbond.ZCBondPelsser(
@@ -531,6 +589,9 @@ class FixedRatePelsser(FixedRate):
         self.adjust_rate = self.zcbond.adjust_rate
         self.adjust_discount_steps = self.zcbond.adjust_discount_steps
         self.adjust_discount = self.zcbond.adjust_discount
+
+
+###############################################################################
 
 
 def prepayment_function(
