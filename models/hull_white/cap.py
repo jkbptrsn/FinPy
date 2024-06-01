@@ -209,6 +209,8 @@ class Cap(options.Option1FAnalytical):
         """Run finite difference solver on event grid."""
         # Set terminal condition.
         self.fd.solution = np.zeros(self.fd.grid.size)
+        # Reset drift, diffusion and rate vectors at terminal event.
+        self.fd_update(self.event_grid.size - 1)
         # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid))
         for idx, dt in enumerate(time_steps):

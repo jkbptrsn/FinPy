@@ -271,6 +271,8 @@ class ZCBond(bonds.Bond1FAnalytical):
 
     def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
+        # Reset drift, diffusion and rate vectors at terminal event.
+        self.fd_update(self.event_grid.size - 1)
         # Backward propagation.
         time_steps = np.flip(np.diff(self.event_grid))
         for idx, dt in enumerate(time_steps):
