@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from models.hull_white import callable_bond as bond
+from models.hull_white import misc
 from unit_tests.test_hull_white import input
 from utils import cash_flows
 from utils import plots
@@ -166,10 +167,15 @@ class FixedRate(unittest.TestCase):
         idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
         idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
 
-#        print(self.bond.callable_bond)
-#        print(f"Price = {self.bond.fd.solution[(self.bond.fd.grid.size - 1) // 2]}")
-#        print(self.bond.oas_calc(98))
-#        print(f"Price = {self.bond.fd.solution[(self.bond.fd.grid.size - 1) // 2]}")
+        print(self.bond.callable_bond)
+        print(f"Price = {self.bond.fd.solution[(self.bond.fd.grid.size - 1) // 2]}")
+        print(self.bond.oas_calc(98))
+        print(f"Price = {self.bond.fd.solution[(self.bond.fd.grid.size - 1) // 2]}")
+
+        print(self.bond.fd.grid[-1])
+        print(misc.fd_grid(self.bond.event_grid.size - 1,
+                           self.bond.vol_eg,
+                           self.bond.event_grid)[-1])
 
         # Check price.
         numerical1 = self.bond.fd.solution

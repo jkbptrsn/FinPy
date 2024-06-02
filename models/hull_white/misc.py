@@ -3,10 +3,68 @@ import math
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 
+from numerics.fd import grid_generation
 from utils import misc
 
 
-def setup_model_parameters(inst):
+def quadratic_variation(
+        final_event_idx: int,
+        vol: np.ndarray,
+        event_grid: np.ndarray) -> float:
+    """Quadratic variation of pseudo short rate.
+
+    Volatility is assumed to be piecewise constant.
+
+    Args:
+        final_event_idx: Index on event grid.
+        vol: Volatility.
+        event_grid: Event dates as year fractions from as-of date.
+
+    Returns:
+        Quadratic variation.
+    """
+    vol_sq = np.square(vol[:final_event_idx + 1])
+    return np.sum(vol_sq[:-1] * np.diff(event_grid[:final_event_idx + 1]))
+
+
+def fd_grid(
+        final_event_idx: int,
+        vol: np.ndarray,
+        event_grid: np.ndarray,
+        x_steps: int = 301,
+        n_stds: int = 5,
+        type_: str = "equidistant") -> np.ndarray:
+    """Construct spatial grid.
+
+    Args:
+        final_event_idx: Index on event grid.
+        vol: Volatility.
+        event_grid: Event dates as year fractions from as-of date.
+        x_steps: Number of grid points in spatial dimension.
+            Default is 301.
+        n_stds: Width of spatial grid expressed as number of standard
+            deviations from center state. Default is 5.
+        type_: Type of spatial grid.
+            - "equidistant": Equidistant grid.
+            - "hyperbolic": Non-equidistant grid based on hyperbolic
+                sine transformation
+            Default is "equidistant".
+
+    Returns:
+        Spatial grid.
+    """
+    var = quadratic_variation(final_event_idx, vol, event_grid)
+    x_max = n_stds * math.sqrt(var)
+    print(var, x_max)
+    if type_ == "equidistant":
+        return grid_generation.equidistant(-x_max, x_max, x_steps)
+    elif type_ == "hyperbolic":
+        return grid_generation.hyperbolic(-x_max, x_max, x_steps, 0.0)
+    else:
+        raise ValueError(f"Unknown type: {type_}")
+
+
+def setup_model_parameters(inst) -> None:
     """Set up model parameters on event and integration grids.
 
     Args:
