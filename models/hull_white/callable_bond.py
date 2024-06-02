@@ -108,24 +108,24 @@ class FixedRate(bonds.Bond1FAnalytical):
         self.oas_discount_steps = np.append(1, self.oas_discount_steps)
         # Do NOT overwrite -- will affect adjustment in self.zcbond.
         self.adjust_discount_steps = \
-            self.adjust_discount_steps * self.oas_discount_steps
+            self.zcbond.adjust_discount_steps * self.oas_discount_steps
         # Do NOT overwrite -- will affect adjustment in self.zcbond.
         self.adjust_discount = \
-            self.adjust_discount * np.cumprod(self.oas_discount_steps)
-
-###############################################################################
+            self.zcbond.adjust_discount * np.cumprod(self.oas_discount_steps)
 
     def oas_calc(
             self,
             marked_price: float,
-            tolerance: float = 1.0e-5,
-            oas_shift: float = 1.0) -> float:
-        """Calculate OAS corresponding to marked_price.
+            tolerance: float = 1.0e-3,
+            oas_shift: float = 1.0e-4) -> float:
+        """Calculate OAS corresponding to marked price.
 
         Args:
             marked_price: Observable marked price.
             tolerance: Newton-Raphson tolerance level.
-            oas_shift: OAS step size in Newton-Raphson method.
+                Default is 1.0e-3.
+            oas_shift: OAS step size in Newton-Raphson method (in
+                percentage points). Default is 1.0e-4 (1 bps).
 
         Returns:
             OAS estimate.
@@ -133,27 +133,25 @@ class FixedRate(bonds.Bond1FAnalytical):
         # Initial OAS guess.
         oas_guess = 0.0
         self.oas = oas_guess
-        # Price according to OAS guess.
+        # Price according to OAS guess (center rate state).
         self.fd_solve()
         price = self.fd.solution[(self.fd.grid.size - 1) // 2]
         # Newton-Raphson iteration.
         while abs(marked_price - price) > tolerance:
             # Shift OAS guess.
             self.oas = oas_guess + oas_shift
-            # Price according to shifted OAS guess.
+            # Price according to shifted OAS guess (center rate state).
             self.fd_solve()
             price_tmp = self.fd.solution[(self.fd.grid.size - 1) // 2]
             # 1st order price sensitivity wrt OAS.
             d_price_d_oas = (price_tmp - price) / oas_shift
             # Update OAS guess.
-            oas_guess -= price / d_price_d_oas
+            oas_guess -= (price - marked_price) / d_price_d_oas
             self.oas = oas_guess
-            # Price according to updated OAS guess.
+            # Price according to updated OAS guess (center rate state).
             self.fd_solve()
             price = self.fd.solution[(self.fd.grid.size - 1) // 2]
         return oas_guess
-
-###############################################################################
 
     def payoff(
             self,
@@ -283,6 +281,8 @@ class FixedRate(bonds.Bond1FAnalytical):
             self.fd.solution *= self.adjust_discount_steps[event_idx]
 
         # TODO: Is this correct?
+        # TODO: This is the case, if the deadline corresponding to the
+        #  first payment is in the past. Then index of deadline_schedule is zero...
         if self.deadline_schedule[0] == 0:
             self._fd_payment_evaluation(0)
 
@@ -597,13 +597,13 @@ class FixedRatePelsser(FixedRate):
 
 
 def prepayment_function(
-        short_rate: (float, np.ndarray),
+        short_rate: typing.Union[float, np.ndarray],
         event_idx: int,
-        _zcbond: zcbond.ZCBond) -> (float, np.ndarray):
+        _zcbond: zcbond.ZCBond) -> typing.Union[float, np.ndarray]:
     """Prepayment function.
 
     Args:
-        short_rate: Pseudo short rate(s).
+        short_rate: Pseudo short rate.
         event_idx: Index on event grid.
         _zcbond: Zero-coupon bond object.
 

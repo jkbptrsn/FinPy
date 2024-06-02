@@ -165,6 +165,12 @@ class FixedRate(unittest.TestCase):
         self.bond_pelsser.fd_solve()
         idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
         idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
+
+#        print(self.bond.callable_bond)
+#        print(f"Price = {self.bond.fd.solution[(self.bond.fd.grid.size - 1) // 2]}")
+#        print(self.bond.oas_calc(98))
+#        print(f"Price = {self.bond.fd.solution[(self.bond.fd.grid.size - 1) // 2]}")
+
         # Check price.
         numerical1 = self.bond.fd.solution
         numerical2 = self.bond_pelsser.fd.solution
