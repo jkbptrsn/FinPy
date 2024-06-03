@@ -58,7 +58,7 @@ def fd_grid(
     if type_ == "equidistant":
         return grid_generation.equidistant(-x_max, x_max, x_steps)
     elif type_ == "hyperbolic":
-        return grid_generation.hyperbolic(-x_max, x_max, x_steps, 0.0)
+        return grid_generation.hyperbolic(-x_max, x_max, x_steps, 0.0)[1]
     else:
         raise ValueError(f"Unknown type: {type_}")
 

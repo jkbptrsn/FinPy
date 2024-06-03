@@ -60,11 +60,15 @@ class FixedRate(unittest.TestCase):
             self.kappa, self.vol, self.discount_curve, self.coupon,
             self.frequency, self.deadline_schedule, self.payment_schedule,
             self.cash_flow, self.event_grid, self.time_dependence)
-        # FD spatial grid.
+        # FD spatial grids.
         self.x_steps = 301
         self.x_grid = misc.fd_grid(
             self.bond.event_grid.size - 1, self.bond.vol_eg,
             self.bond.event_grid, self.x_steps)
+        self.x_steps_noneq = 61
+        self.x_grid_noneq = misc.fd_grid(
+            self.bond.event_grid.size - 1, self.bond.vol_eg,
+            self.bond.event_grid, self.x_steps_noneq, type_="hyperbolic")
 
     def test_theta_method(self):
         """Finite difference pricing of non-callable bond."""
@@ -393,19 +397,24 @@ class FixedRate(unittest.TestCase):
         if print_results:
             print(self.bond.transformation)
             print(self.bond_pelsser.transformation)
-        self.bond.fd_setup(self.x_grid, equidistant=True)
-        self.bond.fd_solve()
-        self.bond_pelsser.fd_setup(self.x_grid, equidistant=True)
-        self.bond_pelsser.fd_solve()
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
 
-        # print(self.bond.callable_bond)
-        # print(f"Price = {self.bond.fd.solution[(self.bond.fd.grid.size - 1) // 2]}")
-        # print(self.bond.oas_calc(98))
-        # print(f"Price = {self.bond.fd.solution[(self.bond.fd.grid.size - 1) // 2]}")
-        #
-        # print(self.bond.fd.grid[-1])
-        # print(misc.fd_grid(self.bond.event_grid.size - 1,
-        #                    self.bond.vol_eg,
-        #                    self.bond.event_grid)[-1])
+#        self.bond.fd_setup(self.x_grid, equidistant=True)
+        self.bond.fd_setup(self.x_grid_noneq, equidistant=False)
+        self.bond.fd_solve()
+
+#        self.bond_pelsser.fd_setup(self.x_grid, equidistant=True)
+        self.bond_pelsser.fd_setup(self.x_grid_noneq, equidistant=False)
+        self.bond_pelsser.fd_solve()
+
+        if plot_results:
+            plt.plot(self.x_grid, np.zeros(self.x_grid.size), '.b')
+            plt.plot(self.x_grid_noneq, np.zeros(self.x_grid_noneq.size), 'xk')
+            plt.show()
+
+        for price in range(90, 105 + 1, 2):
+            oas = 1.0e4 * self.bond.oas_calc(price)
+            oas_pelsser = 1.0e4 * self.bond_pelsser.oas_calc(price)
+            print(f"Bond price = {price:3.0f}  "
+                  f"OAS = {oas:7.2f}  "
+                  f"OAS Pelsser = {oas_pelsser:7.2f}  "
+                  f"OAS diff = {abs(oas - oas_pelsser):4.2f}")
