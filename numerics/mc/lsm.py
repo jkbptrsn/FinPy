@@ -15,12 +15,12 @@ def black_scholes(
 
     Args:
         instrument: Financial instrument object.
-        basis_set: Type of polynomial basis set. Default is Power.
-            * Power
-            * Chebyshev
-            * Legendre
-            * Laguerre
-            * Hermite
+        basis_set: Type of polynomial basis set. Default is "Power".
+            - "Power"
+            - "Chebyshev"
+            - "Legendre"
+            - "Laguerre"
+            - "Hermite"
         degree: Degree of basis set series. Default is 4.
 
     Returns:
@@ -131,15 +131,15 @@ def prepayment_option(paths,
     """Pricing prepayment option using Longstaff-Schwartz method.
 
     Args:
-        paths: ...
-        bond_payoff: ...
-        strike_price: ...
-        basis_set: Type of polynomial basis set. Default is Power.
-            * Power
-            * Chebyshev
-            * Legendre
-            * Laguerre
-            * Hermite
+        paths: Pseudo short rates.
+        bond_payoff: Payoff along each path.
+        strike_price: Strike price of bond.
+        basis_set: Type of polynomial basis set. Default is "Power".
+            - "Power"
+            - "Chebyshev"
+            - "Legendre"
+            - "Laguerre"
+            - "Hermite"
         degree: Degree of series based on basis set. Default is 4.
 
     Returns:

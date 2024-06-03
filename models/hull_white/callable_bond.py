@@ -268,21 +268,14 @@ class FixedRate(bonds.Bond1FAnalytical):
             # Update drift, diffusion and rate vectors at previous
             # event.
             self.fd_update(event_idx - 1)
-
-            # TODO: Check this!
-            # TODO: What if the deadline corresponding to the first
-            #  payment is in the past?
             if event_idx in self.deadline_schedule:
                 self._fd_payment_evaluation(event_idx)
-
             # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
-
-        # TODO: Is this correct?
-        # TODO: This is the case, if the deadline corresponding to the
-        #  first payment is in the past. Then index of deadline_schedule is zero...
+        # If the deadline date corresponding to the first payment date
+        # is in the past, the corresponding index is zero.
         if self.deadline_schedule[0] == 0:
             self._fd_payment_evaluation(0)
 
@@ -295,39 +288,48 @@ class FixedRate(bonds.Bond1FAnalytical):
             event_idx: Index on event grid.
         """
         which_deadline = np.where(self.deadline_schedule == event_idx)[0]
-        counter = which_deadline[0]
+        payment_count = which_deadline[0]
         # Present value of zero-coupon bond (unit notional) with
         # maturity at corresponding payment event.
-        mat_idx = self.payment_schedule[counter]
+        mat_idx = self.payment_schedule[payment_count]
         zcbond_pv_tmp = self.zcbond_price(self.fd.grid, event_idx, mat_idx)
-        # OAS adjustment. TODO: Is the slicing correct?
-        oas_adjustment = np.prod(self.oas_discount_steps[event_idx: mat_idx])
+
+        # OAS adjustment. TODO: Is the slicing correct? Second is correct, I think...
+#        oas_adjustment = np.prod(self.oas_discount_steps[event_idx: mat_idx])
+        oas_adjustment = \
+            np.prod(self.oas_discount_steps[event_idx + 1:mat_idx + 1])
+
+        # TODO: Should discounting of prepayment bond include OAS?
         zcbond_pv_tmp *= oas_adjustment
         if self.callable_bond:
-
-            prepayment_rate = \
-                prepayment_function(self.fd.grid, event_idx, self.zcbond)
-
-            # Present value of bond with notional of 100.
+            prepayment_rate = prepayment_function(self.fd.grid)
+            # Value of bond (at deadline event) with notional of 100
+            # (at payment event).
             zcbond_pv_tmp *= 100
-            # (Negative) Value of prepayment option.
+
+            # TODO: Check that the solution doesn't include current payments...
+            # (Negative) Value of prepayment option at deadline event.
             option_value = payoffs.call(self.fd.solution, zcbond_pv_tmp)
-            # TODO: Check implementation of smoothing.
+
+            # TODO: Check effect of smoothing.
             option_value = smoothing.smoothing_1d(self.fd.grid, option_value)
-            redemption_remaining = self.cash_flow[0, counter:].sum()
+
+            # Redemption rate.
+            redemption_remaining = self.cash_flow[0, payment_count:].sum()
             redemption_rate = \
-                self.cash_flow[0, counter] / redemption_remaining
+                self.cash_flow[0, payment_count] / redemption_remaining
+            # Interest rate.
             interest_rate = self.coupon / self.frequency
             # Adjust previous payments.
             self.fd.solution *= (1 - redemption_rate)
-            # Current redemption and interest payments.
+            # Add current (discounted) redemption and interest payments.
             self.fd.solution += \
                 (redemption_rate + interest_rate) * zcbond_pv_tmp
             # Subtract value of prepayment option.
             self.fd.solution -= prepayment_rate * option_value
         else:
             self.fd.solution += \
-                self.cash_flow[:, counter].sum() * zcbond_pv_tmp
+                self.cash_flow[:, payment_count].sum() * zcbond_pv_tmp
 
 ###############################################################################
 
@@ -398,58 +400,65 @@ class FixedRate(bonds.Bond1FAnalytical):
             mc_object) -> np.ndarray:
         """Present value for each Monte-Carlo path."""
         # Adjustment of discount paths.
-        discount_paths = \
-            mc_object.discount_adjustment(mc_object.discount_paths,
-                                          self.adjust_discount)
-        # Stepwise discount factors for all paths.
+        discount_paths = mc_object.discount_adjustment(
+            mc_object.discount_paths, self.adjust_discount)
+        # Stepwise discount factors (between deadline events) along each
+        # path.
         discount_paths_steps = discount_paths[self.deadline_schedule, :]
         discount_paths_steps = \
             discount_paths_steps[1:, :] / discount_paths_steps[:-1, :]
+        # Stepwise discount factor (from last deadline event to last
+        # payment event) along each path.
         last_row = np.ndarray((1, discount_paths_steps.shape[1]))
         last_row[0, :] = discount_paths[self.payment_schedule[-1], :] \
             / discount_paths[self.deadline_schedule[-1], :]
         discount_paths_steps = np.r_[discount_paths_steps, last_row]
-        bond_payoff = np.zeros(mc_object.discount_paths.shape[1])
-        for idx_deadline in np.flip(self.deadline_schedule):
-            which_deadline = \
-                np.where(self.deadline_schedule == idx_deadline)[0]
-            counter = which_deadline[0]
-            idx_payment = self.payment_schedule[counter]
-            # Path-dependent discount factor from previous payment event
-            # to present deadline event. OAS is included.
+        # Payoff along each path.
+        bond_payoff = np.zeros(discount_paths_steps.shape[1])
+        for counter, (idx_deadline, idx_payment) in \
+            enumerate(zip(np.flip(self.deadline_schedule),
+                          np.flip(self.payment_schedule))):
+            payment_count = (self.payment_schedule.size - 1) - counter
+            # Path-dependent discount factors from previous payment
+            # event to present deadline event along each path.
+            # OAS is included.
             zcbond_pv_tmp = discount_paths[idx_payment, :] \
                 / discount_paths[idx_deadline, :]
             if self.callable_bond:
                 rate_paths = mc_object.rate_paths[idx_deadline]
-
-                prepayment_rate = prepayment_function(
-                    rate_paths, idx_deadline, self.zcbond)
-
-                # Notional of 100 discounted along each path.
+                prepayment_rate = prepayment_function(rate_paths)
+                # Value (at deadline event) of notional of 100
+                # (at payment event) along each path.
                 zcbond_pv_tmp *= 100
                 # Stepwise discounting from previous deadline event.
-                bond_payoff *= discount_paths_steps[counter]
+                bond_payoff *= discount_paths_steps[payment_count]
+
                 # Value of prepayment option.
                 if idx_deadline != 0:
                     option_value = lsm.prepayment_option(
                         rate_paths, bond_payoff, zcbond_pv_tmp)
                 else:
+                    # TODO: Does this make any sense?
                     bond_mean = bond_payoff.mean()
                     strike_mean = zcbond_pv_tmp.mean()
                     option_value = np.maximum(bond_mean - strike_mean, 0)
-                redemption_remaining = self.cash_flow[0, counter:].sum()
+
+                # Redemption rate.
+                redemption_remaining = self.cash_flow[0, payment_count:].sum()
                 redemption_rate = \
-                    self.cash_flow[0, counter] / redemption_remaining
+                    self.cash_flow[0, payment_count] / redemption_remaining
+                # Interest rate.
                 interest_rate = self.coupon / self.frequency
                 # Adjust previous payments.
                 bond_payoff *= (1 - redemption_rate)
-                # Current redemption and interest payments.
+                # Add current (discounted) redemption and interest
+                # payments.
                 bond_payoff += \
                     (redemption_rate + interest_rate) * zcbond_pv_tmp
                 # Subtract value of prepayment option.
                 bond_payoff -= prepayment_rate * option_value
             else:
-                bond_payoff += self.cash_flow[:, counter].sum() \
+                bond_payoff += self.cash_flow[:, payment_count].sum() \
                     * discount_paths[idx_payment]
         if self.callable_bond:
             # Discounting from first deadline event to time zero.
@@ -593,22 +602,17 @@ class FixedRatePelsser(FixedRate):
         self.adjust_discount = self.zcbond.adjust_discount
 
 
-###############################################################################
-
-
 def prepayment_function(
         short_rate: typing.Union[float, np.ndarray],
-        event_idx: int,
-        _zcbond: zcbond.ZCBond) -> typing.Union[float, np.ndarray]:
-    """Prepayment function.
+        prepay_rate: float = 0.2) \
+        -> typing.Union[float, np.ndarray]:
+    """Calculate prepayment rate on short rate grid.
 
     Args:
         short_rate: Pseudo short rate.
-        event_idx: Index on event grid.
-        _zcbond: Zero-coupon bond object.
+        prepay_rate: Constant prepayment rate.
 
     Returns:
-        Prepayment function.
+        Prepayment rate.
     """
-    # Constant prepayment rate.
-    return 0.2
+    return prepay_rate + 0 * short_rate
