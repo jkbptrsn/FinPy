@@ -604,7 +604,7 @@ class FixedRatePelsser(FixedRate):
 
 def prepayment_function(
         short_rate: typing.Union[float, np.ndarray],
-        prepay_rate: float = 0.2) \
+        prepay_rate: float = 0.35) \
         -> typing.Union[float, np.ndarray]:
     """Calculate prepayment rate on short rate grid.
 

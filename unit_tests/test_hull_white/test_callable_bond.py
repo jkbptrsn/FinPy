@@ -10,7 +10,7 @@ from utils import cash_flows
 from utils import plots
 
 plot_results = False
-print_results = True
+print_results = False
 
 
 class FixedRate(unittest.TestCase):
@@ -50,12 +50,6 @@ class FixedRate(unittest.TestCase):
         event_dt = 1 / 12
         self.event_grid, self.payment_schedule, self.deadline_schedule = \
             cash_flows.set_event_grid(self.payment_grid, event_dt)
-        # FD spatial grid.
-        self.x_min = -0.15
-        self.x_max = 0.15
-        self.x_steps = 201
-        self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
-        self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         self.time_dependence = "piecewise"
         # Bond.
         self.bond = bond.FixedRate(
@@ -66,9 +60,14 @@ class FixedRate(unittest.TestCase):
             self.kappa, self.vol, self.discount_curve, self.coupon,
             self.frequency, self.deadline_schedule, self.payment_schedule,
             self.cash_flow, self.event_grid, self.time_dependence)
+        # FD spatial grid.
+        self.x_steps = 301
+        self.x_grid = misc.fd_grid(
+            self.bond.event_grid.size - 1, self.bond.vol_eg,
+            self.bond.event_grid, self.x_steps)
 
     def test_theta_method(self):
-        """Finite difference pricing of bond."""
+        """Finite difference pricing of non-callable bond."""
         if print_results:
             print(self.bond.transformation)
         self.bond.callable_bond = False
@@ -85,7 +84,7 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
-        self.assertTrue(max_error < 6.5e-4)
+        self.assertTrue(max_error < 6.4e-4)
         # Check delta.
         numerical = self.bond.fd.delta()
         analytical = self.bond.delta(self.x_grid, 0)
@@ -93,7 +92,7 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.7f}")
-        self.assertTrue(max_error < 8.4e-4)
+        self.assertTrue(max_error < 7.9e-4)
         # Check gamma.
         numerical = self.bond.fd.gamma()
         analytical = self.bond.gamma(self.x_grid, 0)
@@ -101,7 +100,7 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.7f}")
-        self.assertTrue(max_error < 1.2e-3)
+        self.assertTrue(max_error < 1.1e-3)
         # Check theta.
         numerical = self.bond.fd.theta()
         analytical = self.bond.theta(self.x_grid, 0)
@@ -109,10 +108,10 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.7f}")
-        self.assertTrue(max_error < 3.4e-2)
+        self.assertTrue(max_error < 3.2e-2)
 
     def test_theta_method_pelsser(self):
-        """Finite difference pricing of bond."""
+        """Finite difference pricing of non-callable bond."""
         if print_results:
             print(self.bond_pelsser.transformation)
         self.bond_pelsser.callable_bond = False
@@ -129,7 +128,7 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
-        self.assertTrue(max_error < 6.5e-4)
+        self.assertTrue(max_error < 6.4e-4)
         # Check delta.
         numerical = self.bond_pelsser.fd.delta()
         analytical = self.bond_pelsser.delta(self.x_grid, 0)
@@ -137,7 +136,7 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.7f}")
-        self.assertTrue(max_error < 8.6e-4)
+        self.assertTrue(max_error < 7.8e-4)
         # Check gamma.
         numerical = self.bond_pelsser.fd.gamma()
         analytical = self.bond_pelsser.gamma(self.x_grid, 0)
@@ -145,7 +144,7 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.7f}")
-        self.assertTrue(max_error < 1.3e-3)
+        self.assertTrue(max_error < 1.1e-3)
         # Check theta.
         numerical = self.bond_pelsser.fd.theta()
         analytical = self.bond_pelsser.theta(self.x_grid, 0)
@@ -153,10 +152,10 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.7f}")
-        self.assertTrue(max_error < 3.4e-2)
+        self.assertTrue(max_error < 3.3e-2)
 
     def test_theta_method_compare(self):
-        """Finite difference pricing of bond."""
+        """Finite difference pricing of callable bond."""
         if print_results:
             print(self.bond.transformation)
             print(self.bond_pelsser.transformation)
@@ -166,17 +165,6 @@ class FixedRate(unittest.TestCase):
         self.bond_pelsser.fd_solve()
         idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
         idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
-
-        # print(self.bond.callable_bond)
-        # print(f"Price = {self.bond.fd.solution[(self.bond.fd.grid.size - 1) // 2]}")
-        # print(self.bond.oas_calc(98))
-        # print(f"Price = {self.bond.fd.solution[(self.bond.fd.grid.size - 1) // 2]}")
-        #
-        # print(self.bond.fd.grid[-1])
-        # print(misc.fd_grid(self.bond.event_grid.size - 1,
-        #                    self.bond.vol_eg,
-        #                    self.bond.event_grid)[-1])
-
         # Check price.
         numerical1 = self.bond.fd.solution
         numerical2 = self.bond_pelsser.fd.solution
@@ -184,7 +172,7 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
-        self.assertTrue(max_error < 4.0e-6)
+        self.assertTrue(max_error < 7.5e-6)
         # Check delta.
         numerical1 = self.bond.fd.delta()[idx_min:idx_max + 1]
         numerical2 = self.bond_pelsser.fd.delta()[idx_min:idx_max + 1]
@@ -192,7 +180,7 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error)
         if print_results:
             print(f"Maximum error of delta: {max_error:2.7f}")
-        self.assertTrue(max_error < 5.9e-5)
+        self.assertTrue(max_error < 1.3e-4)
         # Check gamma.
         numerical1 = self.bond.fd.gamma()[idx_min:idx_max + 1]
         numerical2 = self.bond_pelsser.fd.gamma()[idx_min:idx_max + 1]
@@ -200,7 +188,7 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error)
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.7f}")
-        self.assertTrue(max_error < 1.3e-3)
+        self.assertTrue(max_error < 4.3e-4)
         # Check theta.
         numerical1 = self.bond.fd.theta()[idx_min:idx_max + 1]
         numerical2 = self.bond_pelsser.fd.theta()[idx_min:idx_max + 1]
@@ -208,10 +196,10 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error)
         if print_results:
             print(f"Maximum error of theta: {max_error:2.7f}")
-        self.assertTrue(max_error < 6.2e-3)
+        self.assertTrue(max_error < 6.9e-3)
 
     def test_monte_carlo(self):
-        """Monte-Carlo pricing of bond."""
+        """Monte-Carlo pricing of non-callable bond."""
         self.bond.callable_bond = False
         self.bond.mc_exact_setup()
         self.bond.mc_euler_setup()
@@ -256,7 +244,7 @@ class FixedRate(unittest.TestCase):
         self.assertTrue(max_error < 8.4e-3)
 
     def test_monte_carlo_compare(self):
-        """Monte-Carlo pricing of bond."""
+        """Monte-Carlo pricing of non-callable bond."""
         self.bond.mc_exact_setup()
         self.bond.mc_euler_setup()
         # Spot rate.
@@ -301,10 +289,10 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error)
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 3.3e-3)
+        self.assertTrue(max_error < 3.9e-3)
 
     def test_monte_carlo_pelsser(self):
-        """Monte-Carlo pricing of bond."""
+        """Monte-Carlo pricing of non-callable bond."""
         self.bond_pelsser.callable_bond = False
         self.bond_pelsser.mc_exact_setup()
         self.bond_pelsser.mc_euler_setup()
@@ -351,7 +339,7 @@ class FixedRate(unittest.TestCase):
         self.assertTrue(max_error < 8.4e-3)
 
     def test_monte_carlo_pelsser_compare(self):
-        """Monte-Carlo pricing of bond."""
+        """Monte-Carlo pricing of callable bond."""
         self.bond_pelsser.mc_exact_setup()
         self.bond_pelsser.mc_euler_setup()
         # Spot rate.
@@ -398,6 +386,26 @@ class FixedRate(unittest.TestCase):
         max_error = np.max(relative_error)
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 3.3e-3)
+        self.assertTrue(max_error < 4.0e-3)
 
-    # TODO: Test OAS...
+    def test_oas(self):
+        """Finite difference pricing of callable bond."""
+        if print_results:
+            print(self.bond.transformation)
+            print(self.bond_pelsser.transformation)
+        self.bond.fd_setup(self.x_grid, equidistant=True)
+        self.bond.fd_solve()
+        self.bond_pelsser.fd_setup(self.x_grid, equidistant=True)
+        self.bond_pelsser.fd_solve()
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
+
+        # print(self.bond.callable_bond)
+        # print(f"Price = {self.bond.fd.solution[(self.bond.fd.grid.size - 1) // 2]}")
+        # print(self.bond.oas_calc(98))
+        # print(f"Price = {self.bond.fd.solution[(self.bond.fd.grid.size - 1) // 2]}")
+        #
+        # print(self.bond.fd.grid[-1])
+        # print(misc.fd_grid(self.bond.event_grid.size - 1,
+        #                    self.bond.vol_eg,
+        #                    self.bond.event_grid)[-1])

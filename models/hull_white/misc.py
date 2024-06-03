@@ -55,7 +55,6 @@ def fd_grid(
     """
     var = quadratic_variation(final_event_idx, vol, event_grid)
     x_max = n_stds * math.sqrt(var)
-    print(var, x_max)
     if type_ == "equidistant":
         return grid_generation.equidistant(-x_max, x_max, x_steps)
     elif type_ == "hyperbolic":
