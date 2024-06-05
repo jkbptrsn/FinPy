@@ -253,8 +253,6 @@ class FixedRate(bonds.Bond1FAnalytical):
                 _theta += discount * self.cash_flow[:, count].sum()
         return _theta
 
-###############################################################################
-
     def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
         # Set terminal condition.
@@ -299,7 +297,6 @@ class FixedRate(bonds.Bond1FAnalytical):
         oas_adjustment = \
             np.prod(self.oas_discount_steps[event_idx + 1:mat_idx + 1])
 
-        # TODO: Should discounting of prepayment bond include OAS?
         zcbond_pv_tmp *= oas_adjustment
         if self.callable_bond:
             prepayment_rate = prepayment_function(self.fd.grid)
@@ -307,17 +304,25 @@ class FixedRate(bonds.Bond1FAnalytical):
             # (at payment event).
             zcbond_pv_tmp *= 100
 
-            # TODO: Check that the solution doesn't include current payments...
             # (Negative) Value of prepayment option at deadline event.
-            option_value = payoffs.call(self.fd.solution, zcbond_pv_tmp)
+            if event_idx != 0:
+                option_value = payoffs.call(self.fd.solution, zcbond_pv_tmp)
+            else:
+                # TODO: What about if first deadline date is in the past?
+                option_value = 0
 
             # TODO: Check effect of smoothing.
             option_value = smoothing.smoothing_1d(self.fd.grid, option_value)
-
             # Redemption rate.
             redemption_remaining = self.cash_flow[0, payment_count:].sum()
             redemption_rate = \
                 self.cash_flow[0, payment_count] / redemption_remaining
+
+            # TODO: Include prepayment rate in ordinary redemption rate,
+            #  if deadline date is in the past?
+            if event_idx == 0:
+                redemption_rate += prepayment_rate
+
             # Interest rate.
             interest_rate = self.coupon / self.frequency
             # Adjust previous payments.
@@ -330,8 +335,6 @@ class FixedRate(bonds.Bond1FAnalytical):
         else:
             self.fd.solution += \
                 self.cash_flow[:, payment_count].sum() * zcbond_pv_tmp
-
-###############################################################################
 
     def mc_exact_setup(self) -> None:
         """Setup exact Monte-Carlo solver."""
@@ -393,8 +396,6 @@ class FixedRate(bonds.Bond1FAnalytical):
         self.mc_euler.mc_error = present_value.std(ddof=1)
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
-###############################################################################
-
     def mc_present_value(
             self,
             mc_object) -> np.ndarray:
@@ -433,15 +434,16 @@ class FixedRate(bonds.Bond1FAnalytical):
                 # Stepwise discounting from previous deadline event.
                 bond_payoff *= discount_paths_steps[payment_count]
 
-                # Value of prepayment option.
+                # (Negative) Value of prepayment option at deadline event.
                 if idx_deadline != 0:
                     option_value = lsm.prepayment_option(
                         rate_paths, bond_payoff, zcbond_pv_tmp)
                 else:
-                    # TODO: Does this make any sense?
-                    bond_mean = bond_payoff.mean()
-                    strike_mean = zcbond_pv_tmp.mean()
-                    option_value = np.maximum(bond_mean - strike_mean, 0)
+                    # TODO: What about if first deadline date is in the past?
+                    # bond_mean = bond_payoff.mean()
+                    # strike_mean = zcbond_pv_tmp.mean()
+                    # option_value = np.maximum(bond_mean - strike_mean, 0)
+                    option_value = 0
 
                 # Redemption rate.
                 redemption_remaining = self.cash_flow[0, payment_count:].sum()
@@ -449,6 +451,12 @@ class FixedRate(bonds.Bond1FAnalytical):
                     self.cash_flow[0, payment_count] / redemption_remaining
                 # Interest rate.
                 interest_rate = self.coupon / self.frequency
+
+                # TODO: Include prepayment rate in ordinary redemption rate,
+                #  if deadline date is in the past?
+                if idx_deadline == 0:
+                    redemption_rate += prepayment_rate
+
                 # Adjust previous payments.
                 bond_payoff *= (1 - redemption_rate)
                 # Add current (discounted) redemption and interest
@@ -464,8 +472,6 @@ class FixedRate(bonds.Bond1FAnalytical):
             # Discounting from first deadline event to time zero.
             bond_payoff *= discount_paths[self.deadline_schedule[0]]
         return bond_payoff
-
-###############################################################################
 
     def zcbond_price(
             self,
