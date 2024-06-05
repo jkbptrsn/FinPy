@@ -65,7 +65,7 @@ class FixedRate(unittest.TestCase):
         self.x_grid = misc.fd_grid(
             self.bond.event_grid.size - 1, self.bond.vol_eg,
             self.bond.event_grid, self.x_steps)
-        self.x_steps_noneq = 61
+        self.x_steps_noneq = 51
         self.x_grid_noneq = misc.fd_grid(
             self.bond.event_grid.size - 1, self.bond.vol_eg,
             self.bond.event_grid, self.x_steps_noneq, type_="hyperbolic")
@@ -248,7 +248,7 @@ class FixedRate(unittest.TestCase):
         self.assertTrue(max_error < 8.4e-3)
 
     def test_monte_carlo_compare(self):
-        """Monte-Carlo pricing of non-callable bond."""
+        """Monte-Carlo pricing of callable bond."""
         self.bond.mc_exact_setup()
         self.bond.mc_euler_setup()
         # Spot rate.
@@ -393,28 +393,26 @@ class FixedRate(unittest.TestCase):
         self.assertTrue(max_error < 4.0e-3)
 
     def test_oas(self):
-        """Finite difference pricing of callable bond."""
-        if print_results:
-            print(self.bond.transformation)
-            print(self.bond_pelsser.transformation)
-
-#        self.bond.fd_setup(self.x_grid, equidistant=True)
-        self.bond.fd_setup(self.x_grid_noneq, equidistant=False)
+        """Compare equidistant and non-equidistant FD grids."""
+        self.bond.fd_setup(self.x_grid, equidistant=True)
         self.bond.fd_solve()
-
-#        self.bond_pelsser.fd_setup(self.x_grid, equidistant=True)
         self.bond_pelsser.fd_setup(self.x_grid_noneq, equidistant=False)
         self.bond_pelsser.fd_solve()
-
         if plot_results:
-            plt.plot(self.x_grid, np.zeros(self.x_grid.size), '.b')
-            plt.plot(self.x_grid_noneq, np.zeros(self.x_grid_noneq.size), 'xk')
+            plt.plot(self.x_grid, np.zeros(self.x_grid.size),
+                     '.b', label="Equidistant")
+            plt.plot(self.x_grid_noneq, np.zeros(self.x_grid_noneq.size),
+                     'xr', label="Non-equidistant")
+            plt.xlabel("Grid")
+            plt.legend()
             plt.show()
-
         for price in range(90, 105 + 1, 2):
-            oas = 1.0e4 * self.bond.oas_calc(price)
-            oas_pelsser = 1.0e4 * self.bond_pelsser.oas_calc(price)
-            print(f"Bond price = {price:3.0f}  "
-                  f"OAS = {oas:7.2f}  "
-                  f"OAS Pelsser = {oas_pelsser:7.2f}  "
-                  f"OAS diff = {abs(oas - oas_pelsser):4.2f}")
+            oas_eq = 1.0e4 * self.bond.oas_calc(price)
+            oas_noneq = 1.0e4 * self.bond_pelsser.oas_calc(price)
+            diff = abs(oas_eq - oas_noneq)
+            if print_results:
+                print(f"Bond price = {price:3.0f}  "
+                      f"OAS, eq = {oas_eq:7.2f}  "
+                      f"OAS, non-eq = {oas_noneq:7.2f}  "
+                      f"OAS diff = {diff:4.2f}")
+            self.assertTrue(diff < 4.2e-1)
