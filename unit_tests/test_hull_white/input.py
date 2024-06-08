@@ -46,22 +46,16 @@ yield_grid = \
               0.0267,
               0.0249,
               0.0233])
-yield_curve = \
-    data_types.DiscreteFunc("yield",
-                            event_grid,
-                            yield_grid,
-                            "cubic")
+yield_curve = (
+    data_types.DiscreteFunc("yield", event_grid, yield_grid, "cubic"))
 
 # Discount curve.
 disc_grid = np.exp(-yield_grid * event_grid)
 # Event grid extended to zero to avoid extrapolation error.
 event_grid = np.append(0, event_grid)
 disc_grid = np.append(1, disc_grid)
-disc_curve = \
-    data_types.DiscreteFunc("discount",
-                            event_grid,
-                            disc_grid,
-                            "cubic")
+disc_curve = (
+    data_types.DiscreteFunc("discount", event_grid, disc_grid, "cubic"))
 
 # Speed of mean reversion strip.
 event_grid = np.array([0, 10])
@@ -98,10 +92,8 @@ vol_strip = data_types.DiscreteFunc("vol", event_grid, vol_grid)
 # Constant volatility strip.
 event_grid = np.array([0, 10])
 vol_grid_constant = 0.01 * np.array([1, 1])
-vol_strip_constant = \
-    data_types.DiscreteFunc("vol",
-                            event_grid,
-                            vol_grid_constant)
+vol_strip_constant = (
+    data_types.DiscreteFunc("vol", event_grid, vol_grid_constant))
 
 # Extended yield curve.
 event_grid = np.array(
@@ -334,11 +326,8 @@ yield_grid = np.array([
     0.02399,
     0.02391,
     0.02383])
-yield_curve_ext = \
-    data_types.DiscreteFunc("yield",
-                            event_grid,
-                            yield_grid,
-                            "cubic")
+yield_curve_ext = (
+    data_types.DiscreteFunc("yield", event_grid, yield_grid, "cubic"))
 
 # Extended discount curve.
 disc_grid = np.exp(-yield_grid * event_grid)
@@ -346,10 +335,7 @@ disc_grid = np.exp(-yield_grid * event_grid)
 event_grid_ext = np.append(0, event_grid)
 disc_grid = np.append(1, disc_grid)
 disc_curve_ext = \
-    data_types.DiscreteFunc("discount",
-                            event_grid_ext,
-                            disc_grid,
-                            "cubic")
+    data_types.DiscreteFunc("discount", event_grid_ext, disc_grid, "cubic")
 
 # Extended instantaneous forward rate curve f(0,t).
 forward_rate_grid = np.array([
@@ -467,11 +453,8 @@ forward_rate_grid = np.array([
     0.01516,
     0.01509,
     0.01504])
-forward_rate_ext = \
-    data_types.DiscreteFunc("forward rate",
-                            event_grid,
-                            forward_rate_grid,
-                            "cubic")
+forward_rate_ext = data_types.DiscreteFunc(
+    "forward rate", event_grid, forward_rate_grid, "cubic")
 
 
 if __name__ == '__main__':
@@ -493,9 +476,9 @@ if __name__ == '__main__':
 
     # Plot instantaneous forward rate curves.
     event_grid_plot = forward_rate_ext.event_grid
-    yield_curve_plot = yield_curve.interpolation(event_grid_plot)
+    yield_curve_plot = yield_curve_ext.values
     yield_spline = \
-        UnivariateSpline(yield_curve.event_grid, yield_curve.values, s=0)
+        UnivariateSpline(yield_curve_ext.event_grid, yield_curve_ext.values, s=0)
     yield_spline = yield_spline.derivative()
     forward_rate_plot = \
         yield_curve_plot + event_grid_plot * yield_spline(event_grid_plot)
