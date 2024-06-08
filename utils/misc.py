@@ -1,7 +1,5 @@
-import math
-
 import numpy as np
-from scipy.optimize import brentq
+import scipy
 
 
 def normal_realizations(
@@ -79,36 +77,6 @@ def trapz(
 ########################################################################
 
 
-def monte_carlo_error(realizations: np.ndarray) -> float:
-    """Calculate the standard error of the Monte-Carlo estimate.
-
-    Args:
-        realizations: Realizations of the relevant random variable.
-
-    Returns:
-        Standard error.
-    """
-    sample_size = realizations.size
-    sample_variance = realizations.var(ddof=1)
-    return math.sqrt(sample_variance) / math.sqrt(sample_size)
-
-
-def price_refinancing_bond(coupon: float,
-                           n_payments: int,
-                           sum_discount_factors: float) -> float:
-    """Refinancing bond is an annuity. Return the difference between
-    par and the price of the refinancing bond."""
-    constant_payment = coupon / (1 - (1 + coupon) ** (-n_payments))
-    return 1 - constant_payment * sum_discount_factors
-
-
-def calc_refinancing_coupon(n_payments: int,
-                            sum_discount_factors: float) -> float:
-    """Calculate coupon of refinancing bond assuming par value."""
-    arguments = (n_payments, sum_discount_factors)
-    return brentq(price_refinancing_bond, -0.9, 0.9, args=arguments)
-
-
 def sobol_init(event_grid_size: int):
     """Initialization of sobol sequence generator for two 1-dimensional
     processes for event_grid_size time steps..."""
@@ -117,9 +85,10 @@ def sobol_init(event_grid_size: int):
     return scipy.stats.qmc.Sobol(2 * seq_size)
 
 
-def cholesky_2d_sobol_test(correlation: float,
-                           sobol_norm,
-                           time_idx) -> (np.ndarray, np.ndarray):
+def cholesky_2d_sobol_test(
+        correlation: float,
+        sobol_norm: np.ndarray,
+        time_idx: int) -> (np.ndarray, np.ndarray):
     """..."""
     corr_matrix = np.array([[1, correlation], [correlation, 1]])
     corr_matrix = np.linalg.cholesky(corr_matrix)
@@ -129,6 +98,6 @@ def cholesky_2d_sobol_test(correlation: float,
         corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
 
 
-def normal_realizations_sobol_test(sobol_norm) -> np.ndarray:
+def normal_realizations_sobol_test(sobol_norm: np.ndarray) -> np.ndarray:
     """..."""
     return sobol_norm
