@@ -295,12 +295,9 @@ class FixedRate(bonds.Bond1FAnalytical):
         # maturity at corresponding payment event.
         mat_idx = self.payment_schedule[payment_count]
         zcbond_pv_tmp = self.zcbond_price(self.fd.grid, event_idx, mat_idx)
-
-        # OAS adjustment. TODO: Is the slicing correct? Second is correct, I think...
-#        oas_adjustment = np.prod(self.oas_discount_steps[event_idx: mat_idx])
+        # OAS adjustment.
         oas_adjustment = \
             np.prod(self.oas_discount_steps[event_idx + 1:mat_idx + 1])
-
         zcbond_pv_tmp *= oas_adjustment
         if self.callable_bond:
             # Redemption rate.
@@ -314,28 +311,17 @@ class FixedRate(bonds.Bond1FAnalytical):
                 self, self.fd.grid, payment_count, redemption_remaining)
 
             # TODO: N-test
-            if self.n_test:
+            if (self.n_test and
+                    payment_count < len(self.prepayment_model.term_dates) - 1):
                 prepayment_rate -= redemption_rate
-
-            # TODO: Include prepayment rate in ordinary redemption rate,
-            #  if deadline date is in the past?
-            if event_idx == 0:
-                redemption_rate += prepayment_rate
 
             # Value of bond (at deadline event) with notional of 100
             # (at payment event).
             zcbond_pv_tmp *= 100
-
             # (Negative) Value of prepayment option at deadline event.
-            if event_idx != 0:
-                option_value = payoffs.call(self.fd.solution, zcbond_pv_tmp)
-            else:
-                # TODO: What about if first deadline date is in the past?
-                option_value = 0
-
+            option_value = payoffs.call(self.fd.solution, zcbond_pv_tmp)
             # TODO: Check effect of smoothing.
             option_value = smoothing.smoothing_1d(self.fd.grid, option_value)
-
             # Adjust previous payments.
             self.fd.solution *= (1 - redemption_rate)
             # Add current (discounted) redemption and interest payments.
@@ -449,31 +435,24 @@ class FixedRate(bonds.Bond1FAnalytical):
                     self, rate_paths, payment_count, redemption_remaining)
 
                 # TODO: N-test
-                if self.n_test:
+                if (self.n_test and
+                        payment_count < len(self.prepayment_model.term_dates) - 1):
                     prepayment_rate -= redemption_rate
-
-                # TODO: Include prepayment rate in ordinary redemption rate,
-                #  if deadline date is in the past?
-                if idx_deadline == 0:
-                    redemption_rate += prepayment_rate
 
                 # Value (at deadline event) of notional of 100
                 # (at payment event) along each path.
                 zcbond_pv_tmp *= 100
                 # Stepwise discounting from previous deadline event.
                 bond_payoff *= discount_paths_steps[payment_count]
-
                 # (Negative) Value of prepayment option at deadline event.
                 if idx_deadline != 0:
                     option_value = lsm.prepayment_option(
                         rate_paths, bond_payoff, zcbond_pv_tmp)
                 else:
                     # TODO: What about if first deadline date is in the past?
-                    # bond_mean = bond_payoff.mean()
-                    # strike_mean = zcbond_pv_tmp.mean()
-                    # option_value = np.maximum(bond_mean - strike_mean, 0)
-                    option_value = 0
-
+                    bond_mean = bond_payoff.mean()
+                    strike_mean = zcbond_pv_tmp.mean()
+                    option_value = np.maximum(bond_mean - strike_mean, 0)
                 # Adjust previous payments.
                 bond_payoff *= (1 - redemption_rate)
                 # Add current (discounted) redemption and interest
@@ -655,7 +634,7 @@ def prepayment_function(
         if payment_count < len(bond.prepayment_model.term_dates) - 1:
             return bond.prepayment_model.prepayment_rate()
         else:
-            return 0
+            return 0 * short_rate
 
     else:
         return prepay_rate + 0 * short_rate
