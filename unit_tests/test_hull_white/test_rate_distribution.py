@@ -38,7 +38,7 @@ class JointDistributions(unittest.TestCase):
         self.bond_p = zcbond.ZCBondPelsser(
             self.kappa, self.vol, self.discount_curve, mat, self.event_grid)
 
-    def test_compare_same_seed(self):
+    def test_compare_same_seed(self) -> None:
         """Compare distributions."""
         # MC paths using the Andersen transformation.
         n_paths = 50000
@@ -112,7 +112,7 @@ class JointDistributions(unittest.TestCase):
         self.assertTrue(np.max(r_diff) < 3.7e-16)
         self.assertTrue(np.max(d_diff) < 2.2e-14)
 
-    def test_compare_different_seed(self):
+    def test_compare_different_seed(self) -> None:
         """Compare distributions."""
         # Number of MC paths.
         n_paths = 1000000
