@@ -153,8 +153,9 @@ class ZCBond(bonds.Bond1FAnalytical):
                 Default is False.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
-        self.mc_exact.mc_estimate = self.mc_exact.discount_paths[-1].mean()
-        self.mc_exact.mc_error = self.mc_exact.discount_paths[-1].std(ddof=1)
+        pv = self.mc_present_value(self.mc_exact)
+        self.mc_exact.mc_estimate = pv.mean()
+        self.mc_exact.mc_error = pv.std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
     def mc_euler_setup(self) -> None:
@@ -182,8 +183,9 @@ class ZCBond(bonds.Bond1FAnalytical):
                 Default is False.
         """
         self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
-        self.mc_euler.mc_estimate = self.mc_euler.discount_paths[-1].mean()
-        self.mc_euler.mc_error = self.mc_euler.discount_paths[-1].std(ddof=1)
+        pv = self.mc_present_value(self.mc_euler)
+        self.mc_euler.mc_estimate = pv.mean()
+        self.mc_euler.mc_error = pv.std(ddof=1)
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
     def a_function(self, event_idx: int) -> float:
@@ -203,3 +205,9 @@ class ZCBond(bonds.Bond1FAnalytical):
     def dbdt(self, event_idx: int) -> float:
         event_time = self.event_grid[event_idx]
         return misc.dbdt(event_time, self.maturity, self.kappa)
+
+    def mc_present_value(
+            self,
+            mc_object) -> np.ndarray:
+        """Present value for each Monte-Carlo path."""
+        return mc_object.discount_paths[self.maturity_idx]

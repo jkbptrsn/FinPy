@@ -7,19 +7,20 @@ import numpy.polynomial as poly
 plot_regression = False
 
 
-def black_scholes(instrument,
-                  basis_set: str = "Power",
-                  degree: int = 4) -> (float, float):
+def black_scholes(
+        instrument,
+        basis_set: str = "Power",
+        degree: int = 4) -> (float, float):
     """Pricing American option in Black-Scholes model.
 
     Args:
         instrument: Financial instrument object.
-        basis_set: Type of polynomial basis set. Default is Power.
-            * Power
-            * Chebyshev
-            * Legendre
-            * Laguerre
-            * Hermite
+        basis_set: Type of polynomial basis set. Default is "Power".
+            - "Power"
+            - "Chebyshev"
+            - "Legendre"
+            - "Laguerre"
+            - "Hermite"
         degree: Degree of basis set series. Default is 4.
 
     Returns:
@@ -130,15 +131,15 @@ def prepayment_option(paths,
     """Pricing prepayment option using Longstaff-Schwartz method.
 
     Args:
-        paths: ...
-        bond_payoff: ...
-        strike_price: ...
-        basis_set: Type of polynomial basis set. Default is Power.
-            * Power
-            * Chebyshev
-            * Legendre
-            * Laguerre
-            * Hermite
+        paths: Pseudo short rates.
+        bond_payoff: Payoff along each path.
+        strike_price: Strike price of bond.
+        basis_set: Type of polynomial basis set. Default is "Power".
+            - "Power"
+            - "Chebyshev"
+            - "Legendre"
+            - "Laguerre"
+            - "Hermite"
         degree: Degree of series based on basis set. Default is 4.
 
     Returns:
@@ -157,6 +158,8 @@ def prepayment_option(paths,
         fit_function = poly.Hermite.fit
     else:
         raise ValueError(f"Unknown basis set: {basis_set}")
+
+    # TODO: Only include in-the-money paths???
 
     # Least squares fit.
     ls_fit = fit_function(paths, bond_payoff, deg=degree)

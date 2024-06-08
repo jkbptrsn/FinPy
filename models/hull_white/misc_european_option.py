@@ -8,35 +8,37 @@ from utils.global_types import Instrument
 from utils import misc
 
 
-def v_function(expiry_idx: int,
-               maturity_idx: int,
-               g_eg: np.ndarray,
-               v_eg: np.ndarray) -> np.ndarray:
+def v_function(
+        expiry_idx: int,
+        maturity_idx: int,
+        g_eg: np.ndarray,
+        v_eg: np.ndarray) -> np.ndarray:
     """Calculate v- or dv_dt-function on event grid until expiry.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         expiry_idx: Option expiry index on event grid.
         maturity_idx: Bond maturity index on event grid.
-        g_eg: G-function, G(0,t) on event grid.
-        v_eg: "v-function" on event grid until expiry. See notes.
+        g_eg: G-function, G(0,t), on event grid.
+        v_eg: "v-function" on event grid until expiry.
 
     Returns:
-        v- og dv_dt-function. See notes.
+        v- og dv_dt-function.
     """
     return (g_eg[maturity_idx] - g_eg[expiry_idx]) ** 2 * v_eg
 
 
-def v_constant(kappa: float,
-               vol: float,
-               expiry_idx: int,
-               event_grid: np.ndarray) -> np.ndarray:
+def v_constant(
+        kappa: float,
+        vol: float,
+        expiry_idx: int,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "v-function" on event grid until expiry.
 
     The speed of mean reversion is constant and volatility is constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         kappa: Speed of mean reversion.
@@ -45,7 +47,7 @@ def v_constant(kappa: float,
         event_grid: Event dates as year fractions from as-of date.
 
     Returns:
-        "v-function". See notes.
+        "v-function".
     """
     two_kappa = 2 * kappa
     exp_kappa1 = math.exp(two_kappa * event_grid[expiry_idx])
@@ -53,15 +55,16 @@ def v_constant(kappa: float,
     return vol ** 2 * (exp_kappa1 - exp_kappa2) / two_kappa
 
 
-def dv_dt_constant(kappa: float,
-                   vol: float,
-                   expiry_idx: int,
-                   event_grid: np.ndarray) -> np.ndarray:
+def dv_dt_constant(
+        kappa: float,
+        vol: float,
+        expiry_idx: int,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate 1st order time derivative of "v-function".
 
     The speed of mean reversion is constant and volatility is constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         kappa: Speed of mean reversion.
@@ -70,21 +73,22 @@ def dv_dt_constant(kappa: float,
         event_grid: Event dates as year fractions from as-of date.
 
     Returns:
-        1st order time derivative of "v-function". See notes.
+        1st order time derivative of "v-function".
     """
     return -vol ** 2 * np.exp(2 * kappa * event_grid[:expiry_idx + 1])
 
 
-def v_piecewise(kappa: float,
-                vol: np.ndarray,
-                expiry_idx: int,
-                event_grid: np.ndarray) -> np.ndarray:
+def v_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        expiry_idx: int,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "v-function" on event grid until expiry.
 
     The speed of mean reversion is constant and volatility is piecewise
     constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         kappa: Speed of mean reversion.
@@ -93,7 +97,7 @@ def v_piecewise(kappa: float,
         event_grid: Event dates as year fractions from as-of date.
 
     Returns:
-        "v-function". See notes.
+        "v-function".
     """
     two_kappa = 2 * kappa
     v_return = np.zeros(expiry_idx + 1)
@@ -107,16 +111,17 @@ def v_piecewise(kappa: float,
     return v_return
 
 
-def dv_dt_piecewise(kappa: float,
-                    vol: np.ndarray,
-                    expiry_idx: int,
-                    event_grid: np.ndarray) -> np.ndarray:
+def dv_dt_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        expiry_idx: int,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate 1st order time derivative of "v-function".
 
     The speed of mean reversion is constant and volatility is piecewise
     constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         kappa: Speed of mean reversion.
@@ -125,23 +130,24 @@ def dv_dt_piecewise(kappa: float,
         event_grid: Event dates as year fractions from as-of date.
 
     Returns:
-        1st order time derivative of "v-function". See notes.
+        1st order time derivative of "v-function".
     """
     return -vol[:expiry_idx + 1] ** 2 \
         * np.exp(2 * kappa * event_grid[:expiry_idx + 1])
 
 
-def v_general(int_grid: np.ndarray,
-              int_event_idx: np.ndarray,
-              int_kappa_step_ig: np.ndarray,
-              vol_ig: np.ndarray,
-              expiry_idx: int) -> np.ndarray:
+def v_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        expiry_idx: int) -> np.ndarray:
     """Calculate "v-function" on event grid until expiry.
 
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         int_grid: Integration grid.
@@ -152,7 +158,7 @@ def v_general(int_grid: np.ndarray,
         expiry_idx: Option expiry index on event grid.
 
     Returns:
-        "v-function". See notes.
+        "v-function".
     """
     int_kappa = np.cumsum(int_kappa_step_ig[:int_event_idx[expiry_idx] + 1])
     v_return = np.zeros(expiry_idx + 1)
@@ -170,16 +176,17 @@ def v_general(int_grid: np.ndarray,
     return v_return
 
 
-def dv_dt_general(int_event_idx: np.ndarray,
-                  int_kappa_step_ig: np.ndarray,
-                  vol_ig: np.ndarray,
-                  expiry_idx: int) -> np.ndarray:
+def dv_dt_general(
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        expiry_idx: int) -> np.ndarray:
     """Calculate 1st order time derivative of "v-function".
 
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         int_event_idx: Event indices on integration grid.
@@ -189,7 +196,7 @@ def dv_dt_general(int_event_idx: np.ndarray,
         expiry_idx: Option expiry index on event grid.
 
     Returns:
-        1st order time derivative of "v-function". See notes.
+        1st order time derivative of "v-function".
     """
     int_kappa = np.cumsum(int_kappa_step_ig[:int_event_idx[expiry_idx] + 1])
     v_return = np.zeros(expiry_idx + 1)
@@ -200,21 +207,22 @@ def dv_dt_general(int_event_idx: np.ndarray,
     return v_return
 
 
-def option_price(spot: typing.Union[float, np.ndarray],
-                 strike: float,
-                 event_idx: int,
-                 expiry_idx: int,
-                 maturity_idx: int,
-                 zcbond,
-                 v_eg: np.ndarray,
-                 option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def option_price(
+        spot: typing.Union[float, np.ndarray],
+        strike: float,
+        event_idx: int,
+        expiry_idx: int,
+        maturity_idx: int,
+        zcbond,
+        v_eg: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option price.
 
     Price of European call or put option written on zero-coupon bond.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Args:
         spot: Spot pseudo short rate.
@@ -234,7 +242,7 @@ def option_price(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # P(t,T): Zero-coupon bond price at time t with maturity T.
     zcbond.mat_idx = expiry_idx
     price1 = zcbond.price(spot, event_idx)
@@ -249,21 +257,22 @@ def option_price(spot: typing.Union[float, np.ndarray],
                     - strike * price1 * norm.cdf(omega * d_minus))
 
 
-def option_delta(spot: typing.Union[float, np.ndarray],
-                 strike: float,
-                 event_idx: int,
-                 expiry_idx: int,
-                 maturity_idx: int,
-                 zcbond,
-                 v_eg: np.ndarray,
-                 option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def option_delta(
+        spot: typing.Union[float, np.ndarray],
+        strike: float,
+        event_idx: int,
+        expiry_idx: int,
+        maturity_idx: int,
+        zcbond,
+        v_eg: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option delta.
 
     Delta of European call or put option written on zero-coupon bond.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Args:
         spot: Spot pseudo short rate.
@@ -283,7 +292,7 @@ def option_delta(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # P(t,T): Zero-coupon bond price at time t with maturity T.
     zcbond.mat_idx = expiry_idx
     price1 = zcbond.price(spot, event_idx)
@@ -306,21 +315,22 @@ def option_delta(spot: typing.Union[float, np.ndarray],
     return omega * first_term + omega ** 2 * second_term
 
 
-def option_gamma(spot: typing.Union[float, np.ndarray],
-                 strike: float,
-                 event_idx: int,
-                 expiry_idx: int,
-                 maturity_idx: int,
-                 zcbond,
-                 v_eg: np.ndarray,
-                 option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def option_gamma(
+        spot: typing.Union[float, np.ndarray],
+        strike: float,
+        event_idx: int,
+        expiry_idx: int,
+        maturity_idx: int,
+        zcbond,
+        v_eg: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option gamma.
 
     Gamma of European call or put option written on zero-coupon bond.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Args:
         spot: Spot pseudo short rate.
@@ -340,7 +350,7 @@ def option_gamma(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # P(t,T): Zero-coupon bond price at time t with maturity T.
     zcbond.mat_idx = expiry_idx
     price1 = zcbond.price(spot, event_idx)
@@ -374,22 +384,23 @@ def option_gamma(spot: typing.Union[float, np.ndarray],
     return omega * first_term + omega ** 2 * second_term
 
 
-def option_theta(spot: typing.Union[float, np.ndarray],
-                 strike: float,
-                 event_idx: int,
-                 expiry_idx: int,
-                 maturity_idx: int,
-                 zcbond,
-                 v_eg: np.ndarray,
-                 dv_dt_eg: np.ndarray,
-                 option_type: Instrument = Instrument.EUROPEAN_CALL) \
+def option_theta(
+        spot: typing.Union[float, np.ndarray],
+        strike: float,
+        event_idx: int,
+        expiry_idx: int,
+        maturity_idx: int,
+        zcbond,
+        v_eg: np.ndarray,
+        dv_dt_eg: np.ndarray,
+        option_type: Instrument = Instrument.EUROPEAN_CALL) \
         -> typing.Union[float, np.ndarray]:
     """Calculate European call/put option theta.
 
     Theta of European call or put option written on zero-coupon bond.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1, and
-    D. Brigo & F. Mercurio 2007, section 3.3.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1, and
+    Brigo & Mercurio (2007), Section 3.3.
 
     Args:
         spot: Spot pseudo short rate.
@@ -410,7 +421,7 @@ def option_theta(spot: typing.Union[float, np.ndarray],
     elif option_type == Instrument.EUROPEAN_PUT:
         omega = -1
     else:
-        raise ValueError(f"Option type is unknown: {option_type}")
+        raise ValueError(f"Unknown option type: {option_type}")
     # P(t,T): Zero-coupon bond price at time t with maturity T.
     zcbond.mat_idx = expiry_idx
     price1 = zcbond.price(spot, event_idx)
@@ -434,13 +445,14 @@ def option_theta(spot: typing.Union[float, np.ndarray],
     return omega * first_term + omega ** 2 * second_term
 
 
-def d_function(price1: typing.Union[float, np.ndarray],
-               price2: typing.Union[float, np.ndarray],
-               strike: float,
-               v: float) -> tuple:
+def d_function(
+        price1: typing.Union[float, np.ndarray],
+        price2: typing.Union[float, np.ndarray],
+        strike: float,
+        v: float) -> tuple:
     """Calculate d-functions.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         price1: Zero-coupon bond price at time t with maturity T.
@@ -457,14 +469,15 @@ def d_function(price1: typing.Union[float, np.ndarray],
     return d_plus, d_minus
 
 
-def dd_dr(price1: typing.Union[float, np.ndarray],
-          delta1: typing.Union[float, np.ndarray],
-          price2: typing.Union[float, np.ndarray],
-          delta2: typing.Union[float, np.ndarray],
-          v: float) -> typing.Union[float, np.ndarray]:
+def dd_dr(
+        price1: typing.Union[float, np.ndarray],
+        delta1: typing.Union[float, np.ndarray],
+        price2: typing.Union[float, np.ndarray],
+        delta2: typing.Union[float, np.ndarray],
+        v: float) -> typing.Union[float, np.ndarray]:
     """Calculate 1st order spatial derivative of d-functions.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         price1: Zero-coupon bond price at time t with maturity T.
@@ -479,16 +492,17 @@ def dd_dr(price1: typing.Union[float, np.ndarray],
     return (delta2 / price2 - delta1 / price1) / math.sqrt(v)
 
 
-def d2d_dr2(price1: typing.Union[float, np.ndarray],
-            delta1: typing.Union[float, np.ndarray],
-            gamma1: typing.Union[float, np.ndarray],
-            price2: typing.Union[float, np.ndarray],
-            delta2: typing.Union[float, np.ndarray],
-            gamma2: typing.Union[float, np.ndarray],
-            v: float) -> typing.Union[float, np.ndarray]:
+def d2d_dr2(
+        price1: typing.Union[float, np.ndarray],
+        delta1: typing.Union[float, np.ndarray],
+        gamma1: typing.Union[float, np.ndarray],
+        price2: typing.Union[float, np.ndarray],
+        delta2: typing.Union[float, np.ndarray],
+        gamma2: typing.Union[float, np.ndarray],
+        v: float) -> typing.Union[float, np.ndarray]:
     """Calculate 2nd order spatial derivative of d-functions.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         price1: Zero-coupon bond price at time t with maturity T.
@@ -506,16 +520,17 @@ def d2d_dr2(price1: typing.Union[float, np.ndarray],
             - gamma1 / price1 + delta1 ** 2 / price1 ** 2) / math.sqrt(v)
 
 
-def dd_dt(price1: typing.Union[float, np.ndarray],
-          theta1: typing.Union[float, np.ndarray],
-          price2: typing.Union[float, np.ndarray],
-          theta2: typing.Union[float, np.ndarray],
-          strike: float,
-          v: float,
-          dv_dt: float) -> tuple:
+def dd_dt(
+        price1: typing.Union[float, np.ndarray],
+        theta1: typing.Union[float, np.ndarray],
+        price2: typing.Union[float, np.ndarray],
+        theta2: typing.Union[float, np.ndarray],
+        strike: float,
+        v: float,
+        dv_dt: float) -> tuple:
     """Calculate 1st order time derivative of d-functions.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 4.5.1.
+    See Andersen & Piterbarg (2010), Proposition 4.5.1.
 
     Args:
         price1: Zero-coupon bond price at time t with maturity T.

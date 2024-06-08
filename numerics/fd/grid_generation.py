@@ -44,7 +44,10 @@ def hyperbolic(
     if x_center < x_min or x_center > x_max:
         raise ValueError("Grid 'center' is not contained in domain.")
     if not shape:
-        shape = x_center / 5
+        if abs(x_center) > 1.0e-4:
+            shape = x_center / 5
+        else:
+            shape = 0.02
     lower = math.asinh(-(x_center - x_min) / shape)
     delta = (math.asinh((x_max - x_center) / shape) - lower) / (n_states - 1)
     grid = delta * np.arange(n_states) + lower

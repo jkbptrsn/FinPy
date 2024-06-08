@@ -197,16 +197,9 @@ class EuropeanOption(options.Option1FAnalytical):
                 Default is False.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
-        # Short rates at expiry.
-        rates = self.mc_exact.rate_paths[self.expiry_idx]
-        # Zero-coupon bond prices.
-        zcbond_prices = self.zcbond.price(rates, self.expiry_idx)
-        # Option payoffs.
-        option_prices = self.payoff(zcbond_prices)
-        # Discounted payoffs.
-        option_prices *= self.mc_exact.discount_paths[self.expiry_idx]
-        self.mc_exact.mc_estimate = option_prices.mean()
-        self.mc_exact.mc_error = option_prices.std(ddof=1)
+        pv = self.mc_present_value(self.mc_exact)
+        self.mc_exact.mc_estimate = pv.mean()
+        self.mc_exact.mc_error = pv.std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
     def mc_euler_setup(self) -> None:
@@ -234,14 +227,21 @@ class EuropeanOption(options.Option1FAnalytical):
                 Default is False.
         """
         self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
+        pv = self.mc_present_value(self.mc_euler)
+        self.mc_euler.mc_estimate = pv.mean()
+        self.mc_euler.mc_error = pv.std(ddof=1)
+        self.mc_euler.mc_error /= math.sqrt(n_paths)
+
+    def mc_present_value(
+            self,
+            mc_object) -> np.ndarray:
+        """Present value for each Monte-Carlo path."""
         # Short rates at expiry.
-        rates = self.mc_euler.rate_paths[self.expiry_idx]
+        rates = mc_object.rate_paths[self.expiry_idx]
         # Zero-coupon bond prices.
         zcbond_prices = self.zcbond.price(rates, self.expiry_idx)
         # Option payoffs.
         option_prices = self.payoff(zcbond_prices)
         # Discounted payoffs.
-        option_prices *= self.mc_euler.discount_paths[self.expiry_idx]
-        self.mc_euler.mc_estimate = option_prices.mean()
-        self.mc_euler.mc_error = option_prices.std(ddof=1)
-        self.mc_euler.mc_error /= math.sqrt(n_paths)
+        option_prices *= mc_object.discount_paths[self.expiry_idx]
+        return option_prices

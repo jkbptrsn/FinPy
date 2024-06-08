@@ -3,27 +3,85 @@ import math
 import numpy as np
 from scipy.interpolate import UnivariateSpline
 
+from numerics.fd import grid_generation
 from utils import misc
 
 
-def setup_model_parameters(inst):
-    """Set up model parameters on event and integration grids."""
+def quadratic_variation(
+        final_event_idx: int,
+        vol: np.ndarray,
+        event_grid: np.ndarray) -> float:
+    """Quadratic variation of pseudo short rate.
+
+    Volatility is assumed to be piecewise constant.
+
+    Args:
+        final_event_idx: Index on event grid.
+        vol: Volatility.
+        event_grid: Event dates as year fractions from as-of date.
+
+    Returns:
+        Quadratic variation.
+    """
+    vol_sq = np.square(vol[:final_event_idx + 1])
+    return np.sum(vol_sq[:-1] * np.diff(event_grid[:final_event_idx + 1]))
+
+
+def fd_grid(
+        final_event_idx: int,
+        vol: np.ndarray,
+        event_grid: np.ndarray,
+        x_steps: int = 301,
+        n_stds: int = 5,
+        type_: str = "equidistant") -> np.ndarray:
+    """Construct spatial grid.
+
+    Args:
+        final_event_idx: Index on event grid.
+        vol: Volatility.
+        event_grid: Event dates as year fractions from as-of date.
+        x_steps: Number of grid points in spatial dimension.
+            Default is 301.
+        n_stds: Width of spatial grid expressed as number of standard
+            deviations from center state. Default is 5.
+        type_: Type of spatial grid.
+            - "equidistant": Equidistant grid.
+            - "hyperbolic": Non-equidistant grid based on hyperbolic
+                sine transformation
+            Default is "equidistant".
+
+    Returns:
+        Spatial grid.
+    """
+    var = quadratic_variation(final_event_idx, vol, event_grid)
+    x_max = n_stds * math.sqrt(var)
+    if type_ == "equidistant":
+        return grid_generation.equidistant(-x_max, x_max, x_steps)
+    elif type_ == "hyperbolic":
+        return grid_generation.hyperbolic(-x_max, x_max, x_steps, 0.0)[1]
+    else:
+        raise ValueError(f"Unknown type: {type_}")
+
+
+def setup_model_parameters(inst) -> None:
+    """Set up model parameters on event and integration grids.
+
+    Args:
+        inst: Financial instrument object.
+    """
     # Kappa interpolated on event grid.
     inst.kappa_eg = inst.kappa.interpolation(inst.event_grid)
     # Vol interpolated on event grid.
     inst.vol_eg = inst.vol.interpolation(inst.event_grid)
     # Discount curve interpolated on event grid.
     inst.discount_curve_eg = inst.discount_curve.interpolation(inst.event_grid)
-
     # Instantaneous forward rate on event grid.
-    # TODO: Test accuracy
     log_discount = np.log(inst.discount_curve_eg)
     smoothing = 0
-    log_discount_spline = \
-        UnivariateSpline(inst.event_grid, log_discount, s=smoothing)
+    log_discount_spline = UnivariateSpline(
+        inst.event_grid, log_discount, s=smoothing)
     forward_rate = log_discount_spline.derivative()
     inst.forward_rate_eg = -forward_rate(inst.event_grid)
-
     # Kappa and vol are constant.
     if inst.time_dependence == "constant":
         # Integration of kappa on event grid.
@@ -31,9 +89,8 @@ def setup_model_parameters(inst):
         # G-function, G(0,t), on event grid.
         inst.g_eg = g_constant(inst.kappa_eg[0], inst.event_grid)
         # y-function on event grid.
-        inst.y_eg = y_constant(inst.kappa_eg[0],
-                               inst.vol_eg[0],
-                               inst.event_grid)
+        inst.y_eg = y_constant(
+            inst.kappa_eg[0], inst.vol_eg[0], inst.event_grid)
     # Kappa is constant and vol is piecewise constant.
     elif inst.time_dependence == "piecewise":
         # Integration of kappa on event grid.
@@ -49,30 +106,28 @@ def setup_model_parameters(inst):
         # Vol interpolated on integration grid.
         inst.vol_ig = inst.vol.interpolation(inst.int_grid)
         # Step-wise integration of kappa on integration grid.
-        inst.int_kappa_step_ig = \
-            np.append(0, misc.trapz(inst.int_grid, inst.kappa_ig))
+        inst.int_kappa_step_ig = (
+            np.append(0, misc.trapz(inst.int_grid, inst.kappa_ig)))
         # Integration of kappa on event grid.
         inst.int_kappa_eg = np.zeros(inst.event_grid.size)
         for event_idx, int_idx in enumerate(inst.int_event_idx):
             inst.int_kappa_eg[event_idx] = \
                 np.sum(inst.int_kappa_step_ig[:int_idx + 1])
         # G-function, G(0,t), on event grid.
-        inst.g_eg = g_general(inst.int_grid,
-                              inst.int_event_idx,
-                              inst.int_kappa_step_ig,
-                              inst.event_grid)
+        inst.g_eg = g_general(
+            inst.int_grid, inst.int_event_idx, inst.int_kappa_step_ig,
+            inst.event_grid)
         # y-function on event grid.
-        inst.y_eg, _ = y_general(inst.int_grid,
-                                 inst.int_event_idx,
-                                 inst.int_kappa_step_ig,
-                                 inst.vol_ig,
-                                 inst.event_grid)
+        inst.y_eg, _ = y_general(
+            inst.int_grid, inst.int_event_idx, inst.int_kappa_step_ig,
+            inst.vol_ig, inst.event_grid)
     else:
-        raise ValueError(f"Time dependence is unknown: {inst.time_dependence}")
+        raise ValueError(f"Unknown time dependence: {inst.time_dependence}")
 
 
-def integration_grid(event_grid: np.ndarray,
-                     int_dt: float) -> (np.ndarray, np.ndarray):
+def integration_grid(
+        event_grid: np.ndarray,
+        int_dt: float) -> (np.ndarray, np.ndarray):
     """Set up time grid for numerical integration.
 
     Args:
@@ -92,11 +147,11 @@ def integration_grid(event_grid: np.ndarray,
     for idx, step_size in enumerate(step_size_grid):
         # Number of integration steps.
         steps = math.floor(step_size / int_dt)
-        initial_date = event_grid[idx]
+        initial_time = event_grid[idx]
         if steps == 0:
-            grid = np.array(initial_date + step_size)
+            grid = np.array(initial_time + step_size)
         else:
-            grid = int_dt * np.arange(1, steps + 1) + initial_date
+            grid = int_dt * np.arange(1, steps + 1) + initial_time
             diff_step = step_size - steps * int_dt
             if diff_step > 1.0e-12:
                 grid = np.append(grid, grid[-1] + diff_step)
@@ -106,12 +161,13 @@ def integration_grid(event_grid: np.ndarray,
     return int_grid, int_event_idx
 
 
-def g_function(maturity_idx: int,
-               g_eg: np.ndarray,
-               int_kappa_eg: np.ndarray) -> np.ndarray:
+def g_function(
+        maturity_idx: int,
+        g_eg: np.ndarray,
+        int_kappa_eg: np.ndarray) -> np.ndarray:
     """Calculate G-function, G(t,t_maturity), on event grid.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, remark 10.1.9.
+    See Andersen & Piterbarg (2010), Remark 10.1.9.
 
     Args:
         maturity_idx: Maturity index on event grid.
@@ -124,13 +180,14 @@ def g_function(maturity_idx: int,
     return (g_eg[maturity_idx] - g_eg) * np.exp(int_kappa_eg)
 
 
-def g_constant(kappa: float,
-               event_grid: np.ndarray) -> np.ndarray:
+def g_constant(
+        kappa: float,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate G-function, G(0,t), on event grid.
 
     The speed of mean reversion is constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+    See Andersen & Piterbarg (2010), Proposition 10.1.7.
 
     Args:
         kappa: Speed of mean reversion.
@@ -142,16 +199,17 @@ def g_constant(kappa: float,
     return (1 - np.exp(-kappa * event_grid)) / kappa
 
 
-def g_general(int_grid: np.ndarray,
-              int_event_idx: np.ndarray,
-              int_kappa_step_ig: np.ndarray,
-              event_grid: np.ndarray) -> np.ndarray:
+def g_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate G-function, G(0,t), on event grid.
 
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+    See Andersen & Piterbarg (2010), Proposition 10.1.7.
 
     Args:
         int_grid: Integration grid.
@@ -180,14 +238,15 @@ def g_general(int_grid: np.ndarray,
     return g_eg
 
 
-def y_constant(kappa: float,
-               vol: float,
-               event_grid: np.ndarray) -> np.ndarray:
+def y_constant(
+        kappa: float,
+        vol: float,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate y-function on event grid.
 
     The speed of mean reversion and volatility are constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+    See Andersen & Piterbarg (2010), Proposition 10.1.7.
 
     Args:
         kappa: Speed of mean reversion.
@@ -201,14 +260,15 @@ def y_constant(kappa: float,
     return vol ** 2 * (1 - np.exp(-two_kappa * event_grid)) / two_kappa
 
 
-def int_y_constant(kappa: float,
-                   vol: float,
-                   event_grid: np.ndarray) -> np.ndarray:
+def int_y_constant(
+        kappa: float,
+        vol: float,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "integral" of y-function on event grid.
 
     The speed of mean reversion and volatility are constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010c
+    See Andersen & Piterbarg (2010), Eq. (10.40).
 
     Args:
         kappa: Speed of mean reversion.
@@ -228,14 +288,15 @@ def int_y_constant(kappa: float,
     return integral
 
 
-def int_int_y_constant(kappa: float,
-                       vol: float,
-                       event_grid: np.ndarray) -> np.ndarray:
+def int_int_y_constant(
+        kappa: float,
+        vol: float,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "double integral" of y-function on event grid.
 
     The speed of mean reversion and volatility are constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+    See Andersen & Piterbarg (2010), Eq. (10.42).
 
     Args:
         kappa: Speed of mean reversion.
@@ -247,26 +308,28 @@ def int_int_y_constant(kappa: float,
     """
     exp_kappa_1 = (np.exp(-2 * kappa * event_grid[:-1])
                    - np.exp(-2 * kappa * event_grid[1:])) / 2
-    exp_kappa_2 = np.exp(-kappa * np.diff(event_grid)) - 1
+    event_grid_diff = np.diff(event_grid)
+    exp_kappa_2 = np.exp(-kappa * event_grid_diff) - 1
     event_grid_sum = event_grid[1:] + event_grid[:-1]
     exp_kappa_3 = \
         np.exp(-kappa * event_grid_sum) - np.exp(-2 * kappa * event_grid[:-1])
     integral = np.zeros(event_grid.size)
     integral[1:] = \
-        vol ** 2 * (kappa * np.diff(event_grid) + exp_kappa_1
+        vol ** 2 * (kappa * event_grid_diff + exp_kappa_1
                     + exp_kappa_2 + exp_kappa_3) / (2 * kappa ** 3)
     return integral
 
 
-def y_piecewise(kappa: float,
-                vol: np.ndarray,
-                event_grid: np.ndarray) -> np.ndarray:
+def y_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate y-function on event grid.
 
     The speed of mean reversion is constant and volatility is piecewise
     constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+    See Andersen & Piterbarg (2010), Proposition 10.1.7.
 
     Args:
         kappa: Speed of mean reversion.
@@ -291,15 +354,16 @@ def y_piecewise(kappa: float,
     return y_function
 
 
-def int_y_piecewise(kappa: float,
-                    vol: np.ndarray,
-                    event_grid: np.ndarray) -> np.ndarray:
+def int_y_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "integral" of y-function on event grid.
 
     The speed of mean reversion is constant and volatility is piecewise
     constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+    See Andersen & Piterbarg (2010), Eq. (10.40).
 
     Args:
         kappa: Speed of mean reversion.
@@ -319,19 +383,15 @@ def int_y_piecewise(kappa: float,
         vol_values = vol[event_filter]
         # First term.
         delta_t = event_grid[idx] - vol_times
-        y = np.exp(-two_kappa * delta_t[:-1]) \
-            - np.exp(-two_kappa * delta_t[1:])
+        y = (np.exp(-two_kappa * delta_t[:-1])
+             - np.exp(-two_kappa * delta_t[1:]))
         y *= vol_values[:-1] ** 2 / two_kappa_sq
         integral[idx] += y.sum()
-
         # Second term.
-        # TODO: Make unit tests.
-#        delta_t = event_grid[idx] - event_grid[idx - 1]
         delta_t = event_grid[idx] - vol_times[-1]
         y = 1 + math.exp(-two_kappa * delta_t)
         y *= vol_values[-1] ** 2 / two_kappa_sq
         integral[idx] += y
-
         # Third term.
         delta_t = event_grid[idx] + event_grid[idx - 1] - 2 * vol_times
         y = np.exp(-kappa * delta_t[:-1]) - np.exp(-kappa * delta_t[1:])
@@ -345,15 +405,16 @@ def int_y_piecewise(kappa: float,
     return integral
 
 
-def int_int_y_piecewise(kappa: float,
-                        vol: np.ndarray,
-                        event_grid: np.ndarray) -> np.ndarray:
+def int_int_y_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "double integral" of y-function on event grid.
 
     The speed of mean reversion is constant and volatility is piecewise
     constant.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+    See Andersen & Piterbarg (2010), Eq. (10.42).
 
     Args:
         kappa: Speed of mean reversion.
@@ -363,6 +424,7 @@ def int_int_y_piecewise(kappa: float,
     Returns:
         "Double integral" of y-function.
     """
+
     integral = np.zeros(event_grid.size)
     two_kappa = 2 * kappa
     two_kappa_cubed = 2 * kappa ** 3
@@ -386,15 +448,8 @@ def int_int_y_piecewise(kappa: float,
         y = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / two_kappa_cubed
         integral[idx] -= y.sum()
-
-        # TODO: Make unit tests.
-#        delta_t = event_grid[idx] - event_grid[idx - 1]
-#        y = math.exp(-kappa * delta_t)
-#        delta_t = event_grid[idx] + event_grid[idx - 1] - 2 * vol_times[-1]
-#        y += math.exp(-kappa * delta_t)
         delta_t = event_grid[idx] - event_grid[idx - 1]
         y = 2 * math.exp(-kappa * delta_t)
-
         y *= vol_values[-1] ** 2 / two_kappa_cubed
         integral[idx] += y
         # Third term.
@@ -417,17 +472,18 @@ def int_int_y_piecewise(kappa: float,
     return integral
 
 
-def y_general(int_grid: np.ndarray,
-              int_event_idx: np.ndarray,
-              int_kappa_step_ig: np.ndarray,
-              vol_ig: np.ndarray,
-              event_grid: np.ndarray) -> (np.ndarray, np.ndarray):
+def y_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        event_grid: np.ndarray) -> (np.ndarray, np.ndarray):
     """Calculate y-function on event and integration grid.
 
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, proposition 10.1.7.
+    See Andersen & Piterbarg (2010), Proposition 10.1.7.
 
     Args:
         int_grid: Integration grid.
@@ -460,17 +516,18 @@ def y_general(int_grid: np.ndarray,
     return y_eg, y_ig
 
 
-def int_y_general(int_grid: np.ndarray,
-                  int_event_idx: np.ndarray,
-                  int_kappa_step_ig: np.ndarray,
-                  vol_ig: np.ndarray,
-                  event_grid: np.ndarray) -> np.ndarray:
+def int_y_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "integral" of y-function on event grid.
 
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.40).
+    See Andersen & Piterbarg (2010), Eq. (10.40).
 
     Args:
         int_grid: Integration grid.
@@ -483,8 +540,8 @@ def int_y_general(int_grid: np.ndarray,
     Returns:
         "Integral" of y-function.
     """
-    _, y_ig = y_general(int_grid, int_event_idx, int_kappa_step_ig,
-                        vol_ig, event_grid)
+    _, y_ig = y_general(
+        int_grid, int_event_idx, int_kappa_step_ig, vol_ig, event_grid)
     # Calculation of "integral" of y-function on event grid.
     integral = np.zeros(event_grid.size)
     for event_idx in range(1, event_grid.size):
@@ -494,24 +551,29 @@ def int_y_general(int_grid: np.ndarray,
         # Slice of integration grid.
         int_grid_tmp = int_grid[idx1:idx2]
         # Slice of time-integrated kappa for each integration step.
-        int_kappa = np.append(int_kappa_step_ig[idx1 + 1:idx2], 0)
+        int_kappa = np.append(0, int_kappa_step_ig[idx1 + 1:idx2])
+        # Cumulative sum from "right to left".
         int_kappa = np.flip(np.cumsum(np.flip(int_kappa)))
+        # Shift to the left.
+        int_kappa[:-1] = int_kappa[1:]
+        int_kappa[-1] = 0
         integrand = np.exp(-int_kappa) * y_ig[idx1:idx2]
         integral[event_idx] = np.sum(misc.trapz(int_grid_tmp, integrand))
     return integral
 
 
-def int_int_y_general(int_grid: np.ndarray,
-                      int_event_idx: np.ndarray,
-                      int_kappa_step_ig: np.ndarray,
-                      vol_ig: np.ndarray,
-                      event_grid: np.ndarray) -> np.ndarray:
+def int_int_y_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate "double integral" of y-function on event grid.
 
     No assumption on the time dependence of the speed of mean reversion
     and the volatility.
 
-    See L.B.G. Andersen & V.V. Piterbarg 2010, Eq. (10.42).
+    See Andersen & Piterbarg (2010), Eq. (10.42).
 
     Args:
         int_grid: Integration grid.
@@ -524,8 +586,8 @@ def int_int_y_general(int_grid: np.ndarray,
     Returns:
         "Double integral" of y-function.
     """
-    _, y_ig = y_general(int_grid, int_event_idx, int_kappa_step_ig,
-                        vol_ig, event_grid)
+    _, y_ig = y_general(
+        int_grid, int_event_idx, int_kappa_step_ig, vol_ig, event_grid)
     # Calculation of "double integral" of y-function on event grid.
     integral = np.zeros(event_grid.size)
     for event_idx in range(1, event_grid.size):
@@ -536,27 +598,32 @@ def int_int_y_general(int_grid: np.ndarray,
         inner_integral = np.array(0)
         for idx in range(idx1 + 1, idx2):
             int_grid_tmp = int_grid[idx1:idx + 1]
-            int_kappa_tmp = np.append(int_kappa_step_ig[idx1 + 1:idx + 1], 0)
+            # Slice of time-integrated kappa for each integration step.
+            int_kappa_tmp = np.append(0, int_kappa_step_ig[idx1 + 1:idx + 1])
+            # Cumulative sum from "right to left".
             int_kappa_tmp = np.flip(np.cumsum(np.flip(int_kappa_tmp)))
+            # Shift to the left.
+            int_kappa_tmp[:-1] = int_kappa_tmp[1:]
+            int_kappa_tmp[-1] = 0
             integrand = np.exp(-int_kappa_tmp) * y_ig[idx1:idx + 1]
-            inner_integral = \
-                np.append(inner_integral,
-                          np.sum(misc.trapz(int_grid_tmp, integrand)))
+            inner_integral = np.append(
+                inner_integral, np.sum(misc.trapz(int_grid_tmp, integrand)))
         # Slice of integration grid.
         int_grid_tmp = int_grid[idx1:idx2]
         integral[event_idx] = np.sum(misc.trapz(int_grid_tmp, inner_integral))
     return integral
 
 
-def alpha_constant(kappa: float,
-                   vol: float,
-                   event_grid: np.ndarray) -> np.ndarray:
+def alpha_constant(
+        kappa: float,
+        vol: float,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate alpha-function on event grid.
 
     The speed of mean reversion and volatility are constant.
 
     The function doesn't include the instantaneous forward rate.
-    See Pelsser, section 5.3.
+    See Pelsser (2000), Section 5.3.
 
     Args:
         kappa: Speed of mean reversion.
@@ -569,15 +636,16 @@ def alpha_constant(kappa: float,
     return vol ** 2 * (1 - np.exp(-kappa * event_grid)) ** 2 / (2 * kappa ** 2)
 
 
-def int_alpha_constant(kappa: float,
-                       vol: float,
-                       event_grid: np.ndarray) -> np.ndarray:
+def int_alpha_constant(
+        kappa: float,
+        vol: float,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate integral of alpha-function on event grid.
 
     The speed of mean reversion and volatility are constant.
 
     The integrand doesn't include the instantaneous forward rate.
-    See Pelsser, section 5.3.
+    See Pelsser (2000), Section 5.3.
 
     Args:
         kappa: Speed of mean reversion.
@@ -592,108 +660,22 @@ def int_alpha_constant(kappa: float,
     exp_kappa_2 = np.exp(-kappa * event_grid[1:]) \
         - np.exp(-kappa * event_grid[:-1])
     integral = np.zeros(event_grid.size)
-    integral[1:] = \
-        vol ** 2 * (2 * kappa * np.diff(event_grid)
-                    + exp_kappa_1 + 4 * exp_kappa_2) / (4 * kappa ** 3)
+    integral[1:] = vol ** 2 * (2 * kappa * np.diff(event_grid) + exp_kappa_1
+                               + 4 * exp_kappa_2) / (4 * kappa ** 3)
     return integral
 
 
-def alpha_general(int_grid: np.ndarray,
-                  int_event_idx: np.ndarray,
-                  int_kappa_step_ig: np.ndarray,
-                  vol_ig: np.ndarray,
-                  event_grid: np.ndarray) -> np.ndarray:
-    """Calculate alpha-function on event grid.
-
-    No assumption on the time dependence of the speed of mean reversion
-    and the volatility.
-
-    The function doesn't include the instantaneous forward rate.
-    See Pelsser, section 5.3.
-
-    Args:
-        int_grid: Integration grid.
-        int_event_idx: Event indices on integration grid.
-        int_kappa_step_ig: Step-wise integration of kappa on integration
-            grid.
-        vol_ig: Volatility on integration grid.
-        event_grid: Event dates as year fractions from as-of date.
-
-    Returns:
-        alpha-function.
-    """
-    _, y_ig = y_general(int_grid, int_event_idx, int_kappa_step_ig,
-                        vol_ig, event_grid)
-    integral = np.zeros(event_grid.size)
-    for event_idx in range(1, event_grid.size):
-        # Integration index of event.
-        idx = int_event_idx[event_idx] + 1
-        # Slice of integration grid.
-        int_grid_tmp = int_grid[:idx]
-        # Slice of time-integrated kappa for each integration step.
-        int_kappa = np.append(int_kappa_step_ig[1:idx], 0)
-        int_kappa = np.flip(np.cumsum(np.flip(int_kappa)))
-        integrand = np.exp(-int_kappa) * y_ig[:idx]
-        integral[event_idx] = np.sum(misc.trapz(int_grid_tmp, integrand))
-    return integral
-
-
-def int_alpha_general(int_grid: np.ndarray,
-                      int_event_idx: np.ndarray,
-                      int_kappa_step_ig: np.ndarray,
-                      vol_ig: np.ndarray,
-                      event_grid: np.ndarray) -> np.ndarray:
-    """Calculate integral of alpha-function on event grid.
-
-    No assumption on the time dependence of the speed of mean reversion
-    and the volatility.
-
-    The integrand doesn't include the instantaneous forward rate.
-    See Pelsser, section 5.3.
-
-    Args:
-        int_grid: Integration grid.
-        int_event_idx: Event indices on integration grid.
-        int_kappa_step_ig: Step-wise integration of kappa on integration
-            grid.
-        vol_ig: Volatility on integration grid.
-        event_grid: Event dates as year fractions from as-of date.
-
-    Returns:
-        Integral of alpha-function.
-    """
-    _, y_ig = y_general(int_grid, int_event_idx, int_kappa_step_ig,
-                        vol_ig, event_grid)
-    integral = np.zeros(event_grid.size)
-    for event_idx in range(1, event_grid.size):
-        # Integration indices of two adjacent events.
-        idx1 = int_event_idx[event_idx - 1]
-        idx2 = int_event_idx[event_idx] + 1
-        inner_integral = np.array(0)
-        for idx in range(idx1 + 1, idx2):
-            int_grid_tmp = int_grid[:idx + 1]
-            int_kappa_tmp = np.append(int_kappa_step_ig[1:idx + 1], 0)
-            int_kappa_tmp = np.flip(np.cumsum(np.flip(int_kappa_tmp)))
-            integrand = np.exp(-int_kappa_tmp) * y_ig[:idx + 1]
-            inner_integral = \
-                np.append(inner_integral,
-                          np.sum(misc.trapz(int_grid_tmp, integrand)))
-        # Slice of integration grid.
-        int_grid_tmp = int_grid[idx1:idx2]
-        integral[event_idx] = np.sum(misc.trapz(int_grid_tmp, inner_integral))
-    return integral
-
-
-def alpha_piecewise(kappa: float,
-                    vol: np.ndarray,
-                    event_grid: np.ndarray) -> np.ndarray:
+def alpha_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate alpha-function on event grid.
 
     The speed of mean reversion is constant and volatility is piecewise
     constant.
 
     The function doesn't include the instantaneous forward rate.
-    See Pelsser, section 5.3.
+    See Pelsser (2000), Section 5.3.
 
     Args:
         kappa: Speed of mean reversion.
@@ -706,11 +688,10 @@ def alpha_piecewise(kappa: float,
     two_kappa_sq = 2 * kappa ** 2
     sum_array = np.zeros(event_grid.size)
     for idx in range(1, event_grid.size):
-        # See notes for "less than".
         event_filter = event_grid < event_grid[idx]
         vol_times = event_grid[event_filter]
         vol_values = vol[event_filter]
-        # Upper limit, see notes.
+        # Upper limit.
         delta_t = event_grid[idx] - 2 * vol_times
         tmp = np.exp(-kappa * delta_t[:-1]) - np.exp(-kappa * delta_t[1:])
         tmp *= vol_values[:-1] ** 2 / two_kappa_sq
@@ -718,7 +699,7 @@ def alpha_piecewise(kappa: float,
         delta_t = event_grid[idx] - 2 * vol_times[-1]
         tmp = math.exp(kappa * event_grid[idx]) + math.exp(-kappa * delta_t)
         sum_array[idx] += vol_values[-1] ** 2 * tmp / two_kappa_sq
-        # Lower limit, see notes.
+        # Lower limit.
         delta_t = event_grid[idx - 1] - 2 * vol_times
         tmp = np.exp(-kappa * delta_t[:-1]) - np.exp(-kappa * delta_t[1:])
         tmp *= vol_values[:-1] ** 2 / two_kappa_sq
@@ -730,16 +711,17 @@ def alpha_piecewise(kappa: float,
     return np.exp(-kappa * event_grid) * np.cumsum(sum_array)
 
 
-def int_alpha_piecewise(kappa: float,
-                        vol: np.ndarray,
-                        event_grid: np.ndarray) -> np.ndarray:
+def int_alpha_piecewise(
+        kappa: float,
+        vol: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
     """Calculate integral of alpha-function on event grid.
 
     The speed of mean reversion is constant and volatility is piecewise
     constant.
 
     The integrand doesn't include the instantaneous forward rate.
-    See Pelsser, section 5.3.
+    See Pelsser (2000), Section 5.3.
 
     Args:
         kappa: Speed of mean reversion.
@@ -753,11 +735,10 @@ def int_alpha_piecewise(kappa: float,
     two_kappa_cubed = 2 * kappa ** 3
     sum_array = np.zeros(event_grid.size)
     for idx in range(1, event_grid.size):
-        # See notes for "less than".
         event_filter = event_grid < event_grid[idx]
         vol_times = event_grid[event_filter]
         vol_values = vol[event_filter]
-        # Upper limit, see notes.
+        # Upper limit.
         delta_t = event_grid[idx] - 2 * vol_times
         tmp = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
         tmp *= vol_values[:-1] ** 2 / two_kappa_cubed
@@ -765,7 +746,7 @@ def int_alpha_piecewise(kappa: float,
         delta_t = event_grid[idx] - 2 * vol_times[-1]
         tmp = math.exp(kappa * event_grid[idx]) + math.exp(-kappa * delta_t)
         sum_array[idx] -= vol_values[-1] ** 2 * tmp / two_kappa_cubed
-        # Lower limit, see notes.
+        # Lower limit.
         delta_t = event_grid[idx - 1] - 2 * vol_times
         tmp = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
         tmp *= vol_values[:-1] ** 2 / two_kappa_cubed
@@ -776,39 +757,34 @@ def int_alpha_piecewise(kappa: float,
         sum_array[idx] += vol_values[-1] ** 2 * tmp / two_kappa_cubed
     integral = np.zeros(event_grid.size)
     for idx in range(1, event_grid.size):
-        # See notes for "less than".
         event_filter = event_grid < event_grid[idx]
         vol_times = event_grid[event_filter]
         vol_values = vol[event_filter]
-
-        # First kind of integral, see notes.
+        # First kind of integral.
         factor = math.exp(-kappa * event_grid[idx]) \
             - math.exp(-kappa * event_grid[idx - 1])
         integral[idx] = np.sum(factor * sum_array[:idx])
-
-        # Second kind of integral, see notes.
-        # Upper-upper limit, see notes.
+        # Second kind of integral.
+        # Upper-upper limit.
         delta_t = event_grid[idx] - vol_times
         y = np.exp(-two_kappa * delta_t[1:]) \
             - np.exp(-two_kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / (2 * two_kappa_cubed)
         integral[idx] += y.sum()
         delta_t = event_grid[idx] - event_grid[idx - 1]
-        y = math.exp(-two_kappa * delta_t) - two_kappa * event_grid[idx]
+        y = two_kappa * event_grid[idx] - math.exp(-two_kappa * delta_t)
         y *= vol_values[-1] ** 2 / (2 * two_kappa_cubed)
-        integral[idx] -= y
-
-        # Upper-lower limit, see notes.
+        integral[idx] += y
+        # Upper-lower limit.
         delta_t = event_grid[idx - 1] - vol_times
         y = np.exp(-two_kappa * delta_t[1:]) \
             - np.exp(-two_kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / (2 * two_kappa_cubed)
         integral[idx] -= y.sum()
-        y = 1 - two_kappa * event_grid[idx - 1]
+        y = two_kappa * event_grid[idx - 1] - 1
         y *= vol_values[-1] ** 2 / (2 * two_kappa_cubed)
-        integral[idx] += y
-
-        # Lower-upper limit, see notes.
+        integral[idx] -= y
+        # Lower-upper limit.
         delta_t = event_grid[idx] + event_grid[idx - 1] - 2 * vol_times
         y = np.exp(-kappa * delta_t[1:]) - np.exp(-kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / two_kappa_cubed
@@ -817,12 +793,108 @@ def int_alpha_piecewise(kappa: float,
         y = math.exp(-kappa * delta_t)
         y *= 2 * vol_values[-1] ** 2 / two_kappa_cubed
         integral[idx] += y
-
-        # Lower-lower limit, see notes.
+        # Lower-lower limit.
         delta_t = event_grid[idx - 1] - vol_times
         y = np.exp(-two_kappa * delta_t[1:]) \
             - np.exp(-two_kappa * delta_t[:-1])
         y *= vol_values[:-1] ** 2 / two_kappa_cubed
         integral[idx] += y.sum()
         integral[idx] -= 2 * vol_values[-1] ** 2 / two_kappa_cubed
+    return integral
+
+
+def alpha_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
+    """Calculate alpha-function on event grid.
+
+    No assumption on the time dependence of the speed of mean reversion
+    and the volatility.
+
+    The function doesn't include the instantaneous forward rate.
+    See Pelsser (2000), Section 5.3.
+
+    Args:
+        int_grid: Integration grid.
+        int_event_idx: Event indices on integration grid.
+        int_kappa_step_ig: Step-wise integration of kappa on integration
+            grid.
+        vol_ig: Volatility on integration grid.
+        event_grid: Event dates as year fractions from as-of date.
+
+    Returns:
+        alpha-function.
+    """
+    _, y_ig = y_general(
+        int_grid, int_event_idx, int_kappa_step_ig, vol_ig, event_grid)
+    integral = np.zeros(event_grid.size)
+    for event_idx in range(1, event_grid.size):
+        # Integration index of event.
+        idx = int_event_idx[event_idx] + 1
+        # Slice of integration grid.
+        int_grid_tmp = int_grid[:idx]
+        # Slice of time-integrated kappa for each integration step.
+        int_kappa = np.append(0, int_kappa_step_ig[1:idx])
+        # Cumulative sum from "right to left".
+        int_kappa = np.flip(np.cumsum(np.flip(int_kappa)))
+        # Shift to the left.
+        int_kappa[:-1] = int_kappa[1:]
+        int_kappa[-1] = 0
+        integrand = np.exp(-int_kappa) * y_ig[:idx]
+        integral[event_idx] = np.sum(misc.trapz(int_grid_tmp, integrand))
+    return integral
+
+
+def int_alpha_general(
+        int_grid: np.ndarray,
+        int_event_idx: np.ndarray,
+        int_kappa_step_ig: np.ndarray,
+        vol_ig: np.ndarray,
+        event_grid: np.ndarray) -> np.ndarray:
+    """Calculate integral of alpha-function on event grid.
+
+    No assumption on the time dependence of the speed of mean reversion
+    and the volatility.
+
+    The integrand doesn't include the instantaneous forward rate.
+    See Pelsser (2000), Section 5.3.
+
+    Args:
+        int_grid: Integration grid.
+        int_event_idx: Event indices on integration grid.
+        int_kappa_step_ig: Step-wise integration of kappa on integration
+            grid.
+        vol_ig: Volatility on integration grid.
+        event_grid: Event dates as year fractions from as-of date.
+
+    Returns:
+        Integral of alpha-function.
+    """
+    _, y_ig = y_general(
+        int_grid, int_event_idx, int_kappa_step_ig, vol_ig, event_grid)
+    integral = np.zeros(event_grid.size)
+    for event_idx in range(1, event_grid.size):
+        # Integration indices of two adjacent events.
+        idx1 = int_event_idx[event_idx - 1]
+        idx2 = int_event_idx[event_idx] + 1
+        inner_integral = np.array(0)
+        for idx in range(idx1 + 1, idx2):
+            int_grid_tmp = int_grid[:idx + 1]
+            # Slice of time-integrated kappa for each integration step.
+            int_kappa_tmp = np.append(0, int_kappa_step_ig[1:idx + 1])
+            # Cumulative sum from "right to left".
+            int_kappa_tmp = np.flip(np.cumsum(np.flip(int_kappa_tmp)))
+            # Shift to the left.
+            int_kappa_tmp[:-1] = int_kappa_tmp[1:]
+            int_kappa_tmp[-1] = 0
+            integrand = np.exp(-int_kappa_tmp) * y_ig[:idx + 1]
+            inner_integral = \
+                np.append(inner_integral,
+                          np.sum(misc.trapz(int_grid_tmp, integrand)))
+        # Slice of integration grid.
+        int_grid_tmp = int_grid[idx1:idx2]
+        integral[event_idx] = np.sum(misc.trapz(int_grid_tmp, inner_integral))
     return integral

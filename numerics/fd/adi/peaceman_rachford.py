@@ -27,11 +27,12 @@ class PeachmanRachford2D(base_class.ADI2D):
         equidistant: Is grid equidistant? Default is false.
     """
 
-    def __init__(self,
-                 grid_x: np.ndarray,
-                 grid_y: np.ndarray,
-                 band: str = "tri",
-                 equidistant: bool = False):
+    def __init__(
+            self,
+            grid_x: np.ndarray,
+            grid_y: np.ndarray,
+            band: str = "tri",
+            equidistant: bool = False):
         super().__init__(grid_x, grid_y, band, equidistant)
 
         self.solution = None

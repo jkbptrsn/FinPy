@@ -20,7 +20,7 @@ class FixedRate(bonds.Bond1FAnalytical):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         coupon: Yearly coupon rate.
         frequency: Yearly payment frequency.
         deadline_schedule: Deadline indices on event grid.
@@ -28,30 +28,31 @@ class FixedRate(bonds.Bond1FAnalytical):
         cash_flow: Cash flow on payment grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
-        _oas: Option-adjusted spread.
+        oas: Option-adjusted spread.
         callable_bond: Is the bond callable? Default is True.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 coupon: float,
-                 frequency: int,
-                 deadline_schedule: np.ndarray,
-                 payment_schedule: np.ndarray,
-                 cash_flow: np.ndarray,
-                 event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52,
-                 oas: float = 0,
-                 callable_bond: bool = True):
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            coupon: float,
+            frequency: int,
+            deadline_schedule: np.ndarray,
+            payment_schedule: np.ndarray,
+            cash_flow: np.ndarray,
+            event_grid: np.ndarray,
+            time_dependence: str = "piecewise",
+            int_dt: float = 1 / 52,
+            oas: float = 0,
+            callable_bond: bool = True):
         super().__init__()
         self.kappa = kappa
         self.vol = vol
@@ -67,14 +68,10 @@ class FixedRate(bonds.Bond1FAnalytical):
         self.callable_bond = callable_bond
 
         # Zero-coupon bond.
-        self.zcbond = \
-            zcbond.ZCBond(kappa,
-                          vol,
-                          discount_curve,
-                          self.payment_schedule[-1],
-                          event_grid,
-                          time_dependence,
-                          int_dt)
+        self.zcbond = zcbond.ZCBond(
+            kappa, vol, discount_curve, self.payment_schedule[-1], event_grid,
+            time_dependence, int_dt)
+
         # Kappa on event grid.
         self.kappa_eg = self.zcbond.kappa_eg
         # Vol on event grid.
@@ -97,6 +94,10 @@ class FixedRate(bonds.Bond1FAnalytical):
         # Discount adjustment including OAS.
         self.oas = oas
 
+        # TODO: N-test
+        self.n_test = False
+        self.prepayment_model = None
+
     def maturity(self) -> float:
         return self.event_grid[self.payment_schedule[-1]]
 
@@ -105,23 +106,60 @@ class FixedRate(bonds.Bond1FAnalytical):
         return self._oas
 
     @oas.setter
-    def oas(self, oas_in):
+    def oas(self, oas_in: float) -> None:
         self._oas = oas_in
         self.oas_discount_steps = np.exp(-self._oas * np.diff(self.event_grid))
-
-        # TODO: Which one?
-#        self.oas_discount_steps = np.append(1, self.oas_discount_steps)
-        self.oas_discount_steps = np.append(self.oas_discount_steps, 1)
-
+        self.oas_discount_steps = np.append(1, self.oas_discount_steps)
         # Do NOT overwrite -- will affect adjustment in self.zcbond.
         self.adjust_discount_steps = \
-            self.adjust_discount_steps * self.oas_discount_steps
+            self.zcbond.adjust_discount_steps * self.oas_discount_steps
         # Do NOT overwrite -- will affect adjustment in self.zcbond.
         self.adjust_discount = \
-            self.adjust_discount * np.cumprod(self.oas_discount_steps)
+            self.zcbond.adjust_discount * np.cumprod(self.oas_discount_steps)
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def oas_calc(
+            self,
+            marked_price: float,
+            tolerance: float = 1.0e-3,
+            oas_shift: float = 1.0e-4) -> float:
+        """Calculate OAS corresponding to marked price.
+
+        Args:
+            marked_price: Observable marked price.
+            tolerance: Newton-Raphson tolerance level.
+                Default is 1.0e-3.
+            oas_shift: OAS step size in Newton-Raphson method (in
+                percentage points). Default is 1.0e-4 (1 bps).
+
+        Returns:
+            OAS estimate.
+        """
+        # Initial OAS guess.
+        oas_guess = 0.0
+        self.oas = oas_guess
+        # Price according to OAS guess (center rate state).
+        self.fd_solve()
+        price = self.fd.solution[(self.fd.grid.size - 1) // 2]
+        # Newton-Raphson iteration.
+        while abs(marked_price - price) > tolerance:
+            # Shift OAS guess.
+            self.oas = oas_guess + oas_shift
+            # Price according to shifted OAS guess (center rate state).
+            self.fd_solve()
+            price_tmp = self.fd.solution[(self.fd.grid.size - 1) // 2]
+            # 1st order price sensitivity wrt OAS.
+            d_price_d_oas = (price_tmp - price) / oas_shift
+            # Update OAS guess.
+            oas_guess -= (price - marked_price) / d_price_d_oas
+            self.oas = oas_guess
+            # Price according to updated OAS guess (center rate state).
+            self.fd_solve()
+            price = self.fd.solution[(self.fd.grid.size - 1) // 2]
+        return oas_guess
+
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -133,9 +171,10 @@ class FixedRate(bonds.Bond1FAnalytical):
         """
         return self.cash_flow[:, -1].sum() + 0 * spot
 
-    def price(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:
@@ -146,15 +185,17 @@ class FixedRate(bonds.Bond1FAnalytical):
             Bond price.
         """
         _price = 0
-        for counter, idx_pay in enumerate(self.payment_schedule):
-            # Discount factor.
-            discount = self.zcbond_price(spot, event_idx, idx_pay)
-            _price += discount * self.cash_flow[:, counter].sum()
+        for count, idx_pay in enumerate(self.payment_schedule):
+            if event_idx <= idx_pay:
+                # Discount factor.
+                discount = self.zcbond_price(spot, event_idx, idx_pay)
+                _price += discount * self.cash_flow[:, count].sum()
         return _price
 
-    def delta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt short rate.
 
         Args:
@@ -165,15 +206,18 @@ class FixedRate(bonds.Bond1FAnalytical):
             Delta.
         """
         _delta = 0
-        for counter, idx_pay in enumerate(self.payment_schedule):
-            # 1st order derivative of discount factor wrt short rate.
-            discount = self.zcbond_delta(spot, event_idx, idx_pay)
-            _delta += discount * self.cash_flow[:, counter].sum()
+        for count, idx_pay in enumerate(self.payment_schedule):
+            if event_idx <= idx_pay:
+                # 1st order derivative of discount factor wrt short
+                # rate.
+                discount = self.zcbond_delta(spot, event_idx, idx_pay)
+                _delta += discount * self.cash_flow[:, count].sum()
         return _delta
 
-    def gamma(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """2nd order price sensitivity wrt short rate.
 
         Args:
@@ -184,15 +228,18 @@ class FixedRate(bonds.Bond1FAnalytical):
             Gamma.
         """
         _gamma = 0
-        for counter, idx_pay in enumerate(self.payment_schedule):
-            # 2nd order derivative of discount factor wrt short rate.
-            discount = self.zcbond_gamma(spot, event_idx, idx_pay)
-            _gamma += discount * self.cash_flow[:, counter].sum()
+        for count, idx_pay in enumerate(self.payment_schedule):
+            if event_idx <= idx_pay:
+                # 2nd order derivative of discount factor wrt short
+                # rate.
+                discount = self.zcbond_gamma(spot, event_idx, idx_pay)
+                _gamma += discount * self.cash_flow[:, count].sum()
         return _gamma
 
-    def theta(self,
-              spot: typing.Union[float, np.ndarray],
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """1st order price sensitivity wrt time.
 
         Args:
@@ -203,88 +250,104 @@ class FixedRate(bonds.Bond1FAnalytical):
             Theta.
         """
         _theta = 0
-        for counter, idx_pay in enumerate(self.payment_schedule):
-            # 1st order derivative of discount factor wrt short rate.
-            discount = self.zcbond_theta(spot, event_idx, idx_pay)
-            _theta += discount * self.cash_flow[:, counter].sum()
+        for count, idx_pay in enumerate(self.payment_schedule):
+            if event_idx <= idx_pay:
+                # 1st order derivative of discount factor wrt time.
+                discount = self.zcbond_theta(spot, event_idx, idx_pay)
+                _theta += discount * self.cash_flow[:, count].sum()
         return _theta
 
-    def fd_solve(self):
+    def fd_solve(self) -> None:
         """Run finite difference solver on event grid."""
-        self.fd.set_propagator()
         # Set terminal condition.
         self.fd.solution = np.zeros(self.fd.grid.size)
-        # Update drift, diffusion and rate vectors.
+        # Reset drift, diffusion and rate vectors at terminal event.
         self.fd_update(self.event_grid.size - 1)
         # Backwards propagation.
         time_steps = np.flip(np.diff(self.event_grid))
-        for counter, dt in enumerate(time_steps):
-            event_idx = (self.event_grid.size - 1) - counter
-            # Update drift, diffusion and rate vectors at previous event.
+        for idx, dt in enumerate(time_steps):
+            event_idx = (self.event_grid.size - 1) - idx
+            # Update drift, diffusion and rate vectors at previous
+            # event.
             self.fd_update(event_idx - 1)
             if event_idx in self.deadline_schedule:
                 self._fd_payment_evaluation(event_idx)
+            # Propagation for one time step.
             self.fd.propagation(dt, True)
             # Transformation adjustment.
             self.fd.solution *= self.adjust_discount_steps[event_idx]
-        # TODO: Is this correct?
+        # If the deadline date corresponding to the first payment date
+        # is in the past, the corresponding index is zero.
         if self.deadline_schedule[0] == 0:
             self._fd_payment_evaluation(0)
 
-    def _fd_payment_evaluation(self,
-                               event_idx: int):
+    def _fd_payment_evaluation(
+            self,
+            event_idx: int) -> None:
         """Evaluation of payment at deadline event.
 
         Args:
             event_idx: Index on event grid.
         """
         which_deadline = np.where(self.deadline_schedule == event_idx)[0]
-        counter = which_deadline[0]
+        payment_count = which_deadline[0]
         # Present value of zero-coupon bond (unit notional) with
         # maturity at corresponding payment event.
-        mat_idx = self.payment_schedule[counter]
+        mat_idx = self.payment_schedule[payment_count]
         zcbond_pv_tmp = self.zcbond_price(self.fd.grid, event_idx, mat_idx)
-        # OAS adjustment. TODO: Is the slicing correct?
-        oas_adjustment = np.prod(self.oas_discount_steps[event_idx: mat_idx])
+        # OAS adjustment.
+        oas_adjustment = \
+            np.prod(self.oas_discount_steps[event_idx + 1:mat_idx + 1])
         zcbond_pv_tmp *= oas_adjustment
         if self.callable_bond:
-
-            prepayment_rate = \
-                prepayment_function(self.fd.grid, event_idx, self.zcbond)
-
-            # Present value of bond with notional of 100.
-            zcbond_pv_tmp *= 100
-            # (Negative) Value of prepayment option.
-            option_value = payoffs.call(self.fd.solution, zcbond_pv_tmp)
-            # TODO: Check implementation of smoothing.
-            option_value = smoothing.smoothing_1d(self.fd.grid, option_value)
-            redemption_remaining = self.cash_flow[0, counter:].sum()
+            # Redemption rate.
+            redemption_remaining = self.cash_flow[0, payment_count:].sum()
             redemption_rate = \
-                self.cash_flow[0, counter] / redemption_remaining
+                self.cash_flow[0, payment_count] / redemption_remaining
+            # Interest rate.
             interest_rate = self.coupon / self.frequency
+            # Prepayment rate.
+            prepayment_rate = prepayment_function(
+                self, self.fd.grid, payment_count, redemption_remaining)
+
+            # TODO: N-test
+            if (self.n_test and
+                    payment_count < len(self.prepayment_model.term_dates) - 1):
+                prepayment_rate -= redemption_rate
+
+            # Value of bond (at deadline event) with notional of 100
+            # (at payment event).
+            zcbond_pv_tmp *= 100
+            # (Negative) Value of prepayment option at deadline event.
+            option_value = payoffs.call(self.fd.solution, zcbond_pv_tmp)
+            # TODO: Check effect of smoothing.
+            option_value = smoothing.smoothing_1d(self.fd.grid, option_value)
             # Adjust previous payments.
             self.fd.solution *= (1 - redemption_rate)
-            # Current redemption and interest payments.
+            # Add current (discounted) redemption and interest payments.
             self.fd.solution += \
                 (redemption_rate + interest_rate) * zcbond_pv_tmp
             # Subtract value of prepayment option.
             self.fd.solution -= prepayment_rate * option_value
         else:
             self.fd.solution += \
-                self.cash_flow[:, counter].sum() * zcbond_pv_tmp
+                self.cash_flow[:, payment_count].sum() * zcbond_pv_tmp
 
-    def mc_exact_setup(self):
+    def mc_exact_setup(self) -> None:
         """Setup exact Monte-Carlo solver."""
         self.zcbond.mc_exact_setup()
         self.mc_exact = self.zcbond.mc_exact
 
-    def mc_exact_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False):
+    def mc_exact_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
+
+        Exact discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -293,10 +356,6 @@ class FixedRate(bonds.Bond1FAnalytical):
             seed: Seed of random number generator. Default is None.
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
-
-        Returns:
-            Realizations of short rate and discount processes
-            represented on event grid.
         """
         self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
         present_value = self.mc_present_value(self.mc_exact)
@@ -304,20 +363,21 @@ class FixedRate(bonds.Bond1FAnalytical):
         self.mc_exact.mc_error = present_value.std(ddof=1)
         self.mc_exact.mc_error /= math.sqrt(n_paths)
 
-    def mc_euler_setup(self):
+    def mc_euler_setup(self) -> None:
         """Setup Euler Monte-Carlo solver."""
         self.zcbond.mc_euler_setup()
         self.mc_euler = self.zcbond.mc_euler
 
-    def mc_euler_solve(self,
-                       spot: float,
-                       n_paths: int,
-                       rng: np.random.Generator = None,
-                       seed: int = None,
-                       antithetic: bool = False):
+    def mc_euler_solve(
+            self,
+            spot: float,
+            n_paths: int,
+            rng: np.random.Generator = None,
+            seed: int = None,
+            antithetic: bool = False) -> None:
         """Run Monte-Carlo solver on event grid.
 
-        Monte-Carlo paths constructed using Euler-Maruyama discretization.
+        Euler-Maruyama discretization.
 
         Args:
             spot: Short rate at as-of date.
@@ -333,74 +393,87 @@ class FixedRate(bonds.Bond1FAnalytical):
         self.mc_euler.mc_error = present_value.std(ddof=1)
         self.mc_euler.mc_error /= math.sqrt(n_paths)
 
-    def mc_present_value(self,
-                         mc_object):
+    def mc_present_value(
+            self,
+            mc_object) -> np.ndarray:
         """Present value for each Monte-Carlo path."""
         # Adjustment of discount paths.
-        discount_paths = \
-            mc_object.discount_adjustment(mc_object.discount_paths,
-                                          self.adjust_discount)
-        # Stepwise discount factors for all paths.
+        discount_paths = mc_object.discount_adjustment(
+            mc_object.discount_paths, self.adjust_discount)
+        # Stepwise discount factors (between deadline events) along each
+        # path.
         discount_paths_steps = discount_paths[self.deadline_schedule, :]
         discount_paths_steps = \
             discount_paths_steps[1:, :] / discount_paths_steps[:-1, :]
+        # Stepwise discount factor (from last deadline event to last
+        # payment event) along each path.
         last_row = np.ndarray((1, discount_paths_steps.shape[1]))
         last_row[0, :] = discount_paths[self.payment_schedule[-1], :] \
             / discount_paths[self.deadline_schedule[-1], :]
         discount_paths_steps = np.r_[discount_paths_steps, last_row]
-        bond_payoff = np.zeros(mc_object.discount_paths.shape[1])
-        for idx_deadline in np.flip(self.deadline_schedule):
-            which_deadline = \
-                np.where(self.deadline_schedule == idx_deadline)[0]
-            counter = which_deadline[0]
-            idx_payment = self.payment_schedule[counter]
-            # Path-dependent discount factor from previous payment event
-            # to present deadline event. OAS is included.
+        # Payoff along each path.
+        bond_payoff = np.zeros(discount_paths_steps.shape[1])
+        for counter, (idx_deadline, idx_payment) in \
+            enumerate(zip(np.flip(self.deadline_schedule),
+                          np.flip(self.payment_schedule))):
+            payment_count = (self.payment_schedule.size - 1) - counter
+            # Path-dependent discount factors from previous payment
+            # event to present deadline event along each path.
+            # OAS is included.
             zcbond_pv_tmp = discount_paths[idx_payment, :] \
                 / discount_paths[idx_deadline, :]
             if self.callable_bond:
                 rate_paths = mc_object.rate_paths[idx_deadline]
+                # Redemption rate.
+                redemption_remaining = self.cash_flow[0, payment_count:].sum()
+                redemption_rate = \
+                    self.cash_flow[0, payment_count] / redemption_remaining
+                # Interest rate.
+                interest_rate = self.coupon / self.frequency
+                # Prepayment rate.
+                prepayment_rate = prepayment_function(
+                    self, rate_paths, payment_count, redemption_remaining)
 
-                prepayment_rate = \
-                    prepayment_function(rate_paths, idx_deadline, self.zcbond)
+                # TODO: N-test
+                if (self.n_test and
+                        payment_count < len(self.prepayment_model.term_dates) - 1):
+                    prepayment_rate -= redemption_rate
 
-                # Notional of 100 discounted along each path.
+                # Value (at deadline event) of notional of 100
+                # (at payment event) along each path.
                 zcbond_pv_tmp *= 100
                 # Stepwise discounting from previous deadline event.
-                bond_payoff *= discount_paths_steps[counter]
-                # Value of prepayment option.
+                bond_payoff *= discount_paths_steps[payment_count]
+                # (Negative) Value of prepayment option at deadline event.
                 if idx_deadline != 0:
-                    option_value = \
-                        lsm.prepayment_option(rate_paths,
-                                              bond_payoff,
-                                              zcbond_pv_tmp)
+                    option_value = lsm.prepayment_option(
+                        rate_paths, bond_payoff, zcbond_pv_tmp)
                 else:
+                    # TODO: What about if first deadline date is in the past?
                     bond_mean = bond_payoff.mean()
                     strike_mean = zcbond_pv_tmp.mean()
                     option_value = np.maximum(bond_mean - strike_mean, 0)
-                redemption_remaining = self.cash_flow[0, counter:].sum()
-                redemption_rate = \
-                    self.cash_flow[0, counter] / redemption_remaining
-                interest_rate = self.coupon / self.frequency
                 # Adjust previous payments.
                 bond_payoff *= (1 - redemption_rate)
-                # Current redemption and interest payments.
+                # Add current (discounted) redemption and interest
+                # payments.
                 bond_payoff += \
                     (redemption_rate + interest_rate) * zcbond_pv_tmp
                 # Subtract value of prepayment option.
                 bond_payoff -= prepayment_rate * option_value
             else:
-                bond_payoff += self.cash_flow[:, counter].sum() \
+                bond_payoff += self.cash_flow[:, payment_count].sum() \
                     * discount_paths[idx_payment]
         if self.callable_bond:
             # Discounting from first deadline event to time zero.
             bond_payoff *= discount_paths[self.deadline_schedule[0]]
         return bond_payoff
 
-    def zcbond_price(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+    def zcbond_price(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            maturity_idx: int) -> typing.Union[float, np.ndarray]:
         """Price of zero-coupon bond.
 
         Args:
@@ -415,10 +488,11 @@ class FixedRate(bonds.Bond1FAnalytical):
             self.zcbond.mat_idx = maturity_idx
         return self.zcbond.price(spot, event_idx)
 
-    def zcbond_delta(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+    def zcbond_delta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            maturity_idx: int) -> typing.Union[float, np.ndarray]:
         """Delta of zero-coupon bond.
 
         Args:
@@ -433,10 +507,11 @@ class FixedRate(bonds.Bond1FAnalytical):
             self.zcbond.mat_idx = maturity_idx
         return self.zcbond.delta(spot, event_idx)
 
-    def zcbond_gamma(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+    def zcbond_gamma(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            maturity_idx: int) -> typing.Union[float, np.ndarray]:
         """Gamma of zero-coupon bond.
 
         Args:
@@ -451,10 +526,11 @@ class FixedRate(bonds.Bond1FAnalytical):
             self.zcbond.mat_idx = maturity_idx
         return self.zcbond.gamma(spot, event_idx)
 
-    def zcbond_theta(self,
-                     spot: typing.Union[float, np.ndarray],
-                     event_idx: int,
-                     maturity_idx: int) -> typing.Union[float, np.ndarray]:
+    def zcbond_theta(
+            self,
+            spot: typing.Union[float, np.ndarray],
+            event_idx: int,
+            maturity_idx: int) -> typing.Union[float, np.ndarray]:
         """Theta of zero-coupon bond.
 
         Args:
@@ -478,7 +554,7 @@ class FixedRatePelsser(FixedRate):
     Attributes:
         kappa: Speed of mean reversion.
         vol: Volatility.
-        discount_curve: Discount curve represented on event grid.
+        discount_curve: Discount curve.
         coupon: Yearly coupon rate.
         frequency: Yearly payment frequency.
         deadline_schedule: Deadline indices on event grid.
@@ -486,50 +562,40 @@ class FixedRatePelsser(FixedRate):
         cash_flow: Cash flow on payment grid.
         event_grid: Event dates as year fractions from as-of date.
         time_dependence: Time dependence of model parameters.
-            "constant": kappa and vol are constant.
-            "piecewise": kappa is constant and vol is piecewise
+            - "constant": kappa and vol are constant.
+            - "piecewise": kappa is constant and vol is piecewise
                 constant.
-            "general": General time dependence.
+            - "general": General time dependence.
             Default is "piecewise".
         int_dt: Integration step size. Default is 1 / 52.
-        _oas: Option-adjusted spread.
+        oas: Option-adjusted spread.
+        callable_bond: Is the bond callable? Default is True.
     """
 
-    def __init__(self,
-                 kappa: data_types.DiscreteFunc,
-                 vol: data_types.DiscreteFunc,
-                 discount_curve: data_types.DiscreteFunc,
-                 coupon: float,
-                 frequency: int,
-                 deadline_schedule: np.ndarray,
-                 payment_schedule: np.ndarray,
-                 cash_flow: np.ndarray,
-                 event_grid: np.ndarray,
-                 time_dependence: str = "piecewise",
-                 int_dt: float = 1 / 52,
-                 oas: float = 0):
-        super().__init__(kappa,
-                         vol,
-                         discount_curve,
-                         coupon,
-                         frequency,
-                         deadline_schedule,
-                         payment_schedule,
-                         cash_flow,
-                         event_grid,
-                         time_dependence,
-                         int_dt,
-                         oas)
+    def __init__(
+            self,
+            kappa: data_types.DiscreteFunc,
+            vol: data_types.DiscreteFunc,
+            discount_curve: data_types.DiscreteFunc,
+            coupon: float,
+            frequency: int,
+            deadline_schedule: np.ndarray,
+            payment_schedule: np.ndarray,
+            cash_flow: np.ndarray,
+            event_grid: np.ndarray,
+            time_dependence: str = "piecewise",
+            int_dt: float = 1 / 52,
+            oas: float = 0,
+            callable_bond: bool = True):
+        super().__init__(
+            kappa, vol, discount_curve, coupon, frequency, deadline_schedule,
+            payment_schedule, cash_flow, event_grid, time_dependence, int_dt,
+            oas, callable_bond)
 
         # Zero-coupon bond.
-        self.zcbond = \
-            zcbond.ZCBondPelsser(kappa,
-                                 vol,
-                                 discount_curve,
-                                 self.payment_schedule[-1],
-                                 event_grid,
-                                 time_dependence,
-                                 int_dt)
+        self.zcbond = zcbond.ZCBondPelsser(
+            kappa, vol, discount_curve, self.payment_schedule[-1], event_grid,
+            time_dependence, int_dt)
 
         self.transformation = self.zcbond.transformation
 
@@ -538,18 +604,37 @@ class FixedRatePelsser(FixedRate):
         self.adjust_discount = self.zcbond.adjust_discount
 
 
-def prepayment_function(short_rate: (float, np.ndarray),
-                        event_idx: int,
-                        _zcbond: zcbond.ZCBond) -> (float, np.ndarray):
-    """Prepayment function.
+def prepayment_function(
+        bond,
+        short_rate: typing.Union[float, np.ndarray],
+        payment_count: int,
+        redemption_remaining: float,
+        prepay_rate: float = 0.35) \
+        -> typing.Union[float, np.ndarray]:
+    """Calculate prepayment rate on short rate grid.
 
     Args:
-        short_rate: Pseudo short rate(s).
-        event_idx: Index on event grid.
-        _zcbond: Zero-coupon bond object.
+        bond: Bond object.
+        short_rate: Pseudo short rate.
+        payment_count: Payment count...
+        redemption_remaining: Remaining redemption...
+        prepay_rate: Constant prepayment rate.
 
     Returns:
-        Prepayment function.
+        Prepayment rate.
     """
-    # Constant prepayment rate.
-    return 0.2
+    # TODO: N-test
+    if bond.n_test:
+        bond.prepayment_model.update_dates(payment_count, redemption_remaining)
+
+        for n in range(short_rate.size):
+            bond.prepayment_model.rate_states.setValue(n, 0, short_rate[n])
+
+        # TODO: Check-this
+        if payment_count < len(bond.prepayment_model.term_dates) - 1:
+            return bond.prepayment_model.prepayment_rate()
+        else:
+            return 0 * short_rate
+
+    else:
+        return prepay_rate + 0 * short_rate

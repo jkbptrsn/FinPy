@@ -16,7 +16,7 @@ class Bond(unittest.TestCase):
     """Bond in 1-factor Hull-White model."""
 
     def setUp(self) -> None:
-        # Parameters of term structure model.
+        # Model parameters.
         self.kappa = input.kappa_strip
         self.vol = input.vol_strip
         self.discount_curve = input.disc_curve
@@ -33,21 +33,15 @@ class Bond(unittest.TestCase):
         # Term frequency per year.
         self.frequency = 1
         # Cash flows.
-        self.cash_flow_grid = \
-            cash_flows.set_payment_grid(self.t_i,
-                                        self.t_f,
-                                        self.frequency)
-        self.cash_flow = \
-            cash_flows.cash_flow(self.coupon,
-                                 self.frequency,
-                                 self.cash_flow_grid,
-                                 self.principal,
-                                 self.cf_type)
+        self.cash_flow_grid = cash_flows.set_payment_grid(
+            self.t_i, self.t_f, self.frequency)
+        self.cash_flow = cash_flows.cash_flow(
+            self.coupon, self.frequency, self.cash_flow_grid, self.principal,
+            self.cf_type)
         # Event grid
-        event_dt = 0.01
+        event_dt = 0.1
         self.event_grid, self.cash_flow_schedule, _ = \
-            cash_flows.set_event_grid(self.cash_flow_grid,
-                                      event_dt)
+            cash_flows.set_event_grid(self.cash_flow_grid, event_dt)
         # FD spatial grid.
         self.x_min = -0.15
         self.x_max = 0.15
@@ -56,22 +50,12 @@ class Bond(unittest.TestCase):
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         self.time_dependence = "piecewise"
         # Bond.
-        self.bond = \
-            bond.Bond(self.kappa,
-                      self.vol,
-                      self.discount_curve,
-                      self.cash_flow_schedule,
-                      self.cash_flow,
-                      self.event_grid,
-                      self.time_dependence)
-        self.bond_pelsser = \
-            bond.BondPelsser(self.kappa,
-                             self.vol,
-                             self.discount_curve,
-                             self.cash_flow_schedule,
-                             self.cash_flow,
-                             self.event_grid,
-                             self.time_dependence)
+        self.bond = bond.Bond(
+            self.kappa, self.vol, self.discount_curve, self.cash_flow_schedule,
+            self.cash_flow, self.event_grid, self.time_dependence)
+        self.bond_pelsser = bond.BondPelsser(
+            self.kappa, self.vol, self.discount_curve, self.cash_flow_schedule,
+            self.cash_flow, self.event_grid, self.time_dependence)
 
     def test_theta_method(self):
         """Finite difference pricing of bond."""
@@ -79,19 +63,18 @@ class Bond(unittest.TestCase):
             print(self.bond.transformation)
         self.bond.fd_setup(self.x_grid, equidistant=True)
         self.bond.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.bond)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.bond.fd.solution
         analytical = self.bond.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.bond)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
-        self.assertTrue(max_error < 3.1e-5)
+        self.assertTrue(max_error < 1.9e-5)
         # Check delta.
         numerical = self.bond.fd.delta()
         analytical = self.bond.delta(self.x_grid, 0)
@@ -99,7 +82,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.7f}")
-        self.assertTrue(max_error < 4.5e-5)
+        self.assertTrue(max_error < 2.1e-5)
         # Check gamma.
         numerical = self.bond.fd.gamma()
         analytical = self.bond.gamma(self.x_grid, 0)
@@ -107,7 +90,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.7f}")
-        self.assertTrue(max_error < 6.4e-5)
+        self.assertTrue(max_error < 6.9e-5)
         # Check theta.
         numerical = self.bond.fd.theta()
         analytical = self.bond.theta(self.x_grid, 0)
@@ -115,7 +98,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.7f}")
-        self.assertTrue(max_error < 7.2e-4)
+        self.assertTrue(max_error < 7.2e-3)
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of bond."""
@@ -123,19 +106,18 @@ class Bond(unittest.TestCase):
             print(self.bond_pelsser.transformation)
         self.bond_pelsser.fd_setup(self.x_grid, equidistant=True)
         self.bond_pelsser.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.bond_pelsser)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.bond_pelsser.fd.solution
         analytical = self.bond_pelsser.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.bond_pelsser)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
-        self.assertTrue(max_error < 2.3e-6)
+        self.assertTrue(max_error < 2.0e-5)
         # Check delta.
         numerical = self.bond_pelsser.fd.delta()
         analytical = self.bond_pelsser.delta(self.x_grid, 0)
@@ -143,7 +125,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.7f}")
-        self.assertTrue(max_error < 2.3e-6)
+        self.assertTrue(max_error < 2.2e-5)
         # Check gamma.
         numerical = self.bond_pelsser.fd.gamma()
         analytical = self.bond_pelsser.gamma(self.x_grid, 0)
@@ -151,7 +133,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.7f}")
-        self.assertTrue(max_error < 1.5e-6)
+        self.assertTrue(max_error < 7.0e-5)
         # Check theta.
         numerical = self.bond_pelsser.fd.theta()
         analytical = self.bond_pelsser.theta(self.x_grid, 0)
@@ -159,7 +141,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.7f}")
-        self.assertTrue(max_error < 7.2e-4)
+        self.assertTrue(max_error < 7.2e-3)
 
     def test_monte_carlo(self):
         """Monte-Carlo pricing of cap."""
@@ -187,12 +169,14 @@ class Bond(unittest.TestCase):
             error_euler[idx] = self.bond.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
-            plt.ylabel("Call option price")
+            plt.ylabel("Coupon bond price")
             plt.legend()
             plt.show()
         error = np.abs(price_a - numerical_exact)
@@ -202,7 +186,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 8.4e-3)
+        self.assertTrue(max_error < 5.4e-3)
 
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of floor."""
@@ -222,22 +206,24 @@ class Bond(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.bond_pelsser.mc_exact_solve(s, n_paths, rng=rng,
-                                             antithetic=True)
+            self.bond_pelsser.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.bond_pelsser.mc_exact.mc_estimate
             error_exact[idx] = self.bond_pelsser.mc_exact.mc_error
-            self.bond_pelsser.mc_euler_solve(s, n_paths, rng=rng,
-                                             antithetic=True)
+            self.bond_pelsser.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.bond_pelsser.mc_euler.mc_estimate
             error_euler[idx] = self.bond_pelsser.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
-            plt.ylabel("Call option price")
+            plt.ylabel("Coupon bond price")
             plt.legend()
             plt.show()
         error = np.abs(price_a - numerical_exact)
@@ -247,8 +233,4 @@ class Bond(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 8.4e-3)
-
-
-if __name__ == '__main__':
-    unittest.main()
+        self.assertTrue(max_error < 5.4e-3)

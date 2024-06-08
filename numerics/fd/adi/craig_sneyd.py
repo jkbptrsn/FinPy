@@ -33,13 +33,14 @@ class CraigSneyd2D(base_class.ADI2D):
             derivative.
     """
 
-    def __init__(self,
-                 grid_x: np.ndarray,
-                 grid_y: np.ndarray,
-                 band: str = "tri",
-                 equidistant: bool = False,
-                 theta_parameter: float = 0.5,
-                 lambda_parameter: float = 0.5):
+    def __init__(
+            self,
+            grid_x: np.ndarray,
+            grid_y: np.ndarray,
+            band: str = "tri",
+            equidistant: bool = False,
+            theta_parameter: float = 0.5,
+            lambda_parameter: float = 0.5):
         super().__init__(grid_x, grid_y, band, equidistant)
         self.theta_parameter = theta_parameter
         self.lambda_parameter = lambda_parameter
@@ -165,7 +166,7 @@ def setup_solver(
         y_grid: np.ndarray,
         band: str = "tri",
         equidistant: bool = False,
-        theta_parameter: float = 0.5):
+        theta_parameter: float = 0.5) -> None:
     """Setting up finite difference solver.
 
     Args:
@@ -194,7 +195,7 @@ def setup_solver(
 
 def update(
         instrument,
-        event_idx: int = -1):
+        event_idx: int = -1) -> None:
     """Update drift, diffusion and rate vectors.
 
     Args:

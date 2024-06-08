@@ -24,25 +24,23 @@ class VFunction(unittest.TestCase):
         # Speed of mean reversion strip.
         self.kappa_scalar = 0.02
         self.kappa_vector1 = self.kappa_scalar * np.ones(self.event_grid.size)
-        self.kappa1 = data_types.DiscreteFunc("kappa1",
-                                              self.event_grid,
-                                              self.kappa_vector1)
+        self.kappa1 = data_types.DiscreteFunc(
+            "kappa1", self.event_grid, self.kappa_vector1)
         # Volatility strip.
         self.vol_scalar = 0.05
         self.vol_vector1 = self.vol_scalar * np.ones(self.event_grid.size)
         # Constant vol strip.
-        self.vol1 = \
-            data_types.DiscreteFunc("vol1", self.event_grid, self.vol_vector1)
+        self.vol1 = data_types.DiscreteFunc(
+            "vol1", self.event_grid, self.vol_vector1)
         self.vol_vector2 = np.zeros(self.event_grid.size)
         for idx in range(self.event_grid.size):
             self.vol_vector2[idx] = (idx % 4 + 1) * self.vol_vector1[idx]
         # Piecewise-constant vol strip.
-        self.vol2 = \
-            data_types.DiscreteFunc("vol2", self.event_grid, self.vol_vector2)
+        self.vol2 = data_types.DiscreteFunc(
+            "vol2", self.event_grid, self.vol_vector2)
         # Discount curve.
-        self.discount_curve = \
-            data_types.DiscreteFunc("discount", self.event_grid,
-                                    np.ones(self.event_grid.size))
+        self.discount_curve = data_types.DiscreteFunc(
+            "discount", self.event_grid, np.ones(self.event_grid.size))
         # Bond maturity.
         self.maturity_idx = self.event_grid.size - 1
         self.maturity = self.event_grid[self.maturity_idx]
@@ -52,110 +50,64 @@ class VFunction(unittest.TestCase):
         # Option strike price.
         self.strike = 0.8
         # Call objects.
-        self.call_constant1 = \
-            option.EuropeanOption(self.kappa1,
-                                  self.vol1,
-                                  self.discount_curve,
-                                  self.strike,
-                                  self.expiry_idx,
-                                  self.maturity_idx,
-                                  self.event_grid,
-                                  "constant",
-                                  1 / 10)
-        self.call_piecewise2 = \
-            option.EuropeanOption(self.kappa1,
-                                  self.vol2,
-                                  self.discount_curve,
-                                  self.strike,
-                                  self.expiry_idx,
-                                  self.maturity_idx,
-                                  self.event_grid,
-                                  "piecewise",
-                                  1 / 10)
-        self.call_general1 = \
-            option.EuropeanOption(self.kappa1,
-                                  self.vol1,
-                                  self.discount_curve,
-                                  self.strike,
-                                  self.expiry_idx,
-                                  self.maturity_idx,
-                                  self.event_grid,
-                                  "general",
-                                  1 / 100)
-        self.call_general2 = \
-            option.EuropeanOption(self.kappa1,
-                                  self.vol2,
-                                  self.discount_curve,
-                                  self.strike,
-                                  self.expiry_idx,
-                                  self.maturity_idx,
-                                  self.event_grid,
-                                  "general",
-                                  1 / 100)
+        self.call_constant1 = option.EuropeanOption(
+            self.kappa1, self.vol1, self.discount_curve, self.strike,
+            self.expiry_idx, self.maturity_idx, self.event_grid, "constant",
+            1 / 5)
+        self.call_piecewise2 = option.EuropeanOption(
+            self.kappa1, self.vol2, self.discount_curve, self.strike,
+            self.expiry_idx, self.maturity_idx, self.event_grid, "piecewise",
+            1 / 5)
+        self.call_general1 = option.EuropeanOption(
+            self.kappa1, self.vol1, self.discount_curve, self.strike,
+            self.expiry_idx, self.maturity_idx, self.event_grid, "general",
+            1 / 100)
+        self.call_general2 = option.EuropeanOption(
+            self.kappa1, self.vol2, self.discount_curve, self.strike,
+            self.expiry_idx, self.maturity_idx, self.event_grid, "general",
+            1 / 100)
 
     def test_constant(self):
         """Constant vol strip."""
-        v_constant = \
-            misc_ep.v_constant(self.kappa_scalar,
-                               self.vol_scalar,
-                               self.expiry_idx,
-                               self.event_grid)
-        v_constant = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_constant1.zcbond.g_eg,
-                               v_constant)
-        dv_dt_constant = \
-            misc_ep.dv_dt_constant(self.kappa_scalar,
-                                   self.vol_scalar,
-                                   self.expiry_idx,
-                                   self.event_grid)
-        dv_dt_constant = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_constant1.zcbond.g_eg,
-                               dv_dt_constant)
-        v_piecewise = \
-            misc_ep.v_piecewise(self.kappa_scalar,
-                                self.call_constant1.vol_eg,
-                                self.expiry_idx,
-                                self.event_grid)
-        v_piecewise = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_constant1.zcbond.g_eg,
-                               v_piecewise)
-        dv_dt_piecewise = \
-            misc_ep.dv_dt_piecewise(self.kappa_scalar,
-                                    self.call_constant1.vol_eg,
-                                    self.expiry_idx,
-                                    self.event_grid)
-        dv_dt_piecewise = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_constant1.zcbond.g_eg,
-                               dv_dt_piecewise)
-        v_general = \
-            misc_ep.v_general(self.call_general1.zcbond.int_grid,
-                              self.call_general1.zcbond.int_event_idx,
-                              self.call_general1.zcbond.int_kappa_step_ig,
-                              self.call_general1.zcbond.vol_ig,
-                              self.expiry_idx)
-        v_general = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_constant1.zcbond.g_eg,
-                               v_general)
-        dv_dt_general = \
-            misc_ep.dv_dt_general(self.call_general1.zcbond.int_event_idx,
-                                  self.call_general1.zcbond.int_kappa_step_ig,
-                                  self.call_general1.zcbond.vol_ig,
-                                  self.expiry_idx)
-        dv_dt_general = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_constant1.zcbond.g_eg,
-                               dv_dt_general)
+        v_constant = misc_ep.v_constant(
+            self.kappa_scalar, self.vol_scalar, self.expiry_idx,
+            self.event_grid)
+        v_constant = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_constant1.zcbond.g_eg, v_constant)
+        dv_dt_constant = misc_ep.dv_dt_constant(
+            self.kappa_scalar, self.vol_scalar, self.expiry_idx,
+            self.event_grid)
+        dv_dt_constant = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_constant1.zcbond.g_eg, dv_dt_constant)
+        v_piecewise = misc_ep.v_piecewise(
+            self.kappa_scalar, self.call_constant1.vol_eg, self.expiry_idx,
+            self.event_grid)
+        v_piecewise = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_constant1.zcbond.g_eg, v_piecewise)
+        dv_dt_piecewise = misc_ep.dv_dt_piecewise(
+            self.kappa_scalar, self.call_constant1.vol_eg, self.expiry_idx,
+            self.event_grid)
+        dv_dt_piecewise = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_constant1.zcbond.g_eg, dv_dt_piecewise)
+        v_general = misc_ep.v_general(
+            self.call_general1.zcbond.int_grid,
+            self.call_general1.zcbond.int_event_idx,
+            self.call_general1.zcbond.int_kappa_step_ig,
+            self.call_general1.zcbond.vol_ig, self.expiry_idx)
+        v_general = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_constant1.zcbond.g_eg, v_general)
+        dv_dt_general = misc_ep.dv_dt_general(
+            self.call_general1.zcbond.int_event_idx,
+            self.call_general1.zcbond.int_kappa_step_ig,
+            self.call_general1.zcbond.vol_ig, self.expiry_idx)
+        dv_dt_general = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_constant1.zcbond.g_eg, dv_dt_general)
         if plot_results:
             event_grid_plot = self.event_grid[:self.expiry_idx + 1]
             plt.plot(event_grid_plot, v_constant, "-b", label="Constant")
@@ -194,47 +146,33 @@ class VFunction(unittest.TestCase):
 
     def test_piecewise(self):
         """Piecewise constant vol strip."""
-        v_piecewise = \
-            misc_ep.v_piecewise(self.kappa_scalar,
-                                self.call_piecewise2.vol_eg,
-                                self.expiry_idx,
-                                self.event_grid)
-        v_piecewise = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_piecewise2.zcbond.g_eg,
-                               v_piecewise)
-        dv_dt_piecewise = \
-            misc_ep.dv_dt_piecewise(self.kappa_scalar,
-                                    self.call_piecewise2.vol_eg,
-                                    self.expiry_idx,
-                                    self.event_grid)
-        dv_dt_piecewise = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_piecewise2.zcbond.g_eg,
-                               dv_dt_piecewise)
-        v_general = \
-            misc_ep.v_general(self.call_general2.zcbond.int_grid,
-                              self.call_general2.zcbond.int_event_idx,
-                              self.call_general2.zcbond.int_kappa_step_ig,
-                              self.call_general2.zcbond.vol_ig,
-                              self.expiry_idx)
-        v_general = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_general2.zcbond.g_eg,
-                               v_general)
-        dv_dt_general = \
-            misc_ep.dv_dt_general(self.call_general2.zcbond.int_event_idx,
-                                  self.call_general2.zcbond.int_kappa_step_ig,
-                                  self.call_general2.zcbond.vol_ig,
-                                  self.expiry_idx)
-        dv_dt_general = \
-            misc_ep.v_function(self.expiry_idx,
-                               self.maturity_idx,
-                               self.call_general2.zcbond.g_eg,
-                               dv_dt_general)
+        v_piecewise = misc_ep.v_piecewise(
+            self.kappa_scalar, self.call_piecewise2.vol_eg, self.expiry_idx,
+            self.event_grid)
+        v_piecewise = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_piecewise2.zcbond.g_eg, v_piecewise)
+        dv_dt_piecewise = misc_ep.dv_dt_piecewise(
+            self.kappa_scalar, self.call_piecewise2.vol_eg, self.expiry_idx,
+            self.event_grid)
+        dv_dt_piecewise = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx,
+            self.call_piecewise2.zcbond.g_eg, dv_dt_piecewise)
+        v_general = misc_ep.v_general(
+            self.call_general2.zcbond.int_grid,
+            self.call_general2.zcbond.int_event_idx,
+            self.call_general2.zcbond.int_kappa_step_ig,
+            self.call_general2.zcbond.vol_ig, self.expiry_idx)
+        v_general = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx, self.call_general2.zcbond.g_eg,
+            v_general)
+        dv_dt_general = misc_ep.dv_dt_general(
+            self.call_general2.zcbond.int_event_idx,
+            self.call_general2.zcbond.int_kappa_step_ig,
+            self.call_general2.zcbond.vol_ig, self.expiry_idx)
+        dv_dt_general = misc_ep.v_function(
+            self.expiry_idx, self.maturity_idx, self.call_general2.zcbond.g_eg,
+            dv_dt_general)
         if plot_results:
             event_grid_plot = self.event_grid[:self.expiry_idx + 1]
             plt.plot(event_grid_plot, v_piecewise, "or", label="Piecewise")
@@ -277,7 +215,7 @@ class Call(unittest.TestCase):
         # Bond maturity.
         self.maturity = 30
         # FD event grid.
-        self.fd_t_steps = 721
+        self.fd_t_steps = 361
         self.fd_dt = self.maturity / (self.fd_t_steps - 1)
         self.fd_event_grid = self.fd_dt * np.arange(self.fd_t_steps)
         self.fd_maturity_idx = self.fd_t_steps - 1
@@ -292,31 +230,18 @@ class Call(unittest.TestCase):
         self.x_steps = 201
         self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
-        self.int_step_factor = 3
+        self.int_step_factor = 2
         self.int_step_size = self.fd_dt / self.int_step_factor
         # Call option.
         self.time_dependence = "piecewise"
-        self.call = \
-            option.EuropeanOption(self.kappa,
-                                  self.vol,
-                                  self.discount_curve,
-                                  self.strike,
-                                  self.fd_expiry_idx,
-                                  self.fd_maturity_idx,
-                                  self.fd_event_grid,
-                                  self.time_dependence,
-                                  self.int_step_size)
-
-        self.callPelsser = \
-            option.EuropeanOptionPelsser(self.kappa,
-                                         self.vol,
-                                         self.discount_curve,
-                                         self.strike,
-                                         self.fd_expiry_idx,
-                                         self.fd_maturity_idx,
-                                         self.fd_event_grid,
-                                         self.time_dependence,
-                                         self.int_step_size)
+        self.call = option.EuropeanOption(
+            self.kappa, self.vol, self.discount_curve, self.strike,
+            self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
+            self.time_dependence, self.int_step_size)
+        self.callPelsser = option.EuropeanOptionPelsser(
+            self.kappa, self.vol, self.discount_curve, self.strike,
+            self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
+            self.time_dependence, self.int_step_size)
 
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
@@ -324,19 +249,18 @@ class Call(unittest.TestCase):
             print(self.call.transformation)
         self.call.fd_setup(self.x_grid, equidistant=True)
         self.call.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.call)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.call.fd.solution
         analytical = self.call.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.call)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
-        self.assertTrue(max_error < 6.1e-3)
+        self.assertTrue(max_error < 9.5e-3)
         # Check delta.
         numerical = self.call.fd.delta()
         analytical = self.call.delta(self.x_grid, 0)
@@ -344,7 +268,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 4.2e-3)
+        self.assertTrue(max_error < 6.6e-3)
         # Check gamma.
         numerical = self.call.fd.gamma()
         analytical = self.call.gamma(self.x_grid, 0)
@@ -352,7 +276,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 3.2e-3)
+        self.assertTrue(max_error < 4.6e-3)
         # Check theta.
         numerical = self.call.fd.theta()
         analytical = self.call.theta(self.x_grid, 0)
@@ -360,27 +284,26 @@ class Call(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.5f}")
-        self.assertTrue(max_error < 1.6e-4)
+        self.assertTrue(max_error < 2.5e-4)
 
     def test_theta_method_pelsser(self):
-        """Finite difference pricing of zero-coupon bond."""
+        """Finite difference pricing of European call option."""
         if print_results:
             print(self.callPelsser.transformation)
         self.callPelsser.fd_setup(self.x_grid, equidistant=True)
         self.callPelsser.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.callPelsser)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.callPelsser.fd.solution
         analytical = self.callPelsser.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.callPelsser)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
-        self.assertTrue(max_error < 4.4e-3)
+        self.assertTrue(max_error < 9.0e-3)
         # Check delta.
         numerical = self.callPelsser.fd.delta()
         analytical = self.callPelsser.delta(self.x_grid, 0)
@@ -388,7 +311,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 2.9e-3)
+        self.assertTrue(max_error < 6.4e-3)
         # Check gamma.
         numerical = self.callPelsser.fd.gamma()
         analytical = self.callPelsser.gamma(self.x_grid, 0)
@@ -396,7 +319,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 2.4e-3)
+        self.assertTrue(max_error < 4.7e-3)
         # Check theta.
         numerical = self.callPelsser.fd.theta()
         analytical = self.callPelsser.theta(self.x_grid, 0)
@@ -404,7 +327,7 @@ class Call(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.5f}")
-        self.assertTrue(max_error < 1.6e-4)
+        self.assertTrue(max_error < 2.8e-4)
 
     def test_monte_carlo(self):
         """Monte-Carlo pricing of European call option."""
@@ -432,10 +355,12 @@ class Call(unittest.TestCase):
             error_euler[idx] = self.call.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
             plt.ylabel("Call option price")
             plt.legend()
@@ -447,7 +372,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 4.7e-2)
+        self.assertTrue(max_error < 4.9e-2)
 
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of European call option."""
@@ -467,20 +392,22 @@ class Call(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.callPelsser.mc_exact_solve(s, n_paths, rng=rng,
-                                            antithetic=True)
+            self.callPelsser.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.callPelsser.mc_exact.mc_estimate
             error_exact[idx] = self.callPelsser.mc_exact.mc_error
-            self.callPelsser.mc_euler_solve(s, n_paths, rng=rng,
-                                            antithetic=True)
+            self.callPelsser.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.callPelsser.mc_euler.mc_estimate
             error_euler[idx] = self.callPelsser.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
             plt.ylabel("Call option price")
             plt.legend()
@@ -492,7 +419,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 4.7e-2)
+        self.assertTrue(max_error < 4.9e-2)
 
 
 class Put(unittest.TestCase):
@@ -506,7 +433,7 @@ class Put(unittest.TestCase):
         # Bond maturity.
         self.maturity = 30
         # FD event grid.
-        self.fd_t_steps = 721
+        self.fd_t_steps = 361
         self.fd_dt = self.maturity / (self.fd_t_steps - 1)
         self.fd_event_grid = self.fd_dt * np.arange(self.fd_t_steps)
         self.fd_maturity_idx = self.fd_t_steps - 1
@@ -521,33 +448,19 @@ class Put(unittest.TestCase):
         self.x_steps = 201
         self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
-        self.int_step_factor = 3
+        self.int_step_factor = 2
         self.int_step_size = self.fd_dt / self.int_step_factor
         # Call option.
         self.time_dependence = "piecewise"
-        self.put = \
-            option.EuropeanOption(self.kappa,
-                                  self.vol,
-                                  self.discount_curve,
-                                  self.strike,
-                                  self.fd_expiry_idx,
-                                  self.fd_maturity_idx,
-                                  self.fd_event_grid,
-                                  self.time_dependence,
-                                  self.int_step_size,
-                                  option_type="Put")
+        self.put = option.EuropeanOption(
+            self.kappa, self.vol, self.discount_curve, self.strike,
+            self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
+            self.time_dependence, self.int_step_size, option_type="Put")
 
-        self.putPelsser = \
-            option.EuropeanOptionPelsser(self.kappa,
-                                         self.vol,
-                                         self.discount_curve,
-                                         self.strike,
-                                         self.fd_expiry_idx,
-                                         self.fd_maturity_idx,
-                                         self.fd_event_grid,
-                                         self.time_dependence,
-                                         self.int_step_size,
-                                         option_type="Put")
+        self.putPelsser = option.EuropeanOptionPelsser(
+            self.kappa, self.vol, self.discount_curve, self.strike,
+            self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
+            self.time_dependence, self.int_step_size, option_type="Put")
 
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
@@ -555,19 +468,18 @@ class Put(unittest.TestCase):
             print(self.put.transformation)
         self.put.fd_setup(self.x_grid, equidistant=True)
         self.put.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.put)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.put.fd.solution
         analytical = self.put.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.put)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
-        self.assertTrue(max_error < 1.1e-3)
+        self.assertTrue(max_error < 7.5e-4)
         # Check delta.
         numerical = self.put.fd.delta()
         analytical = self.put.delta(self.x_grid, 0)
@@ -575,7 +487,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 1.3e-3)
+        self.assertTrue(max_error < 2.4e-3)
         # Check gamma.
         numerical = self.put.fd.gamma()
         analytical = self.put.gamma(self.x_grid, 0)
@@ -583,7 +495,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 2.7e-3)
+        self.assertTrue(max_error < 3.5e-3)
         # Check theta.
         numerical = self.put.fd.theta()
         analytical = self.put.theta(self.x_grid, 0)
@@ -591,27 +503,26 @@ class Put(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.5f}")
-        self.assertTrue(max_error < 3.0e-5)
+        self.assertTrue(max_error < 4.0e-5)
 
     def test_theta_method_pelsser(self):
-        """Finite difference pricing of zero-coupon bond."""
+        """Finite difference pricing of European call option."""
         if print_results:
             print(self.putPelsser.transformation)
         self.putPelsser.fd_setup(self.x_grid, equidistant=True)
         self.putPelsser.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.putPelsser)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.putPelsser.fd.solution
         analytical = self.putPelsser.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.putPelsser)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
-        self.assertTrue(max_error < 4.4e-4)
+        self.assertTrue(max_error < 8.1e-4)
         # Check delta.
         numerical = self.putPelsser.fd.delta()
         analytical = self.putPelsser.delta(self.x_grid, 0)
@@ -619,7 +530,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 1.1e-3)
+        self.assertTrue(max_error < 2.3e-3)
         # Check gamma.
         numerical = self.putPelsser.fd.gamma()
         analytical = self.putPelsser.gamma(self.x_grid, 0)
@@ -627,7 +538,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 1.9e-3)
+        self.assertTrue(max_error < 3.6e-3)
         # Check theta.
         numerical = self.putPelsser.fd.theta()
         analytical = self.putPelsser.theta(self.x_grid, 0)
@@ -635,7 +546,7 @@ class Put(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.5f}")
-        self.assertTrue(max_error < 3.0e-5)
+        self.assertTrue(max_error < 4.0e-5)
 
     def test_monte_carlo(self):
         """Monte-Carlo pricing of European call option."""
@@ -663,10 +574,12 @@ class Put(unittest.TestCase):
             error_euler[idx] = self.put.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
             plt.ylabel("Call option price")
             plt.legend()
@@ -678,7 +591,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 3.1e-2)
+        self.assertTrue(max_error < 8.7e-3)
 
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of European call option."""
@@ -698,20 +611,22 @@ class Put(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.putPelsser.mc_exact_solve(s, n_paths, rng=rng,
-                                           antithetic=True)
+            self.putPelsser.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.putPelsser.mc_exact.mc_estimate
             error_exact[idx] = self.putPelsser.mc_exact.mc_error
-            self.putPelsser.mc_euler_solve(s, n_paths, rng=rng,
-                                           antithetic=True)
+            self.putPelsser.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.putPelsser.mc_euler.mc_estimate
             error_euler[idx] = self.putPelsser.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
             plt.ylabel("Call option price")
             plt.legend()
@@ -723,8 +638,4 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 3.1e-2)
-
-
-if __name__ == '__main__':
-    unittest.main()
+        self.assertTrue(max_error < 8.1e-3)

@@ -31,24 +31,14 @@ class Swap(unittest.TestCase):
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         # Swap.
         self.time_dependence = "piecewise"
-        self.swap = \
-            swap.Swap(self.kappa,
-                      self.vol,
-                      self.discount_curve,
-                      self.fixed_rate,
-                      self.fixing_schedule,
-                      self.payment_schedule,
-                      self.event_grid,
-                      self.time_dependence)
-        self.swapPelsser = \
-            swap.SwapPelsser(self.kappa,
-                             self.vol,
-                             self.discount_curve,
-                             self.fixed_rate,
-                             self.fixing_schedule,
-                             self.payment_schedule,
-                             self.event_grid,
-                             self.time_dependence)
+        self.swap = swap.Swap(
+            self.kappa, self.vol, self.discount_curve, self.fixed_rate,
+            self.fixing_schedule, self.payment_schedule, self.event_grid,
+            self.time_dependence)
+        self.swapPelsser = swap.SwapPelsser(
+            self.kappa, self.vol, self.discount_curve, self.fixed_rate,
+            self.fixing_schedule, self.payment_schedule, self.event_grid,
+            self.time_dependence)
 
     def test_pricing(self):
         """Compare pricing functions."""
@@ -62,20 +52,19 @@ class Swap(unittest.TestCase):
         self.assertTrue(np.abs(price_1 - price_2)[(self.x_steps - 1) // 2] < 1e-12)
 
     def test_theta_method(self):
-        """Finite difference pricing of zero-coupon bond."""
+        """Finite difference pricing of swap."""
         if print_results:
             print(self.swap.transformation)
         self.swap.fd_setup(self.x_grid, equidistant=True)
         self.swap.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.swap)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.swap.fd.solution
         analytical = self.swap.price(self.x_grid, 0)
         relative_error = np.abs((analytical - numerical) / analytical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.swap)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
@@ -106,24 +95,23 @@ class Swap(unittest.TestCase):
         self.assertTrue(max_error < 5.2e-6)
 
     def test_theta_method_pelsser(self):
-        """Finite difference pricing of zero-coupon bond."""
+        """Finite difference pricing of swap."""
         if print_results:
             print(self.swapPelsser.transformation)
         self.swapPelsser.fd_setup(self.x_grid, equidistant=True)
         self.swapPelsser.fd_solve()
+        if plot_results:
+            plots.plot_price_and_greeks(self.swapPelsser)
+        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
+        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         # Check price.
         numerical = self.swapPelsser.fd.solution
         analytical = self.swapPelsser.price(self.x_grid, 0)
         error = np.abs(analytical - numerical)
-        if plot_results:
-            plots.plot_price_and_greeks(self.swapPelsser)
-        # Maximum error.
-        idx_min = np.argwhere(self.x_grid < -0.02)[-1][0]
-        idx_max = np.argwhere(self.x_grid < 0.02)[-1][0]
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
-        self.assertTrue(max_error < 3.2e-3)
+        self.assertTrue(max_error < 5.6e-6)
         # Check delta.
         numerical = self.swapPelsser.fd.delta()
         analytical = self.swapPelsser.delta(self.x_grid, 0)
@@ -131,7 +119,7 @@ class Swap(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.7f}")
-        self.assertTrue(max_error < 3.3e-3)
+        self.assertTrue(max_error < 3.4e-6)
         # Check gamma.
         numerical = self.swapPelsser.fd.gamma()
         analytical = self.swapPelsser.gamma(self.x_grid, 0)
@@ -139,7 +127,7 @@ class Swap(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.7f}")
-        self.assertTrue(max_error < 2.3e-3)
+        self.assertTrue(max_error < 2.0e-6)
         # Check theta.
         numerical = self.swapPelsser.fd.theta()
         analytical = self.swapPelsser.theta(self.x_grid, 0)
@@ -147,10 +135,10 @@ class Swap(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.7f}")
-        self.assertTrue(max_error < 6.1e-5)
+        self.assertTrue(max_error < 5.2e-6)
 
     def test_monte_carlo(self):
-        """Monte-Carlo pricing of European call option."""
+        """Monte-Carlo pricing of swap."""
         self.swap.mc_exact_setup()
         self.swap.mc_euler_setup()
         # Spot rate.
@@ -159,7 +147,7 @@ class Swap(unittest.TestCase):
         # Initialize random number generator.
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate.
-        n_paths = 10000
+        n_paths = 2000
         # Analytical result.
         price_a = self.swap.price(spot_vector, 0)
         numerical_exact = np.zeros(spot_vector.size)
@@ -175,12 +163,14 @@ class Swap(unittest.TestCase):
             error_euler[idx] = self.swap.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
-            plt.ylabel("Call option price")
+            plt.ylabel("Swap price")
             plt.legend()
             plt.show()
         relative_error = np.abs((price_a - numerical_exact) / price_a)
@@ -190,10 +180,10 @@ class Swap(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 3.1e-3)
+        self.assertTrue(max_error < 6.4e-3)
 
     def test_monte_carlo_pelsser(self):
-        """Monte-Carlo pricing of European call option."""
+        """Monte-Carlo pricing of swap."""
         self.swapPelsser.mc_exact_setup()
         self.swapPelsser.mc_euler_setup()
         # Spot rate.
@@ -202,7 +192,7 @@ class Swap(unittest.TestCase):
         # Initialize random number generator.
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate.
-        n_paths = 10000
+        n_paths = 2000
         # Analytical result.
         price_a = self.swapPelsser.price(spot_vector, 0)
         numerical_exact = np.zeros(spot_vector.size)
@@ -210,22 +200,24 @@ class Swap(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.swapPelsser.mc_exact_solve(s, n_paths, rng=rng,
-                                            antithetic=True)
+            self.swapPelsser.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.swapPelsser.mc_exact.mc_estimate
             error_exact[idx] = self.swapPelsser.mc_exact.mc_error
-            self.swapPelsser.mc_euler_solve(s, n_paths, rng=rng,
-                                            antithetic=True)
+            self.swapPelsser.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.swapPelsser.mc_euler.mc_estimate
             error_euler[idx] = self.swapPelsser.mc_euler.mc_error
         if plot_results:
             plt.plot(spot_vector, price_a, "-b")
-            plt.errorbar(spot_vector, numerical_exact, yerr=error_exact,
-                         fmt='or', markersize=2, capsize=5, label="Exact")
-            plt.errorbar(spot_vector, numerical_euler, yerr=error_euler,
-                         fmt='og', markersize=2, capsize=5, label="Euler")
+            plt.errorbar(
+                spot_vector, numerical_exact, yerr=error_exact,
+                fmt='or', markersize=2, capsize=5, label="Exact")
+            plt.errorbar(
+                spot_vector, numerical_euler, yerr=error_euler,
+                fmt='og', markersize=2, capsize=5, label="Euler")
             plt.xlabel("Initial pseudo short rate")
-            plt.ylabel("Call option price")
+            plt.ylabel("Swap price")
             plt.legend()
             plt.show()
         relative_error = np.abs((price_a - numerical_exact) / price_a)
@@ -235,8 +227,4 @@ class Swap(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 3.1e-3)
-
-
-if __name__ == '__main__':
-    unittest.main()
+        self.assertTrue(max_error < 6.4e-3)

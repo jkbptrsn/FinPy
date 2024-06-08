@@ -18,15 +18,16 @@ class Call(options.Option2F):
         rate: Interest rate.
     """
 
-    def __init__(self,
-                 rate: float,
-                 kappa: float,
-                 eta: float,
-                 vol: float,
-                 correlation: float,
-                 strike: float,
-                 expiry_idx: int,
-                 event_grid: np.ndarray):
+    def __init__(
+            self,
+            rate: float,
+            kappa: float,
+            eta: float,
+            vol: float,
+            correlation: float,
+            strike: float,
+            expiry_idx: int,
+            event_grid: np.ndarray):
         super().__init__()
         self.rate = rate
         self.kappa = kappa
@@ -44,8 +45,9 @@ class Call(options.Option2F):
     def expiry(self) -> float:
         return self.event_grid[self.expiry_idx]
 
-    def payoff(self,
-               spot: typing.Union[float, np.ndarray]) \
+    def payoff(
+            self,
+            spot: typing.Union[float, np.ndarray]) \
             -> typing.Union[float, np.ndarray]:
         """Payoff function.
 
@@ -57,10 +59,11 @@ class Call(options.Option2F):
         """
         return payoffs.call(spot, self.strike)
 
-    def price(self,
-              spot_price: float,
-              spot_variance: float,
-              event_idx: int) -> typing.Union[float, np.ndarray]:
+    def price(
+            self,
+            spot_price: float,
+            spot_variance: float,
+            event_idx: int) -> typing.Union[float, np.ndarray]:
         """Price function.
 
         Args:

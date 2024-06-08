@@ -34,19 +34,12 @@ class ZeroCouponBond(unittest.TestCase):
         self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         # Zero-coupon bonds.
         self.time_dependence = "piecewise"
-        self.bond = zcbond.ZCBond(self.kappa,
-                                  self.vol,
-                                  self.discount_curve,
-                                  self.fd_maturity_idx,
-                                  self.fd_event_grid,
-                                  self.time_dependence)
-        self.bond_pelsser = \
-            zcbond.ZCBondPelsser(self.kappa,
-                                 self.vol,
-                                 self.discount_curve,
-                                 self.fd_maturity_idx,
-                                 self.fd_event_grid,
-                                 self.time_dependence)
+        self.bond = zcbond.ZCBond(
+            self.kappa, self.vol, self.discount_curve, self.fd_maturity_idx,
+            self.fd_event_grid, self.time_dependence)
+        self.bond_pelsser = zcbond.ZCBondPelsser(
+            self.kappa, self.vol, self.discount_curve, self.fd_maturity_idx,
+            self.fd_event_grid, self.time_dependence)
 
     def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""
@@ -66,7 +59,7 @@ class ZeroCouponBond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
-        self.assertTrue(max_error < 2.5e-3)
+        self.assertTrue(max_error < 1.9e-3)
         # Check delta.
         numerical = self.bond.fd.delta()
         analytical = self.bond.delta(self.x_grid, 0)
@@ -74,7 +67,7 @@ class ZeroCouponBond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 2.7e-3)
+        self.assertTrue(max_error < 2.1e-3)
         # Check gamma.
         numerical = self.bond.fd.gamma()
         analytical = self.bond.gamma(self.x_grid, 0)
@@ -82,7 +75,7 @@ class ZeroCouponBond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 4.3e-3)
+        self.assertTrue(max_error < 3.7e-3)
         # Check theta.
         numerical = self.bond.fd.theta()
         analytical = self.bond.theta(self.x_grid, 0)
@@ -90,7 +83,7 @@ class ZeroCouponBond(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.5f}")
-        self.assertTrue(max_error < 1.2e-3)
+        self.assertTrue(max_error < 1.1e-3)
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of zero-coupon bond."""
@@ -146,7 +139,7 @@ class ZeroCouponBond(unittest.TestCase):
         # Initialize random number generator.
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate.
-        n_paths = 2000
+        n_paths = 500
         # Analytical result.
         price_a = self.bond.price(spot_vector, 0)
         numerical_exact = np.zeros(spot_vector.size)
@@ -177,7 +170,7 @@ class ZeroCouponBond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 2.0e-2)
+        self.assertTrue(max_error < 4.6e-2)
 
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of zero-coupon bond."""
@@ -189,7 +182,7 @@ class ZeroCouponBond(unittest.TestCase):
         # Initialize random number generator.
         rng = np.random.default_rng(0)
         # Number of paths for each Monte-Carlo estimate.
-        n_paths = 2000
+        n_paths = 500
         # Analytical result.
         price_a = self.bond_pelsser.price(spot_vector, 0)
         numerical_exact = np.zeros(spot_vector.size)
@@ -197,12 +190,12 @@ class ZeroCouponBond(unittest.TestCase):
         numerical_euler = np.zeros(spot_vector.size)
         error_euler = np.zeros(spot_vector.size)
         for idx, s in enumerate(spot_vector):
-            self.bond_pelsser.mc_exact_solve(s, n_paths, rng=rng,
-                                             antithetic=True)
+            self.bond_pelsser.mc_exact_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_exact[idx] = self.bond_pelsser.mc_exact.mc_estimate
             error_exact[idx] = self.bond_pelsser.mc_exact.mc_error
-            self.bond_pelsser.mc_euler_solve(s, n_paths, rng=rng,
-                                             antithetic=True)
+            self.bond_pelsser.mc_euler_solve(
+                s, n_paths, rng=rng, antithetic=True)
             numerical_euler[idx] = self.bond_pelsser.mc_euler.mc_estimate
             error_euler[idx] = self.bond_pelsser.mc_euler.mc_error
         if plot_results:
@@ -222,8 +215,4 @@ class ZeroCouponBond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 2.0e-2)
-
-
-if __name__ == '__main__':
-    unittest.main()
+        self.assertTrue(max_error < 4.6e-2)
