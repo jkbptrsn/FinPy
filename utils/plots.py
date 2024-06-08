@@ -1,31 +1,21 @@
 import matplotlib.pyplot as plt
-import numpy as np
-from scipy.stats import norm
-
-from utils import global_types
 
 
-def plot_price_and_greeks(instrument, show=True):
-    """..."""
+def plot_price_and_greeks(
+        instrument,
+        show: bool = True) -> None:
+    """Plot price, delta, gamma and theta on finite difference grid."""
+    # Finite difference grid.
+    grid = instrument.fd.grid
 
     plt.rcParams.update({"font.size": 10})
 
-    grid = instrument.fd.grid
-
     # Figure 1
-    f1, ax1 = plt.subplots(4, 1, sharex=True)
+    f1, ax1 = plt.subplots(4, 1, sharex="all")
     f1.suptitle("Price and greeks of instrument")
 
     # Plot of instrument payoff and price.
-    if (instrument.model in [global_types.Model.VASICEK,
-                             global_types.Model.HULL_WHITE_1F]
-            and instrument.type in [global_types.Instrument.EUROPEAN_CALL,
-                                    global_types.Instrument.EUROPEAN_PUT]):
-        payoff = instrument.payoff(
-            instrument.zcbond.price(grid, instrument.expiry_idx))
-        ax1[0].plot(grid, payoff, '-.k', label="Payoff")
-    else:
-        ax1[0].plot(grid, instrument.payoff(grid), '-.k', label="Payoff")
+    ax1[0].plot(grid, instrument.payoff(grid), '-.k', label="Payoff")
     ax1[0].plot(grid, instrument.fd.solution, '-r', label="Numerical result")
     try:
         ax1[0].plot(grid, instrument.price(grid, 0),
@@ -35,7 +25,6 @@ def plot_price_and_greeks(instrument, show=True):
     ax1[0].set_ylabel("Price")
     ax1[0].grid(True)
     ax1[0].ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
-
     ax1[0].legend(bbox_to_anchor=(0.1, 1.02, 0.9, 0.2), loc="lower left",
                   mode="expand", borderaxespad=0, ncol=3)
 
@@ -71,7 +60,7 @@ def plot_price_and_greeks(instrument, show=True):
     ax1[3].ticklabel_format(axis="both", style="sci", scilimits=(0, 0))
 
     # Figure 2
-    f2, ax2 = plt.subplots(4, 1, sharex=True)
+    f2, ax2 = plt.subplots(4, 1, sharex="all")
     f2.suptitle("Analytical result minus numerical result")
 
     # Plot of instrument price.
@@ -117,59 +106,3 @@ def plot_price_and_greeks(instrument, show=True):
 
     if show:
         plt.show()
-
-
-def plot_path(time_grid, path, show=True):
-    """..."""
-
-    f1, ax1 = plt.subplots(2, 1, sharex=True)
-    f1.suptitle("Monte-Carlo scenario")
-
-    ax1[0].plot(time_grid, path[0], 'b')
-    ax1[0].grid(True)
-    ax1[0].set_ylabel("Stochastic process")
-
-    if len(path) == 2:
-        ax1[1].plot(time_grid, path[1], 'b')
-        ax1[1].grid(True)
-        ax1[1].set_ylabel("Discount curve")
-        ax1[1].set_xlabel("Time")
-    else:
-        ax1[0].set_xlabel("Time")
-
-    if show:
-        plt.show()
-
-
-def plot_rate_distribution(event_idx, rate, mean, std):
-    """..."""
-    n_bins = 101
-    r_min = rate[event_idx, :].min()
-    r_max = rate[event_idx, :].max()
-    r_interval = r_max if r_max > abs(r_min) else abs(r_min)
-    bins = np.arange(n_bins) * 2 * r_interval / (n_bins - 1) - r_interval
-    plt.hist(rate[event_idx, :], bins=bins, density=True)
-
-    grid = (bins[1:] + bins[:-1]) / 2
-    plt.plot(grid, norm.pdf(grid, loc=mean, scale=std))
-    print(mean, std)
-
-    plt.show()
-#    plt.pause(2.2)
-
-
-def plot_rate_discount_distribution(event_idx, rate, discount):
-    """..."""
-#    n_bins = 101
-#    r_min = rate[event_idx, :].min()
-#    r_max = rate[event_idx, :].max()
-#    r_interval = r_max if r_max > abs(r_min) else abs(r_min)
-#    bins = np.arange(n_bins) * 2 * r_interval / (n_bins - 1) - r_interval
-
-    bin_range = [[-0.15, 0.15], [0, 3]]
-
-    plt.hist2d(rate[event_idx, :], discount[event_idx, :],
-               bins=100, range=bin_range, density=True)
-
-#    plt.show()
-    plt.pause(0.5)
