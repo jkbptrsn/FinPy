@@ -2,6 +2,7 @@ import math
 import typing
 
 import numpy as np
+from scipy.stats import norm, qmc
 
 from models.hull_white import misc as misc_hw
 from utils import data_types
@@ -249,7 +250,9 @@ class SdeExact:
             n_paths: int,
             rng: np.random.Generator = None,
             seed: int = None,
-            antithetic: bool = False) -> None:
+            antithetic: bool = False,
+            sobol: bool = False,
+            sobol_gen: qmc.Sobol = None) -> None:
         """Generation of Monte-Carlo paths using exact discretization.
 
         Args:
@@ -259,13 +262,22 @@ class SdeExact:
             seed: Seed of random number generator. Default is None.
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
+            sobol: Use Sobol sequence generator. Default is False.
+            sobol_gen: Sobol sequence generator. Default is None.
 
         Returns:
             Realizations of correlated pseudo short rate and pseudo
             discount processes represented on event_grid.
         """
-        if rng is None:
+        # Random number generator.
+        if not sobol and rng is None:
             rng = np.random.default_rng(seed)
+        # Sobol sequence generator.
+        sobol_seq = None
+        if sobol:
+            if sobol_gen is None:
+                sobol_gen = misc.sobol_generator(2, self.event_grid.size, seed)
+            sobol_seq = misc.sobol_sequence(n_paths, sobol_gen)
         # Paths of rate process.
         r_paths = np.zeros((self.event_grid.size, n_paths))
         r_paths[0] = spot
@@ -274,8 +286,12 @@ class SdeExact:
         for event_idx in range(1, self.event_grid.size):
             correlation = self._correlation(event_idx)
             # Realizations of standard normal random variables.
-            x_rate, x_discount = misc.cholesky_2d(
-                correlation, n_paths, rng, antithetic)
+            if not sobol:
+                x_rate, x_discount = misc.cholesky_2d(
+                    correlation, n_paths, rng, antithetic)
+            else:
+                x_rate, x_discount = misc.cholesky_2d_sobol(
+                    correlation, sobol_seq, event_idx)
             # Increment pseudo short rate process, and update.
             r_increment = self._rate_increment(
                 r_paths[event_idx - 1], event_idx, x_rate)
@@ -743,7 +759,9 @@ class SdeEuler:
             n_paths: int,
             rng: np.random.Generator = None,
             seed: int = None,
-            antithetic: bool = False) -> None:
+            antithetic: bool = False,
+            sobol: bool = False,
+            sobol_gen: qmc.Sobol = None) -> None:
         """Generation of Monte-Carlo paths using Euler discretization.
 
         Args:
@@ -753,13 +771,22 @@ class SdeEuler:
             seed: Seed of random number generator. Default is None.
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
+            sobol: Use Sobol sequence generator. Default is False.
+            sobol_gen: Sobol sequence generator. Default is None.
 
         Returns:
             Realizations of correlated pseudo short rate and pseudo
             discount processes represented on event_grid.
         """
-        if rng is None:
+        # Random number generator.
+        if not sobol and rng is None:
             rng = np.random.default_rng(seed)
+        # Sobol sequence generator.
+        sobol_seq = None
+        if sobol:
+            if sobol_gen is None:
+                sobol_gen = misc.sobol_generator(1, self.event_grid.size, seed)
+            sobol_seq = misc.sobol_sequence(n_paths, sobol_gen)
         # Paths of rate process.
         r_paths = np.zeros((self.event_grid.size, n_paths))
         r_paths[0] = spot
@@ -768,7 +795,10 @@ class SdeEuler:
         for idx, dt in enumerate(np.diff(self.event_grid)):
             event_idx = idx + 1
             # Realizations of standard normal random variables.
-            x_rate = misc.normal_realizations(n_paths, rng, antithetic)
+            if not sobol:
+                x_rate = misc.normal_realizations(n_paths, rng, antithetic)
+            else:
+                x_rate = norm.ppf(sobol_seq[:, event_idx - 1])
             # Increment of rate process, and update.
             r_increment = self._rate_increment(
                 r_paths[event_idx - 1], event_idx - 1, dt, x_rate)

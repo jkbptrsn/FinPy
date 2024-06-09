@@ -6,6 +6,7 @@ import numpy as np
 from models.hull_white import coupon_bond as bond
 from unit_tests.test_hull_white import input
 from utils import cash_flows
+from utils import misc
 from utils import plots
 
 plot_results = False
@@ -234,3 +235,101 @@ class Bond(unittest.TestCase):
         if print_results:
             print("max error: ", max_error)
         self.assertTrue(max_error < 5.4e-3)
+
+    @unittest.skip
+    def test_monte_carlo_sobol(self):
+        """Monte-Carlo pricing of European call option."""
+        self.bond.mc_exact_setup()
+        self.bond.mc_euler_setup()
+        # Analytical result.
+        analytic = self.bond.price(0, 0)
+        # Number of paths per test.
+        n_paths_list = (1000, 4000, 16000, 64000)
+        # Number of repetitions per test.
+        n_rep = 250
+        # Store results.
+        results_exact = np.zeros((3, len(n_paths_list)))
+        results_euler = np.zeros((3, len(n_paths_list)))
+        ####################################
+        # Random numbers, antithetic = False
+        ####################################
+        for idx, n_paths in enumerate(n_paths_list):
+            # Initialize random number generator.
+            rng = np.random.default_rng(0)
+            exact = np.zeros(n_rep)
+            euler = np.zeros(n_rep)
+            for n in range(n_rep):
+                self.bond.mc_exact_solve(
+                    0, n_paths, rng=rng, antithetic=False)
+                exact[n] = self.bond.mc_exact.mc_estimate
+                self.bond.mc_euler_solve(
+                    0, n_paths, rng=rng, antithetic=False)
+                euler[n] = self.bond.mc_euler.mc_estimate
+            results_exact[0, idx] = (
+                np.mean(np.abs((exact - analytic) / analytic)))
+            results_euler[0, idx] = (
+                np.mean(np.abs((euler - analytic) / analytic)))
+        ####################################
+        # Random numbers, antithetic = False
+        ####################################
+        for idx, n_paths in enumerate(n_paths_list):
+            # Initialize random number generator.
+            rng = np.random.default_rng(0)
+            exact = np.zeros(n_rep)
+            euler = np.zeros(n_rep)
+            for n in range(n_rep):
+                self.bond.mc_exact_solve(
+                    0, n_paths, rng=rng, antithetic=True)
+                exact[n] = self.bond.mc_exact.mc_estimate
+                self.bond.mc_euler_solve(
+                    0, n_paths, rng=rng, antithetic=True)
+                euler[n] = self.bond.mc_euler.mc_estimate
+            results_exact[1, idx] = (
+                np.mean(np.abs((exact - analytic) / analytic)))
+            results_euler[1, idx] = (
+                np.mean(np.abs((euler - analytic) / analytic)))
+        ################
+        # Sobol sequence
+        ################
+        for idx, n_paths in enumerate(n_paths_list):
+            # Initialize Sobol sequence generator.
+            sobol_gen_exact = (
+                misc.sobol_generator(2, self.bond.event_grid.size, 0))
+            sobol_gen_euler = (
+                misc.sobol_generator(1, self.bond.event_grid.size, 0))
+            exact = np.zeros(n_rep)
+            euler = np.zeros(n_rep)
+            for n in range(n_rep):
+                self.bond.mc_exact_solve(
+                    0, n_paths, sobol=True, sobol_gen=sobol_gen_exact)
+                exact[n] = self.bond.mc_exact.mc_estimate
+                self.bond.mc_euler_solve(
+                    0, n_paths, sobol=True, sobol_gen=sobol_gen_euler)
+                euler[n] = self.bond.mc_euler.mc_estimate
+            results_exact[2, idx] = (
+                np.mean(np.abs((exact - analytic) / analytic)))
+            results_euler[2, idx] = (
+                np.mean(np.abs((euler - analytic) / analytic)))
+        if plot_results:
+            # Plot results based on exact propagation.
+            plt.plot(n_paths_list, results_exact[0, :],
+                     "ob", label="RNG, trans")
+            plt.plot(n_paths_list, results_euler[0, :],
+                     "xb", label="RNG, euler")
+            plt.plot(n_paths_list, results_exact[1, :],
+                     "or", label="A-RNG, trans")
+            plt.plot(n_paths_list, results_euler[1, :],
+                     "xr", label="A-RNG, euler")
+            plt.plot(n_paths_list, results_exact[2, :],
+                     "ok", label="Sobol, trans")
+            plt.plot(n_paths_list, results_euler[2, :],
+                     "xk", label="Sobol, euler")
+            plt.title("Coupon bond")
+            plt.xlabel("Number of MC paths")
+            plt.ylabel("Relative error of MC estimate")
+            plt.xscale("log")
+            plt.yscale("log")
+            plt.legend()
+            file_path = "mc_convergence_coupon_bond.png"
+            plt.savefig(file_path)
+            # plt.show()

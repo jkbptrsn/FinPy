@@ -2,6 +2,7 @@ import math
 import typing
 
 import numpy as np
+from scipy.stats import qmc
 
 from models import bonds
 from models.hull_white import mc_andersen as mc_a
@@ -307,7 +308,9 @@ class ZCBond(bonds.Bond1FAnalytical):
             n_paths: int,
             rng: np.random.Generator = None,
             seed: int = None,
-            antithetic: bool = False) -> None:
+            antithetic: bool = False,
+            sobol: bool = False,
+            sobol_gen: qmc.Sobol = None) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Exact discretization.
@@ -319,8 +322,11 @@ class ZCBond(bonds.Bond1FAnalytical):
             seed: Seed of random number generator. Default is None.
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
+            sobol: Use Sobol sequence generator. Default is False.
+            sobol_gen: Sobol sequence generator. Default is None.
         """
-        self.mc_exact.paths(spot, n_paths, rng, seed, antithetic)
+        self.mc_exact.paths(
+            spot, n_paths, rng, seed, antithetic, sobol, sobol_gen)
         present_value = self.mc_present_value(self.mc_exact)
         self.mc_exact.mc_estimate = present_value.mean()
         self.mc_exact.mc_error = present_value.std(ddof=1)
@@ -338,7 +344,9 @@ class ZCBond(bonds.Bond1FAnalytical):
             n_paths: int,
             rng: np.random.Generator = None,
             seed: int = None,
-            antithetic: bool = False) -> None:
+            antithetic: bool = False,
+            sobol: bool = False,
+            sobol_gen: qmc.Sobol = None) -> None:
         """Run Monte-Carlo solver on event grid.
 
         Euler-Maruyama discretization.
@@ -350,8 +358,11 @@ class ZCBond(bonds.Bond1FAnalytical):
             seed: Seed of random number generator. Default is None.
             antithetic: Antithetic sampling for variance reduction.
                 Default is False.
+            sobol: Use Sobol sequence generator. Default is False.
+            sobol_gen: Sobol sequence generator. Default is None.
         """
-        self.mc_euler.paths(spot, n_paths, rng, seed, antithetic)
+        self.mc_euler.paths(
+            spot, n_paths, rng, seed, antithetic, sobol, sobol_gen)
         present_value = self.mc_present_value(self.mc_euler)
         self.mc_euler.mc_estimate = present_value.mean()
         self.mc_euler.mc_error = present_value.std(ddof=1)

@@ -1,7 +1,5 @@
-import math
-
 import numpy as np
-from scipy.optimize import brentq
+from scipy.stats import norm, qmc
 
 
 def normal_realizations(
@@ -76,59 +74,58 @@ def trapz(
     return dx * (function[1:] + function[:-1]) / 2
 
 
-########################################################################
-
-
-def monte_carlo_error(realizations: np.ndarray) -> float:
-    """Calculate the standard error of the Monte-Carlo estimate.
+def sobol_generator(
+        mc_dimension: int,
+        event_grid_size: int,
+        seed: int = None) -> qmc.Sobol:
+    """Initialization of Sobol sequence generator.
 
     Args:
-        realizations: Realizations of the relevant random variable.
+        mc_dimension: Number of random numbers per event date.
+        event_grid_size: Number of event dates.
+        seed: Seed of
 
     Returns:
-        Standard error.
+        Sobol sequence generator.
     """
-    sample_size = realizations.size
-    sample_variance = realizations.var(ddof=1)
-    return math.sqrt(sample_variance) / math.sqrt(sample_size)
+    sequence_size = mc_dimension * (event_grid_size - 1)
+    return qmc.Sobol(sequence_size, seed=seed)
 
 
-def price_refinancing_bond(coupon: float,
-                           n_payments: int,
-                           sum_discount_factors: float) -> float:
-    """Refinancing bond is an annuity. Return the difference between
-    par and the price of the refinancing bond."""
-    constant_payment = coupon / (1 - (1 + coupon) ** (-n_payments))
-    return 1 - constant_payment * sum_discount_factors
+def sobol_sequence(
+        n_paths: int,
+        generator: qmc.Sobol) -> np.ndarray:
+    """Construct Sobol sequence.
+
+    TODO: Use random_base2 instead? Check n_paths = 2 ** integer...
+
+    Args:
+        n_paths: Number of Monte-Carlo paths.
+        generator: Sobol sequence generator.
+
+    Returns:
+        Sobol sequence.
+    """
+    return generator.random(n_paths)
 
 
-def calc_refinancing_coupon(n_payments: int,
-                            sum_discount_factors: float) -> float:
-    """Calculate coupon of refinancing bond assuming par value."""
-    arguments = (n_payments, sum_discount_factors)
-    return brentq(price_refinancing_bond, -0.9, 0.9, args=arguments)
+def cholesky_2d_sobol(
+        correlation: float,
+        sobol_seq: np.ndarray,
+        event_idx: int) -> (np.ndarray, np.ndarray):
+    """Cholesky decomposition of correlation matrix in 2-D.
 
+    Args:
+        correlation: Correlation scalar.
+        sobol_seq:
+        event_idx: Index on event grid.
 
-def sobol_init(event_grid_size: int):
-    """Initialization of sobol sequence generator for two 1-dimensional
-    processes for event_grid_size time steps..."""
-    # Sobol sequence generator for seq_size = event_grid_size - 1.
-    seq_size = event_grid_size - 1
-    return scipy.stats.qmc.Sobol(2 * seq_size)
-
-
-def cholesky_2d_sobol_test(correlation: float,
-                           sobol_norm,
-                           time_idx) -> (np.ndarray, np.ndarray):
-    """..."""
+    Returns:
+        Realizations of two correlated standard normal random variables.
+    """
     corr_matrix = np.array([[1, correlation], [correlation, 1]])
     corr_matrix = np.linalg.cholesky(corr_matrix)
-    x1 = normal_realizations_sobol_test(sobol_norm[:, 2 * (time_idx - 1)])
-    x2 = normal_realizations_sobol_test(sobol_norm[:, 2 * (time_idx - 1) + 1])
+    x1 = norm.ppf(sobol_seq[:, 2 * (event_idx - 1)])
+    x2 = norm.ppf(sobol_seq[:, 2 * (event_idx - 1) + 1])
     return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
         corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
-
-
-def normal_realizations_sobol_test(sobol_norm) -> np.ndarray:
-    """..."""
-    return sobol_norm
