@@ -97,6 +97,8 @@ def sobol_sequence(
         generator: qmc.Sobol) -> np.ndarray:
     """Construct Sobol sequence.
 
+    TODO: Use random_base2 instead? Check n_paths = 2 ** integer...
+
     Args:
         n_paths: Number of Monte-Carlo paths.
         generator: Sobol sequence generator.
@@ -104,10 +106,7 @@ def sobol_sequence(
     Returns:
         Sobol sequence.
     """
-    if n_paths % 2 == 0:
-        return generator.random_base2(n_paths)
-    else:
-        return generator.random(n_paths)
+    return generator.random(n_paths)
 
 
 def cholesky_2d_sobol(
