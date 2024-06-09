@@ -1,5 +1,5 @@
 import numpy as np
-import scipy
+from scipy.stats import norm, qmc
 
 
 def normal_realizations(
@@ -74,30 +74,59 @@ def trapz(
     return dx * (function[1:] + function[:-1]) / 2
 
 
-########################################################################
+def sobol_generator(
+        mc_dimension: int,
+        event_grid_size: int,
+        seed: int = None) -> qmc.Sobol:
+    """Initialization of Sobol sequence generator.
+
+    Args:
+        mc_dimension: Number of random numbers per event date.
+        event_grid_size: Number of event dates.
+        seed: Seed of
+
+    Returns:
+        Sobol sequence generator.
+    """
+    sequence_size = mc_dimension * (event_grid_size - 1)
+    return qmc.Sobol(sequence_size, seed=seed)
 
 
-def sobol_init(event_grid_size: int):
-    """Initialization of sobol sequence generator for two 1-dimensional
-    processes for event_grid_size time steps..."""
-    # Sobol sequence generator for seq_size = event_grid_size - 1.
-    seq_size = event_grid_size - 1
-    return scipy.stats.qmc.Sobol(2 * seq_size)
+def sobol_sequence(
+        n_paths: int,
+        generator: qmc.Sobol) -> np.ndarray:
+    """Construct Sobol sequence.
+
+    Args:
+        n_paths: Number of Monte-Carlo paths.
+        generator: Sobol sequence generator.
+
+    Returns:
+        Sobol sequence.
+    """
+    if n_paths % 2 == 0:
+        return generator.random_base2(n_paths)
+    else:
+        return generator.random(n_paths)
 
 
-def cholesky_2d_sobol_test(
+def cholesky_2d_sobol(
         correlation: float,
-        sobol_norm: np.ndarray,
-        time_idx: int) -> (np.ndarray, np.ndarray):
-    """..."""
+        sobol_seq: np.ndarray,
+        event_idx: int) -> (np.ndarray, np.ndarray):
+    """Cholesky decomposition of correlation matrix in 2-D.
+
+    Args:
+        correlation: Correlation scalar.
+        sobol_seq:
+        event_idx: Index on event grid.
+
+    Returns:
+        Realizations of two correlated standard normal random variables.
+    """
     corr_matrix = np.array([[1, correlation], [correlation, 1]])
     corr_matrix = np.linalg.cholesky(corr_matrix)
-    x1 = normal_realizations_sobol_test(sobol_norm[:, 2 * (time_idx - 1)])
-    x2 = normal_realizations_sobol_test(sobol_norm[:, 2 * (time_idx - 1) + 1])
+    x1 = norm.ppf(sobol_seq[:, 2 * (event_idx - 1)])
+    x2 = norm.ppf(sobol_seq[:, 2 * (event_idx - 1) + 1])
     return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
         corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
-
-
-def normal_realizations_sobol_test(sobol_norm: np.ndarray) -> np.ndarray:
-    """..."""
-    return sobol_norm
