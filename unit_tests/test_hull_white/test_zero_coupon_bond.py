@@ -226,7 +226,7 @@ class ZeroCouponBond(unittest.TestCase):
         # Analytical result.
         analytic = self.bond.price(0, 0)
         # Number of paths per test.
-        n_paths_list = (1000, 2000, 4000, 8000)
+        n_paths_list = (1000, 4000, 16000, 64000)
         # Number of repetitions per test.
         n_rep = 250
         # Store results.
