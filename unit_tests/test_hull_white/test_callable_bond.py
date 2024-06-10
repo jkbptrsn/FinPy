@@ -71,6 +71,7 @@ class FixedRate(unittest.TestCase):
             self.bond.event_grid.size - 1, self.bond.vol_eg,
             self.bond.event_grid, self.x_steps_noneq, type_="hyperbolic")
 
+    # @unittest.skip
     def test_theta_method(self):
         """Finite difference pricing of non-callable bond."""
         if print_results:
@@ -115,6 +116,7 @@ class FixedRate(unittest.TestCase):
             print(f"Maximum error of theta: {max_error:2.7f}")
         self.assertTrue(max_error < 3.2e-2)
 
+    # @unittest.skip
     def test_theta_method_pelsser(self):
         """Finite difference pricing of non-callable bond."""
         if print_results:
@@ -159,6 +161,7 @@ class FixedRate(unittest.TestCase):
             print(f"Maximum error of theta: {max_error:2.7f}")
         self.assertTrue(max_error < 3.3e-2)
 
+    # @unittest.skip
     def test_theta_method_compare(self):
         """Finite difference pricing of callable bond."""
         if print_results:
@@ -203,6 +206,7 @@ class FixedRate(unittest.TestCase):
             print(f"Maximum error of theta: {max_error:2.7f}")
         self.assertTrue(max_error < 6.9e-3)
 
+    # @unittest.skip
     def test_monte_carlo(self):
         """Monte-Carlo pricing of non-callable bond."""
         self.bond.callable_bond = False
@@ -248,6 +252,7 @@ class FixedRate(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 8.4e-3)
 
+    # @unittest.skip
     def test_monte_carlo_compare(self):
         """Monte-Carlo pricing of callable bond."""
         self.bond.mc_exact_setup()
@@ -296,6 +301,7 @@ class FixedRate(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 3.9e-3)
 
+    # @unittest.skip
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of non-callable bond."""
         self.bond_pelsser.callable_bond = False
@@ -343,6 +349,7 @@ class FixedRate(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 8.4e-3)
 
+    # @unittest.skip
     def test_monte_carlo_pelsser_compare(self):
         """Monte-Carlo pricing of callable bond."""
         self.bond_pelsser.mc_exact_setup()
@@ -393,6 +400,7 @@ class FixedRate(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 4.0e-3)
 
+    # @unittest.skip
     def test_oas(self):
         """Compare equidistant and non-equidistant FD grids."""
         self.bond.fd_setup(self.x_grid, equidistant=True)
