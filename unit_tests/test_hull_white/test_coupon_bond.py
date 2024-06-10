@@ -58,6 +58,7 @@ class Bond(unittest.TestCase):
             self.kappa, self.vol, self.discount_curve, self.cash_flow_schedule,
             self.cash_flow, self.event_grid, self.time_dependence)
 
+    # @unittest.skip
     def test_theta_method(self):
         """Finite difference pricing of bond."""
         if print_results:
@@ -101,6 +102,7 @@ class Bond(unittest.TestCase):
             print(f"Maximum error of theta: {max_error:2.7f}")
         self.assertTrue(max_error < 7.2e-3)
 
+    # @unittest.skip
     def test_theta_method_pelsser(self):
         """Finite difference pricing of bond."""
         if print_results:
@@ -144,6 +146,7 @@ class Bond(unittest.TestCase):
             print(f"Maximum error of theta: {max_error:2.7f}")
         self.assertTrue(max_error < 7.2e-3)
 
+    # @unittest.skip
     def test_monte_carlo(self):
         """Monte-Carlo pricing of cap."""
         self.bond.mc_exact_setup()
@@ -189,6 +192,7 @@ class Bond(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 5.4e-3)
 
+    # @unittest.skip
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of floor."""
         self.bond_pelsser.mc_exact_setup()

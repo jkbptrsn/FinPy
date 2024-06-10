@@ -326,7 +326,3 @@ class HeatEquation1D(unittest.TestCase):
             self.assertTrue(abs(lr1.slope - 2) < 1e-5)
             self.assertTrue(abs(lr2.slope - 2) < 1e-5)
             self.assertTrue(abs(lr3.slope - 2) < 1e-5)
-
-
-if __name__ == '__main__':
-    unittest.main()

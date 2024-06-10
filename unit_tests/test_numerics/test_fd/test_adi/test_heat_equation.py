@@ -415,9 +415,6 @@ class HeatEquation2DDouglasRachford(unittest.TestCase):
                 print_to_screen(str(self), max_diff)
             self.assertTrue(max_diff < limit)
 
-    def test_convergence(self):
-        pass
-
 
 class HeatEquation2DCraigSneyd(unittest.TestCase):
     """Numerical solutions of 2-dimensional heat equation.
@@ -519,10 +516,3 @@ class HeatEquation2DCraigSneyd(unittest.TestCase):
             if print_result:
                 print_to_screen(str(self), max_diff)
             self.assertTrue(max_diff < limit)
-
-    def test_convergence(self):
-        pass
-
-
-if __name__ == '__main__':
-    unittest.main()

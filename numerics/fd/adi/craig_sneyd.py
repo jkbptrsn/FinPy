@@ -207,9 +207,12 @@ def update(
         drift_x = np.outer(drift_x, np.ones(instrument.fd.grid_y.size))
         drift_y = instrument.kappa * (instrument.eta - instrument.fd.grid_y)
         drift_y = np.outer(np.ones(instrument.fd.grid_x.size), drift_y)
-        diffusion_x = np.outer(instrument.fd.grid_x, np.sqrt(instrument.fd.grid_y))
-        diffusion_y = instrument.vol * np.sqrt(instrument.fd.grid_y)
-        diffusion_y = np.outer(np.ones(instrument.fd.grid_x.size), diffusion_y)
+        diffusion_x = (
+            np.outer(instrument.fd.grid_x, np.sqrt(instrument.fd.grid_y)))
+        diffusion_y = (
+            instrument.vol * np.sqrt(instrument.fd.grid_y))
+        diffusion_y = (
+            np.outer(np.ones(instrument.fd.grid_x.size), diffusion_y))
         rate_x = instrument.rate + 0 * instrument.fd.grid_x
         rate_x = np.outer(rate_x, np.ones(instrument.fd.grid_y.size))
         rate_y = instrument.rate + 0 * instrument.fd.grid_y

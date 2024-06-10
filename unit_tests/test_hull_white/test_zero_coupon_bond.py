@@ -42,6 +42,7 @@ class ZeroCouponBond(unittest.TestCase):
             self.kappa, self.vol, self.discount_curve, self.fd_maturity_idx,
             self.fd_event_grid, self.time_dependence)
 
+    # @unittest.skip
     def test_theta_method(self):
         """Finite difference pricing of zero-coupon bond."""
         if print_results:
@@ -86,6 +87,7 @@ class ZeroCouponBond(unittest.TestCase):
             print(f"Maximum error of theta: {max_error:2.5f}")
         self.assertTrue(max_error < 1.1e-3)
 
+    # @unittest.skip
     def test_theta_method_pelsser(self):
         """Finite difference pricing of zero-coupon bond."""
         if print_results:
@@ -130,6 +132,7 @@ class ZeroCouponBond(unittest.TestCase):
             print(f"Maximum error of theta: {max_error:2.5f}")
         self.assertTrue(max_error < 1.3e-3)
 
+    # @unittest.skip
     def test_monte_carlo(self):
         """Monte-Carlo pricing of zero-coupon bond."""
         self.bond.mc_exact_setup()
@@ -173,6 +176,7 @@ class ZeroCouponBond(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 4.6e-2)
 
+    # @unittest.skip
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of zero-coupon bond."""
         self.bond_pelsser.mc_exact_setup()

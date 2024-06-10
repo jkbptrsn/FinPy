@@ -1,8 +1,9 @@
 import numpy as np
 
 
-def smoothing_1d(grid: np.ndarray,
-                 function: np.ndarray) -> np.ndarray:
+def smoothing_1d(
+        grid: np.ndarray,
+        function: np.ndarray) -> np.ndarray:
     """'Box smoothing' of discrete function on non-equidistant grid.
 
     Smoothing of discrete function. The method is similar to box
@@ -32,8 +33,9 @@ def smoothing_1d(grid: np.ndarray,
     return smooth
 
 
-def smoothing_payoff_1d(grid: np.ndarray,
-                        instrument) -> np.ndarray:
+def smoothing_payoff_1d(
+        grid: np.ndarray,
+        instrument) -> np.ndarray:
     """Box smoothing of payoff function on non-equidistant grid.
 
     See Andersen & Piterbarg (2010), Section 23.3.

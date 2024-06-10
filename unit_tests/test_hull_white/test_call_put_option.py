@@ -68,6 +68,7 @@ class VFunction(unittest.TestCase):
             self.expiry_idx, self.maturity_idx, self.event_grid, "general",
             1 / 100)
 
+    # @unittest.skip
     def test_constant(self):
         """Constant vol strip."""
         v_constant = misc_ep.v_constant(
@@ -145,6 +146,7 @@ class VFunction(unittest.TestCase):
                 self.assertTrue(diff1 < 1.0e-15)
                 self.assertTrue(diff2 < 1.0e-15)
 
+    # @unittest.skip
     def test_piecewise(self):
         """Piecewise constant vol strip."""
         v_piecewise = misc_ep.v_piecewise(
@@ -244,6 +246,7 @@ class Call(unittest.TestCase):
             self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
             self.time_dependence, self.int_step_size)
 
+    # @unittest.skip
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
         if print_results:
@@ -287,6 +290,7 @@ class Call(unittest.TestCase):
             print(f"Maximum error of theta: {max_error:2.5f}")
         self.assertTrue(max_error < 2.5e-4)
 
+    # @unittest.skip
     def test_theta_method_pelsser(self):
         """Finite difference pricing of European call option."""
         if print_results:
@@ -330,6 +334,7 @@ class Call(unittest.TestCase):
             print(f"Maximum error of theta: {max_error:2.5f}")
         self.assertTrue(max_error < 2.8e-4)
 
+    # @unittest.skip
     def test_monte_carlo(self):
         """Monte-Carlo pricing of European call option."""
         self.call.mc_exact_setup()
@@ -375,6 +380,7 @@ class Call(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 4.9e-2)
 
+    # @unittest.skip
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of European call option."""
         self.callPelsser.mc_exact_setup()
@@ -561,6 +567,7 @@ class Put(unittest.TestCase):
             self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
             self.time_dependence, self.int_step_size, option_type="Put")
 
+    # @unittest.skip
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
         if print_results:
@@ -604,6 +611,7 @@ class Put(unittest.TestCase):
             print(f"Maximum error of theta: {max_error:2.5f}")
         self.assertTrue(max_error < 4.0e-5)
 
+    # @unittest.skip
     def test_theta_method_pelsser(self):
         """Finite difference pricing of European call option."""
         if print_results:
@@ -647,6 +655,7 @@ class Put(unittest.TestCase):
             print(f"Maximum error of theta: {max_error:2.5f}")
         self.assertTrue(max_error < 4.0e-5)
 
+    # @unittest.skip
     def test_monte_carlo(self):
         """Monte-Carlo pricing of European call option."""
         self.put.mc_exact_setup()
@@ -692,6 +701,7 @@ class Put(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 8.7e-3)
 
+    # @unittest.skip
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of European call option."""
         self.putPelsser.mc_exact_setup()
