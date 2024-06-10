@@ -83,14 +83,12 @@ class CallOption(unittest.TestCase):
                     self.instrument.price(x, y, 0))
                 a_result_zero[idx_x, idx_y] = (
                     self.instrument_zero.price(x, y, 0))
-
         diff_n = self.instrument.fd.solution - self.instrument_zero.fd.solution
         diff_a = a_result - a_result_zero
         max_diff = np.max(np.abs(diff_n - diff_a))
         if print_result:
             print(max_diff, 0.09 * np.max(np.abs(diff_a)))
         self.assertTrue(max_diff < 0.09 * np.max(np.abs(diff_a)))
-
         if plot_result:
             fig = plt.figure(figsize=plt.figaspect(0.5))
             ax = fig.add_subplot(1, 2, 1, projection='3d')
@@ -115,7 +113,3 @@ class CallOption(unittest.TestCase):
             ax.set_xlim([self.y_min, self.y_max])
             ax.set_ylim([self.x_min, self.x_max])
             plt.show()
-
-
-if __name__ == '__main__':
-    unittest.main()

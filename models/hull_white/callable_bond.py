@@ -292,6 +292,10 @@ class FixedRate(bonds.Bond1FAnalytical):
         """
         which_deadline = np.where(self.deadline_schedule == event_idx)[0]
         payment_count = which_deadline[0]
+        # Maximum payment count.
+        payment_count_max = None
+        if self.n_test:
+            payment_count_max = len(self.prepayment_model.term_dates) - 1
         # Present value of zero-coupon bond (unit notional) with
         # maturity at corresponding payment event.
         mat_idx = self.payment_schedule[payment_count]
@@ -312,8 +316,7 @@ class FixedRate(bonds.Bond1FAnalytical):
                 self, self.fd.grid, payment_count, redemption_remaining)
 
             # TODO: N-test
-            if (self.n_test and
-                    payment_count < len(self.prepayment_model.term_dates) - 1):
+            if self.n_test and payment_count < payment_count_max:
                 prepayment_rate -= redemption_rate
 
             # Value of bond (at deadline event) with notional of 100
@@ -424,6 +427,10 @@ class FixedRate(bonds.Bond1FAnalytical):
         discount_paths_steps = np.r_[discount_paths_steps, last_row]
         # Payoff along each path.
         bond_payoff = np.zeros(discount_paths_steps.shape[1])
+        # Maximum payment count.
+        payment_count_max = None
+        if self.n_test:
+            payment_count_max = len(self.prepayment_model.term_dates) - 1
         for counter, (idx_deadline, idx_payment) in \
             enumerate(zip(np.flip(self.deadline_schedule),
                           np.flip(self.payment_schedule))):
@@ -446,8 +453,7 @@ class FixedRate(bonds.Bond1FAnalytical):
                     self, rate_paths, payment_count, redemption_remaining)
 
                 # TODO: N-test
-                if (self.n_test and
-                        payment_count < len(self.prepayment_model.term_dates) - 1):
+                if self.n_test and payment_count < payment_count_max:
                     prepayment_rate -= redemption_rate
 
                 # Value (at deadline event) of notional of 100

@@ -1,10 +1,10 @@
-import cmath
 import math
 import typing
 
 import numpy as np
 
 from models import options
+from models.heston import misc_european_option as misc
 from utils import global_types
 from utils import payoffs
 
@@ -15,7 +15,14 @@ class Call(options.Option2F):
     European call option written on stock price modelled by Heston SDE.
 
     Attributes:
-        rate: Interest rate.
+        rate: Risk-free interest rate.
+        kappa: Speed of mean reversion of variance.
+        eta: Long-term mean of variance.
+        vol: Volatility of variance.
+        correlation: Correlation parameter.
+        strike: Strike price of stock at expiry.
+        expiry_idx: Expiry index on event grid.
+        event_grid: Event dates as year fractions from as-of date.
     """
 
     def __init__(
@@ -76,94 +83,20 @@ class Call(options.Option2F):
         """
         # Time to maturity.
         tau = self.expiry - self.event_grid[event_idx]
-
+        # Forward price.
         forward_price = spot_price * math.exp(self.rate * tau)
-
+        # Log-moneyness.
         x = math.log(forward_price / self.strike)
-
-        prop_0 = probability(0, x, spot_variance, self.kappa, self.eta, self.vol, self.correlation, tau)
-        prop_1 = probability(1, x, spot_variance, self.kappa, self.eta, self.vol, self.correlation, tau)
-
-        return self.strike * (math.exp(x) * prop_1 - prop_0) * math.exp(-self.rate * tau)
-
-    def delta(self):
-        pass
-
-    def gamma(self):
-        pass
-
-    def theta(self):
-        pass
+        # Probabilities.
+        prop_0 = misc.probability(0, x, spot_variance, self.kappa, self.eta,
+                                  self.vol, self.correlation, tau)
+        prop_1 = misc.probability(1, x, spot_variance, self.kappa, self.eta,
+                                  self.vol, self.correlation, tau)
+        return (self.strike * (math.exp(x) * prop_1 - prop_0)
+                * math.exp(-self.rate * tau))
 
     def fd_solve(self):
-        """Run solver on event_grid..."""
+        """Run finite difference solver on event grid."""
+        # Backward propagation.
         for dt in np.flip(np.diff(self.event_grid)):
             self.fd.propagation(dt)
-
-
-def alpha(j, k):
-    return -k ** 2 / 2 - 1j * k / 2 + 1j * j * k
-
-
-def beta(j, k, lambda_, eta, rho):
-    return lambda_ - rho * eta * j - 1j * rho * eta * k
-
-
-def gamma(eta):
-    return eta ** 2 / 2
-
-
-def discriminant(j, k, lambda_, eta, rho):
-    alpha_ = alpha(j, k)
-    beta_ = beta(j, k, lambda_, eta, rho)
-    gamma_ = gamma(eta)
-    return cmath.sqrt(beta_ ** 2 - 4 * alpha_ * gamma_)
-
-
-def r_func(sign, j, k, lambda_, eta, rho):
-    beta_ = beta(j, k, lambda_, eta, rho)
-    gamma_ = gamma(eta)
-    d = discriminant(j, k, lambda_, eta, rho)
-    if sign == "plus":
-        return (beta_ + d) / (2 * gamma_)
-    elif sign == "minus":
-        return (beta_ - d) / (2 * gamma_)
-    else:
-        raise ValueError("Unknown sign.")
-
-
-def g_func(j, k, lambda_, eta, rho):
-    r_minus = r_func("minus", j, k, lambda_, eta, rho)
-    r_plus = r_func("plus", j, k, lambda_, eta, rho)
-    return r_minus / r_plus
-
-
-def d_func(j, k, lambda_, eta, rho, tau):
-    d = discriminant(j, k, lambda_, eta, rho)
-    g = g_func(j, k, lambda_, eta, rho)
-    r_minus = r_func("minus", j, k, lambda_, eta, rho)
-    return r_minus * (1 - cmath.exp(-d * tau)) / (1 - g * cmath.exp(-d * tau))
-
-
-def c_func(j, k, lambda_, eta, rho, tau):
-    d = discriminant(j, k, lambda_, eta, rho)
-    g = g_func(j, k, lambda_, eta, rho)
-    r_minus = r_func("minus", j, k, lambda_, eta, rho)
-    gamma_ = gamma(eta)
-    result = 1 - g * cmath.exp(-d * tau)
-    result /= 1 - g
-    return lambda_ * (r_minus * tau - cmath.log(result) / gamma_)
-
-
-def probability(j, x, variance, lambda_, theta, eta, rho, tau):
-    n_steps = 101
-    k_max = 100
-    step_size = k_max / (n_steps - 1)
-    integral = 0
-    for i in range(n_steps):
-        k = step_size * (i + 0.5)
-        c = c_func(j, k, lambda_, eta, rho, tau)
-        d = d_func(j, k, lambda_, eta, rho, tau)
-        integrand = cmath.exp(c * theta + d * variance + 1j * k * x) / (1j * k)
-        integral += integrand.real * step_size
-    return 0.5 + integral / cmath.pi

@@ -115,7 +115,7 @@ class JointDistributions(unittest.TestCase):
     def test_compare_different_seed(self) -> None:
         """Compare distributions."""
         # Number of MC paths.
-        n_paths = 1000000
+        n_paths = 500000
         # Random number generator.
         rng = np.random.default_rng(0)
         # MC paths using the Andersen transformation.

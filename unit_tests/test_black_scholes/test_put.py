@@ -246,7 +246,7 @@ class AmericanPut(unittest.TestCase):
 
     def setUp(self) -> None:
         # Finite-difference prices of American put option in
-        # Black-Scholes model, Tabel 1.
+        # Black-Scholes model.
         self.fd_american = \
             (4.478, 4.840, 7.101, 8.508,
              3.250, 3.745, 6.148, 7.670,

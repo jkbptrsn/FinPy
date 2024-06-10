@@ -42,7 +42,7 @@ def swap_schedule(
         events_per_fixing: Events per fixing period.
 
     Returns:
-        Evnet grid, fixing and payment schedules.
+        Event grid, fixing and payment schedules.
     """
     # Number of events from time zero to fixing_end, both included.
     n_events = fixing_end * fixing_frequency * events_per_fixing + 1
