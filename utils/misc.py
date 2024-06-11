@@ -125,7 +125,13 @@ def cholesky_2d_sobol(
     """
     corr_matrix = np.array([[1, correlation], [correlation, 1]])
     corr_matrix = np.linalg.cholesky(corr_matrix)
-    x1 = norm.ppf(sobol_seq[:, 2 * (event_idx - 1)])
-    x2 = norm.ppf(sobol_seq[:, 2 * (event_idx - 1) + 1])
+    sobol_seq_tmp = sobol_seq[:, 2 * (event_idx - 1)]
+    sobol_seq_tmp[sobol_seq_tmp < 0.000001] = 0.000001
+    sobol_seq_tmp[sobol_seq_tmp > 0.999999] = 0.999999
+    x1 = norm.ppf(sobol_seq_tmp)
+    sobol_seq_tmp = sobol_seq[:, 2 * (event_idx - 1) + 1]
+    sobol_seq_tmp[sobol_seq_tmp < 0.000001] = 0.000001
+    sobol_seq_tmp[sobol_seq_tmp > 0.999999] = 0.999999
+    x2 = norm.ppf(sobol_seq_tmp)
     return corr_matrix[0][0] * x1 + corr_matrix[0][1] * x2, \
         corr_matrix[1][0] * x1 + corr_matrix[1][1] * x2
