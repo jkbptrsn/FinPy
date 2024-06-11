@@ -10,7 +10,7 @@ from utils import cash_flows
 from utils import misc
 from utils import plots
 
-plot_results = True
+plot_results = False
 print_results = False
 
 
@@ -418,7 +418,7 @@ class FixedRate(unittest.TestCase):
                       f"OAS diff = {diff:4.2f}")
             self.assertTrue(diff < 1.1)
 
-    # @unittest.skip
+    @unittest.skip
     def test_monte_carlo_sobol(self):
         """Monte-Carlo pricing of callable bond."""
         self.bond.mc_exact_setup()

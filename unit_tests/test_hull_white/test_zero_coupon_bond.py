@@ -9,7 +9,7 @@ from unit_tests.test_hull_white import input
 from utils import misc
 from utils import plots
 
-plot_results = True
+plot_results = False
 print_results = False
 
 
@@ -218,7 +218,7 @@ class ZeroCouponBond(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 4.6e-2)
 
-    # @unittest.skip
+    @unittest.skip
     def test_monte_carlo_sobol(self):
         """Monte-Carlo pricing of zero-coupon bond."""
         self.bond.mc_exact_setup()

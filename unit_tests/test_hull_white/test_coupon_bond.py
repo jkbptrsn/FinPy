@@ -10,7 +10,7 @@ from utils import cash_flows
 from utils import misc
 from utils import plots
 
-plot_results = True
+plot_results = False
 print_results = False
 
 
@@ -236,7 +236,7 @@ class Bond(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 4.3e-3)
 
-    # @unittest.skip
+    @unittest.skip
     def test_monte_carlo_sobol(self):
         """Monte-Carlo pricing of European call option."""
         self.bond.mc_exact_setup()

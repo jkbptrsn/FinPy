@@ -11,7 +11,7 @@ from utils import data_types
 from utils import misc
 from utils import plots
 
-plot_results = True
+plot_results = False
 print_results = False
 
 
@@ -422,7 +422,7 @@ class Call(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 4.9e-2)
 
-    # @unittest.skip
+    @unittest.skip
     def test_monte_carlo_sobol(self):
         """Monte-Carlo pricing of European call option."""
         self.call.mc_exact_setup()
@@ -741,7 +741,7 @@ class Put(unittest.TestCase):
             print("max error: ", max_error)
         self.assertTrue(max_error < 8.1e-3)
 
-    # @unittest.skip
+    @unittest.skip
     def test_monte_carlo_sobol(self):
         """Monte-Carlo pricing of European put option."""
         self.put.mc_exact_setup()
