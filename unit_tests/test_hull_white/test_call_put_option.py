@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from models.hull_white import european_option as option
+from models.hull_white import misc as misc_hw
 from models.hull_white import misc_european_option as misc_ep
 from unit_tests.test_hull_white import input
 from utils import data_types
@@ -225,12 +226,6 @@ class Call(unittest.TestCase):
         self.expiry = self.fd_event_grid[self.fd_expiry_idx]
         # Option strike price.
         self.strike = 0.8
-        # FD spatial grid.
-        self.x_min = -0.15
-        self.x_max = 0.15
-        self.x_steps = 201
-        self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
-        self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         self.int_step_factor = 2
         self.int_step_size = self.fd_dt / self.int_step_factor
         # Call option.
@@ -243,12 +238,17 @@ class Call(unittest.TestCase):
             self.kappa, self.vol, self.discount_curve, self.strike,
             self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
             self.time_dependence, self.int_step_size)
+        # FD spatial grid.
+        self.x_steps = 61
+        self.x_grid = misc_hw.fd_grid(
+            self.fd_event_grid.size - 1, self.call.vol_eg, self.fd_event_grid,
+            self.x_steps, n_stds=5, type_="hyperbolic")
 
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
         if print_results:
             print(self.call.transformation)
-        self.call.fd_setup(self.x_grid, equidistant=True)
+        self.call.fd_setup(self.x_grid, equidistant=False)
         self.call.fd_solve()
         if plot_results:
             plots.plot_price_and_greeks(self.call)
@@ -261,7 +261,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
-        self.assertTrue(max_error < 9.5e-3)
+        self.assertTrue(max_error < 9.1e-3)
         # Check delta.
         numerical = self.call.fd.delta()
         analytical = self.call.delta(self.x_grid, 0)
@@ -269,7 +269,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 6.6e-3)
+        self.assertTrue(max_error < 2.2e-3)
         # Check gamma.
         numerical = self.call.fd.gamma()
         analytical = self.call.gamma(self.x_grid, 0)
@@ -277,7 +277,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 4.6e-3)
+        self.assertTrue(max_error < 4.1e-3)
         # Check theta.
         numerical = self.call.fd.theta()
         analytical = self.call.theta(self.x_grid, 0)
@@ -285,13 +285,13 @@ class Call(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.5f}")
-        self.assertTrue(max_error < 2.5e-4)
+        self.assertTrue(max_error < 2.2e-4)
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of European call option."""
         if print_results:
             print(self.callPelsser.transformation)
-        self.callPelsser.fd_setup(self.x_grid, equidistant=True)
+        self.callPelsser.fd_setup(self.x_grid, equidistant=False)
         self.callPelsser.fd_solve()
         if plot_results:
             plots.plot_price_and_greeks(self.callPelsser)
@@ -304,7 +304,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
-        self.assertTrue(max_error < 9.0e-3)
+        self.assertTrue(max_error < 8.7e-3)
         # Check delta.
         numerical = self.callPelsser.fd.delta()
         analytical = self.callPelsser.delta(self.x_grid, 0)
@@ -312,7 +312,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 6.4e-3)
+        self.assertTrue(max_error < 2.2e-3)
         # Check gamma.
         numerical = self.callPelsser.fd.gamma()
         analytical = self.callPelsser.gamma(self.x_grid, 0)
@@ -320,7 +320,7 @@ class Call(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 4.7e-3)
+        self.assertTrue(max_error < 3.9e-3)
         # Check theta.
         numerical = self.callPelsser.fd.theta()
         analytical = self.callPelsser.theta(self.x_grid, 0)
@@ -328,7 +328,7 @@ class Call(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.5f}")
-        self.assertTrue(max_error < 2.8e-4)
+        self.assertTrue(max_error < 2.0e-4)
 
     def test_monte_carlo(self):
         """Monte-Carlo pricing of European call option."""
@@ -430,9 +430,9 @@ class Call(unittest.TestCase):
         # Analytical result.
         analytic = self.call.price(0, 0)
         # Number of paths per test.
-        n_paths_list = (1000, 4000, 16000, 64000)
+        n_paths_list = (1000, 2000, 4000, 8000, 16000)
         # Number of repetitions per test.
-        n_rep = 250
+        n_rep = 200
         # Store results.
         results_exact = np.zeros((3, len(n_paths_list)))
         results_euler = np.zeros((3, len(n_paths_list)))
@@ -497,6 +497,10 @@ class Call(unittest.TestCase):
             results_euler[2, idx] = (
                 np.mean(np.abs((euler - analytic) / analytic)))
         if plot_results:
+
+            print(results_exact)
+            print(results_euler)
+
             # Plot results based on exact propagation.
             plt.plot(n_paths_list, results_exact[0, :],
                      "ob", label="RNG, trans")
@@ -541,31 +545,29 @@ class Put(unittest.TestCase):
         self.expiry = self.fd_event_grid[self.fd_expiry_idx]
         # Option strike price.
         self.strike = 0.8
-        # FD spatial grid.
-        self.x_min = -0.15
-        self.x_max = 0.15
-        self.x_steps = 201
-        self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
-        self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         self.int_step_factor = 2
         self.int_step_size = self.fd_dt / self.int_step_factor
-        # Call option.
+        # Put option.
         self.time_dependence = "piecewise"
         self.put = option.EuropeanOption(
             self.kappa, self.vol, self.discount_curve, self.strike,
             self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
             self.time_dependence, self.int_step_size, option_type="Put")
-
         self.putPelsser = option.EuropeanOptionPelsser(
             self.kappa, self.vol, self.discount_curve, self.strike,
             self.fd_expiry_idx, self.fd_maturity_idx, self.fd_event_grid,
             self.time_dependence, self.int_step_size, option_type="Put")
+        # FD spatial grid.
+        self.x_steps = 61
+        self.x_grid = misc_hw.fd_grid(
+            self.fd_event_grid.size - 1, self.put.vol_eg, self.fd_event_grid,
+            self.x_steps, n_stds=5, type_="hyperbolic")
 
     def test_theta_method(self):
         """Finite difference pricing of European call option."""
         if print_results:
             print(self.put.transformation)
-        self.put.fd_setup(self.x_grid, equidistant=True)
+        self.put.fd_setup(self.x_grid, equidistant=False)
         self.put.fd_solve()
         if plot_results:
             plots.plot_price_and_greeks(self.put)
@@ -578,7 +580,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
-        self.assertTrue(max_error < 7.5e-4)
+        self.assertTrue(max_error < 9.6e-4)
         # Check delta.
         numerical = self.put.fd.delta()
         analytical = self.put.delta(self.x_grid, 0)
@@ -586,7 +588,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 2.4e-3)
+        self.assertTrue(max_error < 1.7e-3)
         # Check gamma.
         numerical = self.put.fd.gamma()
         analytical = self.put.gamma(self.x_grid, 0)
@@ -594,7 +596,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 3.5e-3)
+        self.assertTrue(max_error < 1.5e-2)
         # Check theta.
         numerical = self.put.fd.theta()
         analytical = self.put.theta(self.x_grid, 0)
@@ -608,7 +610,7 @@ class Put(unittest.TestCase):
         """Finite difference pricing of European call option."""
         if print_results:
             print(self.putPelsser.transformation)
-        self.putPelsser.fd_setup(self.x_grid, equidistant=True)
+        self.putPelsser.fd_setup(self.x_grid, equidistant=False)
         self.putPelsser.fd_solve()
         if plot_results:
             plots.plot_price_and_greeks(self.putPelsser)
@@ -621,7 +623,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.5f}")
-        self.assertTrue(max_error < 8.1e-4)
+        self.assertTrue(max_error < 1.2e-3)
         # Check delta.
         numerical = self.putPelsser.fd.delta()
         analytical = self.putPelsser.delta(self.x_grid, 0)
@@ -629,7 +631,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.5f}")
-        self.assertTrue(max_error < 2.3e-3)
+        self.assertTrue(max_error < 4.1e-3)
         # Check gamma.
         numerical = self.putPelsser.fd.gamma()
         analytical = self.putPelsser.gamma(self.x_grid, 0)
@@ -637,7 +639,7 @@ class Put(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.5f}")
-        self.assertTrue(max_error < 3.6e-3)
+        self.assertTrue(max_error < 1.6e-2)
         # Check theta.
         numerical = self.putPelsser.fd.theta()
         analytical = self.putPelsser.theta(self.x_grid, 0)
@@ -747,9 +749,9 @@ class Put(unittest.TestCase):
         # Analytical result.
         analytic = self.put.price(0, 0)
         # Number of paths per test.
-        n_paths_list = (1000, 4000, 16000, 64000)
+        n_paths_list = (1000, 2000, 4000, 8000, 16000)
         # Number of repetitions per test.
-        n_rep = 250
+        n_rep = 200
         # Store results.
         results_exact = np.zeros((3, len(n_paths_list)))
         results_euler = np.zeros((3, len(n_paths_list)))
@@ -814,6 +816,10 @@ class Put(unittest.TestCase):
             results_euler[2, idx] = (
                 np.mean(np.abs((euler - analytic) / analytic)))
         if plot_results:
+
+            print(results_exact)
+            print(results_euler)
+
             # Plot results based on exact propagation.
             plt.plot(n_paths_list, results_exact[0, :],
                      "ob", label="RNG, trans")

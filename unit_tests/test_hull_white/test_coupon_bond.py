@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from models.hull_white import coupon_bond as bond
+from models.hull_white import misc as misc_hw
 from unit_tests.test_hull_white import input
 from utils import cash_flows
 from utils import misc
@@ -26,13 +27,13 @@ class Bond(unittest.TestCase):
         # Initial time of first payment period.
         self.t_i = 0
         # Final time of last payment period.
-        self.t_f = 5
+        self.t_f = 30
         # Principal at time zero.
         self.principal = 100
         # Fixed yearly coupon.
         self.coupon = 0.05
         # Term frequency per year.
-        self.frequency = 1
+        self.frequency = 4
         # Cash flows.
         self.cash_flow_grid = cash_flows.set_payment_grid(
             self.t_i, self.t_f, self.frequency)
@@ -40,15 +41,9 @@ class Bond(unittest.TestCase):
             self.coupon, self.frequency, self.cash_flow_grid, self.principal,
             self.cf_type)
         # Event grid
-        event_dt = 0.1
+        event_dt = 1 / 12
         self.event_grid, self.cash_flow_schedule, _ = \
             cash_flows.set_event_grid(self.cash_flow_grid, event_dt)
-        # FD spatial grid.
-        self.x_min = -0.15
-        self.x_max = 0.15
-        self.x_steps = 201
-        self.dx = (self.x_max - self.x_min) / (self.x_steps - 1)
-        self.x_grid = self.dx * np.arange(self.x_steps) + self.x_min
         self.time_dependence = "piecewise"
         # Bond.
         self.bond = bond.Bond(
@@ -57,12 +52,17 @@ class Bond(unittest.TestCase):
         self.bond_pelsser = bond.BondPelsser(
             self.kappa, self.vol, self.discount_curve, self.cash_flow_schedule,
             self.cash_flow, self.event_grid, self.time_dependence)
+        # FD spatial grid.
+        self.x_steps = 61
+        self.x_grid = misc_hw.fd_grid(
+            self.event_grid.size - 1, self.bond.vol_eg, self.event_grid,
+            self.x_steps, n_stds=5, type_="hyperbolic")
 
     def test_theta_method(self):
         """Finite difference pricing of bond."""
         if print_results:
             print(self.bond.transformation)
-        self.bond.fd_setup(self.x_grid, equidistant=True)
+        self.bond.fd_setup(self.x_grid, equidistant=False)
         self.bond.fd_solve()
         if plot_results:
             plots.plot_price_and_greeks(self.bond)
@@ -75,7 +75,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
-        self.assertTrue(max_error < 1.9e-5)
+        self.assertTrue(max_error < 6.1e-4)
         # Check delta.
         numerical = self.bond.fd.delta()
         analytical = self.bond.delta(self.x_grid, 0)
@@ -83,7 +83,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.7f}")
-        self.assertTrue(max_error < 2.1e-5)
+        self.assertTrue(max_error < 1.8e-4)
         # Check gamma.
         numerical = self.bond.fd.gamma()
         analytical = self.bond.gamma(self.x_grid, 0)
@@ -91,7 +91,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.7f}")
-        self.assertTrue(max_error < 6.9e-5)
+        self.assertTrue(max_error < 9.8e-4)
         # Check theta.
         numerical = self.bond.fd.theta()
         analytical = self.bond.theta(self.x_grid, 0)
@@ -99,13 +99,13 @@ class Bond(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.7f}")
-        self.assertTrue(max_error < 7.2e-3)
+        self.assertTrue(max_error < 2.8e-2)
 
     def test_theta_method_pelsser(self):
         """Finite difference pricing of bond."""
         if print_results:
             print(self.bond_pelsser.transformation)
-        self.bond_pelsser.fd_setup(self.x_grid, equidistant=True)
+        self.bond_pelsser.fd_setup(self.x_grid, equidistant=False)
         self.bond_pelsser.fd_solve()
         if plot_results:
             plots.plot_price_and_greeks(self.bond_pelsser)
@@ -118,7 +118,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of price: {max_error:2.7f}")
-        self.assertTrue(max_error < 2.0e-5)
+        self.assertTrue(max_error < 5.6e-4)
         # Check delta.
         numerical = self.bond_pelsser.fd.delta()
         analytical = self.bond_pelsser.delta(self.x_grid, 0)
@@ -126,7 +126,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of delta: {max_error:2.7f}")
-        self.assertTrue(max_error < 2.2e-5)
+        self.assertTrue(max_error < 1.1e-4)
         # Check gamma.
         numerical = self.bond_pelsser.fd.gamma()
         analytical = self.bond_pelsser.gamma(self.x_grid, 0)
@@ -134,7 +134,7 @@ class Bond(unittest.TestCase):
         max_error = np.max(relative_error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of gamma: {max_error:2.7f}")
-        self.assertTrue(max_error < 7.0e-5)
+        self.assertTrue(max_error < 8.6e-4)
         # Check theta.
         numerical = self.bond_pelsser.fd.theta()
         analytical = self.bond_pelsser.theta(self.x_grid, 0)
@@ -142,10 +142,10 @@ class Bond(unittest.TestCase):
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print(f"Maximum error of theta: {max_error:2.7f}")
-        self.assertTrue(max_error < 7.2e-3)
+        self.assertTrue(max_error < 2.7e-2)
 
     def test_monte_carlo(self):
-        """Monte-Carlo pricing of cap."""
+        """Monte-Carlo pricing of bond."""
         self.bond.mc_exact_setup()
         self.bond.mc_euler_setup()
         # Spot rate.
@@ -180,14 +180,14 @@ class Bond(unittest.TestCase):
             plt.ylabel("Coupon bond price")
             plt.legend()
             plt.show()
-        error = np.abs(price_a - numerical_exact)
+        error = np.abs(price_a - numerical_exact) / price_a
         # Maximum error in interval around pseudo short rate of 0.
         idx_min = np.argwhere(spot_vector < -0.05)[-1][0]
         idx_max = np.argwhere(spot_vector < 0.05)[-1][0]
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 5.4e-3)
+        self.assertTrue(max_error < 4.3e-3)
 
     def test_monte_carlo_pelsser(self):
         """Monte-Carlo pricing of floor."""
@@ -227,14 +227,14 @@ class Bond(unittest.TestCase):
             plt.ylabel("Coupon bond price")
             plt.legend()
             plt.show()
-        error = np.abs(price_a - numerical_exact)
+        error = np.abs(price_a - numerical_exact) / price_a
         # Maximum error in interval around pseudo short rate of 0.
         idx_min = np.argwhere(spot_vector < -0.05)[-1][0]
         idx_max = np.argwhere(spot_vector < 0.05)[-1][0]
         max_error = np.max(error[idx_min:idx_max + 1])
         if print_results:
             print("max error: ", max_error)
-        self.assertTrue(max_error < 5.4e-3)
+        self.assertTrue(max_error < 4.3e-3)
 
     @unittest.skip
     def test_monte_carlo_sobol(self):
@@ -244,9 +244,9 @@ class Bond(unittest.TestCase):
         # Analytical result.
         analytic = self.bond.price(0, 0)
         # Number of paths per test.
-        n_paths_list = (1000, 4000, 16000, 64000)
+        n_paths_list = (1000, 2000, 4000, 8000, 16000)
         # Number of repetitions per test.
-        n_rep = 250
+        n_rep = 200
         # Store results.
         results_exact = np.zeros((3, len(n_paths_list)))
         results_euler = np.zeros((3, len(n_paths_list)))
@@ -265,10 +265,8 @@ class Bond(unittest.TestCase):
                 self.bond.mc_euler_solve(
                     0, n_paths, rng=rng, antithetic=False)
                 euler[n] = self.bond.mc_euler.mc_estimate
-            results_exact[0, idx] = (
-                np.mean(np.abs((exact - analytic) / analytic)))
-            results_euler[0, idx] = (
-                np.mean(np.abs((euler - analytic) / analytic)))
+            results_exact[0, idx] = np.mean(np.abs(exact - analytic))
+            results_euler[0, idx] = np.mean(np.abs(euler - analytic))
         ####################################
         # Random numbers, antithetic = False
         ####################################
@@ -284,10 +282,8 @@ class Bond(unittest.TestCase):
                 self.bond.mc_euler_solve(
                     0, n_paths, rng=rng, antithetic=True)
                 euler[n] = self.bond.mc_euler.mc_estimate
-            results_exact[1, idx] = (
-                np.mean(np.abs((exact - analytic) / analytic)))
-            results_euler[1, idx] = (
-                np.mean(np.abs((euler - analytic) / analytic)))
+            results_exact[1, idx] = np.mean(np.abs(exact - analytic))
+            results_euler[1, idx] = np.mean(np.abs(euler - analytic))
         ################
         # Sobol sequence
         ################
@@ -306,11 +302,13 @@ class Bond(unittest.TestCase):
                 self.bond.mc_euler_solve(
                     0, n_paths, sobol=True, sobol_gen=sobol_gen_euler)
                 euler[n] = self.bond.mc_euler.mc_estimate
-            results_exact[2, idx] = (
-                np.mean(np.abs((exact - analytic) / analytic)))
-            results_euler[2, idx] = (
-                np.mean(np.abs((euler - analytic) / analytic)))
+            results_exact[2, idx] = np.mean(np.abs(exact - analytic))
+            results_euler[2, idx] = np.mean(np.abs(euler - analytic))
         if plot_results:
+
+            print(results_exact)
+            print(results_euler)
+
             # Plot results based on exact propagation.
             plt.plot(n_paths_list, results_exact[0, :],
                      "ob", label="RNG, trans")
@@ -326,7 +324,7 @@ class Bond(unittest.TestCase):
                      "xk", label="Sobol, euler")
             plt.title("Coupon bond")
             plt.xlabel("Number of MC paths")
-            plt.ylabel("Relative error of MC estimate")
+            plt.ylabel("Absolute error of MC estimate")
             plt.xscale("log")
             plt.yscale("log")
             plt.legend()

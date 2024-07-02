@@ -798,7 +798,10 @@ class SdeEuler:
             if not sobol:
                 x_rate = misc.normal_realizations(n_paths, rng, antithetic)
             else:
-                x_rate = norm.ppf(sobol_seq[:, event_idx - 1])
+                sobol_seq_tmp = sobol_seq[:, event_idx - 1]
+                sobol_seq_tmp[sobol_seq_tmp < 0.000001] = 0.000001
+                sobol_seq_tmp[sobol_seq_tmp > 0.999999] = 0.999999
+                x_rate = norm.ppf(sobol_seq_tmp)
             # Increment of rate process, and update.
             r_increment = self._rate_increment(
                 r_paths[event_idx - 1], event_idx - 1, dt, x_rate)

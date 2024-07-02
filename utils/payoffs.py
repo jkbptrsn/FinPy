@@ -2,8 +2,9 @@ import numpy as np
 import typing
 
 
-def binary_asset_call(spot: typing.Union[float, np.ndarray],
-                      strike: float) -> typing.Union[float, np.ndarray]:
+def binary_asset_call(
+        spot: typing.Union[float, np.ndarray],
+        strike: float) -> typing.Union[float, np.ndarray]:
     """Long asset-or-nothing call option position.
 
     Args:
@@ -16,8 +17,9 @@ def binary_asset_call(spot: typing.Union[float, np.ndarray],
     return (spot > strike) * spot
 
 
-def binary_asset_put(spot: typing.Union[float, np.ndarray],
-                     strike: float) -> typing.Union[float, np.ndarray]:
+def binary_asset_put(
+        spot: typing.Union[float, np.ndarray],
+        strike: float) -> typing.Union[float, np.ndarray]:
     """Long asset-or-nothing put option position.
 
     Args:
@@ -30,8 +32,9 @@ def binary_asset_put(spot: typing.Union[float, np.ndarray],
     return (spot < strike) * spot
 
 
-def binary_cash_call(spot: typing.Union[float, np.ndarray],
-                     strike: float) -> typing.Union[float, np.ndarray]:
+def binary_cash_call(
+        spot: typing.Union[float, np.ndarray],
+        strike: float) -> typing.Union[float, np.ndarray]:
     """Long cash-or-nothing call option position.
 
     Args:
@@ -44,8 +47,9 @@ def binary_cash_call(spot: typing.Union[float, np.ndarray],
     return (spot > strike) * 1
 
 
-def binary_cash_put(spot: typing.Union[float, np.ndarray],
-                    strike: float) -> typing.Union[float, np.ndarray]:
+def binary_cash_put(
+        spot: typing.Union[float, np.ndarray],
+        strike: float) -> typing.Union[float, np.ndarray]:
     """Long cash-or-nothing put option position.
 
     Args:

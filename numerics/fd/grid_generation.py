@@ -47,7 +47,7 @@ def hyperbolic(
         if abs(x_center) > 1.0e-4:
             shape = x_center / 5
         else:
-            shape = 0.02
+            shape = 0.05
     lower = math.asinh(-(x_center - x_min) / shape)
     delta = (math.asinh((x_max - x_center) / shape) - lower) / (n_states - 1)
     grid = delta * np.arange(n_states) + lower
